@@ -195,6 +195,18 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
     });
   } finally { net.restore(); }
 
+  // 1b. Every key the workspace connected comes before the platform's (Codex,
+  // #358): its own ElevenLabs key composes it, the platform's Gemini is not asked.
+  net = fakeLyria((u) => (u.startsWith('https://api.elevenlabs.io/v1/music') ? { body: 'x', type: 'audio/mpeg' } : null));
+  try {
+    await withEnv({ GEMINI_API_KEY: 'platform-gemini', ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, LYRIA_PLATFORM: undefined }, async () => {
+      const r = await fresh().compose({ prompt: 'A warm acoustic bed', seconds: 20 }, { own: null, ownKeys: { elevenlabs: 'sk_own' }, freeGeneration: true });
+      expect(r.provider).toBe('elevenlabs');
+      expect(r.own).toBe(true);
+      expect(net.calls.map((c) => c.url.split('?')[0])).toEqual(['https://api.elevenlabs.io/v1/music']);
+    });
+  } finally { net.restore(); }
+
   // 2. ElevenLabs refuses (no paid plan); Replicate sings the plan's lyrics with ACE-Step.
   const plan = BM.plan({ brand: BAKERY, purpose: 'jingle', product: { title: 'Chocolate Truffle Cake' }, seconds: 20 });
   expect(plan.vocals).toBe(true);
