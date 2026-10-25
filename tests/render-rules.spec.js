@@ -257,3 +257,10 @@ test('the social video prompt opens as a phone video, never a cinematic film', a
     expect(p).toMatch(/shot like a phone in a real room/);
   }
 });
+
+test('the guard a short provider gets keeps the brand kind\'s own ban: no synthetic people for a news brand', () => {
+  const news = { name: 'Quillforth Gazette', industry: 'News publisher', palette: BRAND.palette };
+  expect(IP.subjectFor(news).caution).toMatch(/synthetic politicians/);
+  for (const mode of ['photo', 'ad', 'reels', 'design']) expect(IP.compactGuard(mode, { brand: news }), mode).toMatch(/synthetic politicians\/people/);
+  expect(IP.compactGuard('photo', { brand: news, product: { title: 'Weekend edition' } })).toMatch(/Show only this product/);
+});
