@@ -50,6 +50,10 @@ const QUALITY_SUFFIX = `
 
 QUALITY BAR: ultra-high fidelity, 8K, razor-sharp focus, true-to-life colour, professional colour grading, natural soft lighting, fine material texture, correct anatomy and hands, balanced composition. Avoid: blur, noise, colour banding, JPEG/compression artifacts, plastic skin, warped or melted shapes, extra or missing fingers, duplicated objects, low resolution, oversaturation, HDR halos, uncanny faces.`;
 
+const REAL_QUALITY_SUFFIX = `
+
+QUALITY BAR: high resolution, true-to-life colour, phone-camera realism as the render rules above say, fine material and skin texture, correct anatomy and hands. Avoid: blur, colour banding, JPEG/compression artifacts, plastic skin, beauty smoothing, warped or melted shapes, extra or missing fingers, duplicated objects, oversaturation, HDR halos, uncanny faces.`;
+
 // Map our standard sizes to Gemini aspect ratios.
 // Includes the ad-creative sizes (Google 1.91:1 + 1:1, Meta/IG/TikTok 1:1 + 9:16).
 const GEMINI_ASPECT_MAP = {
@@ -140,11 +144,23 @@ module.exports = async function handler(req, res) {
     ? `SUBJECT: the brand's own product "${productTitle}"${product.category ? ` (${String(product.category).slice(0, 80)})` : ''}${/^https?:\/\//i.test(String(product.image_url || '')) ? `, exactly as in its catalogue photograph ${String(product.image_url).slice(0, 400)}` : ''}. Show only this product; invent no other object.\n\n`
     : '';
   const preamble = buildPreamble(brand, mode || 'photo', productTitle ? { product: { title: productTitle, category: product.category } } : null);
+  // Pollinations keeps only 1,500 characters: the bans and render rules go
+  // FIRST (compactGuard), ahead of any subject text however long, then the
+  // subject and the short preamble.
+  const shortPreamble = buildPreamble(brand, mode || 'photo', Object.assign({ compact: true }, productTitle ? { product: { title: productTitle, category: product.category } } : {}));
+  const guard = require('../_shared/image-prompt.js').compactGuard(mode || 'photo', Object.assign({ brand }, productTitle ? { product: { title: productTitle } } : {}));
+  const pollPrompt = (guard + '\n\n' + subjectLine + shortPreamble + userPrompt).substring(0, 1500);
   // Reserve room so the quality bar always survives the 4000-char cap. The
   // SUBJECT leads: Pollinations keeps only the first 1,500 characters, and the
   // brand preamble alone is about that long, so a subject placed after it was
   // cut off and the model drew whatever the scene text suggested.
-  const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - QUALITY_SUFFIX.length) + QUALITY_SUFFIX;
+  // A design mockup keeps the studio bar; every real-looking scene takes the
+  // phone-camera bar (render-rules.js): "professional colour grading" and
+  // "natural soft lighting" are the studio-flat look the render rules ban.
+  const qualitySuffix = String(mode || 'photo') === 'design' ? QUALITY_SUFFIX : REAL_QUALITY_SUFFIX;
+  // The same guard opens every provider's prompt: however long the product's
+  // metadata or the style lock, the packaging and brand-kind bans are kept.
+  const finalPrompt = (guard + '\n\n' + subjectLine + preamble + userPrompt).substring(0, 4000 - qualitySuffix.length) + qualitySuffix;
 
   // Keys cleaned and de-duplicated: the same OpenAI key set twice used to be
   // sent twice after it had already been refused.
@@ -361,7 +377,7 @@ module.exports = async function handler(req, res) {
     const models = ['flux-pro', 'flux-realism', 'flux'];
     for (const pollinationsModel of models) {
       const pollUrl = 'https://image.pollinations.ai/prompt/' +
-        encodeURIComponent(finalPrompt.substring(0, 1500)) +
+        encodeURIComponent(pollPrompt) +
         '?width=' + dim.w + '&height=' + dim.h +
         '&seed=' + seed + '&nologo=true&model=' + pollinationsModel + '&enhance=true&quality=hd';
       console.log('[image] Trying Pollinations model=' + pollinationsModel + ' size=' + dim.w + 'x' + dim.h);

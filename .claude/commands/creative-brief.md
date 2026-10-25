@@ -32,6 +32,12 @@ Write the designer-ready brief for: `$ARGUMENTS`.
 ## Output
 The 8-section brief, tight enough to hand off unedited. Offer next steps: /ad-creative (generation) or /design (Canva/Figma).
 
+## Render rules for any generated scene or video (always)
+Every brief that will be rendered by an image or video model carries the render rules from
+`api/_shared/render-rules.js` ("Kill the AI Tell"): phone-camera light on frame 1 (a third of a stop under, mixed
+warm and cool light, window spill), no cinema grade, empty set or magazine framing, one micro-glitch and one ordinary
+object out of place in the opening 3 seconds, and the compact `<render_rules>` block pasted once. See `/ad-creative`.
+
 ## Brand guardrails (always)
 - Palette #D0473E / #6A33D8 / #111111 / #FFFFFF; Montserrat headlines + Instrument Sans body.
 - BANNED: wellness journey, transform, liquid gold, game-changer, LIMITED TIME (caps), hurry, don't miss out, last chance, while supplies last. No em/en dashes in output copy.
