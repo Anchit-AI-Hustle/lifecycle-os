@@ -660,7 +660,7 @@ async function videoAgent(ctx, ideology, content, remainingMs, hero) {
   } else {
     try {
       job = await video.generateVideo({ prompt: videoPrompt, duration_s: 8, aspect: '9:16', tier: 'standard',
-        brand: brandRecord(ctx), motion: motionFor(ctx, content, hero) });
+        brand: brandRecord(ctx), motion: motionFor(ctx, content, hero), dry_run: !!ctx.dry_run });
     } catch (e) {
       job = { ok: false, error: String(e.message || e).slice(0, 200) };
     }
