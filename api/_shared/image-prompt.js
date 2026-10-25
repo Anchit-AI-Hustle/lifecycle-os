@@ -218,8 +218,12 @@ function buildPreamble(brand, mode, opt) {
   // The short form for a 1,500-character provider: the scene, palette and
   // text policy. Its bans and rules are compactGuard(), which the caller puts
   // FIRST, ahead of the subject line (image.js).
+  // A saved style lock and the brand's type are kept, bounded, so a fallback
+  // picture still wears the brand's look; the guard ahead of it is never cut.
   if (opt && opt.compact) {
-    return [head, palette, textPolicy].filter(Boolean).join(' ') + '\n\n';
+    const shortStyle = lock ? [lock.photo_style && `Photo style: ${String(lock.photo_style).slice(0, 160)}.`,
+      Array.isArray(lock.rules) && lock.rules.length && `Never break: ${lock.rules.slice(0, 2).map((r) => String(r).slice(0, 80)).join(' ')}`].filter(Boolean).join(' ') : '';
+    return [head, shortStyle, palette, type && String(type).slice(0, 200), textPolicy].filter(Boolean).join(' ') + '\n\n';
   }
   // The rules ride right after the scene: Pollinations keeps only the first
   // 1,500 characters, and a long style lock or palette must not push them out.
