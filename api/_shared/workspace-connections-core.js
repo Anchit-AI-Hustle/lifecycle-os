@@ -524,13 +524,22 @@ async function listConnections(auth, workspaceId) {
 const PERSONAL_CATEGORIES = new Set(['ai', 'media']);
 function isPersonal(provider) { const reg = BY_ID.get(provider); return !!(reg && PERSONAL_CATEGORIES.has(reg.category)); }
 
+/** The person's other brands, or null when this brand is not theirs. */
+async function ownedOtherThan(auth, workspaceId) {
+  if (!auth || !auth.user_id || !workspaceId) return null;
+  const rows = await brandCore.restAs(auth.token, `brand_workspaces?select=id,name,owner_id&owner_id=eq.${encodeURIComponent(auth.user_id)}`);
+  const list = (Array.isArray(rows) ? rows : []).filter((w) => w && w.id && w.owner_id === auth.user_id);
+  if (!list.some((w) => w.id === workspaceId)) return null;
+  return list.filter((w) => w.id !== workspaceId);
+}
+
 async function personalRows(auth, workspaceId) {
   if (!auth || !auth.user_id) return [];
-  const owned = await brandCore.restAs(
-    auth.token,
-    `brand_workspaces?select=id,name&owner_id=eq.${encodeURIComponent(auth.user_id)}&id=neq.${encodeURIComponent(workspaceId)}`,
-  );
-  const ids = (Array.isArray(owned) ? owned : []).map((w) => w && w.id).filter(Boolean);
+  // Only on a brand the person OWNS: on another owner's brand (where they are
+  // a member or editor) their own keys never pay for that brand's work.
+  const owned = await ownedOtherThan(auth, workspaceId);
+  if (!owned) return [];
+  const ids = owned.map((w) => w.id);
   if (!ids.length) return [];
   const names = new Map((owned || []).map((w) => [w.id, w.name || '']));
   const providers = PROVIDERS.filter((p) => PERSONAL_CATEGORIES.has(p.category)).map((p) => p.id);
@@ -907,11 +916,8 @@ async function getRouting(auth, workspaceId) {
   // No order chosen on this brand: the person's own order from the brand they
   // set it on most recently, so a model order they picked follows them too.
   try {
-    const owned = auth && auth.user_id ? await brandCore.restAs(
-      auth.token,
-      `brand_workspaces?select=id,name&owner_id=eq.${encodeURIComponent(auth.user_id)}&id=neq.${encodeURIComponent(workspaceId)}`,
-    ) : [];
-    const ids = (Array.isArray(owned) ? owned : []).map((w) => w && w.id).filter(Boolean);
+    const owned = (await ownedOtherThan(auth, workspaceId)) || [];
+    const ids = owned.map((w) => w.id);
     if (ids.length) {
       const other = await brandCore.restAs(
         auth.token,
