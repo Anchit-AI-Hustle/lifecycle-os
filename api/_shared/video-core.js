@@ -639,6 +639,26 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
 
+  // A dry run spends nothing on anyone's account: no render is submitted on
+  // any key (own or platform), only the code-rendered creative with the
+  // request the normal run would send first.
+  if (dry_run) {
+    const SHAPES = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest, pollo: polloRequest };
+    let first;
+    if (String(only || '').toLowerCase() === 'higgsfield') first = 'higgsfield';
+    else if (await higgsfieldCred({ ownOnly: true })) first = 'higgsfield';
+    else if (await polloKey()) first = 'pollo';
+    else if (await ownGeminiAuth()) first = 'veo';
+    else {
+      const keyed = [['veo', k.gemini], ['sora', k.openai], ['higgsfield', k.higgsfield && k.higgsfieldSecret], ['openmontage', k.openmontage], ['runway', k.runway]];
+      const pref = Array.isArray(preferProviders) ? preferProviders.find((n) => SHAPES[n]) : null;
+      first = pref || (keyed.find((r) => r[1]) || ['veo'])[0];
+    }
+    const shape = SHAPES[first](opts);
+    try { return codeMotion({ brand, motion, duration_s, aspect, wouldRequest: shape, reason: 'this is a dry run, so no render was submitted' }); }
+    catch (e) { return Object.assign(_notConnected(shape), { audio, motion_error: String((e && e.message) || e).slice(0, 160) }); }
+  }
+
   // Higgsfield asked for by name (the /brain "Render with Seedance" button):
   // that render or its refusal, nothing else, and ONLY on the workspace's own
   // key: the button promises the person's own Higgsfield balance, so the
@@ -651,21 +671,6 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     }
     const out = await runHiggsfield(opts, cred);
     return Object.assign({}, out, { tier, audio, attempts: [] });
-  }
-
-  // A dry run spends nothing on anyone's account: no own-key render (Seedance,
-  // Pollo, Veo) is submitted, only the code-rendered creative with the request
-  // a provider would receive.
-  if (dry_run) {
-    // The request shown is the one the normal run would send first: the own
-    // key it would try (Higgsfield, then Pollo, then Veo), else Seedance.
-    const hf = await higgsfieldCred({ ownOnly: true });
-    const shape = hf ? higgsfieldRequest(opts)
-      : (await polloKey()) ? polloRequest(opts)
-      : (await ownGeminiAuth()) ? veoRequest(opts)
-      : higgsfieldRequest(opts);
-    try { return codeMotion({ brand, motion, duration_s, aspect, wouldRequest: shape, reason: 'this is a dry run, so no render was submitted' }); }
-    catch (e) { return Object.assign(_notConnected(shape), { audio, motion_error: String((e && e.message) || e).slice(0, 160) }); }
   }
 
   // The workspace's OWN Higgsfield key goes first: Seedance renders the
