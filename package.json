@@ -82,7 +82,7 @@
     "@neondatabase/serverless": "^1.2.0",
     "@sparticuz/chromium": "153.0.0",
     "@vercel/speed-insights": "^2.0.0",
-    "google-auth-library": "^11.3.0",
+    "google-auth-library": "^11.3.1",
     "googleapis": "^186.0.0",
     "imapflow": "^2.4.2",
     "mailparser": "^3.12.2",
