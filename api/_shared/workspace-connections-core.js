@@ -184,6 +184,24 @@ const PROVIDERS = [
     wired_note: 'Used first by every video this workspace makes: the product\'s own photo animated into a 5 or 10 second clip. Without it, videos are rendered in code from the same photos.',
   },
 
+  // Higgsfield (docs.higgsfield.ai, read 2026-10-25): one credential is a key
+  // id AND a secret, sent as `Authorization: Key <id>:<secret>`. Seedance 2.0
+  // (ByteDance) renders here, image-to-video from the product's own photo or
+  // text-to-video, under the render rules (render-rules.js). The person's own,
+  // saved in their workspace; the Test prices a request and spends nothing.
+  {
+    id: 'higgsfield', label: 'Higgsfield (Seedance video)', category: 'media',
+    auth_kind: 'api_key', env_default: '',
+    key_url: 'https://cloud.higgsfield.ai/',
+    blurb: 'Seedance 2.0 video ads: your product photo animated into a 4 to 15 second clip, rendered under the phone-camera render rules so it does not look AI. Billed to your Higgsfield balance, not this app\'s credits.',
+    fields: [
+      { key: 'api_key', label: 'API key id', secret: true, required: true },
+      { key: 'api_secret', label: 'API key secret', secret: true, required: true },
+    ],
+    wired: true,
+    wired_note: 'Used first by every video this workspace makes, and by "Render with Seedance" on each video ad in Smart Brain.',
+  },
+
   // Music (2026-10-25): the services The Third Eye's Music Studio composes with
   // (its Hugging Face rung is left out: no Inference Provider hosts MusicGen).
   // Each key is the person's own, saved in their workspace and used before
@@ -1086,7 +1104,7 @@ async function llmOverridesFor(req) {
 
 /**
  * The workspace's own media-generation keys (category 'media'), for the
- * request in flight: { pollo: { api_key } } or null. Same rules as
+ * request in flight: { pollo: { api_key }, higgsfield: { api_key, api_secret } } or null. Same rules as
  * llmOverridesFor: a signed-in member, the workspace they act in, rows read as
  * the caller, secrets decrypted by the service role only for those rows.
  * Never throws; null means the platform's own (keyless) path.
@@ -1110,7 +1128,7 @@ async function mediaKeysFor(req) {
     const out = {};
     for (const r of rows) {
       const sec = secrets.get(r.id) || {};
-      if (sec.api_key) out[r.provider] = { api_key: String(sec.api_key) };
+      if (sec.api_key) out[r.provider] = Object.assign({ api_key: String(sec.api_key) }, sec.api_secret ? { api_secret: String(sec.api_secret) } : {});
     }
     return Object.keys(out).length ? out : null;
   } catch (_) {
@@ -1306,6 +1324,16 @@ async function checkConnection(auth, workspaceId, providerId) {
         : { ok: false, connected: true, note: out.status === 401 || out.status === 403 ? 'That key was rejected as unauthorized.' : `Pollo did not accept the check (${out.status || 'no answer'}).` };
     } catch (_) {
       result = { ok: false, connected: true, note: 'Pollo did not answer in time.' };
+    }
+  } else if (reg.id === 'higgsfield' && secrets.api_key && secrets.api_secret) {
+    // One call that spends nothing: Higgsfield prices a Seedance request.
+    try {
+      const out = await require('./video-core.js').higgsfieldEstimate(String(secrets.api_key), String(secrets.api_secret));
+      result = out.ok
+        ? { ok: true, connected: true, note: `Higgsfield accepted the key${out.usd ? ` (a 5 second Seedance clip prices at $${out.usd})` : ''}.` }
+        : { ok: false, connected: true, note: out.status === 401 ? 'That key id and secret were rejected.' : `Higgsfield did not accept the check: ${out.error}.` };
+    } catch (_) {
+      result = { ok: false, connected: true, note: 'Higgsfield did not answer in time.' };
     }
   } else if (['elevenlabs', 'replicate'].includes(reg.id) && secrets.api_key) {
     // One read per service that spends nothing: who the key belongs to.

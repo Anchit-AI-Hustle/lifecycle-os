@@ -1348,18 +1348,12 @@ function renderAd(ad){
       ? `${cr.story_html ? `<div class="advswitch" role="tablist" aria-label="Video variant"><button type="button" role="tab" class="btn sm" aria-selected="true" data-vv="story" onclick="sbVideoVariant(this,${midx},'story')">Story · ${storySecs} s</button><button type="button" role="tab" class="btn sm secondary" aria-selected="false" data-vv="transitional" onclick="sbVideoVariant(this,${midx},'transitional')">Transitional</button></div>` : ''}<div class="advstage"><iframe class="advframe" sandbox="allow-scripts allow-downloads" title="${esc(platform)} video creative"></iframe></div>`
       : `<p class="advnote adgap">No animated creative was built for this ad, and no MP4 exists. Regenerate the send to build one.</p>`;
     const bar = midx>=0
-      ? `<div class="akbar">${cr.story_html ? `<button type="button" class="btn sm secondary" onclick="sbDownloadStory(${midx})">⬇ Story video page (HTML, saves the video)</button>` : ''}<button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Transitional creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button>`:''}</div>`
+      ? `<div class="akbar">${cr.story_html ? `<button type="button" class="btn sm secondary" onclick="sbDownloadStory(${midx})">⬇ Story video page (HTML, saves the video)</button>` : ''}<button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Transitional creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button><button type="button" class="btn sm" data-seedance onclick="sbRenderSeedance(this,${midx})" title="Renders an MP4 with Seedance 2.0 on your own Higgsfield key, under the phone-camera render rules">▶ Render with Seedance (Higgsfield)</button>`:''}</div><div class="advnote" data-seedance-out hidden></div>`
       : '';
     const shots = (cr.motion_brief && Array.isArray(cr.motion_brief.shots)) ? cr.motion_brief.shots : [];
     const board = shots.length
       ? shots.map(sh=>`<div class="advshot"><div class="advshot-t">${esc(String(sh.start_s))}s · ${esc(sh.camera||'')}</div><div class="advshot-b">${esc((sh.kinetic_type&&sh.kinetic_type.text)||'')}</div></div>`).join('')
       : (ad.storyboard||[]).map(sb=>`<div class="advshot"><div class="advshot-t">${esc(sb.t||'')}</div><div class="advshot-b">${esc(sb.scene||sb.shot||'')}</div></div>`).join('');
-    // "Kill the AI Tell" (render-rules.js): what to re-prompt when a render
-    // from a video model still reads as AI, carried on the shot brief.
-    const rr = cr.motion_brief && cr.motion_brief.render_rules;
-    const rrHtml = rr && Array.isArray(rr.quick_fixes) && rr.quick_fixes.length
-      ? `<details class="advnote" data-render-rules><summary>If a render still looks AI: re-prompts</summary><p>${esc(rr.check_first||'')}</p><ul>${rr.quick_fixes.map(f=>`<li><b>${esc(f.problem)}:</b> ${esc(f.reprompt)}</li>`).join('')}${(rr.common_drift||[]).map(d=>`<li><b>${esc(d.symptom)}:</b> ${esc(d.fix)}</li>`).join('')}</ul><pre style="white-space:pre-wrap;font-size:12px">${esc(rr.compact_block||'')}</pre></details>`
-      : '';
     const audio = cr.audio ? `<p class="advnote">Audio: ${esc(cr.audio.bed ? (cr.audio.origin||cr.audio.bed) : cr.audio.origin||'')}${cr.audio.note?' — '+esc(cr.audio.note):''}</p>` : '';
     return `<div class="adcard" data-ad-type="video" data-motion="${midx>=0?'1':'0'}" data-motion-idx="${midx}">
       <h4>${esc(platform)} · Video ad ${vtag} ${qa}</h4>
@@ -1367,7 +1361,6 @@ function renderAd(ad){
       ${gap}${bar}${player}
       ${board?`<div class="advboard">${board}</div>`:''}
       ${audio}
-      ${rrHtml}
       <div class="advcta">${cta} &rarr;</div>
       ${rows.join('')}
     </div>`;
@@ -1480,6 +1473,41 @@ window.sbVideoVariant = function(btn, idx, which){
   const url = URL.createObjectURL(new Blob([html], { type:'text/html' }));
   frame.src = url; frame.dataset.variant = which; setTimeout(()=>URL.revokeObjectURL(url), 300000);
   card.querySelectorAll('.advswitch [data-vv]').forEach((b)=>{ const on = b.dataset.vv === which; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.classList.toggle('secondary', !on); });
+};
+// A real MP4 from Seedance 2.0 on the workspace's own Higgsfield key: the
+// first shot's photo is the first frame, the shot's move is the prompt, and
+// the server adds the render rules (video-core.higgsfieldRequest). The job is
+// polled until Higgsfield answers; a refusal is said in words.
+window.sbRenderSeedance = async function(btn, idx){
+  const item = (window.__SB_MOTION||[])[idx]; const card = btn && btn.closest('.adcard'); if(!item || !item.brief || !card) return;
+  const out = card.querySelector('[data-seedance-out]'); if(!out) return;
+  const shots = Array.isArray(item.brief.shots) ? item.brief.shots : [];
+  const first = shots.find(sh=>/^https?:\/\//i.test(String(sh.source_image||''))) || shots[0] || {};
+  const image = /^https?:\/\//i.test(String(first.source_image||'')) ? first.source_image : '';
+  const words = [first.video_prompt, item.brief.product ? 'The product: ' + item.brief.product + '.' : ''].filter(Boolean).join(' ');
+  if(!words){ out.hidden = false; out.textContent = 'This ad has no shot to render.'; return; }
+  const say = (t)=>{ out.hidden = false; out.textContent = t; };
+  btn.disabled = true; say('Sending to Seedance 2.0 on Higgsfield...');
+  try {
+    const r = await fetch('/api/brain?action=video-generate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider:'higgsfield', prompt: words, image, aspect:'9:16', duration_s: 8, resolution:'720p' })});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || !j.ok || !j.job_id){ say(j.message || j.error || ('Seedance did not start (HTTP '+r.status+').')); return; }
+    say('Rendering on Higgsfield (' + (j.mode||'video') + '). This takes a minute or two...');
+    for(let i=0;i<72;i++){
+      await new Promise(res=>setTimeout(res, 5000));
+      const sr = await fetch('/api/brain?action=video-status&provider=higgsfield&job_id='+encodeURIComponent(j.job_id));
+      const sj = await sr.json().catch(()=>({}));
+      if(sj.status === 'completed' && sj.video_url){
+        out.hidden = false; out.textContent = '';
+        const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.src = sj.video_url; v.style.cssText = 'width:100%;max-width:360px;display:block;margin:8px 0';
+        const a = document.createElement('a'); a.href = sj.video_url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open the MP4 (Higgsfield keeps it 7 days; download it)';
+        out.append(v, a); return;
+      }
+      if(sj.status === 'failed' || sj.ok === false && sj.status !== 'processing'){ say('Seedance did not finish: ' + (sj.error || 'no reason given') + '.'); return; }
+    }
+    say('Higgsfield is still rendering. Press Render again later to start a new one, or check your Higgsfield dashboard.');
+  } catch(e){ say('Seedance could not be reached: ' + (e && e.message || e)); }
+  finally { btn.disabled = false; }
 };
 window.sbDownloadBrief = function(idx){
   const item = (window.__SB_MOTION||[])[idx]; if(!item || !item.brief) return;

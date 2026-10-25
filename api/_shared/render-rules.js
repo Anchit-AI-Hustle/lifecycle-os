@@ -1,8 +1,8 @@
 'use strict';
 /**
- * render-rules.js — "Kill the AI Tell": the render rules every generated
- * picture and video of a person, a room or a scene carries, so it reads as a
- * phone in a real room rather than a model's studio (2026-10-25).
+ * render-rules.js — "Kill the AI Tell": the render rules a Higgsfield /
+ * Seedance render carries, so it reads as a phone in a real room rather than a
+ * model's studio (2026-10-25).
  * ---------------------------------------------------------------------------
  * The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance
  * stop looking like AI by default): "Integrate everything mentioned".
@@ -21,10 +21,14 @@
  *   D  THE OPENING 3 SECONDS: one micro-glitch of body language, one ambient
  *      object out of place, phone-camera lighting on frame 1.
  *   E  LOCK IT IN: the compact block, set once in the skill file, so every
- *      new variant ships clean. Here it is set once in CODE: image-prompt.js,
- *      video-core.js, motion-ad.js and story-ad.js read it from this module.
- *   Quick-fix re-prompts and Common drift: QUICK_FIX and DRIFT below, carried
- *   on every video brief so the person reviewing a render has the re-prompt.
+ *      new variant ships clean. The skill is .claude/commands/kill-the-ai-tell.md
+ *      (the whole card, for prompting Higgsfield and Seedance by hand); in code
+ *      it is set once on the Seedance request the app sends to Higgsfield
+ *      (video-core.higgsfieldRequest). The other image and video models do not
+ *      get it: the card is about Higgsfield and Seedance (the operator, after
+ *      it was first added to every prompt: "wrong approach").
+ *   Quick-fix re-prompts and Common drift: QUICK_FIX and DRIFT below, in the
+ *   skill, for the person re-prompting a render that still reads as AI.
  *
  * WHAT IT DOES NOT DO, as the card says itself: it does not pick the hook (the
  * character, the brand and the message stay the brand's), and it changes no
@@ -183,7 +187,8 @@ function reviewKit(opt) {
  * A prompt carrying the rules, fitted to a provider's character limit (Pollo
  * keeps 1,500). The brief and the compact block always survive: the long-form
  * sentences go first, then the brief is cut, never the block (the card: "the
- * block fell out of SKILL.md" is how the set got clean again).
+ * block fell out of SKILL.md" is how the set got clean again). Kept for a
+ * provider with a character cap; Seedance on Higgsfield states none.
  */
 function fit(prompt, max) {
   const p = String(prompt || '');

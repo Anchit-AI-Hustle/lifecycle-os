@@ -4,23 +4,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
-## ⭐ Kill the AI Tell: every generated scene and video carries the render rules (2026-10-25)
+## ⭐ Kill the AI Tell: a skill, and real Seedance renders on Higgsfield (2026-10-25)
 The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance stop looking like AI): "Integrate everything
-mentioned". `api/_shared/render-rules.js` holds the card: the tells (studio-flat light on frame 1, unbroken eye contact,
-plastic skin, phantom hands), the lighting rules (frame 1 a third of a stop under, mixed warm/cool light, window spill),
-the bans (giveaway tells; cinema grade, empty set, magazine framing; filler sighs/hair tucks/idle off-camera glances, the one phone-screen glance kept; person beats only when a person is in frame, never adding one), the
-opening 3 seconds (ONE micro-glitch, ONE ordinary object out of place, phone light), the quick-fix re-prompts, the
-common drift and the compact `<render_rules>` block, set once in CODE: `image-prompt.buildPreamble` (every mode but
-`design`, person rules except `ambient`; reels is "shot like a phone in a real room", no film-still grade; quality line
-`REAL_QUALITY`, and `image.js` drops "professional colour grading / natural soft lighting" for those modes),
-`video-core.generateVideo` (every provider's prompt, `withRules`; a first frame that is the product's own photo is a
-packshot: only camera and light move, nothing added), Pollo's 1,500-char cap via `fit()` (the brief is cut, never the
-block), `motion-ad.motionBrief` (phone-camera look, no "filmic grade"; `render_rules` = the review kit) and
-`story-ad.storyBrief`; /brain's video card shows "If a render still looks AI: re-prompts". The out-of-place object is
-never a product, packaging, logo, sign or text (`image-prompt.NEVER` still closes the prompt). It picks no hook and
-changes no copy. Skills: `/ad-creative` and `/creative-brief`. `ASSET_BUILD_VERSION` hashes render-rules.js and
-image-prompt.js. Gated by `tests/render-rules.spec.js` and `image-prompt-subject` (prompts as sent); `pollo-video`'s Veo
-prompt case changed on purpose.
+mentioned". The first cut (#361) put the rules into EVERY image and video prompt the app writes; the operator: "Still
+using the wrong approach", then chose "1+2": (1) the card as a skill, (2) the app rendering real videos through
+Higgsfield / Seedance with the rules. Now:
+- **The skill** `.claude/commands/kill-the-ai-tell.md` holds the whole card: the tells, the lighting rules, the bans,
+  the opening 3 seconds, the packshot case, the two compact `<render_rules>` blocks (byte-equal to
+  `api/_shared/render-rules.js` `COMPACT` / `COMPACT_PACKSHOT`, asserted), the quick-fix re-prompts, the common drift,
+  "does not pick your hook". `/ad-creative` and `/creative-brief` send the reader there.
+- **The generic prompts carry none of it**: `image-prompt.buildPreamble` / `compactGuard` (the guard ordering and the
+  packaging / brand-kind bans stay: a safety fix, not a render rule), `image.js` (one quality line), Pollo, Veo, Sora,
+  the motion and story briefs, the social video prompt and /brain's panel are as before #361.
+- **Seedance 2.0 on Higgsfield** (`video-core.js`, docs.higgsfield.ai read 2026-10-25): `Authorization: Key
+  <key id>:<secret>`; POST `https://api.higgsfield.ai/bytedance/seedance-2.0/image-to-video` {image_url = the
+  product's own photo, prompt, duration 4-15, resolution} or `/text-to-video` {prompt, duration, resolution,
+  aspect_ratio}; `Idempotency-Key` per submit; GET `/requests/{id}/status` -> queued | in_progress | completed
+  (`video.url`, kept 7 days) | failed | nsfw | canceled (failed/nsfw not charged); refusals in words (401 key, 403
+  balance, 404 model, 423/503, 429 queue). `higgsfieldRequest` is the ONE place the rules are added (packshot block
+  over a photo, scene block otherwise). The old `cloud.higgsfield.ai/v1/text2video` + `hf-api-key` rung was never
+  documented and is gone.
+- **The key is the person's**: a `higgsfield` media connection on /connections (key id + secret, both secret; Test =
+  POST `/estimate/bytedance/seedance-2.0/text-to-video`, spends nothing); `mediaKeysFor` now carries `api_secret`. It
+  runs FIRST in `generateVideo`, free generation or not, recorded as own (no app credits). The platform pair
+  `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (both needed) is only a paid-cascade rung with free generation off,
+  never tried after the person's own key refused.
+- **/brain**: each video ad has "Render with Seedance (Higgsfield)" (`sbRenderSeedance`): the first shot's photo and
+  move go to `?action=video-generate` with `provider:'higgsfield'` (Higgsfield only: no key = "Connect Higgsfield on
+  Connections", no other provider), the job is polled at `video-status` and the MP4 plays in the card.
+- Gated by `tests/higgsfield-seedance.spec.js` (9 executed over a fake Higgsfield API that throws on anything
+  undocumented, incl. the button in Chromium; 6 mutations caught) and `tests/render-rules.spec.js` (the skill holds the
+  card; no generic prompt carries the rules). `image-prompt-subject`, `pollo-video` (Veo) and
+  `model-fallback-cascade` (host) changed on purpose.
 
 ## ⭐ A model key is the person's: it follows them to every brand they own (2026-10-25)
 The operator, on /ai-models for a newly added brand (Nik Bakers, every card "Not connected"): "ensure that once a user
@@ -3909,7 +3924,7 @@ highly specific, template-driven, evidence-quoting; skill = a real job run end-t
 `/content-repurposer` `/icp-builder` `/ad-copy-matrix` `/creative-brief`. All enforce the
 Brand Constants + zero fabrication.
 **Reels-grade creative standard**: stills built to animate via `api/ai/image.js`
-`mode:'reels'` (9:16 shot like a phone in a real room, render rules per `render-rules.js`, depth layers for parallax, negative space for type, no baked
+`mode:'reels'` (cinematic 9:16, depth layers for parallax, negative space for type, no baked
 text); real motion via Higgsfield image-to-video; instant no-API preview + generator handoff
 via `scripts/lib/motion-ad.js` (`renderMotionAd` = self-contained animated HTML creative,
 `motionBrief` = shot-by-shot brief so the shipped MP4 matches). Quality bar in

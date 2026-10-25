@@ -1185,6 +1185,9 @@ module.exports = async function handler(req, res) {
           duration_s: b.duration_s || b.duration || 8,
           aspect: b.aspect || '16:9',
           tier: b.tier || 'premium',
+          // 'higgsfield' = Seedance on Higgsfield only (the /brain button).
+          only: b.provider === 'higgsfield' ? 'higgsfield' : null,
+          resolution: b.resolution || null,
           // With no video key the answer is the code-rendered motion creative
           // (video-core.codeMotion): this request's brand, and only the photos
           // and on-screen lines the caller sent (2026-10-17).
