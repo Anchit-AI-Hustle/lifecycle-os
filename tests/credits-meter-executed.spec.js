@@ -592,9 +592,16 @@ test('a workspace with its own model keys: work its own keys made costs no credi
     // service, no language model) is not refused up front either: its own key
     // runs, and costs nothing.
     wcc.mediaKeysForCurrentRequest = async () => ({ replicate: { api_key: 'r8_own' } });
-    res = await run(answered(true));
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+    // ...and only for the runs that can use it (Codex, #358): a text run on the
+    // same short wallet is refused up front, as it was, not run without a hold.
+    const music = (handler) => { const r2 = makeRes(); const rq = req('tok-a'); return scope.run(rq, () => credits.metered(handler, () => 'audio.music')(rq, r2)).then(() => r2); };
+    let ran = 0;
+    res = await run(async (_r, r) => { ran += 1; scope.noteLlm('ok', { own: false }); r.status(200).json({ ok: true }); });
+    expect(res.code).toBe(402);
+    expect(ran, 'the text run went ahead (and spent at a provider) before the wallet refused it').toBe(0);
+    res = await music(answered(true));
     expect(res.code).toBe(200);
     expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
-    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
   } finally { wcc.llmOverridesForCurrentRequest = realOv; wcc.mediaKeysForCurrentRequest = realMedia; }
 });

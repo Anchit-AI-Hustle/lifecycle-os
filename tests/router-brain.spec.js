@@ -753,7 +753,7 @@ add('launch-visuals', { gate: 'user', browser: 'refuse', run: { json: { concept:
 });
 // The music chain (music-compose.js, 2026-10-25): no workspace connection here,
 // and no platform music key unless a case sets one.
-const NO_MUSIC_KEYS = { GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, HF_API_TOKEN: undefined };
+const NO_MUSIC_KEYS = { GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined };
 const noOwnMusic = () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null); };
 const elevenOk = (body) => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from(body || 'ID3fakemusic'), { 'content-type': 'audio/mpeg', 'song-id': 'song_1' }));
 add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
@@ -771,7 +771,7 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
   cases: [
     { name: 'with no key and free generation off it says what to set and offers Suno, and nothing leaves the process', run: {}, env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'off' }),
       stubs: noOwnMusic,
-      expect: (r) => { expect(r.status).toBe(501); expect(r.out.message).toMatch(/ELEVENLABS_API_KEY/); expect(r.out.message).toMatch(/REPLICATE_API_TOKEN/); expect(r.out.message).toMatch(/Suno/); expect(guard.calls.filter((c) => /elevenlabs|replicate|huggingface/.test(c.url))).toEqual([]); } },
+      expect: (r) => { expect(r.status).toBe(501); expect(r.out.message).toMatch(/ELEVENLABS_API_KEY/); expect(r.out.message).toMatch(/REPLICATE_API_TOKEN/); expect(r.out.message).toMatch(/Suno/); expect(guard.calls.filter((c) => /elevenlabs|replicate/.test(c.url))).toEqual([]); } },
     { name: 'an empty brief is refused before the provider', env: Object.assign({}, NO_MUSIC_KEYS, { ELEVENLABS_API_KEY: 'eleven-harness' }), run: { json: { prompt: '   ' } },
       expect: (r) => { expect(r.status).toBe(400); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } },
     { name: 'the length is clamped to the documented 3 s floor and a 4 minute ceiling', env: Object.assign({}, NO_MUSIC_KEYS, { ELEVENLABS_API_KEY: 'eleven-harness' }), run: { json: { prompt: 'x', seconds: 9999, instrumental: false } },
@@ -797,7 +797,7 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
         expect(b.readUInt16LE(22)).toBe(1); expect(b.readUInt32LE(24)).toBe(22050);
         expect(b.readUInt32LE(40)).toBe(60 * 22050 * 2);
         expect(b.length).toBeLessThan(4.5 * 1024 * 1024);
-        expect(guard.calls.filter((c) => /elevenlabs|replicate|huggingface/.test(c.url))).toEqual([]);
+        expect(guard.calls.filter((c) => /elevenlabs|replicate/.test(c.url))).toEqual([]);
       } },
     // Gemini's own music model first (2026-10-25, music-compose.js): with a
     // Gemini key the documented Interactions request is made and Lyria's audio
@@ -860,7 +860,7 @@ add('music-job', { gate: 'user', browser: 'refuse', run: { method: 'GET', query:
   expect: (r) => { expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg'); expect(r.headers['x-music-provider']).toBe('replicate'); expect(r.bytes.toString()).toBe('ID3bed'); },
   cases: [
     { name: 'a job made for another account is refused before Replicate (Codex, #358)', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),
-      run: { method: 'GET', query: { id: require(require('path').join(H.ROOT, 'api', '_shared', 'music-compose.js')).jobId('platform', 'p2defgh', 'someone_else') } },
+      run: { method: 'GET', query: { get id() { return require(require('path').join(H.ROOT, 'api', '_shared', 'music-compose.js')).jobId('platform', 'p2defgh', 'someone_else'); } } },
       stubs: noOwnMusic,
       expect: (r) => { expect(r.status).toBe(404); expect(r.out.error).toBe('job_not_yours'); expect(guard.calls.filter((c) => /replicate/.test(c.url))).toEqual([]); } },
     { name: 'still rendering: 202 and its state, no audio', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),

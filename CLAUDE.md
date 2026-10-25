@@ -12,17 +12,18 @@ skips a model a key reaches now. `music-compose.js` is The Third Eye's chain (`f
 read 2026-10-25), after Lyria: ElevenLabs Music (`model_id` `music_v2_5`, the docs' current value; a bad_prompt rewrite
 tried once; a key id instead of the sk_ secret is said) -> Replicate (`lucataco/ace-step` {tags, lyrics, duration <= 240}
 sings a brief with lyrics, `meta/musicgen` {stereo-large, mp3} plays an instrumental, `stable-audio-open` pinned behind
-it; a 401/402/429 is account-wide and stops that account; `Prefer: wait` then polled in the request) -> Hugging Face
-MusicGen (`router.huggingface.co/hf-inference`) -> the sketch (free generation on only; else 501/502 with every refusal).
-The workspace's OWN keys first: `elevenlabs`, `replicate`, `huggingface` are media connections on /connections (Test
-reads the account, spends nothing), recorded as own answers. A Replicate track still rendering is `202 {job}`;
+it; a 401/402/429 is account-wide and stops that account; `Prefer: wait` then polled in the request) -> the sketch (free generation on only; else 501/502 with every refusal).
+Third Eye's Hugging Face rung is NOT ported: no Inference Provider hosts MusicGen (`inferenceProviderMapping` empty for every
+size, read 2026-10-25). The workspace's OWN keys first: `elevenlabs`, `replicate` are media connections on /connections (Test
+reads the account, spends nothing), recorded as own answers; a media key lets a LOW wallet run only music and video
+(`workspaceHasOwnModels(feature)`), never a text run. A job id is HMAC-signed over source, prediction and user with a
+PRIVATE secret (JWT secret, connection key, cron secret or service key); with none, no job is issued and music-job is 503. A Replicate track still rendering is `202 {job}`;
 `?action=music-job&id=own|platform:<id>` (GET, signed in, refused for an unattributed browser) answers 202 until done,
 then streams the audio, fetched only from `*.replicate.delivery`. `music-client.js` (`MusicClient.compose`) is the one
 page client (Music Studio and /brain's Compose): it polls the job and labels what made the track. `partsOf()` reads the
 brief's genre/mood/tempo/instruments and lyrics back into ACE-Step's fields. `MUSIC_WAIT_MS` bounds the in-request wait
 (default 100 s of the 120 s function). Env the operator sets for platform music (values never here):
-`ELEVENLABS_API_KEY` (sk_, paid plan), `REPLICATE_API_TOKEN`, `HF_API_TOKEN`; the-third-eye's Vercel project has all
-three. Suno has no public API (Open in Suno stays). Gated by `tests/brand-music.spec.js` ("the Third Eye chain"),
+`ELEVENLABS_API_KEY` (sk_, paid plan), `REPLICATE_API_TOKEN`; the-third-eye's Vercel project has both. Suno has no public API (Open in Suno stays). Gated by `tests/brand-music.spec.js` ("the Third Eye chain"),
 `tests/music-create-track.spec.js` (the job polled in Chromium) and `router-brain` (music-compose cases + `music-job`);
 the key-skip and delivery-host rules mutation-checked. `router-brain`'s "free generation on" case changed on purpose.
 
