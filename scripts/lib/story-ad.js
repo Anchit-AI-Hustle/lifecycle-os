@@ -99,7 +99,7 @@ function storyScenes(spec, opts) {
 function motionWords(x) {
   const mv = MOVES.find((m) => m.id === x.move);
   if (!mv) return null;
-  return mv.say + ' on the photograph' + (x.sweep ? ', a soft light sweep across the product' : '') + ', phone-camera look with no cinema grade, no added text or props';
+  return mv.say + ' on the photograph' + (x.sweep ? ', a soft light sweep across the product' : '') + ', no added text or props';
 }
 function briefScenes(scenes) {
   return scenes.map((x) => ({ kind: x.kind, start_s: x.start, duration_s: x.seconds, text: x.headline, price: x.price || null, image: x.image || null, cta: x.cta || null, motion: motionWords(x) }));
@@ -112,8 +112,6 @@ function storyBrief(spec) {
   return {
     format: 'story', aspect: '9:16', size: '1080x1920', duration_s: +total.toFixed(1), max_s: MAX_SECONDS,
     structure: 'opening, product showcase, closing impression',
-    // For a video model rendering these shots ("Kill the AI Tell").
-    render_rules: require('../../api/_shared/render-rules.js').reviewKit({ packshot: true }),
     scenes: briefScenes(scenes),
     cuts: { short: { duration_s: +shortTotal.toFixed(1), max_s: SHORT_SECONDS, scenes: briefScenes(shortScenes) } },
   };

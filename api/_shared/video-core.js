@@ -8,8 +8,8 @@
  *                (reuses GEMINI_API_KEY; paid tier)
  *   2. Sora 2    `sora-2`                    — OpenAI /v1/videos (OPENAI_API_KEY;
  *                note: API sunset 2026-09-24)
- *   3. Higgsfield Cloud REST                 — HIGGSFIELD_API_KEY (+ optional
- *                HIGGSFIELD_API_SECRET), ~$0.10/s, paid plans
+ *   3. Higgsfield (Seedance 2.0)             — the workspace's own Higgsfield
+ *                connection first, else HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET
  *   4. Runway    `gen4_turbo`                — RUNWAY_API_KEY, ~$0.05/s floor
  *
  * Async job model:
@@ -32,7 +32,19 @@
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const OPENAI_BASE = 'https://api.openai.com/v1';
-const HIGGSFIELD_BASE = 'https://cloud.higgsfield.ai/v1';
+// Higgsfield (docs.higgsfield.ai, read 2026-10-25): one credential = a key id
+// and a secret, sent as `Authorization: Key <id>:<secret>`. A generation is a
+// POST to the model's path answering {status:'queued', request_id}; GET
+// /requests/{id}/status answers queued | in_progress | completed (video.url) |
+// failed | nsfw | canceled. Failed and nsfw are not charged. Files are kept 7
+// days. Seedance 2.0 (ByteDance) runs here: image-to-video takes image_url (the
+// first frame; framing follows it), prompt, duration 4-15, resolution;
+// text-to-video takes prompt, duration, resolution, aspect_ratio.
+// POST /estimate/<model path> prices a request and spends nothing (the Test).
+const HIGGSFIELD_BASE = 'https://api.higgsfield.ai';
+const SEEDANCE_I2V = 'bytedance/seedance-2.0/image-to-video';
+const SEEDANCE_T2V = 'bytedance/seedance-2.0/text-to-video';
+const SEEDANCE_ASPECTS = ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9'];
 const OPENMONTAGE_BASE = (process.env.OPENMONTAGE_BASE || 'https://api.openmontage.ai/v1').replace(/\/+$/, '');
 const RUNWAY_BASE = 'https://api.dev.runwayml.com/v1';
 const RUNWAY_VERSION = '2024-11-06';
@@ -68,7 +80,21 @@ function keys() {
 
 function anyKey() {
   const k = keys();
-  return !!(k.gemini || k.openai || k.higgsfield || k.openmontage || k.runway);
+  return !!(k.gemini || k.openai || (k.higgsfield && k.higgsfieldSecret) || k.openmontage || k.runway);
+}
+
+// The workspace's own Higgsfield credential (category 'media'), else the
+// platform's env pair (never with ownOnly). { id, secret, own } or null.
+async function higgsfieldCred(opt) {
+  try {
+    const m = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
+    const h = m && m.higgsfield;
+    if (h && h.api_key && h.api_secret) return { id: String(h.api_key), secret: String(h.api_secret), own: true };
+  } catch (_) { /* no scope */ }
+  if (opt && opt.ownOnly) return null;
+  const k = keys();
+  if (k.higgsfield && k.higgsfieldSecret) return { id: k.higgsfield, secret: k.higgsfieldSecret, own: false };
+  return null;
 }
 
 async function polloKey() {
@@ -81,8 +107,8 @@ async function polloKey() {
 function polloRequest({ prompt, duration_s, aspect, image }) {
   const duration = Number(duration_s) > 7 ? 10 : 5;
   const input = /^https?:\/\/[^\s"'<>]+$/i.test(String(image || ''))
-    ? { image: String(image), prompt: require('./render-rules.js').fit(prompt, 1500), duration, mode: 'std' }
-    : { prompt: require('./render-rules.js').fit(prompt, 1500), aspectRatio: normAspect(aspect), duration };
+    ? { image: String(image), prompt: String(prompt).slice(0, 1500), duration, mode: 'std' }
+    : { prompt: String(prompt).slice(0, 1500), aspectRatio: normAspect(aspect), duration };
   return { provider: 'pollo', method: 'POST', url: POLLO_BASE + '/v1/generation/' + POLLO_MODEL + '/video', body: { input } };
 }
 
@@ -185,13 +211,25 @@ function soraRequest({ prompt, duration_s, aspect }) {
   };
 }
 
-function higgsfieldRequest({ prompt, duration_s, aspect }) {
-  return {
-    provider: 'higgsfield',
-    method: 'POST',
-    url: HIGGSFIELD_BASE + '/text2video',
-    body: { prompt, duration: Math.min(Math.max(Math.round(duration_s || 8), 3), 15), aspect_ratio: normAspect(aspect) },
-  };
+/**
+ * The Seedance 2.0 request on Higgsfield. A first frame that is a public
+ * http(s) photo makes it image-to-video (the product's own photo: a packshot,
+ * so only the camera and light move); else text-to-video. The render rules
+ * ("Kill the AI Tell", render-rules.js) close the prompt either way: these
+ * are the renders they were written for.
+ */
+function higgsfieldRequest({ prompt, duration_s, aspect, image, resolution }) {
+  const RR = require('./render-rules.js');
+  const duration = Math.min(Math.max(Math.round(Number(duration_s) || 5), 4), 15);
+  const res = ['480p', '720p', '1080p'].includes(String(resolution)) ? String(resolution) : '720p';
+  const first = /^https?:\/\/[^\s"'<>]+$/i.test(String(image || '')) ? String(image) : '';
+  if (first) {
+    return { provider: 'higgsfield', model: 'seedance-2.0', mode: 'image-to-video', method: 'POST', url: HIGGSFIELD_BASE + '/' + SEEDANCE_I2V,
+      body: { image_url: first, prompt: RR.withRules(prompt, { medium: 'video', packshot: true }), duration, resolution: res } };
+  }
+  const a = String(aspect || '16:9').trim();
+  return { provider: 'higgsfield', model: 'seedance-2.0', mode: 'text-to-video', method: 'POST', url: HIGGSFIELD_BASE + '/' + SEEDANCE_T2V,
+    body: { prompt: RR.withRules(prompt, { medium: 'video', people: true }), duration, resolution: res, aspect_ratio: SEEDANCE_ASPECTS.includes(a) ? a : '16:9' } };
 }
 
 function openMontageRequest({ prompt, duration_s, aspect }) {
@@ -312,34 +350,70 @@ async function statusSora(jobId) {
   return { ok: true, provider: 'sora', job_id: jobId, status: 'processing' };
 }
 
-function _higgsfieldHeaders(k) {
-  return {
-    'hf-api-key': k.higgsfield,
-    ...(k.higgsfieldSecret ? { 'hf-secret': k.higgsfieldSecret } : {}),
-  };
+function _higgsfieldHeaders(cred) {
+  return { Authorization: 'Key ' + cred.id + ':' + cred.secret };
 }
 
-async function runHiggsfield(opts) {
-  const k = keys();
-  const reqSpec = higgsfieldRequest(opts);
-  const r = await _fetchJson(reqSpec.url, { method: 'POST', headers: _higgsfieldHeaders(k), body: reqSpec.body, timeoutMs: _submitMs(opts) });
-  if (!r.ok) return { ok: false, provider: 'higgsfield', error: 'HTTP ' + r.status + ': ' + r.errText };
-  const id = r.data && (r.data.id || r.data.job_id || (r.data.job_set && r.data.job_set.id));
-  if (!id) return { ok: false, provider: 'higgsfield', error: 'no job id in response' };
-  return { ok: true, provider: 'higgsfield', job_id: String(id), status: 'processing' };
+// A refusal in words (the documented statuses), never the raw body.
+function higgsfieldError(r) {
+  const s = r && r.status;
+  const d = r && r.data && r.data.detail;
+  const said = typeof d === 'string' ? d : (Array.isArray(d) && d[0] && d[0].msg ? String(d[0].msg) : '');
+  const why = s === 401 ? 'the key id and secret were rejected'
+    : s === 403 ? 'the Higgsfield balance is too low'
+    : s === 404 ? 'this account cannot use Seedance 2.0'
+    : s === 423 || s === 503 ? 'Seedance 2.0 is not available right now'
+    : s === 429 ? 'the account\'s generation queue is full'
+    : s === 400 || s === 422 ? 'the request was refused' : 'no usable answer';
+  return 'HTTP ' + (s || 0) + ': ' + why + (said ? ' (' + said.slice(0, 160) + ')' : '');
+}
+
+async function runHiggsfield(opts, cred) {
+  const c = cred || await higgsfieldCred();
+  if (!c) return { ok: false, provider: 'higgsfield', error: 'no Higgsfield key' };
+  const rq = higgsfieldRequest(opts);
+  // One key per generation intent (Higgsfield's idempotency rule).
+  const idem = require('crypto').randomUUID();
+  const r = await _fetchJson(rq.url, { method: 'POST', headers: Object.assign(_higgsfieldHeaders(c), { 'Idempotency-Key': idem }), body: rq.body, timeoutMs: _submitMs(opts) });
+  if (!r.ok) return { ok: false, provider: 'higgsfield', error: higgsfieldError(r) };
+  const id = r.data && r.data.request_id;
+  if (!id) return { ok: false, provider: 'higgsfield', error: 'no request_id in the answer' };
+  if (c.own) {
+    try { require('./request-scope.js').noteLlm('ok', { own: true, kind: 'video', provider: 'higgsfield', model: rq.model }); } catch (_) { /* no scope */ }
+  }
+  return { ok: true, provider: 'higgsfield', job_id: String(id), status: 'processing', model: rq.model, mode: rq.mode, own: !!c.own,
+    note: 'Seedance 2.0 on Higgsfield. Higgsfield keeps the finished video for 7 days; download it before then.' };
 }
 
 async function statusHiggsfield(jobId) {
-  const k = keys();
-  if (!k.higgsfield) return _notConnected({ provider: 'higgsfield', method: 'GET', url: HIGGSFIELD_BASE + '/jobs/' + jobId, body: undefined });
-  const r = await _fetchJson(HIGGSFIELD_BASE + '/jobs/' + encodeURIComponent(jobId), { headers: _higgsfieldHeaders(k) });
-  if (!r.ok) return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'unknown', error: 'HTTP ' + r.status + ': ' + r.errText };
+  const c = await higgsfieldCred();
+  const url = HIGGSFIELD_BASE + '/requests/' + encodeURIComponent(jobId) + '/status';
+  if (!c) return _notConnected({ provider: 'higgsfield', method: 'GET', url, body: undefined });
+  let r = await _fetchJson(url, { headers: _higgsfieldHeaders(c) });
+  // A job started on the platform's key is read with it when this person's
+  // own key does not own it.
+  if (!r.ok && c.own && (r.status === 401 || r.status === 404)) {
+    const k = keys();
+    if (k.higgsfield && k.higgsfieldSecret) r = await _fetchJson(url, { headers: _higgsfieldHeaders({ id: k.higgsfield, secret: k.higgsfieldSecret }) });
+  }
+  if (!r.ok) return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'unknown', error: higgsfieldError(r) };
   const d = r.data || {};
-  const raw = String(d.status || d.state || '').toLowerCase();
-  const url = (d.result && (d.result.url || d.result.video_url)) || d.video_url || null;
-  if (raw === 'completed' || raw === 'succeeded' || url) return { ok: true, provider: 'higgsfield', job_id: jobId, status: 'completed', video_url: url };
-  if (raw === 'failed' || raw === 'error') return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'failed', error: d.error || raw };
+  const raw = String(d.status || '').toLowerCase();
+  const vurl = d.video && d.video.url ? String(d.video.url) : null;
+  if (raw === 'completed' && vurl) return { ok: true, provider: 'higgsfield', job_id: jobId, status: 'completed', video_url: vurl, expires_at: d.expires_at || null };
+  if (raw === 'completed') return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'failed', error: 'completed without a video url' };
+  if (raw === 'nsfw') return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'failed', error: 'Higgsfield\'s moderation refused the render (not charged)' };
+  if (raw === 'failed') return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'failed', error: String(d.error || 'the render failed (not charged)').slice(0, 300) };
+  if (raw === 'canceled') return { ok: false, provider: 'higgsfield', job_id: jobId, status: 'failed', error: 'the render was canceled' };
   return { ok: true, provider: 'higgsfield', job_id: jobId, status: 'processing' };
+}
+
+/** The connection check: an estimate prices a request and spends nothing. */
+async function higgsfieldEstimate(id, secret) {
+  const r = await _fetchJson(HIGGSFIELD_BASE + '/estimate/' + SEEDANCE_T2V, { method: 'POST', headers: _higgsfieldHeaders({ id, secret }),
+    body: { prompt: 'A cup of tea on a kitchen table', duration: 5, resolution: '720p', aspect_ratio: '9:16' }, timeoutMs: 8000 });
+  if (!r.ok) return { ok: false, status: r.status, error: higgsfieldError(r) };
+  return { ok: true, usd: r.data && r.data.usd != null ? String(r.data.usd) : null };
 }
 
 // OpenMontage — generic async REST (bearer auth). Endpoint shape is
@@ -546,38 +620,62 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
   if (attempts) out.attempts = attempts;
   if (wouldRequest) {
     out.would_request = wouldRequest;
-    out.hint = 'Set GEMINI_API_KEY (Veo 3.1), OPENAI_API_KEY (Sora 2), HIGGSFIELD_API_KEY, OPENMONTAGE_API_KEY or RUNWAY_API_KEY for an MP4. would_request is what will be sent.';
+    out.hint = 'Connect Higgsfield (Seedance 2.0) or Pollo on Connections for an MP4 on your own account, or set GEMINI_API_KEY (Veo 3.1), OPENAI_API_KEY (Sora 2), HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET, OPENMONTAGE_API_KEY or RUNWAY_API_KEY. would_request is what will be sent.';
   }
   return out;
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null } = {}) {
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null, only = null, resolution = null } = {}) {
   const raw = String(prompt || '').trim();
   if (!raw) return { ok: false, error: 'prompt required' };
-  // Every video model gets the render rules ("Kill the AI Tell",
-  // render-rules.js): phone-camera light on frame 1, no cinema grade, one
-  // micro-glitch in the opening 3 seconds. Only a provider that RECEIVES the
-  // product's own photo as its first frame (Pollo) is told it is a packshot;
-  // every other model renders from the words and gets the scene rules.
-  const RR = require('./render-rules.js');
-  const p = RR.withRules(raw, { medium: 'video', people: true });
-  const pShot = RR.withRules(raw, { medium: 'video', packshot: true });
+  // The brief goes to each provider as written. The render rules ("Kill the
+  // AI Tell", render-rules.js) are Higgsfield/Seedance's: higgsfieldRequest
+  // adds them to that request alone.
+  const p = raw;
   // One budget for the whole cascade (default 90s, inside a 120s function).
   const budget = Number(budget_ms) > 0 ? Number(budget_ms) : (Number(process.env.VIDEO_TOTAL_BUDGET_MS) > 0 ? Number(process.env.VIDEO_TOTAL_BUDGET_MS) : 90000);
-  const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget };
+  const firstImage = motion && Array.isArray(motion.images) ? (motion.images.find((u) => /^https?:\/\//i.test(String(u || ''))) || '') : '';
+  const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget, image: firstImage, resolution };
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
+
+  // Higgsfield asked for by name (the /brain "Render with Seedance" button):
+  // that render or its refusal, nothing else, and ONLY on the workspace's own
+  // key: the button promises the person's own Higgsfield balance, so the
+  // platform's pair is never billed for it.
+  if (String(only || '').toLowerCase() === 'higgsfield') {
+    const cred = await higgsfieldCred({ ownOnly: true });
+    if (!cred) {
+      return Object.assign(_notConnected(higgsfieldRequest(opts)), { audio,
+        error: 'no_higgsfield_key', message: 'Connect Higgsfield on Connections (your key id and secret from cloud.higgsfield.ai) to render this with Seedance 2.0.' });
+    }
+    const out = await runHiggsfield(opts, cred);
+    return Object.assign({}, out, { tier, audio, attempts: [] });
+  }
+
+  // The workspace's OWN Higgsfield key goes first: Seedance renders the
+  // product's own photo (or the brief) under the render rules, on the
+  // person's own Higgsfield balance.
+  const pAttempts = [];
+  const ownHf = await higgsfieldCred();
+  if (ownHf && ownHf.own) {
+    try {
+      const out = await runHiggsfield(opts, ownHf);
+      if (out.ok) return Object.assign({}, out, { tier, audio, attempts: [] });
+      pAttempts.push({ provider: 'higgsfield', error: out.error });
+    } catch (e) {
+      pAttempts.push({ provider: 'higgsfield', error: String((e && e.message) || e).slice(0, 200) });
+    }
+  }
 
   // The workspace's OWN Pollo key goes first, free generation or not: it is the
   // person's own spend, as an own image key is in api/ai/image.js. The product's
   // own photo (the first one the caller sent) is the first frame.
   const ownPollo = await polloKey();
-  const pAttempts = [];
   if (ownPollo) {
-    const image = motion && Array.isArray(motion.images) ? motion.images.find((u) => /^https?:\/\//i.test(String(u || ''))) : '';
     try {
-      const out = await runPollo(Object.assign({}, opts, { image }, image ? { prompt: pShot } : {}), ownPollo);
-      if (out.ok) return Object.assign({}, out, { tier, audio, attempts: [] });
+      const out = await runPollo(opts, ownPollo);
+      if (out.ok) return Object.assign({}, out, { tier, audio, attempts: pAttempts });
       pAttempts.push({ provider: 'pollo', error: out.error });
     } catch (e) {
       pAttempts.push({ provider: 'pollo', error: String((e && e.message) || e).slice(0, 200) });
@@ -608,8 +706,9 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const freeFirst = String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
   if (!anyKey() || freeFirst) {
     if (pAttempts.length) {
-      const who = pAttempts[0].provider === 'veo' ? 'Veo (your Gemini connection)' : 'Pollo';
-      try { return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts: pAttempts, reason: 'your ' + (pAttempts[0].provider === 'veo' ? 'Gemini connection' : 'Pollo key') + ' did not start a video (' + pAttempts[0].error + ')' }), { provider_error: who + ': ' + pAttempts[0].error }); } catch (_) { /* fall through */ }
+      const NAMES = { veo: ['Veo (your Gemini connection)', 'Gemini connection'], higgsfield: ['Seedance (your Higgsfield key)', 'Higgsfield key'], pollo: ['Pollo', 'Pollo key'] };
+      const nm = NAMES[pAttempts[0].provider] || NAMES.pollo;
+      try { return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts: pAttempts, reason: 'your ' + nm[1] + ' did not start a video (' + pAttempts[0].error + ')' }), { provider_error: nm[0] + ': ' + pAttempts[0].error }); } catch (_) { /* fall through */ }
     }
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';
@@ -626,7 +725,7 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   let rungs = [
     { name: 'veo', hasKey: !!k.gemini, run: runVeo },
     { name: 'sora', hasKey: !!k.openai, run: runSora },
-    { name: 'higgsfield', hasKey: !!k.higgsfield, run: runHiggsfield },
+    { name: 'higgsfield', hasKey: !!(k.higgsfield && k.higgsfieldSecret) && !(ownHf && ownHf.own), run: (o) => runHiggsfield(o, { id: k.higgsfield, secret: k.higgsfieldSecret, own: false }) },
     { name: 'openmontage', hasKey: !!k.openmontage, run: runOpenMontage },
     { name: 'runway', hasKey: !!k.runway, run: runRunway },
   ];
@@ -695,4 +794,4 @@ async function getVideoStatus({ provider, job_id } = {}) {
 
 function isConnected() { return anyKey(); }
 
-module.exports = { generateVideo, getVideoStatus, isConnected, codeMotion, AUDIO_BEDS, audioBedFor, polloRequest, polloBalance, POLLO_MODEL };
+module.exports = { generateVideo, getVideoStatus, isConnected, codeMotion, AUDIO_BEDS, audioBedFor, polloRequest, polloBalance, POLLO_MODEL, higgsfieldRequest, higgsfieldEstimate, SEEDANCE_I2V, SEEDANCE_T2V };

@@ -141,12 +141,9 @@ test("a workspace's own Gemini connection runs Veo first: its key on the documen
     expect(out.own).toBe(true);
     expect(out.status).toBe('completed');
     expect(out.video_url).toBe('https://files.example/v.mp4');
-    // The brief leads; the render rules ("Kill the AI Tell", render-rules.js)
-    // follow it on every video model's prompt (changed on purpose 2026-10-25).
-    expect(net.calls[0]).toMatchObject({ url: VEO + '?key=own-gemini', method: 'POST', body: { parameters: { aspectRatio: '16:9' } } });
-    const sent = net.calls[0].body.instances[0].prompt;
-    expect(sent.startsWith('A slow push-in on a chocolate cake')).toBe(true);
-    expect(sent).toContain(require(path.join(ROOT, 'api', '_shared', 'render-rules.js')).COMPACT);
+    // The brief as written: the render rules are Seedance's on Higgsfield
+    // alone (tests/higgsfield-seedance.spec.js), never Veo's.
+    expect(net.calls[0]).toMatchObject({ url: VEO + '?key=own-gemini', method: 'POST', body: { instances: [{ prompt: 'A slow push-in on a chocolate cake' }], parameters: { aspectRatio: '16:9' } } });
   } finally {
     wc.llmOverridesForCurrentRequest = realOv;
     net.restore();
