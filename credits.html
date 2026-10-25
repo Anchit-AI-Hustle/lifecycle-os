@@ -131,6 +131,28 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .tbl-scroll{overflow-x:auto}
 
+  /* Phones: a six-column ledger in 360px leaves the note one word wide (the
+     operator's screenshot, 2026-10-25). Below 720px every table here is a
+     stack of rows, each cell its column's name and its value, so nothing is
+     squeezed and nothing scrolls sideways. labelCells() copies each header
+     into its cells' data-label; a cell with no label (a group heading, a
+     total's spacer, a message) is shown whole. */
+  @media (max-width:720px){
+    .tbl-scroll{overflow-x:visible}
+    table.stack{table-layout:auto}
+    table.stack thead{display:none}
+    table.stack tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}
+    table.stack tr:last-child{border-bottom:0}
+    table.stack td{display:grid;grid-template-columns:minmax(88px,32%) minmax(0,1fr);gap:12px;align-items:start;
+      padding:5px 12px;border:0;text-align:left;white-space:normal;overflow-wrap:anywhere}
+    table.stack td::before{content:attr(data-label);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+      color:var(--muted);font-weight:700;padding-top:2px;white-space:normal}
+    table.stack td:not([data-label]),table.stack td[data-label=""]{display:block}
+    table.stack td:not([data-label])::before,table.stack td[data-label=""]::before{content:none}
+    table.stack td:empty{display:none}
+    table.stack .bar{margin-top:6px}
+  }
+
   .grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--brand-primary-text);
     padding:16px 10px 7px}
   .free{color:var(--ok);font-weight:600}
@@ -213,7 +235,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     This is the full price list. A metered feature is charged on what you actually use, with an estimate
     reserved up front and the unused part returned automatically.
   </p>
-  <div class="card tbl-scroll"><table id="prices"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+  <div class="card tbl-scroll"><table id="prices" class="stack"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
 
   <h2>Your usage</h2>
   <div class="tabs" id="usageTabs">
@@ -221,21 +243,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     <button type="button" class="tab" data-days="30">Last 30 days</button>
     <button type="button" class="tab" data-days="90">Last 90 days</button>
   </div>
-  <div class="card tbl-scroll"><table id="usage"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+  <div class="card tbl-scroll"><table id="usage" class="stack"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
 
   <h3 style="margin:18px 0 6px">By model provider</h3>
   <p class="muted" style="margin-bottom:10px" id="providerNote">
     Which provider and model made each run, on the platform's keys or your own, with the tokens and pictures that provider reported.
     Read it beside each provider's own usage page. Runs made with your own keys cost no credits; a run made partly with them is charged only the platform's share.
   </p>
-  <div class="card tbl-scroll"><table id="providers"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+  <div class="card tbl-scroll"><table id="providers" class="stack"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
 
   <h2>Ledger</h2>
   <p class="muted" style="margin-bottom:14px">
     Every movement, newest first. A run reserves credits (hold), then charges what it used (spend);
     anything unused, or a run that failed, comes straight back (refund / release).
   </p>
-  <div class="card tbl-scroll"><table id="ledger"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
+  <div class="card tbl-scroll"><table id="ledger" class="stack"><tbody><tr><td class="muted">Loading…</td></tr></tbody></table></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -247,6 +269,31 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function fmt(n) { return (Number(n) || 0).toLocaleString(); }
   function when(t) { try { return new Date(t).toLocaleString(); } catch (_) { return t || ''; } }
   function toast(m) { var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(t._h); t._h = setTimeout(function () { t.style.display = 'none'; }, Math.max(3000, String(m).length * 45)); }
+
+  // Each cell carries its column's header, which is what a phone shows beside
+  // the value once the table is stacked (see the 720px rule). A cell spanning
+  // several columns is a heading or a total line and keeps no label.
+  function labelCells(table) {
+    if (!table) return;
+    var heads = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
+      var col = 0;
+      Array.prototype.forEach.call(tr.children, function (td) {
+        var span = td.colSpan || 1;
+        if (span === 1 && heads[col] && !td.hasAttribute('data-label')) {
+          td.setAttribute('data-label', heads[col]);
+          // A stacked cell is a two-column grid; a value of several lines must
+          // be ONE item in it, or its second line falls under the label.
+          if (td.childNodes.length > 1) {
+            var box = document.createElement('div');
+            while (td.firstChild) box.appendChild(td.firstChild);
+            td.appendChild(box);
+          }
+        }
+        col += span;
+      });
+    });
+  }
 
   function waitFor(test, cb, tries) {
     tries = tries || 0;
@@ -376,6 +423,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
     });
     $('prices').innerHTML = html + '</tbody>';
+    labelCells($('prices'));
   }
 
   /* ── usage + ledger ─────────────────────────────────────────────────── */
@@ -398,6 +446,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }).join('') +
         '<tr><td><b>Total</b></td><td class="num"><b>' + fmt(rows.reduce(function (a, c) { return a + Number(c.runs || 0); }, 0)) + '</b></td>' +
         '<td class="num"><b>' + fmt(total) + '</b></td><td colspan="2"></td></tr></tbody>';
+      labelCells($('usage'));
     } catch (e) {
       // A muted <td> in this table is a DATA cell - "Loading…", a feature name,
       // a timestamp. An error text dropped into one reads as a row of usage.
@@ -430,16 +479,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '<tr><td colspan="6"><b>Charged</b>' + (p.saved_by_own_keys > 0 ? ' <span class="muted">(' + fmt(p.saved_by_own_keys) + ' not charged: made with your own keys)</span>' : '') + '</td><td class="num"><b>' + fmt(p.charged) + '</b></td></tr>' +
       (p.runs_without_usage ? '<tr><td colspan="7" class="muted">' + fmt(p.runs_without_usage) + ' run(s) in this window did not record a provider (a template, a voice or a track, or settled before provider usage was recorded).</td></tr>' : '') +
       '</tbody>';
+    labelCells(host);
   }
 
   function usageLine(u) {
-    if (!u || !u.by_provider || !u.by_provider.length) return '';
+    if (!u || !u.by_provider || !u.by_provider.length) return [];
     return u.by_provider.map(function (g) {
       var t = g.kind === 'image' ? fmt(g.images) + ' picture' + (g.images === 1 ? '' : 's')
         : (g.input_tokens != null || g.output_tokens != null) ? fmt(g.input_tokens) + ' in / ' + fmt(g.output_tokens) + ' out tokens' + (g.tokens_reported ? '' : ' (partly reported)')
         : 'tokens not reported';
       return g.provider + (g.model ? ' ' + g.model : '') + ' (' + (g.key === 'own' ? 'your key' : 'platform') + '): ' + t;
-    }).join('; ') + (u.full_price != null && u.charged != null && u.charged < u.full_price ? '. Charged ' + u.charged + ' of ' + u.full_price : '');
+    }).concat(u.full_price != null && u.charged != null && u.charged < u.full_price ? ['Charged ' + u.charged + ' of ' + u.full_price] : []);
   }
 
   async function loadLedger() {
@@ -456,8 +506,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
               (e.units && e.unit_label ? '<br><span class="muted" style="font-size:11px">' + esc(e.units + ' ' + e.unit_label) + '</span>' : '') + '</td>' +
             '<td class="num" style="color:' + (d > 0 ? 'var(--ok)' : (d < 0 ? 'var(--err)' : 'var(--muted)')) + '"><b>' + (d > 0 ? '+' : '') + fmt(d) + '</b></td>' +
             '<td class="num">' + fmt(e.balance_after) + '</td>' +
-            '<td class="muted">' + esc([e.note || '', usageLine(e.usage)].filter(Boolean).join(' · ')) + '</td></tr>';
+            '<td class="muted note">' + [e.note || ''].concat(usageLine(e.usage) || []).filter(Boolean).map(esc).join('<br>') + '</td></tr>';
         }).join('') + '</tbody>';
+      labelCells($('ledger'));
     } catch (e) {
       window.LifecycleFailure.show($('ledger'), e, { title: 'Credit ledger could not be loaded', colspan: 6 });
     }
@@ -480,8 +531,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       var r = await window.Credits.api('gifts');
       var g = (r && r.gifts) || [];
-      el.innerHTML = g.length ? '<table><tbody>' + g.map(function (x) {
-        return '<tr><td>' + esc(x.to_email_hint) + '</td><td>' + fmt(x.amount) + ' credits</td><td>' + esc(x.status === 'claimed' ? 'received' : 'waiting for them') + '</td><td class="muted">' + esc(String(x.created_at || '').slice(0, 10)) + '</td></tr>';
+      el.innerHTML = g.length ? '<table class="stack"><tbody>' + g.map(function (x) {
+        return '<tr><td data-label="To">' + esc(x.to_email_hint) + '</td><td data-label="Gift">' + fmt(x.amount) + ' credits</td><td data-label="Status">' + esc(x.status === 'claimed' ? 'received' : 'waiting for them') + '</td><td data-label="Sent" class="muted">' + esc(String(x.created_at || '').slice(0, 10)) + '</td></tr>';
       }).join('') + '</tbody></table>' : '';
     } catch (_) { el.innerHTML = ''; }
   }

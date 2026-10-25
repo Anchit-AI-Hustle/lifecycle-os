@@ -296,6 +296,26 @@ for (const width of [1280, 390]) {
       await expect(page.locator('#ledger')).toContainText('Charged 5 of 18');
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow).toBeLessThanOrEqual(1);
+      // The operator's phone (2026-10-25): the ledger's note was squeezed into
+      // a column one word wide. No cell holding text may be narrower than a
+      // third of its table, and on a phone each value sits beside its label.
+      const squeezed = await page.evaluate(() => {
+        const out = [];
+        for (const t of document.querySelectorAll('#prices, #usage, #providers, #ledger')) {
+          const tw = t.getBoundingClientRect().width;
+          for (const td of t.querySelectorAll('tbody td')) {
+            if (!td.textContent.trim() || td.querySelector('.bar')) continue;
+            const w = td.getBoundingClientRect().width;
+            if (w < tw / 3) out.push(t.id + ': ' + td.textContent.trim().slice(0, 40) + ' (' + Math.round(w) + 'px of ' + Math.round(tw) + ')');
+          }
+        }
+        return out;
+      });
+      if (width < 500) {
+        expect(squeezed).toEqual([]);
+        const note = page.locator('#ledger td[data-label="Note"]').filter({ hasText: 'Charged 5 of 18' });
+        await expect(note).toHaveCount(1);
+      }
       expect(thrown).toEqual([]);
       void db;
     } finally {
