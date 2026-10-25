@@ -1484,9 +1484,11 @@ window.sbRenderSeedance = async function(btn, idx){
   const shots = Array.isArray(item.brief.shots) ? item.brief.shots : [];
   const first = shots.find(sh=>/^https?:\/\//i.test(String(sh.source_image||''))) || shots[0] || {};
   const image = /^https?:\/\//i.test(String(first.source_image||'')) ? first.source_image : '';
-  const words = [first.video_prompt, item.brief.product ? 'The product: ' + item.brief.product + '.' : ''].filter(Boolean).join(' ');
-  if(!words){ out.hidden = false; out.textContent = 'This ad has no shot to render.'; return; }
   const say = (t)=>{ out.hidden = false; out.textContent = t; };
+  // Seedance animates the product's OWN photo: with none, nothing is sent, so
+  // no model is asked to invent the product (the ad's photo gap stands).
+  if(!image){ say('This ad has no product photo, so nothing was sent to Seedance: a video of the product is made only from its own photo. Add the photo to the catalogue and rebuild the send.'); return; }
+  const words = [first.video_prompt, item.brief.product ? 'The product: ' + item.brief.product + '.' : ''].filter(Boolean).join(' ');
   btn.disabled = true; say('Sending to Seedance 2.0 on Higgsfield...');
   try {
     const r = await fetch('/api/brain?action=video-generate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ provider:'higgsfield', prompt: words, image, aspect:'9:16', duration_s: 8, resolution:'720p' })});

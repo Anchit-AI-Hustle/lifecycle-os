@@ -84,13 +84,14 @@ function anyKey() {
 }
 
 // The workspace's own Higgsfield credential (category 'media'), else the
-// platform's env pair. { id, secret, own } or null.
-async function higgsfieldCred() {
+// platform's env pair (never with ownOnly). { id, secret, own } or null.
+async function higgsfieldCred(opt) {
   try {
     const m = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
     const h = m && m.higgsfield;
     if (h && h.api_key && h.api_secret) return { id: String(h.api_key), secret: String(h.api_secret), own: true };
   } catch (_) { /* no scope */ }
+  if (opt && opt.ownOnly) return null;
   const k = keys();
   if (k.higgsfield && k.higgsfieldSecret) return { id: k.higgsfield, secret: k.higgsfieldSecret, own: false };
   return null;
@@ -639,9 +640,11 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const k = keys();
 
   // Higgsfield asked for by name (the /brain "Render with Seedance" button):
-  // that render or its refusal, nothing else.
+  // that render or its refusal, nothing else, and ONLY on the workspace's own
+  // key: the button promises the person's own Higgsfield balance, so the
+  // platform's pair is never billed for it.
   if (String(only || '').toLowerCase() === 'higgsfield') {
-    const cred = await higgsfieldCred();
+    const cred = await higgsfieldCred({ ownOnly: true });
     if (!cred) {
       return Object.assign(_notConnected(higgsfieldRequest(opts)), { audio,
         error: 'no_higgsfield_key', message: 'Connect Higgsfield on Connections (your key id and secret from cloud.higgsfield.ai) to render this with Seedance 2.0.' });

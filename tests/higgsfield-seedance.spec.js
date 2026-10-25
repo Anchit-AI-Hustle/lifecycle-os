@@ -124,8 +124,9 @@ test('the job is read at /requests/{id}/status: queued, completed with the video
   } finally { n.restore(); delete require.cache[VC]; }
 });
 
-test('"Render with Seedance": Higgsfield only; no key is said before any request, and a refusal is said in words', async () => {
-  await withEnv(NO_PLATFORM, async () => {
+test('"Render with Seedance": Higgsfield only, on the workspace\'s own key only; no key is said before any request, and a refusal is said in words', async () => {
+  // The platform's pair is set and still never billed for the button.
+  await withEnv(Object.assign({}, NO_PLATFORM, { HIGGSFIELD_API_KEY: 'kid-plat', HIGGSFIELD_API_SECRET: 'ksec-plat' }), async () => {
     let n = higgsfield();
     try {
       const vc = loadVC(null);
@@ -263,6 +264,20 @@ test('/brain: "Render with Seedance" sends the first shot\'s photo and move to H
   expect(sent[0].prompt).toContain('The product: House blend.');
   // The rules are added on the server, to the Seedance request alone.
   expect(sent[0].prompt).not.toContain('<render_rules>');
+});
+
+test('/brain: an ad with no product photo sends nothing to Seedance and says why', async ({ page }) => {
+  const sent = [];
+  await page.route('**/api/brain?action=video-generate**', (r) => { sent.push(1); return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }); });
+  await page.goto(base + '/smart-brain.html', { waitUntil: 'load' });
+  await page.waitForFunction(() => typeof renderAd === 'function' && typeof window.sbRenderSeedance === 'function', null, { timeout: 20000 });
+  await page.evaluate(() => {
+    const host = document.createElement('div'); host.id = 'hf-host'; document.body.appendChild(host);
+    host.innerHTML = renderAd({ platform: 'meta', creative_type: 'video', creative: { motion_html: '<p>x</p>', motion_brief: { product: 'House blend', shots: [{ source_image: '[generate via /api/ai/image mode=reels]', video_prompt: 'Cinematic push in over the provided frame' }] } } });
+  });
+  await page.locator('#hf-host [data-seedance]').click();
+  await expect(page.locator('#hf-host [data-seedance-out]')).toHaveText(/no product photo, so nothing was sent to Seedance/);
+  expect(sent.length).toBe(0);
 });
 
 test('/brain: with no Higgsfield key the button says how to connect one', async ({ page }) => {
