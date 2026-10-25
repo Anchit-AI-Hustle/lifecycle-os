@@ -654,7 +654,7 @@ add('video-generate', { gate: 'model', model: 'video.generate', browser: 'refuse
     // The shipped video-core with no key answers the code-rendered motion
     // creative (2026-10-17), in the active brand, with no network call. The
     // workspace has saved no Pollo key (2026-10-25): its media keys are none.
-    { name: 'with no video key the answer is the code-rendered creative of the active brand', stubs: () => S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null),
+    { name: 'with no video key the answer is the code-rendered creative of the active brand', stubs: () => { S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null); S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); },
       env: { HIGGSFIELD_API_KEY: undefined, HIGGSFIELD_API_SECRET: undefined, OPENMONTAGE_API_KEY: undefined, RUNWAY_API_KEY: undefined },
       run: { json: { prompt: 'a shoe', images: ['https://harness.example/p/one.jpg'], lines: ['A line written for the card.'] } },
       expect: (r) => {
