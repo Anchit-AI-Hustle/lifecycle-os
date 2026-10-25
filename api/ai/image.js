@@ -158,7 +158,9 @@ module.exports = async function handler(req, res) {
   // phone-camera bar (render-rules.js): "professional colour grading" and
   // "natural soft lighting" are the studio-flat look the render rules ban.
   const qualitySuffix = String(mode || 'photo') === 'design' ? QUALITY_SUFFIX : REAL_QUALITY_SUFFIX;
-  const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - qualitySuffix.length) + qualitySuffix;
+  // The same guard opens every provider's prompt: however long the product's
+  // metadata or the style lock, the packaging and brand-kind bans are kept.
+  const finalPrompt = (guard + '\n\n' + subjectLine + preamble + userPrompt).substring(0, 4000 - qualitySuffix.length) + qualitySuffix;
 
   // Keys cleaned and de-duplicated: the same OpenAI key set twice used to be
   // sent twice after it had already been refused.
