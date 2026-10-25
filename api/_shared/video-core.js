@@ -217,11 +217,28 @@ function runwayRequest({ prompt, duration_s, aspect }) {
 // ── Rung executors — each returns { ok, provider, job_id, status, video_url?, error? }
 //    or null-ish { ok:false, error } to demote to the next rung. ──────────────
 
-async function runVeo(opts) {
-  const k = keys();
+// The workspace's OWN Gemini connection (2026-10-25): an API key, or the
+// access token Sign in with Google mints plus its project. Veo then runs on the
+// person's own Google account, recorded as their own answer (no app credits).
+async function ownGeminiAuth() {
+  try {
+    const ov = await require('./workspace-connections-core.js').llmOverridesForCurrentRequest();
+    const k = ov && ov.keys;
+    if (k && k.gemini) return { key: String(k.gemini) };
+    if (k && k.gemini_oauth && k.gemini_oauth.access_token) return { bearer: k.gemini_oauth.access_token, project: k.gemini_oauth.project || '' };
+  } catch (_) { /* no workspace */ }
+  return null;
+}
+function geminiAuthed(url, auth) {
+  if (auth && auth.bearer) return { url, headers: Object.assign({ Authorization: 'Bearer ' + auth.bearer }, auth.project ? { 'x-goog-user-project': auth.project } : {}) };
+  return { url: url + (url.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent((auth && auth.key) || keys().gemini), headers: {} };
+}
+
+async function runVeo(opts, auth) {
   const reqSpec = veoRequest(opts);
-  const r = await _fetchJson(reqSpec.url + '?key=' + encodeURIComponent(k.gemini), {
-    method: 'POST', body: reqSpec.body, timeoutMs: _submitMs(opts),
+  const a = geminiAuthed(reqSpec.url, auth);
+  const r = await _fetchJson(a.url, {
+    method: 'POST', headers: a.headers, body: reqSpec.body, timeoutMs: _submitMs(opts),
   });
   if (!r.ok) return { ok: false, provider: 'veo', error: 'HTTP ' + r.status + ': ' + r.errText };
   const opName = r.data && r.data.name;
@@ -230,16 +247,23 @@ async function runVeo(opts) {
   const deadline = Math.min(Date.now() + SYNC_WAIT_MS - POLL_EVERY_MS, (opts.deadline || Infinity) - POLL_EVERY_MS);
   while (Date.now() < deadline) {
     await _sleep(POLL_EVERY_MS);
-    const st = await statusVeo(opName);
+    const st = await statusVeo(opName, auth);
     if (st.status === 'completed' || st.status === 'failed') return st;
   }
   return { ok: true, provider: 'veo', job_id: opName, status: 'processing' };
 }
 
-async function statusVeo(jobId) {
+async function statusVeo(jobId, auth) {
   const k = keys();
-  if (!k.gemini) return _notConnected({ provider: 'veo', method: 'GET', url: GEMINI_BASE + '/' + jobId, body: undefined });
-  const r = await _fetchJson(GEMINI_BASE + '/' + jobId + '?key=' + encodeURIComponent(k.gemini));
+  const use = auth || await ownGeminiAuth();
+  if (!use && !k.gemini) return _notConnected({ provider: 'veo', method: 'GET', url: GEMINI_BASE + '/' + jobId, body: undefined });
+  const a = geminiAuthed(GEMINI_BASE + '/' + jobId, use);
+  let r = await _fetchJson(a.url, { headers: a.headers });
+  // A job started on the platform's key is not the workspace's to read.
+  if (!r.ok && !auth && use && k.gemini && (r.status === 403 || r.status === 404)) {
+    const pa = geminiAuthed(GEMINI_BASE + '/' + jobId, null);
+    r = await _fetchJson(pa.url, { headers: pa.headers });
+  }
   if (!r.ok) return { ok: false, provider: 'veo', job_id: jobId, status: 'unknown', error: 'HTTP ' + r.status + ': ' + r.errText };
   const d = r.data || {};
   if (d.error) return { ok: false, provider: 'veo', job_id: jobId, status: 'failed', error: (d.error.message || JSON.stringify(d.error)).substring(0, 300) };
@@ -552,6 +576,23 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     }
   }
 
+  // Then the workspace's OWN Gemini connection runs Veo, Google's video model
+  // (2026-10-25, the operator: Gemini quality for every asset): their own
+  // account pays, so it goes first, free generation or not.
+  const ownG = await ownGeminiAuth();
+  if (ownG) {
+    try {
+      const out = await runVeo(opts, ownG);
+      if (out.ok) {
+        try { require('./request-scope.js').noteLlm('ok', { own: true, kind: 'video', provider: 'gemini', model: VEO_MODEL }); } catch (_) { /* no scope */ }
+        return Object.assign({}, out, { tier, audio, own: true, attempts: pAttempts });
+      }
+      pAttempts.push({ provider: 'veo', error: out.error });
+    } catch (e) {
+      pAttempts.push({ provider: 'veo', error: String((e && e.message) || e).slice(0, 200) });
+    }
+  }
+
   // FREE FIRST (2026-10-17, the operator: "everything will cost the user
   // credits - but it should be done for free in the backend"): with free
   // generation on, the creative is rendered in code and no paid video provider
@@ -559,7 +600,8 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const freeFirst = String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
   if (!anyKey() || freeFirst) {
     if (pAttempts.length) {
-      try { return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts: pAttempts, reason: 'your Pollo key did not start a video (' + pAttempts[0].error + ')' }), { provider_error: 'Pollo: ' + pAttempts[0].error }); } catch (_) { /* fall through */ }
+      const who = pAttempts[0].provider === 'veo' ? 'Veo (your Gemini connection)' : 'Pollo';
+      try { return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts: pAttempts, reason: 'your ' + (pAttempts[0].provider === 'veo' ? 'Gemini connection' : 'Pollo key') + ' did not start a video (' + pAttempts[0].error + ')' }), { provider_error: who + ': ' + pAttempts[0].error }); } catch (_) { /* fall through */ }
     }
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';

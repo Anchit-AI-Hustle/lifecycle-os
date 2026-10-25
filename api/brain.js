@@ -1370,41 +1370,24 @@ module.exports = async function handler(req, res) {
 
       case 'music-compose': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-        const apiKey = process.env.ELEVENLABS_API_KEY;
-        // FREE FIRST (2026-10-17, the operator: "everything will cost the user
-        // credits - but it should be done for free in the backend"): the track
-        // is composed HERE, by the same code-only synthesiser the page loads
-        // (music-synth.js: tempo, scale and drums read from the brief, a
-        // deterministic WAV), under the route's credit charge, and no paid
-        // music service is called. FREE_GENERATION=off restores ElevenLabs.
-        if (freeGenerationOn()) {
-          const brief = String(b.prompt || '').trim().slice(0, 4100);
-          if (!brief) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });
-          const out = require('../music-synth.js').renderBytes(brief, Number(b.seconds) || 30, { compact: true });
-          res.setHeader('Content-Type', 'audio/wav');
-          res.setHeader('X-Music-Provider', 'code-synth');
-          res.setHeader('Content-Disposition', 'inline; filename="track.wav"');
-          return res.status(200).send(Buffer.from(out.bytes));
-        }
-        if (!apiKey) return res.status(501).json({ ok: false, error: 'music_unconfigured', message: 'Generating a track here needs ELEVENLABS_API_KEY set on this deployment. Until then, use Open in Suno: the brief is copied for you.' });
-        const prompt = String(b.prompt || '').trim().slice(0, 4100);
-        if (!prompt) return res.status(400).json({ ok: false, error: 'prompt_required', message: 'Describe the track first.' });
-        const secs = Math.round(Number(b.seconds) || 30);
-        const lengthMs = Math.min(120000, Math.max(3000, secs * 1000));
-        const r = await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128', {
-          method: 'POST',
-          headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': apiKey },
-          body: JSON.stringify({ prompt, music_length_ms: lengthMs, model_id: 'music_v1', force_instrumental: b.instrumental !== false }),
-        });
-        if (!r.ok) {
-          const detail = (await r.text()).slice(0, 300);
-          return res.status(502).json({ ok: false, error: 'music_provider_refused', message: `The music service answered ${r.status} and composed nothing. ${detail}`.trim() });
-        }
-        const buf = Buffer.from(await r.arrayBuffer());
-        res.setHeader('Content-Type', 'audio/mpeg');
-        const songId = r.headers.get && r.headers.get('song-id');
-        if (songId) res.setHeader('X-Song-Id', String(songId).slice(0, 120));
-        return res.status(200).send(buf);
+        // Lyria (Gemini's music model) first: the workspace's own Gemini
+        // connection, then the platform's key; ElevenLabs with free generation
+        // off; else a code-made sketch, labelled as one (music-compose.js).
+        const mc = await require('./_shared/music-compose.js').compose({
+          prompt: b.prompt, seconds: b.seconds, instrumental: b.instrumental !== false,
+          image_url: typeof b.image_url === 'string' ? b.image_url.slice(0, 1000) : '',
+        }, { freeGeneration: freeGenerationOn() });
+        if (!mc.ok) return res.status(mc.status || 502).json({ ok: false, error: mc.error, message: mc.message, refusals: mc.refusals || [] });
+        res.setHeader('Content-Type', mc.mime);
+        res.setHeader('X-Music-Provider', mc.provider);
+        res.setHeader('X-Music-Model', String(mc.model || '').slice(0, 80));
+        res.setHeader('X-Music-Quality', mc.quality);
+        if (mc.songId) res.setHeader('X-Song-Id', String(mc.songId).slice(0, 120));
+        const hdr = (s) => encodeURIComponent(String(s || '').slice(0, 1500));
+        if (mc.sung) res.setHeader('X-Music-Sung', hdr(mc.sung));
+        if (mc.message || (mc.refusals && mc.refusals.length)) res.setHeader('X-Music-Note', hdr(mc.message || mc.refusals.join(' ')));
+        res.setHeader('Access-Control-Expose-Headers', 'X-Music-Provider, X-Music-Model, X-Music-Quality, X-Music-Sung, X-Music-Note, X-Song-Id');
+        return res.status(200).send(mc.audio);
       }
 
       // ── CONSOLE (chat-style brain interface) ─────────────────────────────
