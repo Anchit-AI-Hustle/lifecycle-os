@@ -4,6 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Kill the AI Tell: every generated scene and video carries the render rules (2026-10-25)
+The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance stop looking like AI): "Integrate everything
+mentioned". `api/_shared/render-rules.js` holds the card: the tells (studio-flat light on frame 1, unbroken eye contact,
+plastic skin, phantom hands), the lighting rules (frame 1 a third of a stop under, mixed warm/cool light, window spill),
+the bans (giveaway tells; cinema grade, empty set, magazine framing; filler sighs/hair tucks/idle off-camera glances, the one phone-screen glance kept; person beats only when a person is in frame, never adding one), the
+opening 3 seconds (ONE micro-glitch, ONE ordinary object out of place, phone light), the quick-fix re-prompts, the
+common drift and the compact `<render_rules>` block, set once in CODE: `image-prompt.buildPreamble` (every mode but
+`design`, person rules except `ambient`; reels is "shot like a phone in a real room", no film-still grade; quality line
+`REAL_QUALITY`, and `image.js` drops "professional colour grading / natural soft lighting" for those modes),
+`video-core.generateVideo` (every provider's prompt, `withRules`; a first frame that is the product's own photo is a
+packshot: only camera and light move, nothing added), Pollo's 1,500-char cap via `fit()` (the brief is cut, never the
+block), `motion-ad.motionBrief` (phone-camera look, no "filmic grade"; `render_rules` = the review kit) and
+`story-ad.storyBrief`; /brain's video card shows "If a render still looks AI: re-prompts". The out-of-place object is
+never a product, packaging, logo, sign or text (`image-prompt.NEVER` still closes the prompt). It picks no hook and
+changes no copy. Skills: `/ad-creative` and `/creative-brief`. `ASSET_BUILD_VERSION` hashes render-rules.js and
+image-prompt.js. Gated by `tests/render-rules.spec.js` and `image-prompt-subject` (prompts as sent); `pollo-video`'s Veo
+prompt case changed on purpose.
+
 ## ⭐ A model key is the person's: it follows them to every brand they own (2026-10-25)
 The operator, on /ai-models for a newly added brand (Nik Bakers, every card "Not connected"): "ensure that once a user
 syncs a model it stays synced and signed in until user removes or unlinks". Keys were saved per brand workspace, so a new
@@ -3891,7 +3909,7 @@ highly specific, template-driven, evidence-quoting; skill = a real job run end-t
 `/content-repurposer` `/icp-builder` `/ad-copy-matrix` `/creative-brief`. All enforce the
 Brand Constants + zero fabrication.
 **Reels-grade creative standard**: stills built to animate via `api/ai/image.js`
-`mode:'reels'` (cinematic 9:16, depth layers for parallax, negative space for type, no baked
+`mode:'reels'` (9:16 shot like a phone in a real room, render rules per `render-rules.js`, depth layers for parallax, negative space for type, no baked
 text); real motion via Higgsfield image-to-video; instant no-API preview + generator handoff
 via `scripts/lib/motion-ad.js` (`renderMotionAd` = self-contained animated HTML creative,
 `motionBrief` = shot-by-shot brief so the shipped MP4 matches). Quality bar in

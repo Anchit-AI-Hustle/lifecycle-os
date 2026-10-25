@@ -128,6 +128,24 @@ test('api/ai/image.js sends every provider a prompt about THIS product, and refu
       expect(c.prompt, `${c.host}: the brand's own palette`).toContain('#ffa517');
       expect(c.prompt, `${c.host}: another brand's subject or palette`).not.toMatch(FOREIGN);
     }
+    // "Kill the AI Tell" (render-rules.js): a photo is asked for phone-camera
+    // light, never the studio bar the rules ban.
+    // Pollinations keeps 1,500 characters: the packaging ban and the render
+    // rules are both inside what it receives.
+    for (const c of recorded.filter((x) => /pollinations/.test(x.host))) {
+      expect(c.prompt.length).toBeLessThanOrEqual(1500);
+      expect(c.prompt, 'the packaging ban was cut off').toMatch(/actual retail packaging or labels \(those are photographed, never generated\)/);
+      expect(c.prompt, 'the render rules were cut off').toMatch(/window spill/);
+      expect(c.prompt).toMatch(/Show only the product: add no other object/);
+      // The ban leads, ahead of the subject line, however long it is.
+      expect(c.prompt.indexOf('actual retail packaging')).toBeLessThan(c.prompt.indexOf('SUBJECT:'));
+    }
+    for (const c of recorded.filter((x) => !/pollinations/.test(x.host))) {
+      expect(c.prompt, `${c.host}: the render rules`).toMatch(/window spill/);
+      // The packaging ban opens the prompt, so the 4,000-character cap never cuts it.
+      expect(c.prompt.indexOf('actual retail packaging'), `${c.host}: the packaging ban leads`).toBeLessThan(c.prompt.indexOf(HERO.title));
+      expect(c.prompt, `${c.host}: the studio quality bar`).not.toMatch(/professional colour grading|natural soft lighting/);
+    }
     // No product, and the caller asked for one: refused before ANY provider.
     recorded.length = 0;
     w.reset();
