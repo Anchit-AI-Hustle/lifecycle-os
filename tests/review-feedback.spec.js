@@ -1,5 +1,5 @@
 // One-tap star rating from a review mail, the brand's feedback page and its
-// thank-you page (2026-10-24). Built from VAHDAM's "star rating widget with
+// thank-you page (2026-10-24). Built from a tea brand's "star rating widget with
 // redirection logic" sample, WITHOUT its gating: a public review link is
 // offered to every rater, at every star, on both pages (FTC 16 CFR 465,
 // Trustpilot and Google forbid sending only happy raters to a public review).
@@ -54,7 +54,7 @@ const ENV = { SUPABASE_URL: 'https://proj.example', SUPABASE_SERVICE_ROLE_KEY: '
 
 test('the review mail carries five tappable stars to the brand page, and the public review link for everyone', async () => {
   const RR = require(path.join(ROOT, 'api', '_shared', 'review-recovery.js'));
-  const html = await withEnv(ENV, () => RR.reviewMailerHtml({ title: 'Darjeeling First Flush', handle: 'darjeeling', sku: 'S1' }, 'IN', BRAND));
+  const html = await withEnv(ENV, () => RR.reviewMailerHtml({ title: 'Highland First Flush', handle: 'highland', sku: 'S1' }, 'IN', BRAND));
   const stars = [...html.matchAll(/href="(https:\/\/app\.example\/review\?[^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
   expect(stars.length).toBe(5);
   stars.forEach((s, i) => { const q = new URL(s).searchParams; expect(q.get('rating')).toBe(String(i + 1)); expect(q.get('b')).toBe(WS); });

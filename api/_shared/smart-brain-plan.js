@@ -2309,7 +2309,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     .filter((o) => o && o.name && String(o.name).trim().toLowerCase() !== _heroName && !/^\[DATA REQUIRED/.test(String(o.name)))
     .slice(0, 6).map((o) => ({ name: String(o.name), url: /^https?:\/\//.test(String(o.url || '')) ? String(o.url) : '' }));
   // ── THE LONG-FORM SALES PAGE (2026-10-24) ─────────────────────────────────
-  // The operator, with VAHDAM's own landing pages and section library: "ensure
+  // The operator, with a tea brand's own landing pages and section library: "ensure
   // proper well thought of structure of landing pages ... understand what type
   // of content ... and implement it for any brand". The pattern those pages
   // follow: an offer bar, the hero with a reassurance line and trust pills, the
@@ -2428,13 +2428,13 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;background:var(--chalk-warm);padding:12px 18px;font-size:12px;color:var(--ink-dim);text-align:center}
 .sec{padding:26px 0}
 .sec h2{font-size:26px;margin:0 0 12px}
-.why li{list-style:none;margin:8px 0;padding-left:6px;font-size:14px}
+.why li{list-style:none;margin:8px 0;padding-left:6px${_ds.present ? '' : ';font-size:14px'}}
 .tick{color:var(--moss);font-weight:800;margin-right:8px}
 .annc{background:var(--moss);color:var(--on-moss);text-align:center;font-size:13px;font-weight:700;letter-spacing:.04em;padding:9px 14px}
 .pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}
 .pills span{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--chalk);color:var(--ink);font-size:12px;font-weight:600}
 .assure{font-size:13px;margin:10px 0 0;opacity:1}
-.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;font-size:16px}
+${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;font-size:16px}'}
 .feats h2,.details h2,.revs h2,.about h2{font-size:26px}
 .feat{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:22px 0}
 .feat img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
