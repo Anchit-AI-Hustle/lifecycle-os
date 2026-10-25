@@ -169,6 +169,21 @@ const PROVIDERS = [
     ],
   },
 
+  /* ── Video and image generation (2026-10-25) ──────────────────────────── */
+  // Pollo AI's platform API (docs.pollo.ai, read 2026-10-25): one key, sent as
+  // `x-api-key`, reaches Kling, Veo, Seedance and the rest. Only the Kling 2.5
+  // Turbo request was confirmed field by field, so it is the model used. The
+  // key is the person's own, saved in their workspace (never a platform env).
+  {
+    id: 'pollo', label: 'Pollo AI (video)', category: 'media',
+    auth_kind: 'api_key', env_default: '',
+    key_url: 'https://pollo.ai/api-platform/keys',
+    blurb: 'Turns your product photos into short video ads (Kling 2.5 Turbo through Pollo). Billed to your Pollo credits, not this app\'s.',
+    fields: [{ key: 'api_key', label: 'API key', secret: true, required: true }],
+    wired: true,
+    wired_note: 'Used first by every video this workspace makes: the product\'s own photo animated into a 5 or 10 second clip. Without it, videos are rendered in code from the same photos.',
+  },
+
   /* ── Commerce ─────────────────────────────────────────────────────────── */
   {
     id: 'shopify', label: 'Shopify', category: 'commerce',
@@ -935,6 +950,45 @@ async function llmOverridesFor(req) {
   }
 }
 
+/**
+ * The workspace's own media-generation keys (category 'media'), for the
+ * request in flight: { pollo: { api_key } } or null. Same rules as
+ * llmOverridesFor: a signed-in member, the workspace they act in, rows read as
+ * the caller, secrets decrypted by the service role only for those rows.
+ * Never throws; null means the platform's own (keyless) path.
+ */
+async function mediaKeysFor(req) {
+  try {
+    const hasAuth = !!(req && req.headers && (req.headers.authorization || req.headers.Authorization));
+    if (!hasAuth || !serviceConfigured()) return null;
+    const auth = await brandCore.requireUser(req);
+    if (!auth || !auth.ok) return null;
+    const q = (req && req.query) || {};
+    const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
+    const wsId = str(body.workspace_id || q.workspace_id) || await brandCore.activeWorkspaceId(auth);
+    if (!wsId) return null;
+    const rows = (await listConnections(auth, wsId)).filter((r) => {
+      const reg = BY_ID.get(r.provider);
+      return reg && reg.category === 'media' && r.status !== 'disabled' && Array.isArray(r.secret_fields) && r.secret_fields.length;
+    });
+    if (!rows.length) return null;
+    const secrets = await secretsByConnectionId(rows.map((r) => r.id));
+    const out = {};
+    for (const r of rows) {
+      const sec = secrets.get(r.id) || {};
+      if (sec.api_key) out[r.provider] = { api_key: String(sec.api_key) };
+    }
+    return Object.keys(out).length ? out : null;
+  } catch (_) {
+    return null;
+  }
+}
+function mediaKeysForCurrentRequest() {
+  const req = scope.currentRequest();
+  if (!req) return Promise.resolve(null);
+  return scope.once('workspace-media-keys', () => mediaKeysFor(req));
+}
+
 /** The same resolution, memoised for the request llm.js is serving. */
 function llmOverridesForCurrentRequest() {
   const req = scope.currentRequest();
@@ -1108,6 +1162,16 @@ async function checkConnection(auth, workspaceId, providerId) {
         ? 'A live Ollama check needs a saved public base URL. A token is optional.'
         : `A live check needs a ${reg.label} key on this brand. Without one, generations use the platform default and there is nothing of yours to test.` },
     };
+  } else if (reg.id === 'pollo' && secrets.api_key) {
+    // One read that spends nothing: the account's credit balance.
+    try {
+      const out = await require('./video-core.js').polloBalance(secrets.api_key);
+      result = out.ok
+        ? { ok: true, connected: true, note: `Pollo answered: ${out.available} credits available.` }
+        : { ok: false, connected: true, note: out.status === 401 || out.status === 403 ? 'That key was rejected as unauthorized.' : `Pollo did not accept the check (${out.status || 'no answer'}).` };
+    } catch (_) {
+      result = { ok: false, connected: true, note: 'Pollo did not answer in time.' };
+    }
   } else if (reg.id === 'klaviyo') {
     // The one non-AI platform this repo has a real client for. Ask it for its
     // own status so the answer comes from the client that will do the reads.
@@ -1304,6 +1368,7 @@ module.exports = {
   getConnectionAsService, secretsAsService, patchConnectionAsService, saveConnectionAsService,
   // resolution
   buildOverrides, llmOverridesFor, llmOverridesForCurrentRequest,
+  mediaKeysFor, mediaKeysForCurrentRequest,
   credentialsFor, credentialsForCurrentRequest,
   // crypto
   encryptSecrets, decryptSecrets, cryptoConfigured, secretsStorageError, sanitize,

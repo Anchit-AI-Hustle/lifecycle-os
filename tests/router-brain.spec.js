@@ -651,9 +651,10 @@ add('video-generate', { gate: 'model', model: 'video.generate', browser: 'refuse
   },
   cases: [
     { name: 'no prompt is a 400 before any provider', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(M.video)).toEqual([]); } },
-    // No stub: the shipped video-core with no key answers the code-rendered
-    // motion creative (2026-10-17), in the active brand, with no network call.
-    { name: 'with no video key the answer is the code-rendered creative of the active brand', stubs: () => {},
+    // The shipped video-core with no key answers the code-rendered motion
+    // creative (2026-10-17), in the active brand, with no network call. The
+    // workspace has saved no Pollo key (2026-10-25): its media keys are none.
+    { name: 'with no video key the answer is the code-rendered creative of the active brand', stubs: () => S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null),
       env: { HIGGSFIELD_API_KEY: undefined, HIGGSFIELD_API_SECRET: undefined, OPENMONTAGE_API_KEY: undefined, RUNWAY_API_KEY: undefined },
       run: { json: { prompt: 'a shoe', images: ['https://harness.example/p/one.jpg'], lines: ['A line written for the card.'] } },
       expect: (r) => {
