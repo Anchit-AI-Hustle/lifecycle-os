@@ -625,7 +625,7 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
   return out;
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null, only = null, resolution = null } = {}) {
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null, only = null, resolution = null, dry_run = false } = {}) {
   const raw = String(prompt || '').trim();
   if (!raw) return { ok: false, error: 'prompt required' };
   // The brief goes to each provider as written. The render rules ("Kill the
@@ -651,6 +651,14 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     }
     const out = await runHiggsfield(opts, cred);
     return Object.assign({}, out, { tier, audio, attempts: [] });
+  }
+
+  // A dry run spends nothing on anyone's account: no own-key render (Seedance,
+  // Pollo, Veo) is submitted, only the code-rendered creative with the request
+  // a provider would receive.
+  if (dry_run) {
+    try { return codeMotion({ brand, motion, duration_s, aspect, wouldRequest: higgsfieldRequest(opts), reason: 'this is a dry run, so no render was submitted' }); }
+    catch (e) { return Object.assign(_notConnected(higgsfieldRequest(opts)), { audio, motion_error: String((e && e.message) || e).slice(0, 160) }); }
   }
 
   // The workspace's OWN Higgsfield key goes first: Seedance renders the
