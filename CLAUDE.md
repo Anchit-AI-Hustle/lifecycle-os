@@ -49,6 +49,20 @@ the hero sub-copy, the Bestseller sub-copy no longer prints an explanation to th
 own progress line, /brain has a jump bar and a back-to-top button, and Platform Connections is its own rail item beside
 AI Models & Routing. Gated in `catalog-identity-generation` (mutation-checked) and `cta-activity`.
 
+## ⭐ Landing page format follows the audience, from a landing-page benchmark (2026-10-25)
+The operator: "do complete benchmarking on platforms where you can see competitor mailers, ads etc like pagedeck".
+Read: Pagedeck's published analyses of pages behind long-running paid ads (robots allows), recorded with sources in
+`data/benchmarks/landing-reference.json` (rules: message match, one goal, offer above the fold, proof at the doubt,
+a buy box that does the arithmetic; formats by traffic temperature). NOT read: milled.com (robots disallows ClaudeBot,
+ai-train=no), Meta's Ad Library page (refused here; competitor ads stay on ci_ads + Apify in ad-angle-lab); mail stays
+on Really Good Emails (`mail-reference.json`). Built: `smart-brain-plan.landingFormat()` - variant A is the direct
+offer; variant B is a LISTICLE for a cold or lapsed cohort (`COOL_COHORT`) when the brand states 3+ non-service
+reasons (`listicleReasons`: the copy's why-bullets + the record's claims, never padded), headline "N reasons to come
+back to / choose <brand>", the product card after reason one, a button after each reason, the buy box last; else the
+collection page with 2+ pictured products, else direct offer. `lp.format` records it. Not built: advertorial (needs a
+problem/mechanism story the record does not state, and FTC disclosure) and quiz. Gated in
+`tests/landing-page-structure.spec.js`.
+
 ## ⭐ A review mail rates in one tap, and every rater is offered the public review (2026-10-24)
 From VAHDAM's "star rating widget with redirection logic" sample, WITHOUT its gating (1-3 stars kept private, 4-5
 sent to Trustpilot): review gating is prohibited by the FTC's 16 CFR 465 (review suppression), Trustpilot and Google.
