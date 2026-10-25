@@ -144,10 +144,12 @@ module.exports = async function handler(req, res) {
     ? `SUBJECT: the brand's own product "${productTitle}"${product.category ? ` (${String(product.category).slice(0, 80)})` : ''}${/^https?:\/\//i.test(String(product.image_url || '')) ? `, exactly as in its catalogue photograph ${String(product.image_url).slice(0, 400)}` : ''}. Show only this product; invent no other object.\n\n`
     : '';
   const preamble = buildPreamble(brand, mode || 'photo', productTitle ? { product: { title: productTitle, category: product.category } } : null);
-  // Pollinations keeps only 1,500 characters: it gets the short preamble, whose
-  // anti-fabrication ban and render rules both fit (image-prompt NEVER_SHORT).
+  // Pollinations keeps only 1,500 characters: the bans and render rules go
+  // FIRST (compactGuard), ahead of any subject text however long, then the
+  // subject and the short preamble.
   const shortPreamble = buildPreamble(brand, mode || 'photo', Object.assign({ compact: true }, productTitle ? { product: { title: productTitle, category: product.category } } : {}));
-  const pollPrompt = (subjectLine + shortPreamble + userPrompt).substring(0, 1500);
+  const guard = require('../_shared/image-prompt.js').compactGuard(mode || 'photo', productTitle ? { product: { title: productTitle } } : null);
+  const pollPrompt = (guard + '\n\n' + subjectLine + shortPreamble + userPrompt).substring(0, 1500);
   // Reserve room so the quality bar always survives the 4000-char cap. The
   // SUBJECT leads: Pollinations keeps only the first 1,500 characters, and the
   // brand preamble alone is about that long, so a subject placed after it was
