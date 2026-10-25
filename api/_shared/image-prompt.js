@@ -156,6 +156,12 @@ const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and sk
  * Build the preamble for one brand and mode.
  * `mode` is one of MODES; anything unrecognised falls back to a photograph.
  */
+// Pollinations keeps only the first 1,500 characters of a prompt, and the full
+// preamble runs past that, so its tail (the packaging ban included) never
+// arrived. A provider with that cap gets this short form, the anti-fabrication
+// ban FIRST and the render rules in one line, so neither is cut (2026-10-25).
+const NEVER_SHORT = 'NEVER render: logos, wordmarks, readable text, star ratings, review counts, badges, price tags, or the brand\'s actual retail packaging or labels (those are photographed, never generated), and no identifiable real person.';
+
 function buildPreamble(brand, mode, opt) {
   const name = (brand && brand.name) || 'this brand';
   // A caller photographing a NAMED catalogue product (opt.product = { title,
@@ -192,10 +198,16 @@ function buildPreamble(brand, mode, opt) {
   // design mockup is a layout and keeps the studio quality line.
   const real = m !== 'design';
   const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' && !named, productOnly: !!named }) : '';
+  if (opt && opt.compact) {
+    const objLine = named ? 'Show only the product: add no other object.'
+      : 'One ordinary object out of place (a mug, a cable), never a product, packaging, logo or text.';
+    const shortReal = real ? `Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}` : '';
+    return [head, NEVER_SHORT, shortReal, palette, textPolicy].filter(Boolean).join(' ') + '\n\n';
+  }
   // The rules ride right after the scene: Pollinations keeps only the first
   // 1,500 characters, and a long style lock or palette must not push them out.
   return [head, realism, subject.caution, style, palette, type, textPolicy, NEVER, real ? REAL_QUALITY : QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
 
-module.exports = { buildPreamble, subjectFor, paletteBrief, MODES, NEVER, QUALITY, REAL_QUALITY };
+module.exports = { buildPreamble, subjectFor, paletteBrief, MODES, NEVER, NEVER_SHORT, QUALITY, REAL_QUALITY };

@@ -126,13 +126,14 @@ test('the shot brief and the story brief ask for a phone-camera look, never a fi
   expect(s).not.toMatch(/filmic|Cinematic/);
   expect(brief.grade).toMatch(/never a cinema-grade colour grade/);
   for (const sh of brief.shots) expect(sh.video_prompt).toMatch(/phone-camera look/);
-  expect(brief.render_rules.compact_block).toBe(RR.COMPACT);
+  expect(brief.render_rules.compact_block).toBe(RR.COMPACT_PACKSHOT);
+  expect(brief.render_rules.compact_block).not.toMatch(/object out of place/);
   expect(brief.render_rules.quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Stares', 'Plastic', 'Too still', 'Too staged']);
   expect(brief.render_rules.check_first).toMatch(/Frame 1/);
 
   const story = require(path.join(ROOT, 'scripts', 'lib', 'story-ad.js'));
   const sb = story.storyBrief({ brandName: 'Fernwick Roasters', hook: 'Fresh this week', products: [{ title: 'House blend', price: '£9', image: PHOTO }], cta: 'Shop now' });
-  expect(sb.render_rules.compact_block).toBe(RR.COMPACT);
+  expect(sb.render_rules.compact_block).toBe(RR.COMPACT_PACKSHOT);
   for (const sc of sb.scenes.filter((x) => x.motion)) expect(sc.motion).toMatch(/phone-camera look with no cinema grade/);
 });
 
