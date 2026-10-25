@@ -189,10 +189,20 @@ async function callEleven(spec, key, { fetchImpl, deadline } = {}) {
 
 /* ── Replicate ─────────────────────────────────────────────────────────── */
 
-async function rq(token, pathname, init, f) {
-  const r = await f(REPLICATE + pathname, Object.assign({}, init, {
-    headers: Object.assign({ Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, (init && init.headers) || {}),
-  }));
+async function rq(token, pathname, init, f, deadline) {
+  // Every request is bounded by what is left of the composition's deadline, so
+  // a stalled call fails over (or hands back its job) instead of hanging past it.
+  const left = Math.max(1000, (deadline || Date.now() + 30000) - Date.now() - 2000);
+  let r;
+  try {
+    r = await f(REPLICATE + pathname, Object.assign({}, init, {
+      headers: Object.assign({ Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, (init && init.headers) || {}),
+      signal: AbortSignal.timeout(left),
+    }));
+  } catch (e) {
+    const err = new Error(/timeout|abort/i.test(String(e && e.name)) ? 'Replicate did not answer in time' : 'Replicate could not be reached');
+    err.status = 0; throw err;
+  }
   const text = await r.text().catch(() => '');
   if (!r.ok) {
     let msg = text; try { const j = JSON.parse(text); msg = j.detail || j.title || text; } catch (_) { /* text */ }
@@ -201,17 +211,17 @@ async function rq(token, pathname, init, f) {
   try { return JSON.parse(text); } catch (_) { throw new Error('Replicate answered with something that was not JSON'); }
 }
 
-async function createPrediction(token, model, input, { fetchImpl, version, waitS } = {}) {
+async function createPrediction(token, model, input, { fetchImpl, version, waitS, deadline } = {}) {
   if (!MODEL_RE.test(model)) throw new Error('Invalid model slug');
   const f = fetchImpl || fetch;
   const prefer = waitS ? { Prefer: 'wait=' + Math.max(1, Math.min(60, waitS)) } : {};
-  if (version) return rq(token, '/predictions', { method: 'POST', headers: prefer, body: JSON.stringify({ version, input }) }, f);
+  if (version) return rq(token, '/predictions', { method: 'POST', headers: prefer, body: JSON.stringify({ version, input }) }, f, deadline);
   const [owner, name] = model.split('/');
-  return rq(token, `/models/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/predictions`, { method: 'POST', headers: prefer, body: JSON.stringify({ input }) }, f);
+  return rq(token, `/models/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/predictions`, { method: 'POST', headers: prefer, body: JSON.stringify({ input }) }, f, deadline);
 }
 
-function getPrediction(token, id, { fetchImpl } = {}) {
-  return rq(token, '/predictions/' + encodeURIComponent(id), { method: 'GET' }, fetchImpl || fetch);
+function getPrediction(token, id, { fetchImpl, deadline } = {}) {
+  return rq(token, '/predictions/' + encodeURIComponent(id), { method: 'GET' }, fetchImpl || fetch, deadline);
 }
 
 /** The audio address a finished prediction names: a string, the first of a list, or an object's audio field. */
@@ -228,10 +238,10 @@ function deliveryHost(u) {
   try { const x = new URL(u); return x.protocol === 'https:' && (x.hostname === 'replicate.delivery' || x.hostname.endsWith('.replicate.delivery')) ? x : null; } catch (_) { return null; }
 }
 
-async function fetchOutput(u, { fetchImpl } = {}) {
+async function fetchOutput(u, { fetchImpl, deadline } = {}) {
   const x = deliveryHost(u);
   if (!x) return { ok: false, error: 'Replicate named an audio address outside its own delivery host' };
-  const r = await (fetchImpl || fetch)(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error', signal: AbortSignal.timeout(30000) }).catch(() => null);
+  const r = await (fetchImpl || fetch)(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error', signal: AbortSignal.timeout(Math.max(1000, Math.min(30000, (deadline || Date.now() + 30000) - Date.now() - 2000))) }).catch(() => null);
   if (!r || !r.ok) return { ok: false, error: 'the finished track could not be read from Replicate' };
   const type = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').split(';')[0] || (/\.wav$/i.test(x.pathname) ? 'audio/wav' : 'audio/mpeg');
   const buf = Buffer.from(await r.arrayBuffer());
@@ -257,7 +267,7 @@ async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = 
   for (const [model, input, version] of tries) {
     let p;
     try {
-      p = await createPrediction(token, model, input, { fetchImpl: f, version, waitS: Math.min(55, Math.floor(((deadline || Date.now() + 90000) - Date.now()) / 1000) - 20) });
+      p = await createPrediction(token, model, input, { fetchImpl: f, version, deadline, waitS: Math.min(55, Math.floor(((deadline || Date.now() + 90000) - Date.now()) / 1000) - 20) });
     } catch (e) {
       errors.push(model + ': ' + (e && e.message || e));
       if (e && (e.status === 401 || e.status === 402 || e.status === 429)) break; // account-wide: the next model meets it too
@@ -271,12 +281,18 @@ async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = 
         return Object.assign({ ok: true, pending: true, job: j }, meta);
       }
       await new Promise((ok) => setTimeout(ok, 2500));
-      try { p = await getPrediction(token, p.id, { fetchImpl: f }); } catch (e) { errors.push(model + ': ' + e.message); p = null; }
+      const id = p.id;
+      try { p = await getPrediction(token, id, { fetchImpl: f, deadline }); } catch (e) {
+        // A poll that stalled: the prediction is still Replicate's to finish, so hand it back as a job.
+        const j = jobId(src || 'platform', id, owner);
+        if (j && e.status === 0) return Object.assign({ ok: true, pending: true, job: j }, meta);
+        errors.push(model + ': ' + e.message); p = null;
+      }
     }
     if (p && p.status === 'succeeded') {
       const url = outputUrl(p.output);
       if (!url) { errors.push(model + ': finished without an audio file'); continue; }
-      const out = await fetchOutput(url, { fetchImpl: f });
+      const out = await fetchOutput(url, { fetchImpl: f, deadline });
       if (out.ok && out.audio.length <= MAX_AUDIO) return Object.assign({ ok: true }, out, meta);
       const j = out.ok ? jobId(src || 'platform', p.id, owner) : null;
       if (j) return Object.assign({ ok: true, pending: true, job: j }, meta); // too large to send inline: streamed by music-job

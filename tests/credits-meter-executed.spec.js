@@ -603,5 +603,12 @@ test('a workspace with its own model keys: work its own keys made costs no credi
     res = await music(answered(true));
     expect(res.code).toBe(200);
     expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
+    // ...and only a key that run can USE (Codex, #358): a Pollo (video) key does
+    // not let a music run skip its hold, since music reads ElevenLabs/Replicate.
+    wcc.mediaKeysForCurrentRequest = async () => ({ pollo: { api_key: 'pollo-own' } });
+    ran = 0;
+    res = await music(async (_r, r) => { ran += 1; r.status(200).json({ ok: true }); });
+    expect(res.code).toBe(402);
+    expect(ran).toBe(0);
   } finally { wcc.llmOverridesForCurrentRequest = realOv; wcc.mediaKeysForCurrentRequest = realMedia; }
 });

@@ -268,6 +268,22 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
     });
   } finally { net.restore(); }
 
+  // 3c. A Replicate call that stalls is bounded by the deadline (Codex, #358):
+  // the composition moves on instead of hanging past it.
+  const realFetch = global.fetch;
+  global.fetch = (url, init = {}) => new Promise((_ok, fail) => {
+    if (init.signal) init.signal.addEventListener('abort', () => { const e = new Error('aborted'); e.name = 'TimeoutError'; fail(e); });
+  });
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, CRON_SECRET: 'job-secret' }, async () => {
+      const t0 = Date.now();
+      const r = await fresh().compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 18000 });
+      expect(Date.now() - t0, 'a stalled Replicate call ran past the deadline').toBeLessThan(18000);
+      expect(r.provider).toBe('code-synth');
+      expect(r.refusals.join(' ')).toMatch(/Replicate did not answer in time/);
+    });
+  } finally { global.fetch = realFetch; }
+
   // 4. Every model refuses: the sketch, labelled, with each refusal said.
   net = fakeLyria((u) => (u.startsWith('https://api.elevenlabs.io/') ? { status: 401, body: { detail: 'invalid key' } }
     : u.startsWith('https://api.replicate.com/') ? { status: 402, body: { detail: 'Insufficient credit' } }
