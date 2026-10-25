@@ -54,11 +54,11 @@ const ENV = { SUPABASE_URL: 'https://proj.example', SUPABASE_SERVICE_ROLE_KEY: '
 
 test('the review mail carries five tappable stars to the brand page, and the public review link for everyone', async () => {
   const RR = require(path.join(ROOT, 'api', '_shared', 'review-recovery.js'));
-  const html = await withEnv(ENV, () => RR.reviewMailerHtml({ title: 'Highland First Flush', handle: 'highland', sku: 'S1' }, 'IN', BRAND));
-  const stars = [...html.matchAll(/href="(https:\/\/app\.example\/review\?[^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
+  const mail = await withEnv(ENV, () => RR.reviewMailerHtml({ title: 'Highland First Flush', handle: 'highland', sku: 'S1' }, 'IN', BRAND));
+  const stars = [...mail.matchAll(/href="(https:\/\/app\.example\/review\?[^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
   expect(stars.length).toBe(5);
   stars.forEach((s, i) => { const q = new URL(s).searchParams; expect(q.get('rating')).toBe(String(i + 1)); expect(q.get('b')).toBe(WS); });
-  expect(html).toContain('post a public review');
+  expect(mail).toContain('post a public review');
   // With no address for this deployment, the mail keeps its one button.
   const plain = await withEnv({ SELF_BASE_URL: '' }, () => { delete process.env.SELF_BASE_URL; return RR.reviewMailerHtml({ title: 'X', handle: 'x' }, 'IN', BRAND); });
   expect(plain).not.toContain('/review?');

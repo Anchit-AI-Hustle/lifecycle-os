@@ -44,29 +44,29 @@ async function build(entry) {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }
 }
-const textOf = (html) => String(html || '').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<title>[\s\S]*?<\/title>/i, ' ').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+const textOf = (built) => String(built || '').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<title>[\s\S]*?<\/title>/i, ' ').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 const count = (hay, needle) => String(hay).split(needle).length - 1;
 const PHOTO = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"><rect width="900" height="900" fill="#9b8"/></svg>';
 
 test('a brand with stated facts gets every section those facts fill, each claim once, nothing invented', async ({ page }) => {
   const c = await build(slot(RICH, P('Highland First Flush Black Tea', 1, 759, { compare_at: 999, servings: 50, unit_spec: '100 grams' })));
   const a = c.assets.landing_pages.find((l) => l.variant === 'A');
-  const html = a.html; const t = textOf(html);
-  expect(html, 'offer bar').toMatch(/class="annc">Free shipping across India</);
-  expect(html, 'buy box').toMatch(/<section class="sec buy"/);
+  const built = a.html; const t = textOf(built);
+  expect(built, 'offer bar').toMatch(/class="annc">Free shipping across India</);
+  expect(built, 'buy box').toMatch(/<section class="sec buy"/);
   expect(t).toMatch(/₹759 ₹999 24% off/);
   expect(t, 'per serving from the stated servings').toContain('₹15 per serving');
   expect(t).toContain('100 grams · 50 servings');
   expect(t, 'the details').toMatch(/The details .*Size 100 grams .*Servings 50/);
   expect(t, 'who the brand is, in its own words').toContain(`About Leafline Tea ${ABOUT}`);
-  expect(html, 'a closing button').toMatch(/<section class="endcta">/);
+  expect(built, 'a closing button').toMatch(/<section class="endcta">/);
   for (const claim of CLAIMS) expect(count(t, claim), `"${claim}" printed more than once`).toBeLessThanOrEqual(1);
   // Nothing the record does not state: no rating, countdown, stock level, gift or study.
   expect(t).not.toMatch(/★|Rated \d|ends in|left at this price|in stock|free gift|clinical|study|\d+%\s+(lower|better|less)/i);
   for (const [w, h] of [[1280, 900], [390, 844]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.route('**/*', (r) => (r.request().resourceType() === 'image' ? r.fulfill({ contentType: 'image/svg+xml', body: PHOTO }) : r.abort()));
-    await page.setContent(html, { waitUntil: 'load' });
+    await page.setContent(built, { waitUntil: 'load' });
     const m = await page.evaluate(() => ({ over: document.documentElement.scrollWidth - innerWidth, buyCols: getComputedStyle(document.querySelector('.buybox')).gridTemplateColumns.split(' ').length }));
     expect(m.over, `scrolls sideways at ${w}`).toBeLessThanOrEqual(0);
     expect(m.buyCols, `buy box columns at ${w}`).toBe(w < 760 ? 1 : 2);
@@ -77,10 +77,10 @@ test('a brand with stated facts gets every section those facts fill, each claim 
 test('a bare brand gets no empty sections: no offer bar, no details, no about, no checklist', async () => {
   const bare = Object.assign({}, RICH, { claims: [], description: '' });
   const c = await build(slot(bare, P('Highland First Flush Black Tea', 1, 759)));
-  const html = c.assets.landing_pages.find((l) => l.variant === 'A').html;
-  expect(html).not.toMatch(/class="annc"|class="sec details"|class="sec about"|class="chk"|class="off"/);
+  const built = c.assets.landing_pages.find((l) => l.variant === 'A').html;
+  expect(built).not.toMatch(/class="annc"|class="sec details"|class="sec about"|class="chk"|class="off"/);
   // The buy box still carries what the store states: its price.
-  expect(textOf(html)).toContain('₹759');
+  expect(textOf(built)).toContain('₹759');
 });
 
 // The page FORMAT follows the audience (2026-10-25, from the landing-page
