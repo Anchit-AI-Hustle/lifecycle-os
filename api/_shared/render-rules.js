@@ -149,9 +149,12 @@ function withRules(prompt, opt) {
 }
 
 /** What a reviewer reads beside a render: the re-prompts and the drift checks. */
-function reviewKit() {
+function reviewKit(opt) {
+  // A brief whose shots are the product's own photos re-prompts with the
+  // packshot block: it never asks a model to add an object to a packshot.
+  const shot = !!(opt && opt.packshot);
   return {
-    compact_block: COMPACT,
+    compact_block: shot ? COMPACT_PACKSHOT : COMPACT,
     quick_fixes: Object.values(QUICK_FIX),
     common_drift: DRIFT.slice(),
     check_first: 'Frame 1: lighting is the loudest tell.',

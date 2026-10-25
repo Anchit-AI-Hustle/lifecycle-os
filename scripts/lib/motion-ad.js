@@ -490,7 +490,7 @@ function motionBrief(spec) {
     grade: `one phone-camera look across all shots, never a cinema-grade colour grade; the brand colours live on the type veil (${PAL.green} to ${PAL.ink}) and ${PAL.lava} accents, not on the footage`,
     // The render rules every shot carries, and what to re-prompt when a render
     // still reads as AI (render-rules.js).
-    render_rules: require('../../api/_shared/render-rules.js').reviewKit(),
+    render_rules: require('../../api/_shared/render-rules.js').reviewKit({ packshot: true }),
     hook_rule: 'first shot must move within 0.8s; type punches in with it',
     audio: {
       bed,

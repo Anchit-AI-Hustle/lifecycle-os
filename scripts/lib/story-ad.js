@@ -113,7 +113,7 @@ function storyBrief(spec) {
     format: 'story', aspect: '9:16', size: '1080x1920', duration_s: +total.toFixed(1), max_s: MAX_SECONDS,
     structure: 'opening, product showcase, closing impression',
     // For a video model rendering these shots ("Kill the AI Tell").
-    render_rules: require('../../api/_shared/render-rules.js').reviewKit(),
+    render_rules: require('../../api/_shared/render-rules.js').reviewKit({ packshot: true }),
     scenes: briefScenes(scenes),
     cuts: { short: { duration_s: +shortTotal.toFixed(1), max_s: SHORT_SECONDS, scenes: briefScenes(shortScenes) } },
   };

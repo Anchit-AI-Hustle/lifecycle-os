@@ -130,6 +130,14 @@ test('api/ai/image.js sends every provider a prompt about THIS product, and refu
     }
     // "Kill the AI Tell" (render-rules.js): a photo is asked for phone-camera
     // light, never the studio bar the rules ban.
+    // Pollinations keeps 1,500 characters: the packaging ban and the render
+    // rules are both inside what it receives.
+    for (const c of recorded.filter((x) => /pollinations/.test(x.host))) {
+      expect(c.prompt.length).toBeLessThanOrEqual(1500);
+      expect(c.prompt, 'the packaging ban was cut off').toMatch(/actual retail packaging or labels \(those are photographed, never generated\)/);
+      expect(c.prompt, 'the render rules were cut off').toMatch(/window spill/);
+      expect(c.prompt).toMatch(/Show only the product: add no other object/);
+    }
     for (const c of recorded.filter((x) => !/pollinations/.test(x.host))) {
       expect(c.prompt, `${c.host}: the render rules`).toMatch(/window spill/);
       expect(c.prompt, `${c.host}: the studio quality bar`).not.toMatch(/professional colour grading|natural soft lighting/);
