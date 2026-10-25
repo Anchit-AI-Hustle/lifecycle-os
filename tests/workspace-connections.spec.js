@@ -134,6 +134,14 @@ function installFetch(w) {
       return json(user && w.active[user.id] ? [{ active_workspace_id: w.active[user.id] }] : []);
     }
     if (u.includes('/rest/v1/brand_workspaces')) {
+      // "Every brand I own but this one", as PostgREST reads owner_id + id=neq.
+      const owner = paramOf(u, 'owner_id');
+      if (owner) {
+        const user = w.users[token];
+        const not = (/[?&]id=neq\.([^&]+)/.exec(u) || [])[1];
+        if (!user || user.id !== owner) return json([]);
+        return json(Object.values(w.workspaces).filter((x) => x.owner_id === owner && x.id !== decodeURIComponent(not || '')));
+      }
       const wsId = paramOf(u, 'id');
       return json(mayRead(w, token, wsId) ? [w.workspaces[wsId]] : []);
     }
@@ -150,6 +158,16 @@ function installFetch(w) {
       const ids = (/connection_id=in\.\(([^)]*)\)/.exec(u) || [])[1] || '';
       const wanted = decodeURIComponent(ids).split(',').map((s) => s.replace(/^"|"$/g, '')).filter(Boolean);
       return json(wanted.map((id) => w.secrets[id]).filter(Boolean));
+    }
+
+    const inList = (/[?&]workspace_id=in\.\(([^)]*)\)/.exec(u) || [])[1];
+    if (inList !== undefined && (u.includes('/rest/v1/workspace_connections?') || u.includes('/rest/v1/workspace_ai_routing?')) && method === 'GET') {
+      // RLS on an in-list: only the workspaces this caller may read.
+      const ids = decodeURIComponent(inList).split(',').filter((id) => mayRead(w, token, id));
+      if (u.includes('workspace_ai_routing')) return json(ids.map((id) => w.routing[id]).filter(Boolean));
+      const provs = ((/[?&]provider=in\.\(([^)]*)\)/.exec(u) || [])[1]);
+      const allowed = provs ? decodeURIComponent(provs).split(',') : null;
+      return json(ids.flatMap((id) => w.connections[id] || []).filter((r) => !allowed || allowed.includes(r.provider)));
     }
 
     if (u.includes('/rest/v1/workspace_connections')) {
@@ -626,4 +644,96 @@ test('a tokenless Ollama connection can be live-tested from its saved base URL',
   expect(providerHosts(w)).toContain('ollama.example');
   const call = w.calls.find((c) => new URL(c.url).host === 'ollama.example');
   expect(call.headers.Authorization || call.headers.authorization).toBe('Bearer ollama');
+});
+
+/* ── 5. a model key is the person's: it follows them to every brand they own ── */
+// The operator (2026-10-25): "ensure that once a user syncs a model it stays
+// synced and signed in until user removes or unlinks". A brand added later
+// (Nik Bakers) showed every model as Not connected because keys were saved
+// per brand.
+
+function twoBrands() {
+  const w = fresh();
+  w.workspaces['ws-a2'] = { id: 'ws-a2', slug: 'nik', name: 'Nik Bakers', owner_id: 'user-a' };
+  w.connections['ws-a2'] = [];
+  w.active['user-a'] = 'ws-a2';
+  return w;
+}
+
+test('a model key saved on one brand is connected on every other brand the same person owns', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'openai', secrets: { api_key: 'sk-alpha-own' } });
+
+  const r = res();
+  await core.handle(req('tok-a', { op: 'list' }), r);
+  const c = (r.payload.connections || []).find((x) => x.provider === 'openai');
+  expect(c && c.configured).toBe(true);
+  expect(c.shared_from).toEqual({ workspace_id: 'ws-a', name: 'Alpha' });
+  expect(JSON.stringify(r.payload)).not.toContain('sk-alpha-own');
+
+  // And a generation on the new brand runs on that key.
+  const o = await core.llmOverridesFor(req('tok-a'));
+  expect(o && o.keys.openai).toBe('sk-alpha-own');
+});
+
+test('another person\'s model key never follows anyone else', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-b', { provider: 'openai', secrets: { api_key: 'sk-beta-private' } });
+  const r = res();
+  await core.handle(req('tok-a', { op: 'list' }), r);
+  expect((r.payload.connections || []).find((x) => x.provider === 'openai')).toBeUndefined();
+  expect(await core.llmOverridesFor(req('tok-a'))).toBeNull();
+  expect(JSON.stringify(w.calls.filter((c) => c.url.includes('connection_secrets')))).not.toContain('conn-ws-b');
+});
+
+test('a key saved on this brand wins over the one from another brand', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'openai', secrets: { api_key: 'sk-alpha-own' } });
+  addConnection(w, 'ws-a2', { provider: 'openai', secrets: { api_key: 'sk-nik-own' } });
+  const o = await core.llmOverridesFor(req('tok-a'));
+  expect(o.keys.openai).toBe('sk-nik-own');
+});
+
+test('Save on a brand that shows the person\'s key updates it where it is saved, never a keyless copy', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'cloudflare', config: { account_id: 'acc-1' }, secrets: { api_key: 'cf-token' } });
+  const r = res();
+  await core.handle(Object.assign(req('tok-a', { op: 'save' }), { method: 'POST', body: { provider: 'cloudflare', fields: { account_id: 'acc-2', api_key: '' } } }), r);
+  expect(r.code).toBe(200);
+  expect(w.connections['ws-a2']).toEqual([]);
+  expect(w.connections['ws-a'][0].config.account_id).toBe('acc-2');
+  const o = await core.llmOverridesFor(req('tok-a'));
+  expect(o.keys.cloudflare).toBe('cf-token');
+});
+
+test('it stays connected until the person removes it, and removing it unlinks it everywhere', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'openai', secrets: { api_key: 'sk-alpha-own' } });
+  // Switching brands back and forth does not drop it.
+  for (const ws of ['ws-a', 'ws-a2', 'ws-a', 'ws-a2']) {
+    w.active['user-a'] = ws; core._resolvedCache.clear();
+    expect((await core.llmOverridesFor(req('tok-a'))).keys.openai).toBe('sk-alpha-own');
+  }
+  const r = res();
+  await core.handle(Object.assign(req('tok-a', { op: 'delete' }), { method: 'POST', body: { provider: 'openai' } }), r);
+  expect(r.payload.unlinked_from).toBe('ws-a');
+  expect(w.connections['ws-a']).toEqual([]);
+  expect(await core.llmOverridesFor(req('tok-a'))).toBeNull();
+});
+
+test('a platform connection (not a model) stays with the brand it was saved on', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'klaviyo', category: 'lifecycle', secrets: { api_key: 'pk-alpha' } });
+  const r = res();
+  await core.handle(req('tok-a', { op: 'list' }), r);
+  expect((r.payload.connections || []).find((x) => x.provider === 'klaviyo')).toBeUndefined();
+});
+
+test('a model order chosen on one brand is used on a brand that has none', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'openai', secrets: { api_key: 'sk-alpha-own' } });
+  w.routing['ws-a'] = { workspace_id: 'ws-a', entries: [{ provider: 'openai', models: [], enabled: true }], use_platform_fallback: false, updated_at: '2026-10-25T00:00:00Z' };
+  const o = await core.llmOverridesFor(req('tok-a'));
+  expect(o.order).toEqual(['openai']);
+  expect(o.fallback).toBe(false);
 });
