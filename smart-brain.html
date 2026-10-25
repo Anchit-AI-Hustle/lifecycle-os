@@ -305,6 +305,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .sbtop[hidden]{display:none}
   @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
 </style>
+<script src="/music-client.js" defer></script>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
 <body>
@@ -1414,26 +1415,19 @@ async function sbComposeMusic(mx, btn){
   if (window.LifecycleStatus) { const stop = await window.LifecycleStatus.decide('Composing a track', { metered: true }); if (stop) { window.LifecycleStatus.show(status, stop); return; } }
   btn.disabled = true; status.textContent = 'Composing the track. A produced track takes up to a minute.';
   try {
-    const r = await fetch('/api/brain?action=music-compose', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt, seconds: mus.seconds || 30, instrumental: !mus.vocals, image_url: mus.image_url || '' }) });
-    const type = r.headers.get('content-type') || '';
-    if (!r.ok || !/audio/.test(type)) {
-      let j = null; try { j = await r.json(); } catch (_) {}
-      const err = new Error((j && (j.message || j.error)) || ('The server answered ' + r.status + '.')); err.status = r.status; if (j && j.error) err.code = j.error;
-      if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show(status, err); else status.textContent = err.message;
+    let t;
+    try {
+      t = await window.MusicClient.compose({ prompt, seconds: mus.seconds || 30, instrumental: !mus.vocals, image_url: mus.image_url || '' }, { onProgress: (m) => { status.textContent = m; } });
+    } catch (err) {
+      if (err && err.status && window.LifecycleFailure && window.LifecycleFailure.show && err.status !== 501) window.LifecycleFailure.show(status, err); else status.textContent = (err && err.message) || String(err);
       return;
     }
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const quality = r.headers.get('x-music-quality') || '';
-    const provider = r.headers.get('x-music-provider') || '';
-    const noteH = decodeURIComponent(r.headers.get('x-music-note') || '');
-    const sung = decodeURIComponent(r.headers.get('x-music-sung') || '');
-    const ext = /wav/.test(type) ? 'wav' : 'mp3';
+    const blob = t.blob, url = t.url, quality = t.quality, sung = t.sung;
+    const ext = /wav/.test(t.type) ? 'wav' : 'mp3';
     const fname = String(mus.title || 'track').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.' + ext;
-    out.innerHTML = `<div class="mk-made" data-music-track data-quality="${esc(quality)}" style="margin-top:8px"><audio controls src="${url}" style="width:100%"></audio>
+    out.innerHTML = `<div class="mk-made" data-music-track data-quality="${esc(quality)}" data-provider="${esc(t.provider)}" style="margin-top:8px"><audio controls src="${url}" style="width:100%"></audio>
       <div class="akbar" style="margin-top:6px"><a class="btn sm secondary" href="${url}" download="${esc(fname)}">⬇ Download (${ext.toUpperCase()})</a></div>
-      <p class="pvnote">${provider === 'lyria' ? 'Composed by Lyria, Google\'s music model.' : provider === 'elevenlabs' ? 'Composed by ElevenLabs Music.' : ''} ${esc(noteH)}</p>
+      <p class="pvnote">${esc(t.note)}</p>
       ${sung ? `<details class="pvnote"><summary>What the model sang or played</summary><pre style="white-space:pre-wrap">${esc(sung)}</pre></details>` : ''}</div>`;
     // Score every Story video of this send with it (each frame makes its own
     // address for the bytes: a sandboxed frame cannot read ours).

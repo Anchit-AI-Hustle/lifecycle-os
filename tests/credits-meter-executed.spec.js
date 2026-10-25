@@ -548,6 +548,8 @@ test('a workspace with its own model keys: work its own keys made costs no credi
   const WCC = path.resolve(__dirname, '..', 'api', '_shared', 'workspace-connections-core.js');
   const wcc = require(WCC);
   const realOv = wcc.llmOverridesForCurrentRequest;
+  const realMedia = wcc.mediaKeysForCurrentRequest;
+  wcc.mediaKeysForCurrentRequest = async () => null;
   let ownKeys = true;
   wcc.llmOverridesForCurrentRequest = async () => (ownKeys ? { order: [], keys: { anthropic: 'ws-own' }, configured: ['anthropic'], fallback: false, source: 'workspace' } : null);
   // What llm.js / image.js record for each answer (executed in llm-provider-chain).
@@ -585,5 +587,28 @@ test('a workspace with its own model keys: work its own keys made costs no credi
     res = await run(answered(false));
     expect(res.code).toBe(402);
     expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
-  } finally { wcc.llmOverridesForCurrentRequest = realOv; }
+
+    // Codex on #358: a workspace whose own key is a MEDIA key (a music or video
+    // service, no language model) is not refused up front either: its own key
+    // runs, and costs nothing.
+    wcc.mediaKeysForCurrentRequest = async () => ({ replicate: { api_key: 'r8_own' } });
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+    // ...and only for the runs that can use it (Codex, #358): a text run on the
+    // same short wallet is refused up front, as it was, not run without a hold.
+    const music = (handler) => { const r2 = makeRes(); const rq = req('tok-a'); return scope.run(rq, () => credits.metered(handler, () => 'audio.music')(rq, r2)).then(() => r2); };
+    let ran = 0;
+    res = await run(async (_r, r) => { ran += 1; scope.noteLlm('ok', { own: false }); r.status(200).json({ ok: true }); });
+    expect(res.code).toBe(402);
+    expect(ran, 'the text run went ahead (and spent at a provider) before the wallet refused it').toBe(0);
+    res = await music(answered(true));
+    expect(res.code).toBe(200);
+    expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
+    // ...and only a key that run can USE (Codex, #358): a Pollo (video) key does
+    // not let a music run skip its hold, since music reads ElevenLabs/Replicate.
+    wcc.mediaKeysForCurrentRequest = async () => ({ pollo: { api_key: 'pollo-own' } });
+    ran = 0;
+    res = await music(async (_r, r) => { ran += 1; r.status(200).json({ ok: true }); });
+    expect(res.code).toBe(402);
+    expect(ran).toBe(0);
+  } finally { wcc.llmOverridesForCurrentRequest = realOv; wcc.mediaKeysForCurrentRequest = realMedia; }
 });

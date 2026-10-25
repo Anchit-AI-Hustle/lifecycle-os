@@ -120,7 +120,7 @@
           <button type="button" class="btn-outline" id="mkCopy">Copy brief</button>
         </div>
         <div class="mt-3 text-[13px]" id="mkStatus" role="status" aria-live="polite"></div>
-        <p class="mk-note mt-2">Generate here costs credits. With your own Gemini key connected on <a class="music-link" href="/ai-models">AI Models</a>, Lyria composes it on your own Google account, not from your credits. Without a music model it makes a short instrumental sketch and says so. Suno has no public API, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
+        <p class="mk-note mt-2">Generate here costs credits. It tries every music model a key reaches: Lyria (Gemini), ElevenLabs Music and Replicate (ACE-Step sings your lyrics, MusicGen plays instrumentals). Your own keys, connected on <a class="music-link" href="/ai-models">AI Models</a> and <a class="music-link" href="/connections">Platform Connections</a>, are used first and are billed to your own accounts instead of your credits. Only when no model answers does it make a short instrumental sketch, and it says so. Suno has no public API, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
         <div id="mkMade"></div>
       </div>
     </section>
@@ -223,6 +223,7 @@
 
   <script src="/auth.js"></script>
   <script src="/brand-music.js"></script>
+  <script src="/music-client.js"></script>
   <script>
   (function(){
     "use strict";
@@ -375,29 +376,13 @@
         var body = { prompt: prompt, seconds: Number($("mkSecs").value) || 30, instrumental: $("mkInstr").checked };
         var cp = chosenProduct();
         if (cp && /^https:\/\//i.test(cp.img || "")) body.image_url = cp.img;
-        var r = await fetch("/api/brain?action=music-compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        var type = r.headers.get("content-type") || "";
-        if (r.ok && /audio/.test(type)) {
-          var url = URL.createObjectURL(await r.blob());
-          var isWav = /wav/.test(type);
-          var prov = r.headers.get("x-music-provider") || "";
-          var quality = r.headers.get("x-music-quality") || (isWav ? "sketch" : "");
-          var noteH = ""; try { noteH = decodeURIComponent(r.headers.get("x-music-note") || ""); } catch(_){}
-          var sung = ""; try { sung = decodeURIComponent(r.headers.get("x-music-sung") || ""); } catch(_){}
-          var made = prov === "lyria" ? "Composed by Lyria, Google's music model." : prov === "elevenlabs" ? "Composed by ElevenLabs Music." : "";
-          addMade(url, "New track · " + $("mkUse").selectedOptions[0].textContent, isWav ? "wav" : undefined,
-            [made, quality === "sketch" ? (noteH || "A code-made instrumental sketch from the brief, not a produced track.") : noteH].filter(Boolean).join(" "), sung);
-          say("Done. Play it below.");
-        } else {
-          var j = null; try { j = await r.json(); } catch(_){}
-          var err = new Error((j && (j.message || j.error)) || ("The server answered " + r.status + "."));
-          if (j && j.error) err.code = j.error;
-          err.status = r.status;
-          if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show($("mkStatus"), err);
-          else say(err.message);
-        }
+        var t = await window.MusicClient.compose(body, { onProgress: say });
+        addMade(t.url, "New track · " + $("mkUse").selectedOptions[0].textContent, /wav/.test(t.type) ? "wav" : undefined,
+          t.quality === "sketch" ? (t.note || "A code-made instrumental sketch from the brief, not a produced track.") : t.note, t.sung);
+        say(t.quality === "sketch" ? "A sketch is ready (no music model answered: the note under it says why)." : "Done. Play it below.");
       } catch (e) {
-        say("Could not reach the server: " + (e && e.message || e));
+        if (e && e.status && window.LifecycleFailure && window.LifecycleFailure.show && e.status !== 501) window.LifecycleFailure.show($("mkStatus"), e);
+        else say((e && e.status) ? e.message : "Could not reach the server: " + (e && e.message || e));
       } finally { btn.disabled = false; }
     });
     function onBrand(b){
