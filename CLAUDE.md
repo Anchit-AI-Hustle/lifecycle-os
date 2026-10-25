@@ -14,7 +14,8 @@ tried once; a key id instead of the sk_ secret is said) -> Replicate (`lucataco/
 sings a brief with lyrics, `meta/musicgen` {stereo-large, mp3} plays an instrumental, `stable-audio-open` pinned behind
 it; a 401/402/429 is account-wide and stops that account; `Prefer: wait` then polled in the request) -> the sketch (free generation on only; else 501/502 with every refusal).
 Third Eye's Hugging Face rung is NOT ported: no Inference Provider hosts MusicGen (`inferenceProviderMapping` empty for every
-size, read 2026-10-25). The workspace's OWN keys first: `elevenlabs`, `replicate` are media connections on /connections (Test
+size, read 2026-10-25). Every key the workspace connected (Gemini, ElevenLabs, Replicate) is tried before ANY of the
+platform's; every Replicate call and the job download are bounded by the deadline. The workspace's OWN keys first: `elevenlabs`, `replicate` are media connections on /connections (Test
 reads the account, spends nothing), recorded as own answers; a media key lets a LOW wallet run only music and video
 (`workspaceHasOwnModels(feature)`), never a text run. A job id is HMAC-signed over source, prediction and user with a
 PRIVATE secret (JWT secret, connection key, cron secret or service key); with none, no job is issued and music-job is 503. A Replicate track still rendering is `202 {job}`;

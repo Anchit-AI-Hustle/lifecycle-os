@@ -1409,7 +1409,15 @@ module.exports = async function handler(req, res) {
         if (!j.ok) return res.status(j.status || 502).json({ ok: false, error: j.error, message: j.message });
         if (j.pending) return res.status(202).json({ ok: true, pending: true, status: j.status });
         const x = MC.deliveryHost(j.url);
-        const up = x ? await fetch(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error' }).catch(() => null) : null;
+        // Bounded (Codex, #358): a stalled delivery host answers a sentence the
+        // page can retry on, well inside the function's own time budget.
+        const dlMs = Number(process.env.MUSIC_JOB_DOWNLOAD_MS) || 60000;
+        const dlEnd = Date.now() + dlMs;
+        const left = () => Math.max(1, dlEnd - Date.now());
+        const within = (pr) => Promise.race([pr, new Promise((_ok, fail) => setTimeout(() => fail(new Error('timeout')), left()))]);
+        let up = null, slow = false;
+        if (x) up = await within(fetch(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error', signal: AbortSignal.timeout(dlMs) })).catch((e) => { slow = /timeout/i.test(String(e && (e.name + e.message))); return null; });
+        if (slow) return res.status(504).json({ ok: false, error: 'job_download_slow', message: 'Replicate finished the track but is slow to hand it over. Press Generate again in a minute.' });
         if (!up || !up.ok) return res.status(502).json({ ok: false, error: 'job_unreadable', message: 'The finished track could not be read from Replicate.' });
         const type = String(up.headers.get('content-type') || '').split(';')[0];
         res.setHeader('Content-Type', /^audio\//.test(type) ? type : (/\.wav$/i.test(x.pathname) ? 'audio/wav' : 'audio/mpeg'));
@@ -1417,12 +1425,24 @@ module.exports = async function handler(req, res) {
         res.setHeader('X-Music-Quality', 'studio');
         res.setHeader('Access-Control-Expose-Headers', 'X-Music-Provider, X-Music-Quality');
         res.status(200);
-        if (up.body && typeof up.body.getReader === 'function') {
-          const reader = up.body.getReader();
-          for (;;) { const { done, value } = await reader.read(); if (done) break; res.write(Buffer.from(value)); }
-          return res.end();
+        // Streamed (a sung WAV can pass the 4.5 MB buffered-response cap), and
+        // every read bounded by the same deadline: a stall mid-body ends the
+        // response, so the page sees a failed download it can retry.
+        try {
+          if (up.body && typeof up.body.getReader === 'function') {
+            const reader = up.body.getReader();
+            for (;;) {
+              const { done, value } = await within(reader.read()).catch((e) => { try { reader.cancel(); } catch (_) {} throw e; });
+              if (done) break;
+              res.write(Buffer.from(value));
+            }
+            return res.end();
+          }
+          return res.end(await within(up.arrayBuffer().then((a) => Buffer.from(a))));
+        } catch (_) {
+          if (!res.headersSent) return res.status(504).json({ ok: false, error: 'job_download_slow', message: 'Replicate finished the track but is slow to hand it over. Press Generate again in a minute.' });
+          return res.destroy ? res.destroy() : res.end();
         }
-        return res.end(Buffer.from(await up.arrayBuffer()));
       }
 
       // ── CONSOLE (chat-style brain interface) ─────────────────────────────
