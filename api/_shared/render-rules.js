@@ -95,6 +95,17 @@ const COMPACT = [
   '</render_rules>',
 ].join('\n');
 
+// Over a real product photo (or a photo of one named product) nothing is
+// added, so the block's `open` line asks for one camera micro-shake and no
+// object: the two blocks never tell a model opposite things.
+const COMPACT_PACKSHOT = [
+  '<render_rules>',
+  'light: phone-camera, -1/3 stop, mixed temp, window spill',
+  'open: 1 handheld micro-shake; add nothing, the photo is the product',
+  'no: cinema grade, empty set, magazine framing',
+  '</render_rules>',
+].join('\n');
+
 const MARK = '<render_rules>';
 
 /**
@@ -133,7 +144,8 @@ function rules({ medium = 'image', people = true, packshot = false, productOnly 
 function withRules(prompt, opt) {
   const p = String(prompt || '');
   if (p.includes(MARK)) return p;
-  return p + (p ? '\n\n' : '') + rules(opt) + '\n' + COMPACT;
+  const shot = !!(opt && (opt.packshot || opt.productOnly));
+  return p + (p ? '\n\n' : '') + rules(opt) + '\n' + (shot ? COMPACT_PACKSHOT : COMPACT);
 }
 
 /** What a reviewer reads beside a render: the re-prompts and the drift checks. */
@@ -156,12 +168,14 @@ function fit(prompt, max) {
   const p = String(prompt || '');
   if (!max || p.length <= max) return p;
   const at = p.indexOf('REALISM (phone camera');
-  if (at < 0 || !p.includes(MARK)) return p.slice(0, max);
+  const mk = p.lastIndexOf(MARK);
+  if (at < 0 || mk < 0) return p.slice(0, max);
   const head = p.slice(0, at).trim();
-  const room = max - COMPACT.length - 2;
-  return (room > 0 ? head.slice(0, room) + '\n\n' : '') + COMPACT;
+  const block = p.slice(mk);           // whichever block this prompt carries
+  const room = max - block.length - 2;
+  return (room > 0 ? head.slice(0, room) + '\n\n' : '') + block;
 }
 
 function quickFix(id) { return QUICK_FIX[id] ? QUICK_FIX[id].reprompt : ''; }
 
-module.exports = { TELLS, LIGHTING, BANS, OPENING, QUICK_FIX, DRIFT, COMPACT, MARK, rules, withRules, fit, reviewKit, quickFix };
+module.exports = { TELLS, LIGHTING, BANS, OPENING, QUICK_FIX, DRIFT, COMPACT, COMPACT_PACKSHOT, MARK, rules, withRules, fit, reviewKit, quickFix };

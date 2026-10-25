@@ -192,7 +192,9 @@ function buildPreamble(brand, mode, opt) {
   // design mockup is a layout and keeps the studio quality line.
   const real = m !== 'design';
   const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' && !named, productOnly: !!named }) : '';
-  return [head, subject.caution, style, palette, type, textPolicy, realism, NEVER, real ? REAL_QUALITY : QUALITY]
+  // The rules ride right after the scene: Pollinations keeps only the first
+  // 1,500 characters, and a long style lock or palette must not push them out.
+  return [head, realism, subject.caution, style, palette, type, textPolicy, NEVER, real ? REAL_QUALITY : QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
 
