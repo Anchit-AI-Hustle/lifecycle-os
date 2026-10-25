@@ -173,10 +173,14 @@ function compactGuard(mode, opt) {
   const ban = (m === 'ad' || m === 'design')
     ? NEVER_SHORT.replace('readable text', 'any text beyond the lines supplied (never an invented claim, statistic or rating)')
     : NEVER_SHORT;
-  if (m === 'design') return ban;
+  // The brand kind's own ban (news: no synthetic politicians or people; market
+  // data: no fake charts) rides the guard too, so it is never cut off.
+  const caution = named ? 'Show only this product; no other product, and no readable lettering on its packaging.'
+    : (opt && opt.brand ? (subjectFor(opt.brand).caution || '') : '');
+  if (m === 'design') return [ban, caution].filter(Boolean).join(' ');
   const objLine = named ? 'Show only the product: add no other object.'
     : 'One ordinary object out of place (a mug, a cable), never a product, packaging, logo or text.';
-  return `${ban} Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}`;
+  return `${ban}${caution ? ' ' + caution : ''} Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}`;
 }
 
 function buildPreamble(brand, mode, opt) {

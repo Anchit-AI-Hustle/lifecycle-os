@@ -148,7 +148,7 @@ module.exports = async function handler(req, res) {
   // FIRST (compactGuard), ahead of any subject text however long, then the
   // subject and the short preamble.
   const shortPreamble = buildPreamble(brand, mode || 'photo', Object.assign({ compact: true }, productTitle ? { product: { title: productTitle, category: product.category } } : {}));
-  const guard = require('../_shared/image-prompt.js').compactGuard(mode || 'photo', productTitle ? { product: { title: productTitle } } : null);
+  const guard = require('../_shared/image-prompt.js').compactGuard(mode || 'photo', Object.assign({ brand }, productTitle ? { product: { title: productTitle } } : {}));
   const pollPrompt = (guard + '\n\n' + subjectLine + shortPreamble + userPrompt).substring(0, 1500);
   // Reserve room so the quality bar always survives the 4000-char cap. The
   // SUBJECT leads: Pollinations keeps only the first 1,500 characters, and the
