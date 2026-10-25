@@ -128,6 +128,12 @@ test('api/ai/image.js sends every provider a prompt about THIS product, and refu
       expect(c.prompt, `${c.host}: the brand's own palette`).toContain('#ffa517');
       expect(c.prompt, `${c.host}: another brand's subject or palette`).not.toMatch(FOREIGN);
     }
+    // "Kill the AI Tell" (render-rules.js): a photo is asked for phone-camera
+    // light, never the studio bar the rules ban.
+    for (const c of recorded.filter((x) => !/pollinations/.test(x.host))) {
+      expect(c.prompt, `${c.host}: the render rules`).toMatch(/window spill/);
+      expect(c.prompt, `${c.host}: the studio quality bar`).not.toMatch(/professional colour grading|natural soft lighting/);
+    }
     // No product, and the caller asked for one: refused before ANY provider.
     recorded.length = 0;
     w.reset();

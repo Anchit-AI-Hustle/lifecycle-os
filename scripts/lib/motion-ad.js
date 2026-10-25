@@ -474,8 +474,11 @@ function motionBrief(spec) {
       // Deliberately generic motion: the frame is a REAL product photograph, so
        // the generator must move the camera over it and nothing else. Inventing
        // objects into a real packshot is how a fabricated product ships.
-       video_prompt: `Cinematic ${s.move.name.replace('-', ' ')} over the provided frame, ` +
-        'subtle organic motion and a gentle light shift only, filmic grade, ' +
+       // Phone-camera look, never a cinema grade (render-rules.js, "Kill the
+       // AI Tell"): a frame that reads as a studio render gives the ad away.
+       video_prompt: `Slow ${s.move.name.replace('-', ' ')} over the provided frame, ` +
+        'subtle handheld motion and a gentle light shift only, phone-camera look ' +
+        '(a third of a stop under, mixed warm and cool light, no cinema grade), ' +
         'no added objects, no text, no logos, 9:16.',
       kinetic_type: { text: s.headline, sub: s.sub || null, in: 'rise+fade, word stagger 80ms', out: 'fade up' },
       transition_out: i === scenes.length - 1 ? 'hard cut to CTA card' : 'crossfade 0.45s'
@@ -484,7 +487,10 @@ function motionBrief(spec) {
   return {
     format: '1080x1920 (9:16) MP4, keep total under 15s for Reels',
     product: spec.product || '',
-    grade: `one filmic grade across all shots; veil from ${PAL.green} to ${PAL.ink}, ${PAL.lava} accents`,
+    grade: `one phone-camera look across all shots, never a cinema-grade colour grade; the brand colours live on the type veil (${PAL.green} to ${PAL.ink}) and ${PAL.lava} accents, not on the footage`,
+    // The render rules every shot carries, and what to re-prompt when a render
+    // still reads as AI (render-rules.js).
+    render_rules: require('../../api/_shared/render-rules.js').reviewKit(),
     hook_rule: 'first shot must move within 0.8s; type punches in with it',
     audio: {
       bed,

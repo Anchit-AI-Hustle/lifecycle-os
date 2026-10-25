@@ -1354,6 +1354,12 @@ function renderAd(ad){
     const board = shots.length
       ? shots.map(sh=>`<div class="advshot"><div class="advshot-t">${esc(String(sh.start_s))}s · ${esc(sh.camera||'')}</div><div class="advshot-b">${esc((sh.kinetic_type&&sh.kinetic_type.text)||'')}</div></div>`).join('')
       : (ad.storyboard||[]).map(sb=>`<div class="advshot"><div class="advshot-t">${esc(sb.t||'')}</div><div class="advshot-b">${esc(sb.scene||sb.shot||'')}</div></div>`).join('');
+    // "Kill the AI Tell" (render-rules.js): what to re-prompt when a render
+    // from a video model still reads as AI, carried on the shot brief.
+    const rr = cr.motion_brief && cr.motion_brief.render_rules;
+    const rrHtml = rr && Array.isArray(rr.quick_fixes) && rr.quick_fixes.length
+      ? `<details class="advnote" data-render-rules><summary>If a render still looks AI: re-prompts</summary><p>${esc(rr.check_first||'')}</p><ul>${rr.quick_fixes.map(f=>`<li><b>${esc(f.problem)}:</b> ${esc(f.reprompt)}</li>`).join('')}${(rr.common_drift||[]).map(d=>`<li><b>${esc(d.symptom)}:</b> ${esc(d.fix)}</li>`).join('')}</ul><pre style="white-space:pre-wrap;font-size:12px">${esc(rr.compact_block||'')}</pre></details>`
+      : '';
     const audio = cr.audio ? `<p class="advnote">Audio: ${esc(cr.audio.bed ? (cr.audio.origin||cr.audio.bed) : cr.audio.origin||'')}${cr.audio.note?' — '+esc(cr.audio.note):''}</p>` : '';
     return `<div class="adcard" data-ad-type="video" data-motion="${midx>=0?'1':'0'}" data-motion-idx="${midx}">
       <h4>${esc(platform)} · Video ad ${vtag} ${qa}</h4>
@@ -1361,6 +1367,7 @@ function renderAd(ad){
       ${gap}${bar}${player}
       ${board?`<div class="advboard">${board}</div>`:''}
       ${audio}
+      ${rrHtml}
       <div class="advcta">${cta} &rarr;</div>
       ${rows.join('')}
     </div>`;
