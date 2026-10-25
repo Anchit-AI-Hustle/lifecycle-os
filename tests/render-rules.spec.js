@@ -176,15 +176,33 @@ test('the lighting rules and bans sit inside the first 1,000 characters of every
   }
 });
 
-test('the short preamble a 1,500-character provider gets keeps every fabrication ban, the market-data one included', () => {
+test('the guard a 1,500-character provider gets first keeps every fabrication ban, and lets an ad or a design carry its own lines', () => {
   for (const mode of ['photo', 'ad', 'reels', 'ambient', 'design']) {
-    const p = IP.buildPreamble(BRAND, mode, { compact: true });
-    expect(p, mode).toContain(IP.NEVER_SHORT);
-    expect(p, mode).toMatch(/no fake candlestick charts, price tickers, portfolio balances or return figures/);
-    expect(p, mode).toMatch(/actual retail packaging or labels/);
-    // The bans and the rules sit early enough that the longest subject line
-    // image.js puts in front (about 600 characters) still leaves them inside 1,500.
-    expect(p.indexOf('return figures'), mode).toBeLessThan(900);
-    if (mode !== 'design') expect(p.indexOf('magazine framing'), mode).toBeLessThan(900);
+    const g = IP.compactGuard(mode);
+    expect(g, mode).toMatch(/no fake candlestick charts, price tickers, portfolio balances or return figures/);
+    expect(g, mode).toMatch(/actual retail packaging or labels/);
+    if (mode !== 'design') expect(g, mode).toMatch(/magazine framing/);
   }
+  expect(IP.compactGuard('design')).not.toMatch(/readable text/);
+  expect(IP.compactGuard('design')).toMatch(/any text beyond the lines supplied/);
+  expect(IP.compactGuard('ad')).toMatch(/any text beyond the lines supplied/);
+  expect(IP.compactGuard('photo')).toMatch(/readable text/);
+  expect(IP.compactGuard('photo', { product: { title: 'House blend' } })).toMatch(/Show only the product: add no other object/);
+  // The short preamble carries no ban of its own: the guard leads instead.
+  expect(IP.buildPreamble(BRAND, 'photo', { compact: true })).not.toContain(IP.NEVER_SHORT);
+});
+
+test('a prompt that already carries a block is normalised to the one that fits this frame', () => {
+  const pasted = 'Customer unboxes the bag.\n' + RR.COMPACT;
+  const shot = RR.withRules(pasted, { medium: 'video', packshot: true });
+  expect(shot).toContain(RR.COMPACT_PACKSHOT);
+  expect(shot).not.toMatch(/object out of place/);
+  expect(shot.split('<render_rules>').length).toBe(2);
+  const back = RR.withRules(shot, { medium: 'video', people: true });
+  expect(back).toContain(RR.COMPACT);
+  expect(back).not.toContain('add nothing, the photo is the product');
+  expect(back.split('REALISM (phone camera').length).toBe(2);
+  // A long pasted prompt keeps the right block after fitting.
+  const fitted = RR.fit(RR.withRules('x'.repeat(1400) + '\n' + RR.COMPACT, { medium: 'video', packshot: true }), 1500);
+  expect(fitted.endsWith(RR.COMPACT_PACKSHOT)).toBe(true);
 });

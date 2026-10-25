@@ -162,6 +162,23 @@ const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and sk
 // ban FIRST and the render rules in one line, so neither is cut (2026-10-25).
 const NEVER_SHORT = 'NEVER render: logos, wordmarks, readable text, star ratings, review counts, badges, price tags, or the brand\'s actual retail packaging or labels (those are photographed, never generated), no identifiable real person, and no fake candlestick charts, price tickers, portfolio balances or return figures.';
 
+/**
+ * The guard a 1,500-character provider gets FIRST, ahead of any variable
+ * subject text: the short ban (an ad or a design mockup may carry the text it
+ * was given, never invented text) and the render rules in one line.
+ */
+function compactGuard(mode, opt) {
+  const m = MODES.includes(String(mode)) ? String(mode) : 'photo';
+  const named = opt && opt.product && String(opt.product.title || '').trim();
+  const ban = (m === 'ad' || m === 'design')
+    ? NEVER_SHORT.replace('readable text', 'any text beyond the lines supplied (never an invented claim, statistic or rating)')
+    : NEVER_SHORT;
+  if (m === 'design') return ban;
+  const objLine = named ? 'Show only the product: add no other object.'
+    : 'One ordinary object out of place (a mug, a cable), never a product, packaging, logo or text.';
+  return `${ban} Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}`;
+}
+
 function buildPreamble(brand, mode, opt) {
   const name = (brand && brand.name) || 'this brand';
   // A caller photographing a NAMED catalogue product (opt.product = { title,
@@ -198,11 +215,11 @@ function buildPreamble(brand, mode, opt) {
   // design mockup is a layout and keeps the studio quality line.
   const real = m !== 'design';
   const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' && !named, productOnly: !!named }) : '';
+  // The short form for a 1,500-character provider: the scene, palette and
+  // text policy. Its bans and rules are compactGuard(), which the caller puts
+  // FIRST, ahead of the subject line (image.js).
   if (opt && opt.compact) {
-    const objLine = named ? 'Show only the product: add no other object.'
-      : 'One ordinary object out of place (a mug, a cable), never a product, packaging, logo or text.';
-    const shortReal = real ? `Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}` : '';
-    return [head, NEVER_SHORT, shortReal, palette, textPolicy].filter(Boolean).join(' ') + '\n\n';
+    return [head, palette, textPolicy].filter(Boolean).join(' ') + '\n\n';
   }
   // The rules ride right after the scene: Pollinations keeps only the first
   // 1,500 characters, and a long style lock or palette must not push them out.
@@ -210,4 +227,4 @@ function buildPreamble(brand, mode, opt) {
     .filter(Boolean).join(' ') + '\n\n';
 }
 
-module.exports = { buildPreamble, subjectFor, paletteBrief, MODES, NEVER, NEVER_SHORT, QUALITY, REAL_QUALITY };
+module.exports = { buildPreamble, compactGuard, subjectFor, paletteBrief, MODES, NEVER, NEVER_SHORT, QUALITY, REAL_QUALITY };

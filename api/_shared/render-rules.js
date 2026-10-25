@@ -142,8 +142,14 @@ function rules({ medium = 'image', people = true, packshot = false, productOnly 
 
 /** Append the rules (and the compact block) to a prompt, once. */
 function withRules(prompt, opt) {
-  const p = String(prompt || '');
-  if (p.includes(MARK)) return p;
+  // A prompt that already carries a block (one pasted by hand, as the skill
+  // invites) is normalised: any earlier rules and block are taken out and the
+  // ones that fit THIS provider and frame are appended, so a packshot never
+  // keeps the block that adds an object, and fit() always has its anchor.
+  const p = String(prompt || '')
+    .replace(/<render_rules>[\s\S]*?<\/render_rules>/g, '')
+    .replace(/REALISM \(phone camera, not studio\):[^\n]*/g, '')
+    .replace(/\n{3,}/g, '\n\n').trim();
   const shot = !!(opt && (opt.packshot || opt.productOnly));
   return p + (p ? '\n\n' : '') + rules(opt) + '\n' + (shot ? COMPACT_PACKSHOT : COMPACT);
 }

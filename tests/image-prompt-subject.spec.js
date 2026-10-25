@@ -137,6 +137,8 @@ test('api/ai/image.js sends every provider a prompt about THIS product, and refu
       expect(c.prompt, 'the packaging ban was cut off').toMatch(/actual retail packaging or labels \(those are photographed, never generated\)/);
       expect(c.prompt, 'the render rules were cut off').toMatch(/window spill/);
       expect(c.prompt).toMatch(/Show only the product: add no other object/);
+      // The ban leads, ahead of the subject line, however long it is.
+      expect(c.prompt.indexOf('actual retail packaging')).toBeLessThan(c.prompt.indexOf('SUBJECT:'));
     }
     for (const c of recorded.filter((x) => !/pollinations/.test(x.host))) {
       expect(c.prompt, `${c.host}: the render rules`).toMatch(/window spill/);
