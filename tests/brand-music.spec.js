@@ -232,14 +232,16 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
   try {
     await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, HF_API_TOKEN: undefined }, async () => {
       const MC = fresh();
-      const r = await MC.compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, deadline: Date.now() + 16000 });
-      expect(r).toMatchObject({ ok: true, pending: true, job: 'own:pred2abc', provider: 'replicate', model: 'meta/musicgen', own: true });
+      const r = await MC.compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 16000 });
+      expect(r).toMatchObject({ ok: true, pending: true, job: MC.jobId('own', 'pred2abc', 'user-1'), provider: 'replicate', model: 'meta/musicgen', own: true });
       expect(net.calls[0].body.input).toMatchObject({ prompt: 'An instrumental bed', duration: 30, model_version: 'stereo-large', output_format: 'mp3' });
       // The job is read with the key that started it, and its audio only from Replicate's delivery host.
-      const j = await MC.job('own:pred2abc', { ownKeys: { replicate: 'r8_own' } });
+      const j = await MC.job(r.job, { ownKeys: { replicate: 'r8_own' }, owner: 'user-1' });
       expect(j).toEqual({ ok: true, pending: true, status: 'processing' });
       expect(net.calls[net.calls.length - 1].headers.Authorization).toBe('Bearer r8_own');
-      expect((await MC.job('own:pred2abc', { ownKeys: {} })).error).toBe('job_key_gone');
+      expect((await MC.job(r.job, { ownKeys: {}, owner: 'user-1' })).error).toBe('job_key_gone');
+      // Another account cannot read it, whatever key it holds.
+      expect((await MC.job(r.job, { ownKeys: { replicate: 'r8_own' }, owner: 'user-2' })).error).toBe('job_not_yours');
       expect((await MC.job('platform:../x', {})).status).toBe(400);
       expect(MC.deliveryHost('https://evil.example/x.mp3')).toBe(null);
       expect(MC.deliveryHost('https://replicate.delivery/a/b.mp3')).toBeTruthy();

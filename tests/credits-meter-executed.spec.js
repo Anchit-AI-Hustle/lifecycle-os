@@ -548,6 +548,8 @@ test('a workspace with its own model keys: work its own keys made costs no credi
   const WCC = path.resolve(__dirname, '..', 'api', '_shared', 'workspace-connections-core.js');
   const wcc = require(WCC);
   const realOv = wcc.llmOverridesForCurrentRequest;
+  const realMedia = wcc.mediaKeysForCurrentRequest;
+  wcc.mediaKeysForCurrentRequest = async () => null;
   let ownKeys = true;
   wcc.llmOverridesForCurrentRequest = async () => (ownKeys ? { order: [], keys: { anthropic: 'ws-own' }, configured: ['anthropic'], fallback: false, source: 'workspace' } : null);
   // What llm.js / image.js record for each answer (executed in llm-provider-chain).
@@ -585,5 +587,14 @@ test('a workspace with its own model keys: work its own keys made costs no credi
     res = await run(answered(false));
     expect(res.code).toBe(402);
     expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
-  } finally { wcc.llmOverridesForCurrentRequest = realOv; }
+
+    // Codex on #358: a workspace whose own key is a MEDIA key (a music or video
+    // service, no language model) is not refused up front either: its own key
+    // runs, and costs nothing.
+    wcc.mediaKeysForCurrentRequest = async () => ({ replicate: { api_key: 'r8_own' } });
+    res = await run(answered(true));
+    expect(res.code).toBe(200);
+    expect(res.payload.credits).toMatchObject({ charged: 0, own_keys: true });
+    expect(wallet(db)).toMatchObject({ balance: 5, held: 0 });
+  } finally { wcc.llmOverridesForCurrentRequest = realOv; wcc.mediaKeysForCurrentRequest = realMedia; }
 });
