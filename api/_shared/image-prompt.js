@@ -147,11 +147,6 @@ const NEVER = 'NEVER render: logos, wordmarks, watermarks, UI or inbox chrome, s
 
 const QUALITY = 'Gallery-print resolution, true-to-life colour, natural soft lighting, fine material texture, correct anatomy, balanced composition. Avoid blur, noise, banding, compression artifacts, plastic skin, warped shapes, duplicated objects and oversaturation.';
 
-// A photograph of a scene reads as a phone in a real room, never a studio
-// render (render-rules.js, "Kill the AI Tell", 2026-10-25): its quality line
-// asks for real texture and correct anatomy, not studio light or a grade.
-const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and skin texture, correct anatomy and hands. Avoid blur, compression artifacts, plastic skin, warped shapes, duplicated objects and oversaturation.';
-
 /**
  * Build the preamble for one brand and mode.
  * `mode` is one of MODES; anything unrecognised falls back to a photograph.
@@ -159,13 +154,13 @@ const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and sk
 // Pollinations keeps only the first 1,500 characters of a prompt, and the full
 // preamble runs past that, so its tail (the packaging ban included) never
 // arrived. A provider with that cap gets this short form, the anti-fabrication
-// ban FIRST and the render rules in one line, so neither is cut (2026-10-25).
+// ban FIRST, so it is never cut (2026-10-25).
 const NEVER_SHORT = 'NEVER render: logos, wordmarks, readable text, star ratings, review counts, badges, price tags, or the brand\'s actual retail packaging or labels (those are photographed, never generated), no identifiable real person, and no fake candlestick charts, price tickers, portfolio balances or return figures.';
 
 /**
  * The guard a 1,500-character provider gets FIRST, ahead of any variable
  * subject text: the short ban (an ad or a design mockup may carry the text it
- * was given, never invented text) and the render rules in one line.
+ * was given, never invented text) and the brand kind's own caution.
  */
 function compactGuard(mode, opt) {
   const m = MODES.includes(String(mode)) ? String(mode) : 'photo';
@@ -177,10 +172,8 @@ function compactGuard(mode, opt) {
   // data: no fake charts) rides the guard too, so it is never cut off.
   const caution = named ? 'Show only this product; no other product, and no readable lettering on its packaging.'
     : (opt && opt.brand ? (subjectFor(opt.brand).caution || '') : '');
-  if (m === 'design') return [ban, caution].filter(Boolean).join(' ');
-  const objLine = named ? 'Show only the product: add no other object.'
-    : 'One ordinary object out of place (a mug, a cable), never a product, packaging, logo or text.';
-  return `${ban}${caution ? ' ' + caution : ''} Phone-camera realism: a third of a stop under, mixed warm and cool light, window spill; no cinema grade, empty set or magazine framing. ${objLine}`;
+  if (m === 'design' || !named) return [ban, caution].filter(Boolean).join(' ');
+  return `${ban} ${caution} Show only the product: add no other object.`;
 }
 
 function buildPreamble(brand, mode, opt) {
@@ -203,7 +196,7 @@ function buildPreamble(brand, mode, opt) {
     design: `High-fidelity flat design mockup of a complete marketing email for ${name}, shown as it would appear in an inbox. This is a LAYOUT, not a photograph: header band, body, a single prominent call-to-action button, and a footer.`,
     ad: `Scroll-stopping paid social ad creative for ${name}: a photoreal scene WITH a clean marketing text overlay rendered as part of the image, so it reads as a finished ad rather than a bare photograph. Render ONLY the supplied headline and offer line, spelled exactly as given, in a clear safe-zone band. Show ${subject.scene}`,
     ambient: `Photoreal ambient backdrop for ${name}. Show ${subject.ambient}`,
-    reels: `9:16 opening frame for a ${name} social video, shot like a phone in a real room. Foreground, midground and background separation for parallax, one clear subject, and generous negative space in the upper third where kinetic type will be layered later. Show ${subject.scene}`,
+    reels: `Cinematic 9:16 opening frame for a ${name} social video, graded like a film still. Strong foreground, midground and background separation for parallax, one clear subject, and generous negative space in the upper third where kinetic type will be layered later. Show ${subject.scene}`,
   }[m];
 
   const textPolicy = (m === 'ad')
@@ -215,10 +208,6 @@ function buildPreamble(brand, mode, opt) {
   const lock = brand && brand.brand_data && brand.brand_data.style_lock;
   const style = lock ? [lock.photo_style && `Photo style, the brand's own: ${String(lock.photo_style).slice(0, 400)}.`,
     Array.isArray(lock.rules) && lock.rules.length && `Never break: ${lock.rules.slice(0, 5).map((r) => String(r).slice(0, 160)).join(' ')}`].filter(Boolean).join(' ') : '';
-  // Every mode that renders a real-looking scene carries the render rules; a
-  // design mockup is a layout and keeps the studio quality line.
-  const real = m !== 'design';
-  const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' && !named, productOnly: !!named }) : '';
   // The short form for a 1,500-character provider: the scene, palette and
   // text policy. Its bans and rules are compactGuard(), which the caller puts
   // FIRST, ahead of the subject line (image.js).
@@ -229,10 +218,8 @@ function buildPreamble(brand, mode, opt) {
       Array.isArray(lock.rules) && lock.rules.length && `Never break: ${lock.rules.slice(0, 2).map((r) => String(r).slice(0, 80)).join(' ')}`].filter(Boolean).join(' ') : '';
     return [head, shortStyle, palette, type && String(type).slice(0, 200), textPolicy].filter(Boolean).join(' ') + '\n\n';
   }
-  // The rules ride right after the scene: Pollinations keeps only the first
-  // 1,500 characters, and a long style lock or palette must not push them out.
-  return [head, realism, subject.caution, style, palette, type, textPolicy, NEVER, real ? REAL_QUALITY : QUALITY]
+  return [head, subject.caution, style, palette, type, textPolicy, NEVER, QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
 
-module.exports = { buildPreamble, compactGuard, subjectFor, paletteBrief, MODES, NEVER, NEVER_SHORT, QUALITY, REAL_QUALITY };
+module.exports = { buildPreamble, compactGuard, subjectFor, paletteBrief, MODES, NEVER, NEVER_SHORT, QUALITY };

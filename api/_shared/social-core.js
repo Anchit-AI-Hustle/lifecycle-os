@@ -653,7 +653,7 @@ async function videoAgent(ctx, ideology, content, remainingMs, hero) {
   }
   if (!board) board = fallbackStoryboard(ctx, ideology);
 
-  const videoPrompt = '8s vertical (9:16) product video for ' + brandName(ctx) + ', shot like a phone in a real room. ' + board.storyboard.join(' ') + ' Palette locked to this brand\'s own tokens. No on-screen text (added in edit), no faces, no logos.';
+  const videoPrompt = 'Cinematic 8s vertical (9:16) product film for ' + brandName(ctx) + '. ' + board.storyboard.join(' ') + ' Palette locked to this brand\'s own tokens. No on-screen text (added in edit), no faces, no logos.';
   let job = null;
   if (ctx.dry_run && video.isConnected()) {
     job = { status: 'skipped_dry_run', note: 'video keys present but dry_run — no render submitted' };

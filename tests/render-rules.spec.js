@@ -1,12 +1,17 @@
-// "Kill the AI Tell": the render rules every generated scene and video carries
-// (2026-10-25). The operator, with the card ("Make Higgsfield & Seedance stop
-// looking like AI by default"): "Integrate everything mentioned".
-//
-// Executed: the shipped prompt builders (image-prompt.js), the shipped video
-// cascade (video-core.js over a fetch that answers exactly the documented
-// Pollo request and throws on anything else), and the shipped motion and
-// story briefs. Each rule is read from what a model would actually be sent.
+// "Kill the AI Tell": the render rules for Higgsfield and Seedance (2026-10-25).
+// The operator, with the card ("Make Higgsfield & Seedance stop looking like
+// AI by default"): "Integrate everything mentioned". The first cut put the
+// rules into every image and video prompt the app writes; the operator: "Still
+// using the wrong approach", then chose (1) a skill holding the card and (2)
+// real renders through Higgsfield / Seedance. So:
+//   - the card lives whole in .claude/commands/kill-the-ai-tell.md, its blocks
+//     byte-equal to api/_shared/render-rules.js;
+//   - the generic prompts (image-prompt.js, Pollo, Veo) carry none of it;
+//   - the Seedance request on Higgsfield carries it (tests/higgsfield-seedance.spec.js).
+// Executed: the shipped prompt builders and the shipped video cascade over a
+// fetch that answers exactly the documented requests and throws on anything else.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -17,6 +22,7 @@ const WC = path.join(ROOT, 'api', '_shared', 'workspace-connections-core.js');
 const SUBMIT = 'https://pollo.ai/api/platform/v1/generation/kling-ai/kling-v2-5-turbo/video';
 const PHOTO = 'https://shop.example/cdn/bag.jpg';
 const BRAND = { name: 'Fernwick Roasters', industry: 'Coffee roaster', palette: { primary: '#7a3b1f', accent: '#e8b04a', surface: '#fffaf2', ink: '#2b1a10' } };
+const RULE_WORDS = /window spill|<render_rules>|REALISM \(phone camera|a third of a stop under|Phone-camera realism/;
 
 test('the card is all here: four tells, three lighting rules, three bans, three opening rules, five re-prompts, four drift checks, the compact block', () => {
   expect(RR.TELLS.map((t) => t.id)).toEqual(['flat_light', 'eye_contact', 'plastic_skin', 'phantom_hands']);
@@ -31,172 +37,100 @@ test('the card is all here: four tells, three lighting rules, three bans, three 
   }
 });
 
-test('every real-looking image mode carries the rules and the phone-camera quality line; a design mockup keeps the studio line', () => {
-  for (const mode of ['photo', 'ad', 'reels', 'ambient']) {
-    const p = IP.buildPreamble(BRAND, mode);
-    expect(p, mode).toMatch(/a third of a stop under/);
-    expect(p, mode).toMatch(/mixed colour temperature/);
-    expect(p, mode).toMatch(/window spill/);
-    expect(p, mode).toMatch(/no cinema-grade colour grade, no empty-set staging, no magazine-styled framing/);
-    expect(p, mode).toContain(IP.REAL_QUALITY);
-    expect(p, mode).not.toContain(IP.QUALITY);
-    expect(p, mode).not.toMatch(/graded like a film still|Cinematic 9:16|natural soft lighting/);
+test('the skill holds the whole card, and its two blocks are the ones the Seedance request carries', () => {
+  const skill = fs.readFileSync(path.join(ROOT, '.claude', 'commands', 'kill-the-ai-tell.md'), 'utf8');
+  expect(skill.startsWith('---\nname: kill-the-ai-tell\n')).toBe(true);
+  expect(skill).toContain('/brand-context');
+  // The blocks, byte for byte: change one and the other must change with it.
+  expect(skill).toContain('```\n' + RR.COMPACT + '\n```');
+  expect(skill).toContain('```\n' + RR.COMPACT_PACKSHOT + '\n```');
+  for (const t of RR.TELLS) expect(skill, t.id).toContain(t.tell);
+  for (const l of RR.LIGHTING) expect(skill, l.id).toContain(l.rule);
+  for (const o of RR.OPENING) expect(skill, o.id).toContain(o.rule);
+  for (const b of RR.BANS) for (const item of b.items.filter((x) => !/^zero /.test(x))) expect(skill.toLowerCase(), item).toContain(item.toLowerCase());
+  for (const f of Object.values(RR.QUICK_FIX)) expect(skill, f.problem).toContain('| ' + f.problem + ' | "' + f.reprompt + '" |');
+  for (const f of Object.values(RR.QUICK_FIX_PACKSHOT).filter((x) => x !== RR.QUICK_FIX.too_clean)) expect(skill, f.problem).toContain(f.reprompt);
+  for (const d of RR.DRIFT) expect(skill, d.symptom).toContain('**' + d.symptom + '**');
+  expect(skill).toMatch(/It does not pick your hook/);
+  // It names the API the app actually calls.
+  expect(skill).toContain('https://api.higgsfield.ai/bytedance/seedance-2.0/image-to-video');
+  expect(skill).toContain('Authorization: Key <key id>:<secret>');
+});
+
+test('the generic image prompts carry no render rules: every mode, the full preamble and the short guard', () => {
+  for (const mode of ['photo', 'ad', 'reels', 'ambient', 'design']) {
+    expect(IP.buildPreamble(BRAND, mode), mode).not.toMatch(RULE_WORDS);
+    expect(IP.buildPreamble(BRAND, mode, { compact: true }), mode).not.toMatch(RULE_WORDS);
+    expect(IP.compactGuard(mode, { brand: BRAND }), mode).not.toMatch(RULE_WORDS);
+    expect(IP.buildPreamble(BRAND, mode), mode).toContain(IP.QUALITY);
   }
-  // A person may be in a photo or an ad: the person rules ride along. An
-  // ambient backdrop has no one in it.
-  expect(IP.buildPreamble(BRAND, 'photo')).toMatch(/no unbroken gaze/);
-  expect(IP.buildPreamble(BRAND, 'ambient')).not.toMatch(/no unbroken gaze/);
-  const design = IP.buildPreamble(BRAND, 'design');
-  expect(design).not.toMatch(/window spill/);
-  expect(design).toContain(IP.QUALITY);
+  expect(IP.REAL_QUALITY).toBeUndefined();
 });
 
-test('a photograph of one named product adds no object to it: the product-only rule and the render rules agree', () => {
-  const p = IP.buildPreamble(BRAND, 'photo', { product: { title: 'House blend', category: 'Coffee' } });
-  expect(p).toMatch(/Show only the product: no other object is added to the frame/);
-  expect(p).not.toMatch(/object out of place|a mug, a charger cable/);
-  expect(p).not.toMatch(/no unbroken gaze/);
-  expect(p).toMatch(/window spill/);
-});
-
-test('the out-of-place object is ordinary, never a product, packaging, logo or text, and the anti-fabrication rules still close the prompt', () => {
-  const p = IP.buildPreamble(BRAND, 'photo');
-  expect(p).toMatch(/one ordinary object out of place \(a mug, a charger cable\), never a product, packaging, logo, sign or readable text/);
-  expect(p.indexOf(IP.NEVER)).toBeGreaterThan(p.indexOf('window spill'));
-});
-
-function pollo(answer) {
+function net(answer) {
   const calls = [];
   const real = global.fetch;
   global.fetch = async (url, init = {}) => {
     const u = String(url);
-    calls.push({ url: u, body: init.body ? JSON.parse(init.body) : null });
+    calls.push({ url: u, method: init.method || 'GET', body: init.body ? JSON.parse(init.body) : null });
     const out = answer(u, init);
     if (!out) throw new Error('unrouted request: ' + u);
-    return new Response(JSON.stringify(out.body), { status: 200, headers: { 'content-type': 'application/json' } });
+    return new Response(JSON.stringify(out.body), { status: out.status || 200, headers: { 'content-type': 'application/json' } });
   };
   return { calls, restore: () => { global.fetch = real; } };
 }
-function loadVC() {
+function loadVC(media, ov) {
   delete require.cache[VC];
   const wc = require(WC);
-  wc.mediaKeysForCurrentRequest = async () => ({ pollo: { api_key: 'workspace-key' } });
-  wc.llmOverridesForCurrentRequest = async () => null;
+  wc.mediaKeysForCurrentRequest = async () => media;
+  wc.llmOverridesForCurrentRequest = async () => ov || null;
   return require(VC);
 }
 
-test('a video model is sent the rules with the compact block; over the product\'s own photo only the camera and light move', async () => {
-  const net = pollo((u, init) => (u === SUBMIT && init.method === 'POST' ? { body: { taskId: 't-' + net.calls.length, status: 'waiting' } } : null));
+test('Pollo is sent the brief as written: no render rules, with or without the product photo', async () => {
+  const n = net((u, init) => (u === SUBMIT && init.method === 'POST' ? { body: { taskId: 't-' + n.calls.length } } : null));
   try {
-    const vc = loadVC();
+    const vc = loadVC({ pollo: { api_key: 'workspace-key' } });
     await vc.generateVideo({ prompt: 'A customer unboxes the bag at the kitchen table', duration_s: 8, aspect: '9:16' });
-    const t2v = net.calls[0].body.input.prompt;
-    expect(t2v.startsWith('A customer unboxes the bag at the kitchen table')).toBe(true);
-    expect(t2v).toContain(RR.COMPACT);
-    expect(t2v).toMatch(/If a person is in frame \(never add one\), opening 3 seconds: one micro-glitch/);
-    expect(t2v).toMatch(/eye contact breaks by 0:02 with a glance at the phone screen/);
-    // Only idle glances are cut; the phone-screen glance is the gaze break itself.
-    expect(t2v).toMatch(/no sighs, hair tucks or idle off-camera glances/);
-    expect(t2v).not.toMatch(/no off-camera glances/);
-    expect(t2v.length).toBeLessThanOrEqual(1500);
-
+    expect(n.calls[0].body.input.prompt).toBe('A customer unboxes the bag at the kitchen table');
     await vc.generateVideo({ prompt: 'Slow push in on the bag', duration_s: 8, aspect: '9:16', motion: { images: [PHOTO] } });
-    const i2v = net.calls[1].body.input;
-    expect(i2v.image).toBe(PHOTO);
-    expect(i2v.prompt).toMatch(/move only the camera and the light, add nothing to it/);
-    expect(i2v.prompt).not.toMatch(/object out of place \(a mug/);
-    // Its block asks for no object either: the packshot block, never "1 object out of place".
-    expect(i2v.prompt).toContain(RR.COMPACT_PACKSHOT);
-    expect(i2v.prompt).not.toMatch(/object out of place/);
-  } finally { net.restore(); delete require.cache[VC]; }
+    expect(n.calls[1].body.input).toMatchObject({ image: PHOTO, prompt: 'Slow push in on the bag' });
+  } finally { n.restore(); delete require.cache[VC]; }
 });
 
-test('a long brief is cut before the compact block is: the block always reaches the model', () => {
-  const long = RR.withRules('b'.repeat(1400), { medium: 'video' });
-  const fitted = RR.fit(long, 1500);
-  expect(fitted.length).toBeLessThanOrEqual(1500);
-  expect(fitted.endsWith(RR.COMPACT)).toBe(true);
-  expect(RR.withRules(long, { medium: 'video' })).toBe(long);
+test('Veo on the workspace\'s Gemini connection is sent the brief as written', async () => {
+  const VEO = 'https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning';
+  const n = net((u) => (u === VEO + '?key=own-gemini' ? { body: { name: 'operations/op-1' } } : (u.includes('operations/op-1') ? { body: { name: 'operations/op-1', done: false } } : null)));
+  try {
+    const vc = loadVC(null, { keys: { gemini: 'own-gemini' } });
+    await vc.generateVideo({ prompt: 'Slow push in on the bag', duration_s: 8, aspect: '9:16', budget_ms: 3000, motion: { images: [PHOTO] } });
+    expect(n.calls.find((c) => c.url.startsWith(VEO)).body.instances[0].prompt).toBe('Slow push in on the bag');
+  } finally { n.restore(); delete require.cache[VC]; }
 });
 
-test('the shot brief and the story brief ask for a phone-camera look, never a filmic grade, and carry the re-prompts', () => {
+test('the shot and story briefs carry no render rules (the skill and the Seedance request do)', () => {
   const motion = require(path.join(ROOT, 'scripts', 'lib', 'motion-ad.js'));
   const brief = motion.motionBrief({ brand: BRAND, product: 'House blend', scenes: [{ image: PHOTO, headline: 'Roasted on Tuesdays' }], cta: 'Shop now' });
-  const s = JSON.stringify(brief);
-  expect(s).not.toMatch(/filmic|Cinematic/);
-  expect(brief.grade).toMatch(/never a cinema-grade colour grade/);
-  for (const sh of brief.shots) expect(sh.video_prompt).toMatch(/phone-camera look/);
-  expect(brief.render_rules.compact_block).toBe(RR.COMPACT_PACKSHOT);
-  expect(brief.render_rules.compact_block).not.toMatch(/object out of place/);
-  // Packshot re-prompts add no person or prop to the supplied photo.
-  expect(brief.render_rules.quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Too still', 'Too glossy', 'Too staged']);
-  const fixes = JSON.stringify(brief.render_rules.quick_fixes) + JSON.stringify(brief.render_rules.common_drift);
-  expect(fixes).not.toMatch(/mug|cable|eye contact|hand adjusts|blink/i);
-  expect(RR.reviewKit().quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Stares', 'Plastic', 'Too still', 'Too staged']);
-  expect(brief.render_rules.check_first).toMatch(/Frame 1/);
-
+  expect(brief.render_rules).toBeUndefined();
+  expect(JSON.stringify(brief)).not.toMatch(RULE_WORDS);
   const story = require(path.join(ROOT, 'scripts', 'lib', 'story-ad.js'));
   const sb = story.storyBrief({ brandName: 'Fernwick Roasters', hook: 'Fresh this week', products: [{ title: 'House blend', price: '£9', image: PHOTO }], cta: 'Shop now' });
-  expect(sb.render_rules.compact_block).toBe(RR.COMPACT_PACKSHOT);
-  for (const sc of sb.scenes.filter((x) => x.motion)) expect(sc.motion).toMatch(/phone-camera look with no cinema grade/);
+  expect(sb.render_rules).toBeUndefined();
 });
 
-test('a model that never receives the photo is not told it is a packshot: Veo gets the scene rules, Pollo with the photo gets the packshot rule', async () => {
-  const VEO = 'https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning';
-  const saved = process.env.FREE_GENERATION; process.env.FREE_GENERATION = 'on';
-  const net = pollo((u) => (u === VEO + '?key=own-gemini' ? { body: { name: 'operations/op-1' } } : null));
-  try {
-    delete require.cache[VC];
-    const wc = require(WC);
-    wc.mediaKeysForCurrentRequest = async () => null;
-    wc.llmOverridesForCurrentRequest = async () => ({ keys: { gemini: 'own-gemini' } });
-    const vc = require(VC);
-    await vc.generateVideo({ prompt: 'Slow push in on the bag', duration_s: 8, aspect: '9:16', budget_ms: 3000, motion: { images: [PHOTO] } });
-    const sent = net.calls.find((c) => c.url.startsWith(VEO)).body.instances[0].prompt;
-    expect(sent).not.toMatch(/real product photograph/);
-    expect(sent).toMatch(/object out of place/);
-    expect(sent).toContain(RR.COMPACT);
-  } finally {
-    net.restore(); delete require.cache[VC];
-    if (saved === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = saved;
-  }
+test('withRules: a packshot gets the packshot block (nothing added), a scene the full one, never both', () => {
+  const shot = RR.withRules('Slow push in on the bag', { medium: 'video', packshot: true });
+  expect(shot).toMatch(/move only the camera and the light, add nothing to it/);
+  expect(shot).toContain(RR.COMPACT_PACKSHOT);
+  expect(shot).not.toMatch(/object out of place/);
+  const scene = RR.withRules('A customer unboxes the bag', { medium: 'video', people: true });
+  expect(scene).toContain(RR.COMPACT);
+  expect(scene).toMatch(/If a person is in frame \(never add one\), opening 3 seconds: one micro-glitch/);
+  expect(scene).toMatch(/With no person: one handheld micro-shake/);
+  expect(scene).toMatch(/no sighs, hair tucks or idle off-camera glances/);
 });
 
-test('a long packshot brief keeps the packshot block, never the one that adds an object', () => {
-  const long = RR.withRules('b'.repeat(1400), { medium: 'video', packshot: true });
-  const fitted = RR.fit(long, 1500);
-  expect(fitted.endsWith(RR.COMPACT_PACKSHOT)).toBe(true);
-  expect(fitted).not.toMatch(/object out of place/);
-});
-
-test('the lighting rules and bans sit inside the first 1,000 characters of every preamble, ahead of a full style lock', () => {
-  const locked = Object.assign({}, BRAND, { brand_data: { style_lock: { photo_style: 'p'.repeat(400), rules: Array(5).fill('r'.repeat(160)) } } });
-  for (const mode of ['photo', 'ad', 'reels', 'ambient']) {
-    const p = IP.buildPreamble(locked, mode);
-    const end = p.indexOf('magazine-styled framing');
-    expect(end, mode).toBeGreaterThan(0);
-    expect(end, mode).toBeLessThan(1000);
-    expect(end, mode).toBeLessThan(p.indexOf('p'.repeat(400)));
-  }
-});
-
-test('the guard a 1,500-character provider gets first keeps every fabrication ban, and lets an ad or a design carry its own lines', () => {
-  for (const mode of ['photo', 'ad', 'reels', 'ambient', 'design']) {
-    const g = IP.compactGuard(mode);
-    expect(g, mode).toMatch(/no fake candlestick charts, price tickers, portfolio balances or return figures/);
-    expect(g, mode).toMatch(/actual retail packaging or labels/);
-    if (mode !== 'design') expect(g, mode).toMatch(/magazine framing/);
-  }
-  expect(IP.compactGuard('design')).not.toMatch(/readable text/);
-  expect(IP.compactGuard('design')).toMatch(/any text beyond the lines supplied/);
-  expect(IP.compactGuard('ad')).toMatch(/any text beyond the lines supplied/);
-  expect(IP.compactGuard('photo')).toMatch(/readable text/);
-  expect(IP.compactGuard('photo', { product: { title: 'House blend' } })).toMatch(/Show only the product: add no other object/);
-  // The short preamble carries no ban of its own: the guard leads instead.
-  expect(IP.buildPreamble(BRAND, 'photo', { compact: true })).not.toContain(IP.NEVER_SHORT);
-});
-
-test('a prompt that already carries a block is normalised to the one that fits this frame', () => {
+test('a prompt that already carries a block (pasted from the skill) is normalised to the one that fits this frame', () => {
   const pasted = 'Customer unboxes the bag.\n' + RR.COMPACT;
   const shot = RR.withRules(pasted, { medium: 'video', packshot: true });
   expect(shot).toContain(RR.COMPACT_PACKSHOT);
@@ -206,16 +140,32 @@ test('a prompt that already carries a block is normalised to the one that fits t
   expect(back).toContain(RR.COMPACT);
   expect(back).not.toContain('add nothing, the photo is the product');
   expect(back.split('REALISM (phone camera').length).toBe(2);
-  // A long pasted prompt keeps the right block after fitting.
-  const fitted = RR.fit(RR.withRules('x'.repeat(1400) + '\n' + RR.COMPACT, { medium: 'video', packshot: true }), 1500);
+});
+
+test('a long brief is cut before the compact block is', () => {
+  const fitted = RR.fit(RR.withRules('b'.repeat(1400), { medium: 'video', packshot: true }), 1500);
+  expect(fitted.length).toBeLessThanOrEqual(1500);
   expect(fitted.endsWith(RR.COMPACT_PACKSHOT)).toBe(true);
 });
 
-test('an object-only video is never told to break eye contact unless a person is in frame', () => {
-  const p = RR.withRules('A slow push in on a chocolate cake', { medium: 'video', people: true });
-    expect(p).toMatch(/If a person is in frame \(never add one\), opening 3 seconds/);
-  expect(p).toMatch(/With no person: one handheld micro-shake/);
-  expect(RR.COMPACT).toMatch(/ban \(if a person is in frame; never add one\)/);
+test('the guard a 1,500-character provider gets first keeps every fabrication ban, and lets an ad or a design carry its own lines', () => {
+  for (const mode of ['photo', 'ad', 'reels', 'ambient', 'design']) {
+    const g = IP.compactGuard(mode);
+    expect(g, mode).toMatch(/no fake candlestick charts, price tickers, portfolio balances or return figures/);
+    expect(g, mode).toMatch(/actual retail packaging or labels/);
+  }
+  expect(IP.compactGuard('design')).toMatch(/any text beyond the lines supplied/);
+  expect(IP.compactGuard('ad')).toMatch(/any text beyond the lines supplied/);
+  expect(IP.compactGuard('photo')).toMatch(/readable text/);
+  expect(IP.compactGuard('photo', { product: { title: 'House blend' } })).toMatch(/Show only the product: add no other object/);
+  expect(IP.buildPreamble(BRAND, 'photo', { compact: true })).not.toContain(IP.NEVER_SHORT);
+});
+
+test('the guard a short provider gets keeps the brand kind\'s own ban: no synthetic people for a news brand', () => {
+  const news = { name: 'Quillforth Gazette', industry: 'News publisher', palette: BRAND.palette };
+  expect(IP.subjectFor(news).caution).toMatch(/synthetic politicians/);
+  for (const mode of ['photo', 'ad', 'reels', 'design']) expect(IP.compactGuard(mode, { brand: news }), mode).toMatch(/synthetic politicians\/people/);
+  expect(IP.compactGuard('photo', { brand: news, product: { title: 'Weekend edition' } })).toMatch(/Show only this product/);
 });
 
 test('the compact preamble keeps the brand\'s style lock and type, bounded', () => {
@@ -225,42 +175,4 @@ test('the compact preamble keeps the brand\'s style lock and type, bounded', () 
   expect(c).toMatch(/Never break: Never show a hand Always a terracotta prop/);
   expect(c).not.toMatch(/third rule/);
   expect(c.length).toBeLessThan(1000);
-});
-
-test('the social video prompt opens as a phone video, never a cinematic film', async () => {
-  // The shipped social-core.runDaily, every model down, video-core replaced by
-  // a recorder: the prompt the Social OS hands the video providers.
-  const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
-  const VCP = require.resolve(path.join(ROOT, 'api', '_shared', 'video-core.js'));
-  const SC = require.resolve(path.join(ROOT, 'api', '_shared', 'social-core.js'));
-  const saved = { llm: require.cache[LLM], vc: require.cache[VCP] };
-  const prompts = [];
-  const real = require(LLM);
-  const down = async () => { throw new Error('ALL PROVIDERS FAILED'); };
-  Object.assign(down, real);
-  const realVc = require(VCP);
-  const vc = Object.assign({}, realVc, {
-    isConnected: () => false,
-    generateVideo: async (o) => { prompts.push(o.prompt); return { status: 'recorded', provider: 'recorder' }; },
-  });
-  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
-  require.cache[VCP] = { id: VCP, filename: VCP, loaded: true, exports: vc };
-  delete require.cache[SC];
-  try {
-    await require(SC).runDaily({ brand: Object.assign({ regions: [{ code: 'UK', home: true }] }, BRAND), dry_run: true, date: '2026-10-20' });
-  } finally {
-    require.cache[LLM] = saved.llm; if (saved.vc) require.cache[VCP] = saved.vc; else delete require.cache[VCP]; delete require.cache[SC];
-  }
-  expect(prompts.length, 'the Social OS asked for no video').toBeGreaterThan(0);
-  for (const p of prompts) {
-    expect(p).not.toMatch(/cinematic|product film/i);
-    expect(p).toMatch(/shot like a phone in a real room/);
-  }
-});
-
-test('the guard a short provider gets keeps the brand kind\'s own ban: no synthetic people for a news brand', () => {
-  const news = { name: 'Quillforth Gazette', industry: 'News publisher', palette: BRAND.palette };
-  expect(IP.subjectFor(news).caution).toMatch(/synthetic politicians/);
-  for (const mode of ['photo', 'ad', 'reels', 'design']) expect(IP.compactGuard(mode, { brand: news }), mode).toMatch(/synthetic politicians\/people/);
-  expect(IP.compactGuard('photo', { brand: news, product: { title: 'Weekend edition' } })).toMatch(/Show only this product/);
 });
