@@ -32,8 +32,10 @@
  *      A prediction is waited for (Prefer: wait) and polled inside the
  *      request; one still running is handed back as a job the page polls
  *      (`music-job`), never dropped.
- *   4. Hugging Face MusicGen (HF_API_TOKEN), instrumental, best effort.
- *   5. Only then, and only with free generation on, music-synth.js: a
+ *   Hugging Face is not a rung: no Inference Provider hosts MusicGen (its
+ *   inferenceProviderMapping is empty for every size, read 2026-10-25), so a
+ *   call there could only be refused.
+ *   4. Only then, and only with free generation on, music-synth.js: a
  *      code-made instrumental SKETCH, labelled as one. Free generation is the
  *      keyless floor; it never skips a model a key reaches (it did: with it on,
  *      ElevenLabs was never called and every track was the sketch).
@@ -58,12 +60,14 @@ const JOB_RE = /^(own|platform):([a-zA-Z0-9]{6,64})\.([a-f0-9]{32})$/;
 // the deployment's secret over its source, the prediction and the user, so
 // another signed-in account cannot poll or download it.
 function jobKey() {
-  return String(process.env.SUPABASE_JWT_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.CRON_SECRET || 'lifecycle-os/music-job');
+  // Private secrets only: a constant in the source would let anyone sign.
+  return String(process.env.SUPABASE_JWT_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.CRON_SECRET
+    || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '');
 }
 function jobSig(src, id, owner) {
   return require('crypto').createHmac('sha256', jobKey()).update(`music-job|${src}|${id}|${owner || ''}`).digest('hex').slice(0, 32);
 }
-function jobId(src, id, owner) { return `${src}:${id}.${jobSig(src, id, owner)}`; }
+function jobId(src, id, owner) { return jobKey() ? `${src}:${id}.${jobSig(src, id, owner)}` : null; }
 const MAX_AUDIO = 4 * 1024 * 1024;        // a serverless response is capped at 4.5 MB
 const MAX_IMAGE = 3 * 1024 * 1024;
 
@@ -261,7 +265,11 @@ async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = 
     }
     const meta = { model, sung: sing && model === VOCAL_MODEL ? parts.lyrics : '', vocal_fallback: sing && model !== VOCAL_MODEL };
     while (p && (p.status === 'starting' || p.status === 'processing')) {
-      if ((deadline || 0) - Date.now() < 12000) return Object.assign({ ok: true, pending: true, job: jobId(src || 'platform', p.id, owner) }, meta);
+      if ((deadline || 0) - Date.now() < 12000) {
+        const j = jobId(src || 'platform', p.id, owner);
+        if (!j) { errors.push(model + ': still rendering, and this deployment has no private secret to hand the track back as a job (set SUPABASE_JWT_SECRET)'); p = null; break; }
+        return Object.assign({ ok: true, pending: true, job: j }, meta);
+      }
       await new Promise((ok) => setTimeout(ok, 2500));
       try { p = await getPrediction(token, p.id, { fetchImpl: f }); } catch (e) { errors.push(model + ': ' + e.message); p = null; }
     }
@@ -270,34 +278,14 @@ async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = 
       if (!url) { errors.push(model + ': finished without an audio file'); continue; }
       const out = await fetchOutput(url, { fetchImpl: f });
       if (out.ok && out.audio.length <= MAX_AUDIO) return Object.assign({ ok: true }, out, meta);
-      if (out.ok) return Object.assign({ ok: true, pending: true, job: jobId(src || 'platform', p.id, owner) }, meta); // too large to send inline: streamed by music-job
+      const j = out.ok ? jobId(src || 'platform', p.id, owner) : null;
+      if (j) return Object.assign({ ok: true, pending: true, job: j }, meta); // too large to send inline: streamed by music-job
+      if (out.ok) { errors.push(model + ': the track is too large to send back here and no job could be signed'); continue; }
       errors.push(model + ': ' + out.error); continue;
     }
     if (p) errors.push(model + ': ' + (p.error ? String(p.error).slice(0, 200) : 'the model ' + p.status));
   }
   return { ok: false, error: 'Replicate made no track (' + errors.join('; ') + ')' };
-}
-
-/* ── Hugging Face ──────────────────────────────────────────────────────── */
-
-async function callHuggingFace(spec, token, { fetchImpl } = {}) {
-  const model = process.env.HF_MUSIC_MODEL || 'facebook/musicgen-small';
-  if (!MODEL_RE.test(model)) return { ok: false, error: 'HF_MUSIC_MODEL is not a model id' };
-  const duration = Math.min(30, Math.max(5, Math.round(Number(spec.seconds) || 15)));
-  let r;
-  try {
-    r = await (fetchImpl || fetch)('https://router.huggingface.co/hf-inference/models/' + model, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'audio/wav', 'x-wait-for-model': 'true' },
-      body: JSON.stringify({ inputs: String(spec.prompt).slice(0, 500), parameters: { duration } }),
-      signal: AbortSignal.timeout(60000),
-    });
-  } catch (_) { return { ok: false, error: 'Hugging Face could not be reached or did not finish in time' }; }
-  const ct = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').split(';')[0];
-  if (!r.ok || /json|^text\//.test(ct)) return { ok: false, error: `Hugging Face answered ${r.status} without audio` };
-  const buf = Buffer.from(await r.arrayBuffer());
-  if (!buf.length || buf.length > MAX_AUDIO) return { ok: false, error: 'Hugging Face answered without a usable track' };
-  return { ok: true, audio: buf, mime: ct.startsWith('audio/') ? ct : 'audio/wav', model: 'huggingface:' + model };
 }
 
 /** A product photo as Lyria's image input; only a public address, bounded. */
@@ -325,12 +313,12 @@ async function ownGemini() {
   return null;
 }
 
-/** The workspace's own music keys (media connections): { elevenlabs, replicate, huggingface }. */
+/** The workspace's own music keys (media connections): { elevenlabs, replicate }. */
 async function ownMediaKeys() {
   try {
     const m = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
     const k = (n) => (m && m[n] && m[n].api_key ? String(m[n].api_key) : '');
-    return { elevenlabs: k('elevenlabs'), replicate: k('replicate'), huggingface: k('huggingface') };
+    return { elevenlabs: k('elevenlabs'), replicate: k('replicate') };
   } catch (_) { return {}; }
 }
 
@@ -375,18 +363,15 @@ async function compose(spec, opts = {}) {
   const add = (src, kind, key) => { if (key) sources.push({ src, kind, key }); };
   add('own', 'elevenlabs', media.elevenlabs);
   add('own', 'replicate', media.replicate);
-  add('own', 'huggingface', media.huggingface);
   add('platform', 'elevenlabs', clean(process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || process.env.XI_API_KEY));
   add('platform', 'replicate', clean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY));
-  add('platform', 'huggingface', clean(process.env.HF_API_TOKEN || process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEHUB_API_TOKEN));
-  const LABEL = { elevenlabs: 'ElevenLabs', replicate: 'Replicate', huggingface: 'Hugging Face' };
+  const LABEL = { elevenlabs: 'ElevenLabs', replicate: 'Replicate' };
   for (const s of sources) {
     if (deadline - Date.now() < 15000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
     const own = s.src === 'own';
     let r;
     if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline });
-    else if (s.kind === 'replicate') r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline, src: s.src, owner: opts.owner });
-    else r = await callHuggingFace({ prompt, seconds }, s.key, { fetchImpl: opts.fetchImpl });
+    else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline, src: s.src, owner: opts.owner });
     if (r.ok) {
       note('ok', { own, kind: 'audio', provider: s.kind, model: r.model });
       const said = r.vocal_fallback ? ' The singing model did not answer, so this one is instrumental.' : '';
@@ -398,13 +383,13 @@ async function compose(spec, opts = {}) {
     refusals.push((own ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
   }
   if (!opts.freeGeneration) {
-    if (!own && !platformKey && !sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs, Replicate or Hugging Face key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY, REPLICATE_API_TOKEN or HF_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
+    if (!own && !platformKey && !sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
     return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
   const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true });
   return {
     ok: true, audio: Buffer.from(out.bytes), mime: 'audio/wav', provider: 'code-synth', model: 'music-synth', quality: 'sketch', refusals,
-    message: 'This is a code-made instrumental sketch, not a produced track.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs, Replicate or Hugging Face key to compose a produced track.'),
+    message: 'This is a code-made instrumental sketch, not a produced track.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
   };
 }
 
@@ -416,6 +401,7 @@ async function compose(spec, opts = {}) {
 async function job(id, opts = {}) {
   const m = JOB_RE.exec(String(id || ''));
   if (!m) return { ok: false, status: 400, error: 'job_invalid', message: 'That is not a music job this app started.' };
+  if (!jobKey()) return { ok: false, status: 503, error: 'job_unsigned', message: 'This deployment has no private secret to check music jobs with.' };
   const want = Buffer.from(jobSig(m[1], m[2], opts.owner)), got = Buffer.from(m[3]);
   if (want.length !== got.length || !require('crypto').timingSafeEqual(want, got)) return { ok: false, status: 404, error: 'job_not_yours', message: 'That track was started by another account.' };
   let token = '';
@@ -431,4 +417,4 @@ async function job(id, opts = {}) {
   return { ok: true, done: true, url };
 }
 
-module.exports = { compose, job, jobId, callEleven, callReplicate, callHuggingFace, partsOf, outputUrl, deliveryHost, ELEVEN_MODEL, VOCAL_MODEL, INSTR_MODEL, callLyria, readLyria, lyriaRequest, modelFor, refusal, INTERACTIONS, LYRIA_CLIP, LYRIA_SONG };
+module.exports = { compose, job, jobId, callEleven, callReplicate, partsOf, outputUrl, deliveryHost, ELEVEN_MODEL, VOCAL_MODEL, INSTR_MODEL, callLyria, readLyria, lyriaRequest, modelFor, refusal, INTERACTIONS, LYRIA_CLIP, LYRIA_SONG };

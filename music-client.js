@@ -13,7 +13,6 @@
     lyria: 'Composed by Lyria, Google\'s music model.',
     elevenlabs: 'Composed by ElevenLabs Music.',
     replicate: 'Composed on Replicate (ACE-Step sings, MusicGen plays).',
-    huggingface: 'Composed by MusicGen on Hugging Face.',
   };
   function dec(s) { try { return decodeURIComponent(s || ''); } catch (_) { return s || ''; } }
   function wait(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }

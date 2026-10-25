@@ -487,7 +487,7 @@ async function meter(req, featureKey, opts) {
   // lookup.)
   if (!held || held.ok !== true) {
     const refusal = Object.assign({ ok: false, status: 402, error: 'insufficient_credits', quote: q, feature: q.key, label: q.label }, held || {});
-    if (!(await workspaceHasOwnModels())) {
+    if (!(await workspaceHasOwnModels(q.key))) {
       if (zeroCreditsFallbackAllowed(o)) {
         return fallbackGate(q, o, auth, workspaceId, refusal);
       }
@@ -721,13 +721,15 @@ function fallbackGate(q, o, auth, workspaceId, refusal) {
 }
 
 /** Does the workspace serving this request have model keys of its own connected? */
-async function workspaceHasOwnModels() {
+async function workspaceHasOwnModels(feature) {
   try {
     const ov = await require('./workspace-connections-core.js').llmOverridesForCurrentRequest();
     const configured = Array.isArray(ov && ov.configured) ? ov.configured : Object.keys((ov && ov.keys) || {});
     if (ov && configured.length) return true;
-    // A workspace's own MEDIA keys (Pollo, ElevenLabs, Replicate, Hugging Face)
-    // are its own models too: a music or video run they make costs nothing.
+    // A workspace's own MEDIA keys (Pollo, ElevenLabs, Replicate) are its own
+    // models for the runs that can use them, music and video, and for nothing
+    // else (Codex, #358): a text run must not skip its hold on a video key.
+    if (!/^(audio\.music|video\.)/.test(String(feature || ''))) return false;
     const media = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
     return !!(media && Object.keys(media).length);
   } catch (_) { return false; }

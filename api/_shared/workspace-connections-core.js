@@ -184,9 +184,10 @@ const PROVIDERS = [
     wired_note: 'Used first by every video this workspace makes: the product\'s own photo animated into a 5 or 10 second clip. Without it, videos are rendered in code from the same photos.',
   },
 
-  // Music (2026-10-25): the same three services The Third Eye's Music Studio
-  // composes with. Each key is the person's own, saved in their workspace and
-  // used before the platform's, so its tracks cost no app credits.
+  // Music (2026-10-25): the services The Third Eye's Music Studio composes with
+  // (its Hugging Face rung is left out: no Inference Provider hosts MusicGen).
+  // Each key is the person's own, saved in their workspace and used before
+  // the platform's, so its tracks cost no app credits.
   {
     id: 'elevenlabs', label: 'ElevenLabs (music)', category: 'media',
     auth_kind: 'api_key', env_default: 'ELEVENLABS_API_KEY',
@@ -204,15 +205,6 @@ const PROVIDERS = [
     fields: [{ key: 'api_key', label: 'API token', secret: true, required: true, placeholder: 'r8_...' }],
     wired: true,
     wired_note: 'Used by Music Studio and Smart Brain to compose tracks when Lyria and ElevenLabs do not answer.',
-  },
-  {
-    id: 'huggingface', label: 'Hugging Face (music)', category: 'media',
-    auth_kind: 'api_key', env_default: 'HF_API_TOKEN',
-    key_url: 'https://huggingface.co/settings/tokens',
-    blurb: 'MusicGen through Hugging Face inference: short instrumentals, on the free tier where it is offered.',
-    fields: [{ key: 'api_key', label: 'Access token', secret: true, required: true, placeholder: 'hf_...' }],
-    wired: true,
-    wired_note: 'The last music model tried before a code-made sketch.',
   },
 
   /* ── Commerce ─────────────────────────────────────────────────────────── */
@@ -1203,12 +1195,11 @@ async function checkConnection(auth, workspaceId, providerId) {
     } catch (_) {
       result = { ok: false, connected: true, note: 'Pollo did not answer in time.' };
     }
-  } else if (['elevenlabs', 'replicate', 'huggingface'].includes(reg.id) && secrets.api_key) {
+  } else if (['elevenlabs', 'replicate'].includes(reg.id) && secrets.api_key) {
     // One read per service that spends nothing: who the key belongs to.
     const k = String(secrets.api_key);
     const ask = reg.id === 'elevenlabs' ? ['https://api.elevenlabs.io/v1/user/subscription', { 'xi-api-key': k }]
-      : reg.id === 'replicate' ? ['https://api.replicate.com/v1/account', { Authorization: 'Bearer ' + k }]
-        : ['https://huggingface.co/api/whoami-v2', { Authorization: 'Bearer ' + k }];
+      : ['https://api.replicate.com/v1/account', { Authorization: 'Bearer ' + k }];
     try {
       const r = await fetch(ask[0], { headers: ask[1], signal: AbortSignal.timeout(8000) });
       result = r.ok ? { ok: true, connected: true, note: `${reg.label.replace(/ \(music\)$/, '')} accepted the key.` }
