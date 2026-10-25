@@ -267,7 +267,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   function statusChip(p) {
     var c = state.connections[p.id];
-    if (c && c.configured) return '<span class="chip on">Connected</span>';
+    if (c && c.configured) return '<span class="chip on"' + (c.shared_from ? ' data-shared-from="' + esc(c.shared_from.workspace_id || '') + '"' : '') + '>Connected</span>';
     if (c && !c.configured && Object.keys(c.config || {}).length) return '<span class="chip on">Settings saved</span>';
     if (p.platform_default) return '<span class="chip plat">Platform default in use</span>';
     return '<span class="chip off">Not connected</span>';
@@ -322,6 +322,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       h += '<div class="note" style="margin-top:6px" data-signin-note>' + esc(p.signin.note) + '</div>';
     }
     if (p.wired_note) h += '<div class="note" style="margin-top:6px">' + esc(p.wired_note) + '</div>';
+    if (c && c.shared_from) {
+      h += '<div class="note" style="margin-top:6px" data-shared-note>Connected on your account' + (c.shared_from.name ? ' (saved on ' + esc(c.shared_from.name) + ')' : '') + ', so every brand you own uses it. It stays connected until you remove it.</div>';
+    }
     if (c && c.last_check_note) {
       h += '<div class="note" style="margin-top:6px"><b>Last check' + (c.last_check_ok ? '' : ' failed') + ':</b> ' + esc(c.last_check_note) + '</div>';
     }
@@ -329,7 +332,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     h += '<div class="row">' +
       '<button type="button" class="btn" data-act="save" data-provider="' + esc(p.id) + '">Save</button>' +
       (c ? '<button type="button" class="btn ghost" data-act="check" data-provider="' + esc(p.id) + '">Test</button>' : '') +
-      (c ? '<button type="button" class="btn danger" data-act="remove" data-provider="' + esc(p.id) + '">Remove</button>' : '') +
+      (c ? '<button type="button" class="btn danger" data-act="remove" data-provider="' + esc(p.id) + '">' + (c.shared_from ? 'Unlink from my account' : 'Remove') + '</button>' : '') +
       '</div></div>';
     return h;
   }
