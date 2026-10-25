@@ -175,3 +175,16 @@ test('the lighting rules and bans sit inside the first 1,000 characters of every
     expect(end, mode).toBeLessThan(p.indexOf('p'.repeat(400)));
   }
 });
+
+test('the short preamble a 1,500-character provider gets keeps every fabrication ban, the market-data one included', () => {
+  for (const mode of ['photo', 'ad', 'reels', 'ambient', 'design']) {
+    const p = IP.buildPreamble(BRAND, mode, { compact: true });
+    expect(p, mode).toContain(IP.NEVER_SHORT);
+    expect(p, mode).toMatch(/no fake candlestick charts, price tickers, portfolio balances or return figures/);
+    expect(p, mode).toMatch(/actual retail packaging or labels/);
+    // The bans and the rules sit early enough that the longest subject line
+    // image.js puts in front (about 600 characters) still leaves them inside 1,500.
+    expect(p.indexOf('return figures'), mode).toBeLessThan(900);
+    if (mode !== 'design') expect(p.indexOf('magazine framing'), mode).toBeLessThan(900);
+  }
+});

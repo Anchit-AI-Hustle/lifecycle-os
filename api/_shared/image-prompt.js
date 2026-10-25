@@ -160,7 +160,7 @@ const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and sk
 // preamble runs past that, so its tail (the packaging ban included) never
 // arrived. A provider with that cap gets this short form, the anti-fabrication
 // ban FIRST and the render rules in one line, so neither is cut (2026-10-25).
-const NEVER_SHORT = 'NEVER render: logos, wordmarks, readable text, star ratings, review counts, badges, price tags, or the brand\'s actual retail packaging or labels (those are photographed, never generated), and no identifiable real person.';
+const NEVER_SHORT = 'NEVER render: logos, wordmarks, readable text, star ratings, review counts, badges, price tags, or the brand\'s actual retail packaging or labels (those are photographed, never generated), no identifiable real person, and no fake candlestick charts, price tickers, portfolio balances or return figures.';
 
 function buildPreamble(brand, mode, opt) {
   const name = (brand && brand.name) || 'this brand';
