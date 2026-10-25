@@ -209,6 +209,24 @@ function productLine(description, title, brandName) {
 // products by model code ("John Jacobs JJ S16881") keeps the range ("John
 // Jacobs") and drops the code and the short initialism before it. Words are
 // only left out, never added; '' when nothing sayable is left.
+/**
+ * A store title that repeats its own leading phrase ("Bausch & Lomb Lacelle
+ * Bausch & Lomb Lacelle Topaz Blue ...", Lenskart, 2026-10-24: the store puts
+ * the brand before a name that already starts with it) loses the first copy.
+ * Only an EXACT repeat at the start is dropped; nothing else is rewritten.
+ */
+function dedupeTitle(title) {
+  const raw = String(title == null ? '' : title).trim();
+  const t = raw.split(/\s+/).filter(Boolean);
+  // Two words or more: one repeated word is a name ("Bye Bye Birdie", "Bora Bora").
+  for (let k = Math.floor(t.length / 2); k >= 2; k--) {
+    let same = true;
+    for (let i = 0; i < k; i++) if (t[i].toLowerCase() !== t[k + i].toLowerCase()) { same = false; break; }
+    if (same) return t.slice(k).join(' ');
+  }
+  return raw;
+}
+
 function displayName(title) {
   // A merge tag is the ESP's to fill: never cut inside it.
   if (/\{\{|\{%/.test(String(title || ''))) return String(title).trim();
@@ -350,6 +368,7 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 module.exports = {
   productLine,
   displayName,
+  dedupeTitle,
   isProse,
   JUSTIFY,
   article,

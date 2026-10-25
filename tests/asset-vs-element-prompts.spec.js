@@ -355,6 +355,10 @@ async function openAssetTab(page, label) {
   const view = page.locator('#plantable button:has-text("View")').first();
   await expect(view).toBeVisible({ timeout: 20_000 });
   await view.click();
+  // The preview is grouped by kind (2026-10-24); "All" shows every kind.
+  const all = page.locator('.pvgroups .pvtab[data-group="*"]').first();
+  await all.waitFor({ timeout: 30_000 }).catch(() => {});
+  if (await all.count()) await all.click();
   const section = page.locator('.pvsec', { has: page.locator('.pvsech', { hasText: label }) }).first();
   await expect(section, `no "${label}" section in the preview`).toBeVisible({ timeout: 30_000 });
   const pane = section.locator('.pvpane').first();
