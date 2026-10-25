@@ -76,6 +76,15 @@ const QUICK_FIX = {
   too_staged: { problem: 'Too staged', reprompt: 'Leave the mug and the cable in frame. Do not tidy the set.' },
 };
 
+/** The same re-prompts for a frame that IS the product's own photo: no person,
+ *  no prop, nothing added; only the camera and the light move. */
+const QUICK_FIX_PACKSHOT = {
+  too_clean: QUICK_FIX.too_clean,
+  too_still: { problem: 'Too still', reprompt: 'One handheld micro-shake or a slow push-in on the photo. Add nothing to it.' },
+  too_glossy: { problem: 'Too glossy', reprompt: 'Keep the photo\'s own surface and light; no beauty smoothing, no added sheen.' },
+  too_staged: { problem: 'Too staged', reprompt: 'Leave the photo as it is: move only the camera and the light, add no object or person.' },
+};
+
 /** Symptom -> what to do (the card's "Common drift"). */
 const DRIFT = [
   { symptom: 'Still reads AI', fix: 'Check frame 1 first. Lighting is the loudest tell.' },
@@ -163,8 +172,9 @@ function reviewKit(opt) {
   const shot = !!(opt && opt.packshot);
   return {
     compact_block: shot ? COMPACT_PACKSHOT : COMPACT,
-    quick_fixes: Object.values(QUICK_FIX),
-    common_drift: DRIFT.slice(),
+    // A packshot gets re-prompts that add no person or prop to the photo.
+    quick_fixes: Object.values(shot ? QUICK_FIX_PACKSHOT : QUICK_FIX),
+    common_drift: shot ? DRIFT.filter((d) => !/blink/i.test(d.symptom)) : DRIFT.slice(),
     check_first: 'Frame 1: lighting is the loudest tell.',
   };
 }
@@ -189,4 +199,4 @@ function fit(prompt, max) {
 
 function quickFix(id) { return QUICK_FIX[id] ? QUICK_FIX[id].reprompt : ''; }
 
-module.exports = { TELLS, LIGHTING, BANS, OPENING, QUICK_FIX, DRIFT, COMPACT, COMPACT_PACKSHOT, MARK, rules, withRules, fit, reviewKit, quickFix };
+module.exports = { TELLS, LIGHTING, BANS, OPENING, QUICK_FIX, QUICK_FIX_PACKSHOT, DRIFT, COMPACT, COMPACT_PACKSHOT, MARK, rules, withRules, fit, reviewKit, quickFix };

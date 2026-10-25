@@ -128,7 +128,11 @@ test('the shot brief and the story brief ask for a phone-camera look, never a fi
   for (const sh of brief.shots) expect(sh.video_prompt).toMatch(/phone-camera look/);
   expect(brief.render_rules.compact_block).toBe(RR.COMPACT_PACKSHOT);
   expect(brief.render_rules.compact_block).not.toMatch(/object out of place/);
-  expect(brief.render_rules.quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Stares', 'Plastic', 'Too still', 'Too staged']);
+  // Packshot re-prompts add no person or prop to the supplied photo.
+  expect(brief.render_rules.quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Too still', 'Too glossy', 'Too staged']);
+  const fixes = JSON.stringify(brief.render_rules.quick_fixes) + JSON.stringify(brief.render_rules.common_drift);
+  expect(fixes).not.toMatch(/mug|cable|eye contact|hand adjusts|blink/i);
+  expect(RR.reviewKit().quick_fixes.map((f) => f.problem)).toEqual(['Too clean', 'Stares', 'Plastic', 'Too still', 'Too staged']);
   expect(brief.render_rules.check_first).toMatch(/Frame 1/);
 
   const story = require(path.join(ROOT, 'scripts', 'lib', 'story-ad.js'));
@@ -221,4 +225,35 @@ test('the compact preamble keeps the brand\'s style lock and type, bounded', () 
   expect(c).toMatch(/Never break: Never show a hand Always a terracotta prop/);
   expect(c).not.toMatch(/third rule/);
   expect(c.length).toBeLessThan(1000);
+});
+
+test('the social video prompt opens as a phone video, never a cinematic film', async () => {
+  // The shipped social-core.runDaily, every model down, video-core replaced by
+  // a recorder: the prompt the Social OS hands the video providers.
+  const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
+  const VCP = require.resolve(path.join(ROOT, 'api', '_shared', 'video-core.js'));
+  const SC = require.resolve(path.join(ROOT, 'api', '_shared', 'social-core.js'));
+  const saved = { llm: require.cache[LLM], vc: require.cache[VCP] };
+  const prompts = [];
+  const real = require(LLM);
+  const down = async () => { throw new Error('ALL PROVIDERS FAILED'); };
+  Object.assign(down, real);
+  const realVc = require(VCP);
+  const vc = Object.assign({}, realVc, {
+    isConnected: () => false,
+    generateVideo: async (o) => { prompts.push(o.prompt); return { status: 'recorded', provider: 'recorder' }; },
+  });
+  require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+  require.cache[VCP] = { id: VCP, filename: VCP, loaded: true, exports: vc };
+  delete require.cache[SC];
+  try {
+    await require(SC).runDaily({ brand: Object.assign({ regions: [{ code: 'UK', home: true }] }, BRAND), dry_run: true, date: '2026-10-20' });
+  } finally {
+    require.cache[LLM] = saved.llm; if (saved.vc) require.cache[VCP] = saved.vc; else delete require.cache[VCP]; delete require.cache[SC];
+  }
+  expect(prompts.length, 'the Social OS asked for no video').toBeGreaterThan(0);
+  for (const p of prompts) {
+    expect(p).not.toMatch(/cinematic|product film/i);
+    expect(p).toMatch(/shot like a phone in a real room/);
+  }
 });
