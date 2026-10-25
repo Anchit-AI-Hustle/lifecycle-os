@@ -2090,6 +2090,34 @@ const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ?
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
+// Landing page FORMAT by the audience's temperature (2026-10-25, from the
+// landing-page benchmark, data/benchmarks/landing-reference.json): a warm
+// customer gets the direct offer (variant A) and, with two or more pictured
+// products, the collection; a cold or lapsed one gets the listicle, when the
+// brand states at least three reasons. Nothing is invented to reach three.
+const COOL_COHORT = /at risk|hibernat|\blost\b|sleep|can.?t lose|lapsed|win.?back|reactivat|prospect|\bcold\b|non.?engag|new visitor|first.?time/i;
+function listicleReasons(entry, copy) {
+  let b = null;
+  try { b = require('./brand-runtime.js').scopedBrand(entry && entry.brand); } catch (_) { b = (entry && entry.brand) || {}; }
+  const svc = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const L = (copy && copy.landing) || {};
+  const seen = new Set();
+  return [].concat(Array.isArray(L.why_bullets) ? L.why_bullets : [], Array.isArray(b && b.claims) ? b.claims : [])
+    .map((x) => String(x || '').trim()).filter((x) => x && x.length <= 120 && !svc.test(x) && !/^\[DATA REQUIRED/.test(x))
+    .filter((x) => { const k = x.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, 5);
+}
+function listicleHeadline(entry, n, name) {
+  const back = COOL_COHORT.test(String((entry && entry.cohort && entry.cohort.name) || '')) && !/prospect|cold|new visitor|first.?time/i.test(String((entry && entry.cohort && entry.cohort.name) || ''));
+  return `${n} reasons to ${back ? 'come back to' : 'choose'} ${name}`;
+}
+function landingFormat(entry, copy, variant) {
+  if (variant !== 'B') return 'direct-offer';
+  const cohort = String((entry && entry.cohort && (entry.cohort.name || entry.cohort.key)) || '') + ' ' + String((entry && entry.objective) || '');
+  if (COOL_COHORT.test(cohort) && listicleReasons(entry, copy).length >= 3) return 'listicle';
+  return ownPhotoCount(entry) >= 2 ? 'collection' : 'direct-offer';
+}
+
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // This page's own composition (asset-style.js): hero arrangement varies by
   // brand and slot; the brand's palette, type and radii do not.
@@ -2262,6 +2290,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // of the headline): no hero photo, every product of the slot as a card, the
   // hero's first.
   const _collection = _o.layout === 'collection';
+  const _listicle = _o.layout === 'listicle';
   const _others = (_collection && entry.heroProduct && !entry.heroProduct.placeholder ? [Object.assign({}, entry.heroProduct, { url: shopUrl })] : [])
     .concat(Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [])
     .filter((x) => x && x.title && !/^\[DATA REQUIRED/.test(String(x.title))).slice(0, _collection ? 4 : 3);
@@ -2310,9 +2339,20 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // The product's own photographs, for the numbered rows.
   const _gallery = (() => { if (!_hp) return []; let g = []; try { g = catalogImage.imagesFor(_hp, entry.market, { width: 900, brand: entry.brand }) || []; } catch (_) { g = []; } if (!g.length && /^https:\/\//i.test(String(_hp.image || ''))) g = [String(_hp.image)]; return g.filter((u) => u && u !== creativeUrl); })();
   const _featItems = (L.why_bullets && L.why_bullets.length ? L.why_bullets : bClaims.slice(0, 3)).map(String).filter(Boolean).slice(0, 4);
-  const featRows = (_featItems.length >= 2 && _gallery.length >= 1 && !_collection)
+  const featRows = (_featItems.length >= 2 && _gallery.length >= 1 && !_collection && !_listicle)
     ? `<section class="sec feats"><h2>${esc(cleanWhyTitle)}</h2>${_featItems.map((t, i) => `<div class="feat${i % 2 ? ' rev' : ''}"><img src="${esc(_gallery[i % _gallery.length])}" alt="${esc(_hp.title)}" loading="lazy"><div><span class="num">${String(i + 1).padStart(2, '0')}</span><h3>${esc(t)}</h3></div></div>`).join('')}</section>`
     : '';
+  // THE LISTICLE (2026-10-25, from the landing-page benchmark,
+  // data/benchmarks/landing-reference.json): for a cold or lapsed audience the
+  // page argues the case reason by reason, the product enters at item two, and
+  // a button follows every reason; the buy box closes it. Every reason is a line
+  // the brand states (listicleReasons), never one written for the page.
+  const _boxImg0 = () => (creativeUrl || (_hp && /^https:\/\//i.test(String(_hp.image || '')) ? _hp.image : '')) || '';
+  const _lReasons = _listicle ? listicleReasons(entry, copy) : [];
+  const listicleSec = _listicle && _lReasons.length >= 3 ? (() => {
+    const card = _hp ? `<div class="lcard">${_gallery[0] || _boxImg0() ? `<img src="${esc(_gallery[0] || _boxImg0())}" alt="${esc(_hp.title)}" loading="lazy">` : ''}<div><h3>${esc(_hp.title)}</h3>${priceLabel ? `<p class="lprice">${esc(priceLabel)}</p>` : ''}<a href="${esc(shopUrl)}" class="btn">${cta}</a></div></div>` : '';
+    return `<section class="sec listicle" data-format="listicle"><ol class="lreasons">${_lReasons.map((t, i) => `<li><span class="num">${i + 1}</span><div><h3>${esc(t)}</h3>${i ? `<a class="lnext" href="${esc(shopUrl)}">${cta} &rarr;</a>` : ''}</div></li>${i === 0 ? card : ''}`).join('')}</ol></section>`;
+  })() : '';
   // What is inside / the details: only the facts the store states.
   const _det = _hp ? [
     _hp.unit_spec ? ['Size', _hp.unit_spec] : null,
@@ -2401,6 +2441,12 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .feat.rev img{order:2}
 .feat .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800;font-size:13px;margin-bottom:10px}
 .feat h3{font-size:20px;line-height:1.3;margin:0}
+.lreasons{list-style:none;padding:0;margin:0;counter-reset:none}.lreasons>li{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--chalk-warm)}
+.lreasons .num{flex:0 0 40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800}
+.lreasons h3{font-size:22px;line-height:1.3;margin:6px 0 8px}.lnext{font-weight:700;color:var(--moss-text,var(--ink));text-decoration:underline}
+.lcard{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:center;border:2px solid var(--moss);border-radius:16px;padding:18px;margin:18px 0;background:var(--chalk)}
+.lcard img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}.lcard h3{margin:0 0 6px;font-size:20px}.lprice{font-family:var(--head);font-size:22px;margin:0 0 12px}
+@media(max-width:560px){.lcard{grid-template-columns:110px 1fr;gap:14px;padding:14px}.lcard h3{font-size:17px}.lreasons h3{font-size:19px}}
 .details .lede{color:var(--ink);font-size:16px;max-width:680px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-top:12px}
 .dgrid div{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:14px}
@@ -2500,19 +2546,20 @@ ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_
         return b ? `<div class="hero-badge" style="display:inline-block;background:var(--lava);color:var(--on-lava);font-size:12px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;margin-bottom:10px">${esc(b)}</div>` : '';
       })()}
       <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
-      <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
+      <h1 data-ds="h1">${esc(listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName))}</h1>
       ${(() => { const sub = L.hero_sub || _b.tagline || ((copy.email || {}).intro_paragraph) || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
-      ${priceLabel ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
+      ${priceLabel && !listicleSec ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
       <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
-      ${heroAssure}${heroPills}
+      ${heroAssure}${listicleSec ? '' : heroPills}
     </div>
     ${creativeUrl ? `<div class="hero-media"><img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct.title : bName)}"></div>` : ''}
   </div>
 </section>
 ${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_appRating)}/5`)}</span></div>` : ''}
 <div class="wrap" data-ds="wrap">
+  ${listicleSec}
   ${featRows}
-  ${(!featRows && (bullets || fallbackBullets)) ? `<section class="sec why">
+  ${(!listicleSec && !featRows && (bullets || fallbackBullets)) ? `<section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>` : ''}
@@ -3270,7 +3317,8 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
       : ((creatives.landing && creatives.landing.image) || heroReal || null);
     lp.title = (copy.landing && copy.landing.hero_headline) || lp.title;
     lp.creative = { brief: (copy.landing && copy.landing.image_brief) || '', image: img, provider: isB ? (poolSource(entry) || 'catalog') : ((creatives.landing && creatives.landing.provider) || poolSource(entry) || 'catalog') };
-    lp.html = isB && ownPhotoCount(entry) >= 2 ? lpHtml(entry, copy, campaign.campaign_id, null, { layout: 'collection' }) : lpHtml(entry, copy, campaign.campaign_id, img);
+    lp.format = landingFormat(entry, copy, lp.variant);
+    lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, img) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? img : null, { layout: lp.format });
     lp.path = isB ? `/lp/${campaign.campaign_id}?v=b` : `/lp/${campaign.campaign_id}`;
   });
   for (const ad of campaign.assets.ads || []) {
@@ -3994,7 +4042,8 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       (campaign.assets.landing_pages || []).forEach((lp) => {
         const isB = lp.variant === 'B';
         const copy = isB ? tc.B : tc.A;
-        lp.html = isB && ownPhotoCount(entry) >= 2 ? lpHtml(entry, copy, campaign.campaign_id, null, { layout: 'collection' }) : lpHtml(entry, copy, campaign.campaign_id, heroImg);
+        lp.format = landingFormat(entry, copy, lp.variant);
+        lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, heroImg) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? heroImg : null, { layout: lp.format });
       });
     }
   } catch (e) { console.warn('[smart-brain] template mail variants failed:', e && e.message); }

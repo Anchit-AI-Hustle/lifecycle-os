@@ -1,0 +1,32 @@
+{
+  "source": "Pagedeck (pagedeck.com/posts), published analyses of DTC landing pages behind long-running paid ads; robots.txt allows reading",
+  "read_at": "2026-10-25",
+  "pages": [
+    "https://pagedeck.com/posts/landing-page-examples",
+    "https://pagedeck.com/posts/listicle-landing-pages",
+    "https://pagedeck.com/posts/advertorial-landing-pages",
+    "https://pagedeck.com/posts/high-converting-landing-page",
+    "https://pagedeck.com/posts/facebook-ads-library-competitor-research"
+  ],
+  "not_read": {
+    "milled.com": "robots.txt disallows ClaudeBot and states ai-train=no; not read",
+    "facebook.com/ads/library": "refused this environment's requests; competitor ads come from the workspace's own ci_ads and the Apify route (ad-angle-lab)",
+    "reallygoodemails.com": "already read for mail (data/benchmarks/mail-reference.json)"
+  },
+  "rules": [
+    "Message match: the page's first headline keeps the promise of the ad that sent the visitor.",
+    "One goal: the page has one action; every button goes to the same next step.",
+    "The offer (price, incentive, what is in it) is visible before the first scroll on a direct-offer page.",
+    "Proof sits beside the doubt it answers, never as a block nobody reads.",
+    "The buy box does the arithmetic: price against the compare-at, per-unit price, pack, guarantee and shipping terms.",
+    "Longevity is the only free signal of a working ad: an ad and page kept live for months are being paid for by results."
+  ],
+  "formats": [
+    { "format": "direct-offer", "temperature": "warm, retargeting, branded search", "built_as": "variant A of every slot" },
+    { "format": "listicle", "temperature": "cold to lukewarm, lapsed", "built_as": "variant B for a cold or lapsed cohort when the brand states three or more reasons; product at item two, a button after each reason, buy box at the end" },
+    { "format": "bundle / collection", "temperature": "warm, order-value led", "built_as": "variant B with two or more pictured products" },
+    { "format": "advertorial pre-sell", "temperature": "cold, considered purchase", "built_as": "not built: it needs a problem and mechanism story the brand's record does not state, and carries FTC disclosure duties" },
+    { "format": "quiz / finder", "temperature": "cold to warm, wide catalogue", "built_as": "not built" }
+  ],
+  "note": "Figures quoted in those pages (conversion lifts, medians) are Pagedeck's or their sources' and are never printed on a generated page."
+}

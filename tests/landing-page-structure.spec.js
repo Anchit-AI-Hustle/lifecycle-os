@@ -82,3 +82,41 @@ test('a bare brand gets no empty sections: no offer bar, no details, no about, n
   // The buy box still carries what the store states: its price.
   expect(textOf(html)).toContain('₹759');
 });
+
+// The page FORMAT follows the audience (2026-10-25, from the landing-page
+// benchmark, data/benchmarks/landing-reference.json): a lapsed cohort whose
+// brand states three or more reasons gets a listicle as variant B (the product
+// at item two, a button after every reason, the buy box last); a warm cohort, or
+// a brand with fewer stated reasons, never gets one. Every reason is the brand's
+// own line.
+test('a lapsed cohort gets a listicle built only from the brand\'s own reasons; a warm one does not', async ({ page }) => {
+  const REASONS = ['Single-estate teas', 'Packed within days of picking', 'Sourced directly from family gardens'];
+  const brand = Object.assign({}, RICH, { claims: ['Free shipping across India'].concat(REASONS) });
+  const lapsed = await build(slot(brand, P('Darjeeling First Flush Black Tea', 1, 759)));
+  const b = lapsed.assets.landing_pages.find((l) => l.variant === 'B');
+  expect(b.format).toBe('listicle');
+  const t = textOf(b.html);
+  expect(t).toContain('3 reasons to come back to Leafline Tea');
+  const items = [...b.html.matchAll(/<li><span class="num">(\d)<\/span><div><h3>([^<]+)<\/h3>/g)].map((m) => m[2]);
+  expect(items).toEqual(REASONS);
+  // The product enters after the first reason, and the buy box closes the page.
+  expect(b.html.indexOf('class="lcard"')).toBeGreaterThan(b.html.indexOf(REASONS[0]));
+  expect(b.html.indexOf('class="lcard"')).toBeLessThan(b.html.indexOf(REASONS[1]));
+  expect(b.html.indexOf('<section class="sec buy"')).toBeGreaterThan(b.html.indexOf(REASONS[2]));
+  for (const r of REASONS) expect(count(t, r), `"${r}" said twice`).toBe(1);
+  // Variant A stays the direct offer.
+  expect(lapsed.assets.landing_pages.find((l) => l.variant === 'A').format).toBe('direct-offer');
+  // A warm cohort: no listicle.
+  const warm = await build(Object.assign(slot(brand, P('Darjeeling First Flush Black Tea', 1, 759)), { objective: 'premium bundle expansion', cohort: { name: 'Champions', size: null, estimated: true } }));
+  expect(warm.assets.landing_pages.find((l) => l.variant === 'B').format).not.toBe('listicle');
+  // Two stated reasons are not padded to three.
+  const thin = await build(slot(Object.assign({}, brand, { claims: ['Free shipping across India', REASONS[0], REASONS[1]] }), P('Darjeeling First Flush Black Tea', 1, 759)));
+  expect(thin.assets.landing_pages.find((l) => l.variant === 'B').format).not.toBe('listicle');
+  for (const [w, h] of [[1280, 900], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.route('**/*', (r) => (r.request().resourceType() === 'image' ? r.fulfill({ contentType: 'image/svg+xml', body: PHOTO }) : r.abort()));
+    await page.setContent(b.html, { waitUntil: 'load' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), `scrolls sideways at ${w}`).toBeLessThanOrEqual(0);
+    await page.unrouteAll();
+  }
+});
