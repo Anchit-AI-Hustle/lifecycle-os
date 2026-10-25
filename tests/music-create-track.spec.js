@@ -71,7 +71,14 @@ async function harness(page, host, opts) {
             const out = require(path.join(ROOT, 'music-synth.js')).renderBytes(String(body.prompt || ''), Number(body.seconds) || 30, { compact: true });
             return route.fulfill({ status: 200, contentType: 'audio/wav', body: Buffer.from(out.bytes) });
           }
+          if (o.job) return json({ ok: true, pending: true, job: 'platform:pjob123', provider: 'replicate', model: 'lucataco/ace-step', quality: 'studio', sung: '[chorus]\nLensbrand', message: '' }, 202);
           return route.fulfill({ status: 200, contentType: 'audio/mpeg', body: Buffer.from('ID3fakemusic') });
+        }
+        if (action === 'music-job') {
+          log.jobs = (log.jobs || 0) + 1;
+          if (u.searchParams.get('id') !== 'platform:pjob123') return json({ ok: false, error: 'job_invalid' }, 400);
+          if (log.jobs < 2) return json({ ok: true, pending: true, status: 'processing' }, 202);
+          return route.fulfill({ status: 200, contentType: 'audio/mpeg', headers: { 'X-Music-Provider': 'replicate', 'X-Music-Quality': 'studio', 'Access-Control-Expose-Headers': 'X-Music-Provider, X-Music-Quality' }, body: Buffer.from('ID3sungsong') });
         }
         if (!action && !u.searchParams.has('health')) return json(o.dead ? { supabase: { url: 'https://paused-project.supabase.co', anonKey: 'anon' } } : {});
         if (action === 'auth') return json({ ok: true, mode: 'google', pin_signin: false });
@@ -206,4 +213,24 @@ test('signed out against a paused backend nothing is sent, and the page says why
   // Suno still works signed out: it needs nothing from this server.
   await page.click('#mkSuno');
   expect(await page.evaluate(() => window.__opened)).toEqual(['https://suno.com/create']);
+});
+
+// A Replicate song still rendering (2026-10-25): the route answers 202 with a
+// job, the page says it is still being made, polls ?action=music-job and plays
+// the track when it lands, labelled with what made it and what it sang.
+test('a track still rendering is polled until it lands, then plays with what made it and what it sang', async ({ page }) => {
+  test.setTimeout(60_000);
+  const log = await harness(page, 'http://localhost:4977', { job: true });
+  await page.fill('#mkSecs', '20');
+  await page.locator('#mkPrompt').fill('A sung jingle for Lensbrand');
+  await page.click('#mkGenerate');
+  await expect(page.locator('#mkStatus')).toContainText('still being made');
+  await expect(page.locator('[data-made-track] audio')).toHaveCount(1, { timeout: 30_000 });
+  expect(log.jobs).toBe(2);
+  expect(log.compose).toHaveLength(1);
+  await expect(page.locator('[data-made-track]')).toContainText('Composed on Replicate');
+  await expect(page.locator('[data-made-track] details pre')).toHaveText('[chorus]\nLensbrand');
+  const bytes = await page.evaluate(async () => { const src = document.querySelector('[data-made-track] audio').getAttribute('src'); return new TextDecoder().decode(await (await fetch(src)).arrayBuffer()); });
+  expect(bytes).toBe('ID3sungsong');
+  expect(log.errors).toEqual([]);
 });

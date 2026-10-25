@@ -319,7 +319,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|music-compose|music-job|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1376,8 +1376,10 @@ module.exports = async function handler(req, res) {
         const mc = await require('./_shared/music-compose.js').compose({
           prompt: b.prompt, seconds: b.seconds, instrumental: b.instrumental !== false,
           image_url: typeof b.image_url === 'string' ? b.image_url.slice(0, 1000) : '',
-        }, { freeGeneration: freeGenerationOn() });
+        }, { freeGeneration: freeGenerationOn(), deadline: Date.now() + (Number(process.env.MUSIC_WAIT_MS) || 100000) });
         if (!mc.ok) return res.status(mc.status || 502).json({ ok: false, error: mc.error, message: mc.message, refusals: mc.refusals || [] });
+        // A Replicate track still rendering: the page polls ?action=music-job.
+        if (mc.pending) return res.status(202).json({ ok: true, pending: true, job: mc.job, provider: mc.provider, model: mc.model, quality: mc.quality, sung: mc.sung || '', message: mc.message || '' });
         res.setHeader('Content-Type', mc.mime);
         res.setHeader('X-Music-Provider', mc.provider);
         res.setHeader('X-Music-Model', String(mc.model || '').slice(0, 80));
@@ -1388,6 +1390,34 @@ module.exports = async function handler(req, res) {
         if (mc.message || (mc.refusals && mc.refusals.length)) res.setHeader('X-Music-Note', hdr(mc.message || mc.refusals.join(' ')));
         res.setHeader('Access-Control-Expose-Headers', 'X-Music-Provider, X-Music-Model, X-Music-Quality, X-Music-Sung, X-Music-Note, X-Song-Id');
         return res.status(200).send(mc.audio);
+      }
+
+      case 'music-job': {
+        // A track Replicate is still making (music-compose answered 202): its
+        // state, and once finished the audio itself, streamed from Replicate's
+        // delivery host. Signed in; the compose that started it was charged.
+        if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'GET only' });
+        const auth = __auth && __auth.ok ? __auth : await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        const MC = require('./_shared/music-compose.js');
+        const j = await MC.job(String((req.query && req.query.id) || ''));
+        if (!j.ok) return res.status(j.status || 502).json({ ok: false, error: j.error, message: j.message });
+        if (j.pending) return res.status(202).json({ ok: true, pending: true, status: j.status });
+        const x = MC.deliveryHost(j.url);
+        const up = x ? await fetch(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error' }).catch(() => null) : null;
+        if (!up || !up.ok) return res.status(502).json({ ok: false, error: 'job_unreadable', message: 'The finished track could not be read from Replicate.' });
+        const type = String(up.headers.get('content-type') || '').split(';')[0];
+        res.setHeader('Content-Type', /^audio\//.test(type) ? type : (/\.wav$/i.test(x.pathname) ? 'audio/wav' : 'audio/mpeg'));
+        res.setHeader('X-Music-Provider', 'replicate');
+        res.setHeader('X-Music-Quality', 'studio');
+        res.setHeader('Access-Control-Expose-Headers', 'X-Music-Provider, X-Music-Quality');
+        res.status(200);
+        if (up.body && typeof up.body.getReader === 'function') {
+          const reader = up.body.getReader();
+          for (;;) { const { done, value } = await reader.read(); if (done) break; res.write(Buffer.from(value)); }
+          return res.end();
+        }
+        return res.end(Buffer.from(await up.arrayBuffer()));
       }
 
       // ── CONSOLE (chat-style brain interface) ─────────────────────────────

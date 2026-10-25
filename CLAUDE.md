@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Music composes with every model a key reaches, as The Third Eye does (2026-10-25)
+The operator: "The music creation is not working correctly. Ensure it works as perfectly as in Third Eye". Production had
+`FREE_GENERATION` on (unset = on) and only `GEMINI_API_KEY` for music: free generation SKIPPED ElevenLabs outright and a
+free-tier Gemini key refuses Lyria, so every track was the code sketch. Free generation is the keyless FLOOR; it never
+skips a model a key reaches now. `music-compose.js` is The Third Eye's chain (`frontend/src/app/api/tools/music/route.ts`,
+read 2026-10-25), after Lyria: ElevenLabs Music (`model_id` `music_v2_5`, the docs' current value; a bad_prompt rewrite
+tried once; a key id instead of the sk_ secret is said) -> Replicate (`lucataco/ace-step` {tags, lyrics, duration <= 240}
+sings a brief with lyrics, `meta/musicgen` {stereo-large, mp3} plays an instrumental, `stable-audio-open` pinned behind
+it; a 401/402/429 is account-wide and stops that account; `Prefer: wait` then polled in the request) -> Hugging Face
+MusicGen (`router.huggingface.co/hf-inference`) -> the sketch (free generation on only; else 501/502 with every refusal).
+The workspace's OWN keys first: `elevenlabs`, `replicate`, `huggingface` are media connections on /connections (Test
+reads the account, spends nothing), recorded as own answers. A Replicate track still rendering is `202 {job}`;
+`?action=music-job&id=own|platform:<id>` (GET, signed in, refused for an unattributed browser) answers 202 until done,
+then streams the audio, fetched only from `*.replicate.delivery`. `music-client.js` (`MusicClient.compose`) is the one
+page client (Music Studio and /brain's Compose): it polls the job and labels what made the track. `partsOf()` reads the
+brief's genre/mood/tempo/instruments and lyrics back into ACE-Step's fields. `MUSIC_WAIT_MS` bounds the in-request wait
+(default 100 s of the 120 s function). Env the operator sets for platform music (values never here):
+`ELEVENLABS_API_KEY` (sk_, paid plan), `REPLICATE_API_TOKEN`, `HF_API_TOKEN`; the-third-eye's Vercel project has all
+three. Suno has no public API (Open in Suno stays). Gated by `tests/brand-music.spec.js` ("the Third Eye chain"),
+`tests/music-create-track.spec.js` (the job polled in Chromium) and `router-brain` (music-compose cases + `music-job`);
+the key-skip and delivery-host rules mutation-checked. `router-brain`'s "free generation on" case changed on purpose.
+
 ## ⭐ Brand music: Lyria first, for a product, a sale or the brand; scored into the Story video (2026-10-25)
 The operator: "integrate the music studio feature from the Third Eye Jarvis agent repo ... to create music for brands
 in particular ... particular products, particular sales, anything. Also add music creation in the smart brain", with a
@@ -34,7 +56,7 @@ code synth). Built here, brand-grounded and in code:
   plays it, fades the last 0.8 s and RECORDS it into "Save as video" (MediaStreamDestination track). `ASSET_BUILD_VERSION`
   hashes brand-music.js.
 - Gated by `tests/brand-music.spec.js` (5 executed: planner, the Lyria request over a fake Interactions API, refusal
-  chain, buildCampaign, the Story video saved WITH an audio stream read by ffprobe; 3 mutations caught) and a Lyria
+  chain, buildCampaign, the Story video saved WITH an audio track, read from the file's own track list; 3 mutations caught) and a Lyria
   case in `router-brain`. Not built: Third Eye's LLM agents (the plan is code from the record), the daily music queue,
   stored tracks (a track lives in the tab until downloaded).
 - **Veo on the workspace's own Gemini connection** (same day, "quality top-notch for all assets"): `video-core`
