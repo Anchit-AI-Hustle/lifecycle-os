@@ -100,7 +100,7 @@ function addConnection(w, wsId, { provider, category, config, secrets, id }) {
 function mayRead(w, token, wsId) {
   const user = w.users[token];
   const ws = w.workspaces[wsId];
-  return !!(user && ws && ws.owner_id === user.id);
+  return !!(user && ws && (ws.owner_id === user.id || ((w.memberOf || {})[wsId] || []).includes(user.id)));
 }
 
 function json(body, status = 200) {
@@ -134,13 +134,12 @@ function installFetch(w) {
       return json(user && w.active[user.id] ? [{ active_workspace_id: w.active[user.id] }] : []);
     }
     if (u.includes('/rest/v1/brand_workspaces')) {
-      // "Every brand I own but this one", as PostgREST reads owner_id + id=neq.
+      // "Every brand I own", as PostgREST reads owner_id=eq.
       const owner = paramOf(u, 'owner_id');
       if (owner) {
         const user = w.users[token];
-        const not = (/[?&]id=neq\.([^&]+)/.exec(u) || [])[1];
         if (!user || user.id !== owner) return json([]);
-        return json(Object.values(w.workspaces).filter((x) => x.owner_id === owner && x.id !== decodeURIComponent(not || '')));
+        return json(Object.values(w.workspaces).filter((x) => x.owner_id === owner));
       }
       const wsId = paramOf(u, 'id');
       return json(mayRead(w, token, wsId) ? [w.workspaces[wsId]] : []);
@@ -736,4 +735,18 @@ test('a model order chosen on one brand is used on a brand that has none', async
   const o = await core.llmOverridesFor(req('tok-a'));
   expect(o.order).toEqual(['openai']);
   expect(o.fallback).toBe(false);
+});
+
+test('on another owner\'s brand, a member\'s own keys and model order are never used', async () => {
+  const w = twoBrands();
+  addConnection(w, 'ws-a', { provider: 'openai', secrets: { api_key: 'sk-alpha-own' } });
+  w.routing['ws-a'] = { workspace_id: 'ws-a', entries: [{ provider: 'openai', models: [], enabled: true }], use_platform_fallback: false, updated_at: '2026-10-25T00:00:00Z' };
+  // user-a works on Beta's brand (RLS lets a member read it).
+  w.memberOf = { 'ws-b': ['user-a'] };
+  const o = await core.llmOverridesFor(req('tok-a', { workspace_id: 'ws-b' }));
+  expect(o).toBeNull();
+  const r = res();
+  await core.handle(req('tok-a', { op: 'list', workspace_id: 'ws-b' }), r);
+  expect(JSON.stringify(r.payload || {})).not.toContain('"shared_from":{');
+  expect(JSON.stringify(w.calls.filter((c) => c.url.includes('connection_secrets')))).not.toContain('conn-ws-a');
 });
