@@ -174,6 +174,133 @@ test('a refusal is said: the own key refused falls to the platform key; both ref
   } finally { net.restore(); }
 });
 
+// The Third Eye's chain (2026-10-25): after Lyria, ElevenLabs Music, then
+// Replicate (ACE-Step sings, MusicGen plays), then Hugging Face MusicGen; the
+// workspace's own keys before the platform's; free generation never skips a
+// model a key reaches (it did, and every track was the sketch).
+test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics, then MusicGen plays; the sketch only when none answers; a job only with a private secret', async () => {
+  const DELIVERY = 'https://replicate.delivery/abc/song.mp3';
+  // 1. The workspace's own ElevenLabs key, with free generation on: composed by ElevenLabs, as its own.
+  let net = fakeLyria((u) => (u.startsWith('https://api.elevenlabs.io/v1/music') ? { body: 'x', type: 'audio/mpeg' } : null));
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: 'sk_platform', REPLICATE_API_TOKEN: undefined, CRON_SECRET: 'job-secret' }, async () => {
+      const r = await fresh().compose({ prompt: 'A warm acoustic bed', seconds: 20 }, { own: null, ownKeys: { elevenlabs: 'sk_own' }, freeGeneration: true });
+      expect(r.ok).toBe(true);
+      expect(r.provider).toBe('elevenlabs');
+      expect(r.own).toBe(true);
+      expect(r.quality).toBe('studio');
+      expect(net.calls).toHaveLength(1);
+      expect(net.calls[0].headers['xi-api-key']).toBe('sk_own');
+      expect(net.calls[0].body).toEqual({ prompt: 'A warm acoustic bed', music_length_ms: 20000, model_id: 'music_v2_5', force_instrumental: true });
+    });
+  } finally { net.restore(); }
+
+  // 2. ElevenLabs refuses (no paid plan); Replicate sings the plan's lyrics with ACE-Step.
+  const plan = BM.plan({ brand: BAKERY, purpose: 'jingle', product: { title: 'Chocolate Truffle Cake' }, seconds: 20 });
+  expect(plan.vocals).toBe(true);
+  net = fakeLyria((u) => {
+    if (u.startsWith('https://api.elevenlabs.io/v1/music')) return { status: 402, body: { detail: { message: 'Music requires a paid plan' } } };
+    if (u === 'https://api.replicate.com/v1/models/lucataco/ace-step/predictions') return { status: 201, body: { id: 'pred1', status: 'succeeded', output: DELIVERY } };
+    if (u === DELIVERY) return { body: 'ID3song', type: 'audio/mpeg' };
+    return null;
+  });
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: 'sk_platform', REPLICATE_API_TOKEN: 'r8_platform', CRON_SECRET: 'job-secret' }, async () => {
+      const r = await fresh().compose({ prompt: plan.prompt, seconds: 20, instrumental: false }, { own: null, ownKeys: {}, freeGeneration: true });
+      expect(r.ok).toBe(true);
+      expect(r.provider).toBe('replicate');
+      expect(r.model).toBe('lucataco/ace-step');
+      expect(r.own).toBe(false);
+      expect(r.audio.toString()).toBe('ID3song');
+      expect(r.refusals[0]).toMatch(/The platform's ElevenLabs key: ElevenLabs music needs a paid plan/);
+      const ace = net.calls.find((c) => /ace-step/.test(c.url));
+      expect(ace.headers.Authorization).toBe('Bearer r8_platform');
+      expect(ace.body.input.lyrics).toBe(plan.lyrics);
+      expect(ace.body.input.tags).toContain(plan.genre);
+      expect(ace.body.input.tags).toContain(plan.bpm + ' bpm');
+      expect(ace.body.input.duration).toBe(20);
+      expect(r.sung).toBe(plan.lyrics);
+    });
+  } finally { net.restore(); }
+
+  // 3. An instrumental goes to MusicGen (stereo-large, mp3); one still rendering is a job, never dropped.
+  net = fakeLyria((u) => {
+    if (u === 'https://api.replicate.com/v1/models/meta/musicgen/predictions') return { status: 201, body: { id: 'pred2abc', status: 'processing' } };
+    if (u === 'https://api.replicate.com/v1/predictions/pred2abc') return { body: { id: 'pred2abc', status: 'processing' } };
+    return null;
+  });
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, CRON_SECRET: 'job-secret' }, async () => {
+      const MC = fresh();
+      const r = await MC.compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 16000 });
+      expect(r).toMatchObject({ ok: true, pending: true, job: MC.jobId('own', 'pred2abc', 'user-1'), provider: 'replicate', model: 'meta/musicgen', own: true });
+      expect(net.calls[0].body.input).toMatchObject({ prompt: 'An instrumental bed', duration: 30, model_version: 'stereo-large', output_format: 'mp3' });
+      // The job is read with the key that started it, and its audio only from Replicate's delivery host.
+      const j = await MC.job(r.job, { ownKeys: { replicate: 'r8_own' }, owner: 'user-1' });
+      expect(j).toEqual({ ok: true, pending: true, status: 'processing' });
+      expect(net.calls[net.calls.length - 1].headers.Authorization).toBe('Bearer r8_own');
+      expect((await MC.job(r.job, { ownKeys: {}, owner: 'user-1' })).error).toBe('job_key_gone');
+      // Another account cannot read it, whatever key it holds.
+      expect((await MC.job(r.job, { ownKeys: { replicate: 'r8_own' }, owner: 'user-2' })).error).toBe('job_not_yours');
+      expect((await MC.job('platform:../x', {})).status).toBe(400);
+      expect(MC.deliveryHost('https://evil.example/x.mp3')).toBe(null);
+      expect(MC.deliveryHost('https://replicate.delivery/a/b.mp3')).toBeTruthy();
+    });
+  } finally { net.restore(); }
+
+  // 3b. No private secret on the deployment (Codex, #358): a constant in the
+  // source would let anyone sign, so no job is handed out and none is read.
+  net = fakeLyria((u) => {
+    if (u === 'https://api.replicate.com/v1/models/meta/musicgen/predictions') return { status: 201, body: { id: 'pred3abc', status: 'processing' } };
+    if (u === 'https://api.replicate.com/v1/predictions/pred3abc') return { body: { id: 'pred3abc', status: 'processing' } };
+    if (u.startsWith('https://api.replicate.com/v1/predictions')) return { status: 201, body: { id: 'pred4abc', status: 'failed', error: 'no' } };
+    return null;
+  });
+  try {
+    const NO_SECRET = { GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, SUPABASE_JWT_SECRET: undefined, CONNECTION_SECRET_KEY: undefined, CRON_SECRET: undefined, SUPABASE_SERVICE_ROLE_KEY: undefined, SUPABASE_SERVICE_KEY: undefined };
+    await withEnv(NO_SECRET, async () => {
+      const MC = fresh();
+      expect(MC.jobId('platform', 'pred3abc', 'user-1')).toBe(null);
+      const r = await MC.compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 16000 });
+      expect(r.pending).toBeFalsy();
+      expect(r.refusals.join(' ')).toMatch(/no private secret/);
+      expect((await MC.job('platform:pred3abc.' + 'a'.repeat(32), { owner: 'user-1' })).status).toBe(503);
+    });
+  } finally { net.restore(); }
+
+  // 3c. A Replicate call that stalls is bounded by the deadline (Codex, #358):
+  // the composition moves on instead of hanging past it.
+  const realFetch = global.fetch;
+  global.fetch = (url, init = {}) => new Promise((_ok, fail) => {
+    if (init.signal) init.signal.addEventListener('abort', () => { const e = new Error('aborted'); e.name = 'TimeoutError'; fail(e); });
+  });
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, CRON_SECRET: 'job-secret' }, async () => {
+      const t0 = Date.now();
+      const r = await fresh().compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 18000 });
+      expect(Date.now() - t0, 'a stalled Replicate call ran past the deadline').toBeLessThan(18000);
+      expect(r.provider).toBe('code-synth');
+      expect(r.refusals.join(' ')).toMatch(/Replicate did not answer in time/);
+    });
+  } finally { global.fetch = realFetch; }
+
+  // 4. Every model refuses: the sketch, labelled, with each refusal said.
+  net = fakeLyria((u) => (u.startsWith('https://api.elevenlabs.io/') ? { status: 401, body: { detail: 'invalid key' } }
+    : u.startsWith('https://api.replicate.com/') ? { status: 402, body: { detail: 'Insufficient credit' } }
+      : null));
+  try {
+    await withEnv({ GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: 'sk_bad', REPLICATE_API_TOKEN: 'r8_empty' }, async () => {
+      const r = await fresh().compose({ prompt: 'A product film track at 96 BPM', seconds: 15 }, { own: null, ownKeys: {}, freeGeneration: true });
+      expect(r.provider).toBe('code-synth');
+      expect(r.quality).toBe('sketch');
+      expect(r.message).toMatch(/ElevenLabs refused the API key/);
+      expect(r.message).toMatch(/Replicate answered 402/);
+      // Replicate's 402 is account-wide: the next model on the same account is not tried.
+      expect(net.calls.filter((c) => /api\.replicate\.com/.test(c.url))).toHaveLength(1);
+    });
+  } finally { net.restore(); }
+});
+
 test('Smart Brain plans the track of every send: a sale for an offer, else the product, as long as its Story video', async () => {
   const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'FREE_GENERATION'];
   const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));

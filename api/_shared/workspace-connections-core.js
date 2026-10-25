@@ -184,6 +184,29 @@ const PROVIDERS = [
     wired_note: 'Used first by every video this workspace makes: the product\'s own photo animated into a 5 or 10 second clip. Without it, videos are rendered in code from the same photos.',
   },
 
+  // Music (2026-10-25): the services The Third Eye's Music Studio composes with
+  // (its Hugging Face rung is left out: no Inference Provider hosts MusicGen).
+  // Each key is the person's own, saved in their workspace and used before
+  // the platform's, so its tracks cost no app credits.
+  {
+    id: 'elevenlabs', label: 'ElevenLabs (music)', category: 'media',
+    auth_kind: 'api_key', env_default: 'ELEVENLABS_API_KEY',
+    key_url: 'https://elevenlabs.io/app/settings/api-keys',
+    blurb: 'Eleven Music: full songs, sung in your lyrics or instrumental, up to 4 minutes. Needs a paid ElevenLabs plan. Paste the secret key (it starts with sk_), not the key id.',
+    fields: [{ key: 'api_key', label: 'API key', secret: true, required: true, placeholder: 'sk_...' }],
+    wired: true,
+    wired_note: 'Used by Music Studio and Smart Brain to compose tracks, after your Gemini connection (Lyria).',
+  },
+  {
+    id: 'replicate', label: 'Replicate (music)', category: 'media',
+    auth_kind: 'api_key', env_default: 'REPLICATE_API_TOKEN',
+    key_url: 'https://replicate.com/account/api-tokens',
+    blurb: 'ACE-Step sings your lyrics; Meta MusicGen and Stable Audio Open play instrumentals. Billed to your Replicate account.',
+    fields: [{ key: 'api_key', label: 'API token', secret: true, required: true, placeholder: 'r8_...' }],
+    wired: true,
+    wired_note: 'Used by Music Studio and Smart Brain to compose tracks when Lyria and ElevenLabs do not answer.',
+  },
+
   /* ── Commerce ─────────────────────────────────────────────────────────── */
   {
     id: 'shopify', label: 'Shopify', category: 'commerce',
@@ -1171,6 +1194,18 @@ async function checkConnection(auth, workspaceId, providerId) {
         : { ok: false, connected: true, note: out.status === 401 || out.status === 403 ? 'That key was rejected as unauthorized.' : `Pollo did not accept the check (${out.status || 'no answer'}).` };
     } catch (_) {
       result = { ok: false, connected: true, note: 'Pollo did not answer in time.' };
+    }
+  } else if (['elevenlabs', 'replicate'].includes(reg.id) && secrets.api_key) {
+    // One read per service that spends nothing: who the key belongs to.
+    const k = String(secrets.api_key);
+    const ask = reg.id === 'elevenlabs' ? ['https://api.elevenlabs.io/v1/user/subscription', { 'xi-api-key': k }]
+      : ['https://api.replicate.com/v1/account', { Authorization: 'Bearer ' + k }];
+    try {
+      const r = await fetch(ask[0], { headers: ask[1], signal: AbortSignal.timeout(8000) });
+      result = r.ok ? { ok: true, connected: true, note: `${reg.label.replace(/ \(music\)$/, '')} accepted the key.` }
+        : { ok: false, connected: true, note: r.status === 401 || r.status === 403 ? 'That key was rejected as unauthorized.' : `The check was refused (${r.status}).` };
+    } catch (_) {
+      result = { ok: false, connected: true, note: 'The service did not answer in time.' };
     }
   } else if (reg.id === 'klaviyo') {
     // The one non-AI platform this repo has a real client for. Ask it for its

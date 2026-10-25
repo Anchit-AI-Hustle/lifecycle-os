@@ -15,24 +15,59 @@
  * Input may be text and up to 10 images (a product photo here). Neither model
  * has a free tier ($0.04 a clip, $0.08 a song on the pricing page that day).
  *
- * Who pays, in order:
- *   1. the WORKSPACE'S OWN Gemini connection (a key, or Sign in with Google's
- *      access token + its project), recorded as the workspace's own answer, so
- *      no app credits are charged for it;
- *   2. the platform's GEMINI_API_KEY (charged as the route's credits), unless
- *      LYRIA_PLATFORM=off; a key on Google's free tier is refused, and the
- *      refusal is said, never hidden;
- *   3. ElevenLabs Music with ELEVENLABS_API_KEY, when free generation is off
- *      (the rule that already stood for this route);
- *   4. music-synth.js: a code-made instrumental SKETCH, labelled as one.
- * The bytes come back with what made them, the quality class (`studio` or
- * `sketch`), the lyrics the model sang and every refusal on the way.
+ * The chain (2026-10-25, ported from The Third Eye's Music Studio, which works
+ * in production): every music model a key reaches is tried before anything is
+ * made in code. The workspace's OWN keys first (recorded as its own answers, no
+ * app credits), then the platform's:
+ *   1. Lyria (Gemini): the workspace's Gemini connection, then GEMINI_API_KEY
+ *      (unless LYRIA_PLATFORM=off). A free-tier key is refused; that is said.
+ *   2. ElevenLabs Music (POST /v1/music, elevenlabs.io/docs/api-reference/music/
+ *      compose, read 2026-10-25: model_id music_v1 | music_v2 | music_v2_5,
+ *      music_length_ms 3000-600000, force_instrumental; the answer is the
+ *      audio). A bad_prompt refusal carries a rewrite, tried once. Paid plan.
+ *   3. Replicate: a sung song with lucataco/ace-step {tags, lyrics, duration
+ *      <= 240}, an instrumental with meta/musicgen {prompt, duration,
+ *      model_version stereo-large, output_format mp3} and stable-audio-open
+ *      pinned behind it (inputs read off each model's schema page, 2026-10-25).
+ *      A prediction is waited for (Prefer: wait) and polled inside the
+ *      request; one still running is handed back as a job the page polls
+ *      (`music-job`), never dropped.
+ *   Hugging Face is not a rung: no Inference Provider hosts MusicGen (its
+ *   inferenceProviderMapping is empty for every size, read 2026-10-25), so a
+ *   call there could only be refused.
+ *   4. Only then, and only with free generation on, music-synth.js: a
+ *      code-made instrumental SKETCH, labelled as one. Free generation is the
+ *      keyless floor; it never skips a model a key reaches (it did: with it on,
+ *      ElevenLabs was never called and every track was the sketch).
+ * Every answer says what made it, the quality class (`studio` or `sketch`),
+ * the lyrics the model sang and every refusal on the way.
  */
 
 const INTERACTIONS = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const LYRIA_CLIP = process.env.LYRIA_CLIP_MODEL || 'lyria-3-clip-preview';
 const LYRIA_SONG = process.env.LYRIA_SONG_MODEL || 'lyria-3.5';
-const ELEVEN = 'https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128';
+const ELEVEN = 'https://api.elevenlabs.io/v1/music';
+const ELEVEN_MODEL = process.env.ELEVENLABS_MUSIC_MODEL || 'music_v2_5';
+const REPLICATE = 'https://api.replicate.com/v1';
+const VOCAL_MODEL = process.env.MUSIC_SONG_MODEL || 'lucataco/ace-step';
+const INSTR_MODEL = process.env.MUSIC_INSTRUMENTAL_MODEL || 'meta/musicgen';
+const STABLE_AUDIO = 'stackadoc/stable-audio-open-1.0';
+const STABLE_AUDIO_VERSION = '9aff84a639f96d0f7e6081cdea002d15133d0043727f849c40abdd166b7c75a8';
+const MODEL_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+const JOB_RE = /^(own|platform):([a-zA-Z0-9]{6,64})\.([a-f0-9]{32})$/;
+
+// A job id names the person it was made for (Codex, #358): it is signed with
+// the deployment's secret over its source, the prediction and the user, so
+// another signed-in account cannot poll or download it.
+function jobKey() {
+  // Private secrets only: a constant in the source would let anyone sign.
+  return String(process.env.SUPABASE_JWT_SECRET || process.env.CONNECTION_SECRET_KEY || process.env.CRON_SECRET
+    || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '');
+}
+function jobSig(src, id, owner) {
+  return require('crypto').createHmac('sha256', jobKey()).update(`music-job|${src}|${id}|${owner || ''}`).digest('hex').slice(0, 32);
+}
+function jobId(src, id, owner) { return jobKey() ? `${src}:${id}.${jobSig(src, id, owner)}` : null; }
 const MAX_AUDIO = 4 * 1024 * 1024;        // a serverless response is capped at 4.5 MB
 const MAX_IMAGE = 3 * 1024 * 1024;
 
@@ -94,17 +129,179 @@ async function callLyria(spec, auth, { fetchImpl, timeoutMs } = {}) {
   return { ok: true, audio: out.audio, mime: out.mime, sung: out.text, model: rq.body.model };
 }
 
-async function callEleven(spec, key, { fetchImpl } = {}) {
+/** The brief, read back into the fields a tag-and-lyrics model takes. */
+function partsOf(prompt) {
+  const t = String(prompt || '');
+  const genre = (t.match(/Create an original (.+?) track/i) || [])[1] || '';
+  const mood = (t.match(/^Mood: ([^;.\n]+)/im) || [])[1] || '';
+  const bpm = (t.match(/about (\d{2,3}) BPM/i) || [])[1] || '';
+  const instruments = (t.match(/Instruments: ([^.\n]+)/i) || [])[1] || '';
+  const lyr = t.split(/Sing exactly these lyrics, in this order, and no others:\s*\n/i)[1];
+  const lyrics = lyr ? lyr.split(/\nDo not imitate/i)[0].trim() : '';
+  const tags = [genre, mood, bpm && bpm + ' bpm', instruments].map((x) => String(x).trim()).filter(Boolean).join(', ').slice(0, 400);
+  return { tags: tags || t.split('\n')[0].slice(0, 300), lyrics };
+}
+
+function elevenReason(status, body) {
+  let msg = String(body || '');
+  try { const d = JSON.parse(body).detail; msg = typeof d === 'string' ? d : (d && (d.message || d.status)) || msg; } catch (_) { /* text */ }
+  msg = String(msg).replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (status === 401) return `ElevenLabs refused the API key (401)${msg ? ': ' + msg : ''}`;
+  if (/key id/i.test(msg)) return 'ElevenLabs needs the secret key (it starts with sk_), not the key id shown in its dashboard';
+  if (status === 402 || /paid|plan|subscri|upgrade|quota|credits/i.test(msg)) return `ElevenLabs music needs a paid plan with music credits left (${status})${msg ? ': ' + msg : ''}`;
+  return `ElevenLabs answered ${status}${msg ? ': ' + msg : ''}`;
+}
+
+async function callEleven(spec, key, { fetchImpl, deadline } = {}) {
   const f = fetchImpl || fetch;
-  const lengthMs = Math.min(120000, Math.max(3000, Math.round(Number(spec.seconds) || 30) * 1000));
-  const r = await f(ELEVEN, {
-    method: 'POST',
-    headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': key },
-    body: JSON.stringify({ prompt: String(spec.prompt).slice(0, 4100), music_length_ms: lengthMs, model_id: process.env.ELEVENLABS_MUSIC_MODEL || 'music_v1', force_instrumental: spec.instrumental !== false }),
-  });
-  if (!r.ok) return { ok: false, status: r.status, error: `The music service answered ${r.status} and composed nothing. ${(await r.text()).slice(0, 300)}`.trim() };
+  const lengthMs = Math.min(240000, Math.max(3000, Math.round(Number(spec.seconds) || 30) * 1000));
+  let body = { prompt: String(spec.prompt).slice(0, 4100), music_length_ms: lengthMs, model_id: ELEVEN_MODEL, force_instrumental: spec.instrumental !== false };
+  let format = 'mp3_44100_128', rewritten = false, formatFallback = false, retried = false;
+  for (;;) {
+    const left = (deadline || Date.now() + 100000) - Date.now();
+    if (left < 5000) return { ok: false, error: 'ElevenLabs did not finish in time' };
+    let r;
+    try {
+      r = await f(ELEVEN + '?output_format=' + format, {
+        method: 'POST', headers: { Accept: 'audio/mpeg', 'Content-Type': 'application/json', 'xi-api-key': key },
+        body: JSON.stringify(body), signal: AbortSignal.timeout(left - 2000),
+      });
+    } catch (e) {
+      return { ok: false, error: /timeout|abort/i.test(String(e && e.name)) ? 'ElevenLabs did not finish in time' : 'ElevenLabs could not be reached' };
+    }
+    if (!r.ok) {
+      const text = String(await r.text().catch(() => '')).slice(0, 2000).split(key).join('[key]');
+      let better = null;
+      try { const d = JSON.parse(text).detail; if (d && d.status === 'bad_prompt' && d.data && d.data.prompt_suggestion) better = String(d.data.prompt_suggestion); } catch (_) { /* text */ }
+      if (better && !rewritten) { rewritten = true; body = Object.assign({}, body, { prompt: better.slice(0, 4100) }); continue; }
+      if ((r.status === 400 || r.status === 422) && /output_format/i.test(text) && !formatFallback) { formatFallback = true; format = 'mp3_44100_64'; continue; }
+      if ([429, 500, 502, 503, 504].includes(r.status) && !retried && left > 60000) { retried = true; await new Promise((ok) => setTimeout(ok, 3000)); continue; }
+      return { ok: false, status: r.status, error: elevenReason(r.status, text) };
+    }
+    const ct = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').split(';')[0];
+    if (/json|^text\//.test(ct)) return { ok: false, error: `ElevenLabs answered with ${ct}, not audio` };
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length) return { ok: false, error: 'ElevenLabs answered without audio' };
+    if (buf.length > MAX_AUDIO) return { ok: false, error: 'ElevenLabs made a track too large to send back here; ask for a shorter one' };
+    return { ok: true, audio: buf, mime: ct.startsWith('audio/') ? ct : 'audio/mpeg', model: body.model_id, songId: r.headers && r.headers.get && r.headers.get('song-id') };
+  }
+}
+
+/* ── Replicate ─────────────────────────────────────────────────────────── */
+
+async function rq(token, pathname, init, f, deadline) {
+  // Every request is bounded by what is left of the composition's deadline, so
+  // a stalled call fails over (or hands back its job) instead of hanging past it.
+  const left = Math.max(1000, (deadline || Date.now() + 30000) - Date.now() - 2000);
+  let r;
+  try {
+    r = await f(REPLICATE + pathname, Object.assign({}, init, {
+      headers: Object.assign({ Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, (init && init.headers) || {}),
+      signal: AbortSignal.timeout(left),
+    }));
+  } catch (e) {
+    const err = new Error(/timeout|abort/i.test(String(e && e.name)) ? 'Replicate did not answer in time' : 'Replicate could not be reached');
+    err.status = 0; throw err;
+  }
+  const text = await r.text().catch(() => '');
+  if (!r.ok) {
+    let msg = text; try { const j = JSON.parse(text); msg = j.detail || j.title || text; } catch (_) { /* text */ }
+    const e = new Error(`Replicate answered ${r.status}${msg ? ': ' + String(msg).replace(/\s+/g, ' ').slice(0, 200) : ''}`); e.status = r.status; throw e;
+  }
+  try { return JSON.parse(text); } catch (_) { throw new Error('Replicate answered with something that was not JSON'); }
+}
+
+async function createPrediction(token, model, input, { fetchImpl, version, waitS, deadline } = {}) {
+  if (!MODEL_RE.test(model)) throw new Error('Invalid model slug');
+  const f = fetchImpl || fetch;
+  const prefer = waitS ? { Prefer: 'wait=' + Math.max(1, Math.min(60, waitS)) } : {};
+  if (version) return rq(token, '/predictions', { method: 'POST', headers: prefer, body: JSON.stringify({ version, input }) }, f, deadline);
+  const [owner, name] = model.split('/');
+  return rq(token, `/models/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/predictions`, { method: 'POST', headers: prefer, body: JSON.stringify({ input }) }, f, deadline);
+}
+
+function getPrediction(token, id, { fetchImpl, deadline } = {}) {
+  return rq(token, '/predictions/' + encodeURIComponent(id), { method: 'GET' }, fetchImpl || fetch, deadline);
+}
+
+/** The audio address a finished prediction names: a string, the first of a list, or an object's audio field. */
+function outputUrl(out) {
+  const pick = (v) => (typeof v === 'string' && /^https:\/\//.test(v) ? v : null);
+  if (pick(out)) return out;
+  if (Array.isArray(out)) for (const v of out) { const u = outputUrl(v); if (u) return u; }
+  if (out && typeof out === 'object') for (const k of ['audio', 'audio_out', 'wav', 'mp3', 'output']) { const u = outputUrl(out[k]); if (u) return u; }
+  return null;
+}
+
+/** Only Replicate's own delivery hosts are fetched for a prediction's audio. */
+function deliveryHost(u) {
+  try { const x = new URL(u); return x.protocol === 'https:' && (x.hostname === 'replicate.delivery' || x.hostname.endsWith('.replicate.delivery')) ? x : null; } catch (_) { return null; }
+}
+
+async function fetchOutput(u, { fetchImpl, deadline } = {}) {
+  const x = deliveryHost(u);
+  if (!x) return { ok: false, error: 'Replicate named an audio address outside its own delivery host' };
+  const r = await (fetchImpl || fetch)(`https://${x.hostname}${x.pathname}${x.search}`, { redirect: 'error', signal: AbortSignal.timeout(Math.max(1000, Math.min(30000, (deadline || Date.now() + 30000) - Date.now() - 2000))) }).catch(() => null);
+  if (!r || !r.ok) return { ok: false, error: 'the finished track could not be read from Replicate' };
+  const type = String((r.headers && r.headers.get && r.headers.get('content-type')) || '').split(';')[0] || (/\.wav$/i.test(x.pathname) ? 'audio/wav' : 'audio/mpeg');
   const buf = Buffer.from(await r.arrayBuffer());
-  return { ok: true, audio: buf, mime: 'audio/mpeg', model: 'elevenlabs', songId: r.headers && r.headers.get && r.headers.get('song-id') };
+  return { ok: true, audio: buf, mime: /^audio\//.test(type) ? type : (/\.wav$/i.test(x.pathname) ? 'audio/wav' : 'audio/mpeg'), url: u };
+}
+
+/**
+ * One Replicate track: ACE-Step sings the lyrics; MusicGen (stable-audio-open
+ * behind it) plays an instrumental. Waited for inside the request while the
+ * deadline allows; a prediction still running comes back as `pending`.
+ */
+async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = {}) {
+  const f = fetchImpl || fetch;
+  const seconds = Math.round(Number(spec.seconds) || 30);
+  const parts = partsOf(spec.prompt);
+  const sing = spec.instrumental === false && !!parts.lyrics;
+  const tries = sing
+    ? [[VOCAL_MODEL, { tags: parts.tags, lyrics: parts.lyrics, duration: Math.min(240, Math.max(5, seconds)) }]]
+    : [];
+  tries.push([INSTR_MODEL, { prompt: String(spec.prompt).slice(0, 1500), duration: Math.min(60, Math.max(5, seconds)), model_version: process.env.MUSIC_INSTRUMENTAL_VERSION || 'stereo-large', output_format: 'mp3', normalization_strategy: 'loudness' }]);
+  tries.push([STABLE_AUDIO, { prompt: String(spec.prompt).slice(0, 1500), seconds_total: Math.min(47, Math.max(5, seconds)) }, STABLE_AUDIO_VERSION]);
+  const errors = [];
+  for (const [model, input, version] of tries) {
+    let p;
+    try {
+      p = await createPrediction(token, model, input, { fetchImpl: f, version, deadline, waitS: Math.min(55, Math.floor(((deadline || Date.now() + 90000) - Date.now()) / 1000) - 20) });
+    } catch (e) {
+      errors.push(model + ': ' + (e && e.message || e));
+      if (e && (e.status === 401 || e.status === 402 || e.status === 429)) break; // account-wide: the next model meets it too
+      continue;
+    }
+    const meta = { model, sung: sing && model === VOCAL_MODEL ? parts.lyrics : '', vocal_fallback: sing && model !== VOCAL_MODEL };
+    while (p && (p.status === 'starting' || p.status === 'processing')) {
+      if ((deadline || 0) - Date.now() < 12000) {
+        const j = jobId(src || 'platform', p.id, owner);
+        if (!j) { errors.push(model + ': still rendering, and this deployment has no private secret to hand the track back as a job (set SUPABASE_JWT_SECRET)'); p = null; break; }
+        return Object.assign({ ok: true, pending: true, job: j }, meta);
+      }
+      await new Promise((ok) => setTimeout(ok, 2500));
+      const id = p.id;
+      try { p = await getPrediction(token, id, { fetchImpl: f, deadline }); } catch (e) {
+        // A poll that stalled: the prediction is still Replicate's to finish, so hand it back as a job.
+        const j = jobId(src || 'platform', id, owner);
+        if (j && e.status === 0) return Object.assign({ ok: true, pending: true, job: j }, meta);
+        errors.push(model + ': ' + e.message); p = null;
+      }
+    }
+    if (p && p.status === 'succeeded') {
+      const url = outputUrl(p.output);
+      if (!url) { errors.push(model + ': finished without an audio file'); continue; }
+      const out = await fetchOutput(url, { fetchImpl: f, deadline });
+      if (out.ok && out.audio.length <= MAX_AUDIO) return Object.assign({ ok: true }, out, meta);
+      const j = out.ok ? jobId(src || 'platform', p.id, owner) : null;
+      if (j) return Object.assign({ ok: true, pending: true, job: j }, meta); // too large to send inline: streamed by music-job
+      if (out.ok) { errors.push(model + ': the track is too large to send back here and no job could be signed'); continue; }
+      errors.push(model + ': ' + out.error); continue;
+    }
+    if (p) errors.push(model + ': ' + (p.error ? String(p.error).slice(0, 200) : 'the model ' + p.status));
+  }
+  return { ok: false, error: 'Replicate made no track (' + errors.join('; ') + ')' };
 }
 
 /** A product photo as Lyria's image input; only a public address, bounded. */
@@ -130,6 +327,15 @@ async function ownGemini() {
     if (k && k.gemini_oauth && k.gemini_oauth.access_token) return { bearer: k.gemini_oauth.access_token, project: k.gemini_oauth.project || '' };
   } catch (_) { /* no workspace */ }
   return null;
+}
+
+/** The workspace's own music keys (media connections): { elevenlabs, replicate }. */
+async function ownMediaKeys() {
+  try {
+    const m = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
+    const k = (n) => (m && m[n] && m[n].api_key ? String(m[n].api_key) : '');
+    return { elevenlabs: k('elevenlabs'), replicate: k('replicate') };
+  } catch (_) { return {}; }
 }
 
 function note(kind, info) {
@@ -167,21 +373,64 @@ async function compose(spec, opts = {}) {
     }
     refusals.push('The platform\'s Gemini key: ' + r.error);
   }
-  const eleven = clean(process.env.ELEVENLABS_API_KEY);
-  if (!opts.freeGeneration) {
-    if (!eleven) {
-      if (!own && !platformKey) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or set GEMINI_API_KEY or ELEVENLABS_API_KEY on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
-      return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
+  const deadline = opts.deadline || (Date.now() + 100000);
+  const media = opts.ownKeys !== undefined ? (opts.ownKeys || {}) : await ownMediaKeys();
+  const sources = [];
+  const add = (src, kind, key) => { if (key) sources.push({ src, kind, key }); };
+  add('own', 'elevenlabs', media.elevenlabs);
+  add('own', 'replicate', media.replicate);
+  add('platform', 'elevenlabs', clean(process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || process.env.XI_API_KEY));
+  add('platform', 'replicate', clean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY));
+  const LABEL = { elevenlabs: 'ElevenLabs', replicate: 'Replicate' };
+  for (const s of sources) {
+    if (deadline - Date.now() < 15000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
+    const own = s.src === 'own';
+    let r;
+    if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline });
+    else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline, src: s.src, owner: opts.owner });
+    if (r.ok) {
+      note('ok', { own, kind: 'audio', provider: s.kind, model: r.model });
+      const said = r.vocal_fallback ? ' The singing model did not answer, so this one is instrumental.' : '';
+      const base = { ok: true, provider: s.kind, model: r.model, quality: 'studio', own, sung: r.sung || '', refusals, image: false,
+        message: (refusals.length ? refusals.join(' ') : '') + said };
+      if (r.pending) return Object.assign(base, { pending: true, job: r.job });
+      return Object.assign(base, { audio: r.audio, mime: r.mime, songId: r.songId });
     }
-    const r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, eleven, opts);
-    if (r.ok) return { ok: true, audio: r.audio, mime: r.mime, provider: 'elevenlabs', model: r.model, songId: r.songId, quality: 'studio', refusals };
-    return { ok: false, status: 502, error: 'music_provider_refused', message: r.error, refusals };
+    refusals.push((own ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
+  }
+  if (!opts.freeGeneration) {
+    if (!own && !platformKey && !sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
+    return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
   const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true });
   return {
     ok: true, audio: Buffer.from(out.bytes), mime: 'audio/wav', provider: 'code-synth', model: 'music-synth', quality: 'sketch', refusals,
-    message: 'This is a code-made instrumental sketch, not a produced track.' + (refusals.length ? ' ' + refusals.join(' ') : ' Connect your own Gemini key on AI Models to compose it with Lyria, Google\'s music model.'),
+    message: 'This is a code-made instrumental sketch, not a produced track.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
   };
 }
 
-module.exports = { compose, callLyria, readLyria, lyriaRequest, modelFor, refusal, INTERACTIONS, LYRIA_CLIP, LYRIA_SONG };
+/**
+ * A Replicate job handed back by compose: its state, and once it has
+ * finished, the track itself (read from Replicate's delivery host only).
+ * The token is the one that started it: the workspace's own, or the platform's.
+ */
+async function job(id, opts = {}) {
+  const m = JOB_RE.exec(String(id || ''));
+  if (!m) return { ok: false, status: 400, error: 'job_invalid', message: 'That is not a music job this app started.' };
+  if (!jobKey()) return { ok: false, status: 503, error: 'job_unsigned', message: 'This deployment has no private secret to check music jobs with.' };
+  const want = Buffer.from(jobSig(m[1], m[2], opts.owner)), got = Buffer.from(m[3]);
+  if (want.length !== got.length || !require('crypto').timingSafeEqual(want, got)) return { ok: false, status: 404, error: 'job_not_yours', message: 'That track was started by another account.' };
+  let token = '';
+  if (m[1] === 'own') token = (opts.ownKeys !== undefined ? (opts.ownKeys || {}) : await ownMediaKeys()).replicate || '';
+  else token = clean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY);
+  if (!token) return { ok: false, status: 409, error: 'job_key_gone', message: 'The Replicate key that started this track is no longer connected.' };
+  let p;
+  try { p = await getPrediction(token, m[2], { fetchImpl: opts.fetchImpl }); } catch (e) { return { ok: false, status: 502, error: 'job_unreadable', message: String(e && e.message || e) }; }
+  if (p.status === 'starting' || p.status === 'processing') return { ok: true, pending: true, status: p.status };
+  if (p.status !== 'succeeded') return { ok: false, status: 502, error: 'job_failed', message: 'Replicate did not finish the track: ' + String(p.error || p.status).slice(0, 200) };
+  const url = outputUrl(p.output);
+  if (!url || !deliveryHost(url)) return { ok: false, status: 502, error: 'job_no_audio', message: 'Replicate finished without an audio file.' };
+  return { ok: true, done: true, url };
+}
+
+module.exports = { compose, job, jobId, callEleven, callReplicate, partsOf, outputUrl, deliveryHost, ELEVEN_MODEL, VOCAL_MODEL, INSTR_MODEL, callLyria, readLyria, lyriaRequest, modelFor, refusal, INTERACTIONS, LYRIA_CLIP, LYRIA_SONG };
