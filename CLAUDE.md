@@ -25,7 +25,7 @@ Rendered a Lenskart-shaped build (no industry, claims or legal sender, as produc
 - **/brain preview** grouped by kind (Mailers / Landing pages / Ads / Messages / Why / Data, with counts, plus All),
   one kind at a time, items in columns. Tests that measure every asset press All.
 - `onboarding` step-1 list keeps an open delete panel and its typed text across a redraw (CI race).
-- **Long-form landing page** (the operator, with VAHDAM's landing pages + reusable-section library: "implement it for any
+- **Long-form landing page** (the operator, with a tea brand's landing pages + reusable-section library: "implement it for any
   brand"): offer bar (a stated offer, the shipping promise) → hero (button, trust pills) → numbered reasons with the
   product's own photos → the details (size, servings, type, the store's description) → a buy box (price against the
   compare-at with the saving, per serving from stated servings, pack line, CTA, service checklist) → other products →
@@ -64,7 +64,7 @@ problem/mechanism story the record does not state, and FTC disclosure) and quiz.
 `tests/landing-page-structure.spec.js`.
 
 ## ⭐ A review mail rates in one tap, and every rater is offered the public review (2026-10-24)
-From VAHDAM's "star rating widget with redirection logic" sample, WITHOUT its gating (1-3 stars kept private, 4-5
+From a tea brand's "star rating widget with redirection logic" sample, WITHOUT its gating (1-3 stars kept private, 4-5
 sent to Trustpilot): review gating is prohibited by the FTC's 16 CFR 465 (review suppression), Trustpilot and Google.
 `review-recovery.reviewMailerHtml` shows five star links (when `selfBaseUrl()` and the brand's workspace uuid exist,
 else its one button) to `/review` = `public-config.js?action=review-page` (`api/_shared/review-feedback.js`, still

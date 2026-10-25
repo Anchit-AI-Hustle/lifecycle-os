@@ -1,4 +1,4 @@
-// The long-form landing page (2026-10-24). The operator, with VAHDAM's own
+// The long-form landing page (2026-10-24). The operator, with a tea brand's own
 // landing pages and reusable-section library: "ensure proper well thought of
 // structure of landing pages ... implement it for any brand". The page follows
 // that structure - offer bar, hero, reasons, details, a buy box against the
@@ -19,7 +19,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'FREE_GENERATION'];
 const CLAIMS = ['Free shipping across India', '30-day easy returns', 'Single-estate teas', 'Packed within days of picking'];
-const ABOUT = 'Leafline sources single-estate teas directly from family gardens in Darjeeling and Assam and packs them within days of picking.';
+const ABOUT = 'Leafline sources single-estate teas directly from family gardens in the hills and packs them within days of picking.';
 const RICH = {
   id: 'device:leafline', slug: 'leafline', name: 'Leafline Tea', website: 'https://www.leafline.example', description: ABOUT, claims: CLAIMS,
   palette: { primary: '#1F4A33', accent: '#C9A227', ink: '#1A1A1A', surface: '#FFFFFF' },
@@ -49,7 +49,7 @@ const count = (hay, needle) => String(hay).split(needle).length - 1;
 const PHOTO = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"><rect width="900" height="900" fill="#9b8"/></svg>';
 
 test('a brand with stated facts gets every section those facts fill, each claim once, nothing invented', async ({ page }) => {
-  const c = await build(slot(RICH, P('Darjeeling First Flush Black Tea', 1, 759, { compare_at: 999, servings: 50, unit_spec: '100 grams' })));
+  const c = await build(slot(RICH, P('Highland First Flush Black Tea', 1, 759, { compare_at: 999, servings: 50, unit_spec: '100 grams' })));
   const a = c.assets.landing_pages.find((l) => l.variant === 'A');
   const html = a.html; const t = textOf(html);
   expect(html, 'offer bar').toMatch(/class="annc">Free shipping across India</);
@@ -76,7 +76,7 @@ test('a brand with stated facts gets every section those facts fill, each claim 
 
 test('a bare brand gets no empty sections: no offer bar, no details, no about, no checklist', async () => {
   const bare = Object.assign({}, RICH, { claims: [], description: '' });
-  const c = await build(slot(bare, P('Darjeeling First Flush Black Tea', 1, 759)));
+  const c = await build(slot(bare, P('Highland First Flush Black Tea', 1, 759)));
   const html = c.assets.landing_pages.find((l) => l.variant === 'A').html;
   expect(html).not.toMatch(/class="annc"|class="sec details"|class="sec about"|class="chk"|class="off"/);
   // The buy box still carries what the store states: its price.
@@ -92,7 +92,7 @@ test('a bare brand gets no empty sections: no offer bar, no details, no about, n
 test('a lapsed cohort gets a listicle built only from the brand\'s own reasons; a warm one does not', async ({ page }) => {
   const REASONS = ['Single-estate teas', 'Packed within days of picking', 'Sourced directly from family gardens'];
   const brand = Object.assign({}, RICH, { claims: ['Free shipping across India'].concat(REASONS) });
-  const lapsed = await build(slot(brand, P('Darjeeling First Flush Black Tea', 1, 759)));
+  const lapsed = await build(slot(brand, P('Highland First Flush Black Tea', 1, 759)));
   const b = lapsed.assets.landing_pages.find((l) => l.variant === 'B');
   expect(b.format).toBe('listicle');
   const t = textOf(b.html);
@@ -107,10 +107,10 @@ test('a lapsed cohort gets a listicle built only from the brand\'s own reasons; 
   // Variant A stays the direct offer.
   expect(lapsed.assets.landing_pages.find((l) => l.variant === 'A').format).toBe('direct-offer');
   // A warm cohort: no listicle.
-  const warm = await build(Object.assign(slot(brand, P('Darjeeling First Flush Black Tea', 1, 759)), { objective: 'premium bundle expansion', cohort: { name: 'Champions', size: null, estimated: true } }));
+  const warm = await build(Object.assign(slot(brand, P('Highland First Flush Black Tea', 1, 759)), { objective: 'premium bundle expansion', cohort: { name: 'Champions', size: null, estimated: true } }));
   expect(warm.assets.landing_pages.find((l) => l.variant === 'B').format).not.toBe('listicle');
   // Two stated reasons are not padded to three.
-  const thin = await build(slot(Object.assign({}, brand, { claims: ['Free shipping across India', REASONS[0], REASONS[1]] }), P('Darjeeling First Flush Black Tea', 1, 759)));
+  const thin = await build(slot(Object.assign({}, brand, { claims: ['Free shipping across India', REASONS[0], REASONS[1]] }), P('Highland First Flush Black Tea', 1, 759)));
   expect(thin.assets.landing_pages.find((l) => l.variant === 'B').format).not.toBe('listicle');
   for (const [w, h] of [[1280, 900], [390, 844]]) {
     await page.setViewportSize({ width: w, height: h });

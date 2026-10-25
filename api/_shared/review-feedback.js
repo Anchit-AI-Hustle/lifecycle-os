@@ -3,7 +3,7 @@
  * review-feedback.js - one-tap star rating from a mail, the brand's own
  * feedback page, and its thank-you page (2026-10-24).
  * ---------------------------------------------------------------------------
- * The operator shared VAHDAM's "star rating widget with redirection logic"
+ * The operator shared a tea brand's "star rating widget with redirection logic"
  * mailer and its private-feedback / thank-you pages. The experience is built
  * here for any brand: five stars in the mail, each a link that opens this
  * brand's page with that rating already set; a line or two, what fell short,
