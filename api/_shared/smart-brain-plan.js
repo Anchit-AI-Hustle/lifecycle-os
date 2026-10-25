@@ -4134,11 +4134,50 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   let __target = '';
   try { __target = slotLinks(entry).pdp || ''; } catch (_) { __target = ''; }
   require('./marketing-team-server.js').applyToCampaign(campaign, entry, { target: __target });
+  // MUSIC (2026-10-25): the brief for this send's track, in the brand's own
+  // words, as long as its Story video (built above); composed on request.
+  attachMusic(campaign, entry, null);
   campaign.build_version = ASSET_BUILD_VERSION;
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.
   checkAssetContracts(campaign, entry);
   return campaign;
+}
+
+// MUSIC FOR THE SLOT (2026-10-25, the operator: "add music creation in the
+// smart brain"). brand-music.js writes the brief from the brand's own record:
+// a sale when the slot carries an offer, the hero product when it has one,
+// else the brand's anthem, as long as the Story video so the track scores it.
+// No model is called here and nothing is charged; the preview's Compose button
+// sends this brief to ?action=music-compose (Lyria first).
+function musicOfferText(o) {
+  if (!o || typeof o !== 'object') return '';
+  const said = String(o.headline || o.label || o.text || '').trim();
+  if (said) return said.slice(0, 80);
+  const pct = Number(o.pct);
+  if (Number.isFinite(pct) && pct > 0) return `${Math.round(pct)}% off${o.code ? ` with code ${String(o.code).slice(0, 24)}` : ''}`;
+  return '';
+}
+function attachMusic(campaign, entry, trace) {
+  try {
+    if (!campaign || !campaign.assets) return null;
+    const BM = require('./brand-music.js');
+    const brand = (entry && entry.brand) || {};
+    if (!brand.name) return null;
+    const hero = entry && entry.heroProduct && !entry.heroProduct.placeholder && !/^\[DATA REQUIRED/.test(String(entry.heroProduct.title || '')) ? entry.heroProduct : null;
+    const offer = musicOfferText(offerOf(entry));
+    const ad = (campaign.assets.ads || []).find((a) => a && a.creative && a.creative.story_brief);
+    const storySecs = ad && ad.creative.story_brief && Math.ceil(Number(ad.creative.story_brief.duration_s));
+    const seconds = Number.isFinite(storySecs) && storySecs > 0 ? Math.round(storySecs) : 30;
+    const p = BM.plan({ brand, purpose: offer ? 'sale' : (hero ? 'product' : 'anthem'), product: hero ? { title: hero.title } : null, offer, seconds, vocals: false });
+    const image = hero && /^https:\/\//i.test(String(hero.image || '')) ? String(hero.image) : '';
+    campaign.assets.music = Object.assign({}, p, { image_url: image, for: 'Story video and ads of this send' });
+    if (Array.isArray(trace)) trace.push({ agent: 'Music Director', role: 'brand track brief', ok: true, provider: 'code', output: { purpose: p.purpose, genre: p.genre, seconds: p.seconds } });
+    return campaign.assets.music;
+  } catch (e) {
+    console.warn('[smart-brain] music brief failed:', e && e.message);
+    return null;
+  }
 }
 
 // SMS, WhatsApp and push as finished assets (2026-10-23, messaging-assets.js).
@@ -5060,7 +5099,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }

@@ -119,3 +119,32 @@ test('Pollo is a workspace connection with no platform key, and a request with n
   expect(reg.fields.map((f) => f.key)).toEqual(['api_key']);
   expect(await wc.mediaKeysFor({ headers: {}, query: {}, body: {} })).toBeNull();
 });
+
+// Veo on the workspace's own Gemini connection (2026-10-25): the person's own
+// Google account makes the video, free generation or not, before any platform
+// rung; a refusal is said beside the code-rendered creative.
+test("a workspace's own Gemini connection runs Veo first: its key on the documented request, its job polled with it", async () => {
+  const VEO = 'https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning';
+  const saved = process.env.FREE_GENERATION; process.env.FREE_GENERATION = 'on';
+  const net = pollo((u) => {
+    if (u === VEO + '?key=own-gemini') return { body: { name: 'operations/op-1' } };
+    if (u === 'https://generativelanguage.googleapis.com/v1beta/operations/op-1?key=own-gemini') return { body: { name: 'operations/op-1', done: true, response: { generateVideoResponse: { generatedSamples: [{ video: { uri: 'https://files.example/v.mp4' } }] } } } };
+    return null;
+  });
+  const wc = require(WC);
+  const realOv = wc.llmOverridesForCurrentRequest;
+  wc.llmOverridesForCurrentRequest = async () => ({ keys: { gemini: 'own-gemini' } });
+  try {
+    const vc = load(null);
+    const out = await vc.generateVideo({ prompt: 'A slow push-in on a chocolate cake', duration_s: 8, aspect: '16:9', budget_ms: 30000 });
+    expect(out.provider).toBe('veo');
+    expect(out.own).toBe(true);
+    expect(out.status).toBe('completed');
+    expect(out.video_url).toBe('https://files.example/v.mp4');
+    expect(net.calls[0]).toMatchObject({ url: VEO + '?key=own-gemini', method: 'POST', body: { instances: [{ prompt: 'A slow push-in on a chocolate cake' }], parameters: { aspectRatio: '16:9' } } });
+  } finally {
+    wc.llmOverridesForCurrentRequest = realOv;
+    net.restore();
+    if (saved === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = saved;
+  }
+});

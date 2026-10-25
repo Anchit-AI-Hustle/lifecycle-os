@@ -247,15 +247,53 @@ function renderStoryAd(spec) {
     });
   }
   var t0 = performance.now(), paused = false, pausedAt = 0, recording = null;
+  // THE TRACK (2026-10-25): the brand's composed music, handed in by the page
+  // that composed it (window.setTrack). It plays from the start of every pass,
+  // pauses with the video, fades over the last 0.8 s, and is recorded into the
+  // saved file beside the canvas.
+  var track = null, actx = null, gain = null, dest = null;
+  function trackFrom(sec) { if (!track) return; try { track.currentTime = sec || 0; if (!paused) { var pr = track.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (_) {} }
+  function wireTrack() {
+    if (actx || !track) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = new AC(); var src = actx.createMediaElementSource(track); gain = actx.createGain();
+      dest = actx.createMediaStreamDestination(); src.connect(gain); gain.connect(actx.destination); gain.connect(dest);
+    } catch (_) { actx = null; }
+  }
+  window.setTrack = function (url, label) {
+    if (track) { try { track.pause(); } catch (_) {} }
+    track = null;
+    if (!url) { note.textContent = 'Music removed.'; return; }
+    track = new Audio(); track.src = url; track.preload = 'auto'; track.loop = false;
+    if (actx) { try { actx.close(); } catch (_) {} actx = null; gain = null; dest = null; }
+    wireTrack();
+    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0);
+    note.textContent = 'Music: ' + (label || 'the composed track') + '. It is saved into the video.';
+    document.documentElement.setAttribute('data-track', 'on');
+  };
+  // The page that composed the track sends its bytes (a sandboxed frame cannot
+  // read the parent's blob: address); an https address is taken as it is.
+  window.addEventListener('message', function (e) {
+    var d = e && e.data;
+    if (!d || d.type !== 'lifecycle-story-track') return;
+    if (d.blob && typeof Blob !== 'undefined' && d.blob instanceof Blob) window.setTrack(URL.createObjectURL(d.blob), d.label);
+    else if (typeof d.url === 'string' && d.url.indexOf('https://') === 0) window.setTrack(d.url, d.label);
+    else if (d.clear) window.setTrack('', '');
+  });
   function now() { return paused ? pausedAt : ((performance.now() - t0) / 1000); }
   function loop() {
     var t = now();
-    if (t >= D.total) { if (recording) { recording.stop(); recording = null; } t0 = performance.now(); t = 0; }
+    if (t >= D.total) { if (recording) { recording.stop(); recording = null; } t0 = performance.now(); t = 0; trackFrom(0); }
+    if (track && gain && actx) { var left = D.total - t; gain.gain.value = left < 0.8 ? Math.max(0, left / 0.8) : 1; }
     frame(t); requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
   var playBtn = document.getElementById('play');
-  function toggle() { if (paused) { t0 = performance.now() - pausedAt * 1000; paused = false; playBtn.textContent = 'Pause'; } else { pausedAt = now(); paused = true; playBtn.textContent = 'Play'; } }
+  function toggle() {
+    if (paused) { t0 = performance.now() - pausedAt * 1000; paused = false; playBtn.textContent = 'Pause'; if (track) { if (actx && actx.state === 'suspended') actx.resume(); trackFrom(pausedAt); } }
+    else { pausedAt = now(); paused = true; playBtn.textContent = 'Play'; if (track) { try { track.pause(); } catch (_) {} } }
+  }
   playBtn.onclick = toggle; cv.onclick = toggle;
   var cutBtn = document.getElementById('cut');
   if (cutBtn) cutBtn.onclick = function () {
@@ -264,15 +302,17 @@ function renderStoryAd(spec) {
     cutBtn.setAttribute('data-cut', toShort ? 'short' : 'full'); cutBtn.setAttribute('aria-pressed', toShort ? 'true' : 'false');
     cutBtn.textContent = toShort ? Math.round(ALL.cuts.full.total) + ' s cut' : Math.round(ALL.cuts.short.total) + ' s cut';
     note.textContent = Math.round(c.total) + ' seconds · ' + c.scenes.length + ' scenes';
-    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause';
+    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0);
   };
-  document.getElementById('restart').onclick = function () { t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; };
+  document.getElementById('restart').onclick = function () { t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0); };
   document.getElementById('save').onclick = function () {
     if (blocked.length) { note.textContent = 'This video cannot be saved here: ' + blocked.length + ' photo(s) come from a host that does not allow them to be recorded. Play it, or save the creative page instead.'; return; }
     if (!window.MediaRecorder || !cv.captureStream) { note.textContent = 'This browser cannot record video. Open the creative in Chrome, Edge, Firefox or Safari 14.1+.'; return; }
     var type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].filter(function (m) { return MediaRecorder.isTypeSupported(m); })[0] || '';
     var chunks = [], rec;
-    try { rec = new MediaRecorder(cv.captureStream(30), type ? { mimeType: type, videoBitsPerSecond: 6000000 } : undefined); }
+    var stream = cv.captureStream(30);
+    if (track) { wireTrack(); if (actx && actx.state === 'suspended') actx.resume(); if (dest) dest.stream.getAudioTracks().forEach(function (a) { stream.addTrack(a); }); }
+    try { rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6000000, audioBitsPerSecond: 192000 } : undefined); }
     catch (e) { note.textContent = 'Recording could not start: ' + (e && e.message || e); return; }
     rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
     rec.onstop = function () {
@@ -280,10 +320,10 @@ function renderStoryAd(spec) {
       var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || type || 'video/webm' }));
       a.download = (D.name || 'story').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '-story-' + Math.round(D.total) + 's.' + ext;
       document.body.appendChild(a); a.click(); a.remove();
-      note.textContent = 'Saved: ' + Math.round(D.total) + ' seconds, ' + ext.toUpperCase() + '.';
+      note.textContent = 'Saved: ' + Math.round(D.total) + ' seconds, ' + ext.toUpperCase() + (track ? ', with music' : '') + '.';
     };
-    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause';
-    note.textContent = 'Recording ' + Math.round(D.total) + ' seconds. Keep this tab open.';
+    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0);
+    note.textContent = 'Recording ' + Math.round(D.total) + ' seconds' + (track ? ' with music' : '') + '. Keep this tab open.';
     rec.start(250); recording = rec;
   };
 })();

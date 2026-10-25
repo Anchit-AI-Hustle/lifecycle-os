@@ -4,6 +4,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Brand music: Lyria first, for a product, a sale or the brand; scored into the Story video (2026-10-25)
+The operator: "integrate the music studio feature from the Third Eye Jarvis agent repo ... to create music for brands
+in particular ... particular products, particular sales, anything. Also add music creation in the smart brain", with a
+Gemini-made product video (Veo-style shots, ~-14 LUFS produced music) as the bar: "output needs to match this quality
+as on Gemini". Read The Third Eye (`frontend/src/lib/music`: four agents musicologist -> beat-smith + lyricist ->
+conductor, a genre knowledge base, structures per genre family, one rich model prompt; ElevenLabs -> Replicate -> HF ->
+code synth). Built here, brand-grounded and in code:
+- **`api/_shared/brand-music.js`** (UMD; root `/brand-music.js` byte-identical): `plan({brand, purpose, genre, mood,
+  seconds, vocals, language, product, offer, lyrics, market})`. Purposes product / sale / launch / jingle / anthem /
+  sonic_logo / ad_bed / reel_loop / film set the job, length, energy and ending; the genre is the operator's pick else
+  one read off the industry (`BY_INDUSTRY`); LYRICS only from the brand's own words (name, tagline, claims, the
+  product's display name, an offer only as the operator typed it), a banned phrase drops its line, no dashes; the
+  prompt names genre, tempo, instruments, production, structure and ends ruling out an artist's voice or song.
+- **`api/_shared/music-compose.js`**: Lyria through the Gemini API's Interactions endpoint (POST
+  `/v1beta/interactions` {model, input text + up to 10 images}, `steps[].content[]` audio base64 + sung text;
+  `lyria-3-clip-preview` <= 30 s, `lyria-3.5` beyond; no free tier: $0.04 / $0.08, read 2026-10-25). Order: the
+  WORKSPACE'S OWN Gemini connection (key, or Sign in with Google bearer + project; recorded as own, no credits) ->
+  the platform `GEMINI_API_KEY` (`LYRIA_PLATFORM=off` stops it) -> ElevenLabs when free generation is off -> the
+  code synth, labelled `sketch`. Every refusal is said. `?action=music-compose` answers the audio with
+  `X-Music-Provider / -Model / -Quality / -Sung / -Note`. The product photo goes to Lyria as image input
+  (`assertPublicUrl`, 3 MB, image types only).
+- **/music** (Music Studio): what it is for, a product from the brand's own catalogue, the offer in the operator's
+  words, genre, mood, length 5-180 s, vocals + language + editable lyrics, the brief; Generate here / Open in Suno.
+- **Smart Brain**: every build carries `campaign.assets.music` (sale when the slot has an offer, else the hero product,
+  else the anthem; as long as the Story video; hero photo as image input); /brain's preview has a 🎵 Music kind with
+  the editable brief and Compose; the composed track is posted to every Story video frame of the send
+  (`lifecycle-story-track` message, the Blob itself: a sandboxed frame cannot read the parent's blob: URL), which
+  plays it, fades the last 0.8 s and RECORDS it into "Save as video" (MediaStreamDestination track). `ASSET_BUILD_VERSION`
+  hashes brand-music.js.
+- Gated by `tests/brand-music.spec.js` (5 executed: planner, the Lyria request over a fake Interactions API, refusal
+  chain, buildCampaign, the Story video saved WITH an audio stream read by ffprobe; 3 mutations caught) and a Lyria
+  case in `router-brain`. Not built: Third Eye's LLM agents (the plan is code from the record), the daily music queue,
+  stored tracks (a track lives in the tab until downloaded).
+- **Veo on the workspace's own Gemini connection** (same day, "quality top-notch for all assets"): `video-core`
+  `ownGeminiAuth()` runs Veo 3.1 after an own Pollo key and before free generation / platform rungs (key as `?key=`,
+  or Sign in with Google's bearer + `x-goog-user-project`), recorded as own; a job's status is read with the same
+  credential, and a platform job falls back to the platform key on 403/404. Gated in `tests/pollo-video.spec.js`.
+
 ## ⭐ Pollo AI: a workspace's own key animates the product's own photo (2026-10-25)
 The operator, with Pollo's menus (URL to Video Ads, Photo to Video Ads, Product Video) and a key: "try to understand how
 pollo_ai creates these videos". Read docs.pollo.ai (2026-10-25): one key in `x-api-key`; POST
