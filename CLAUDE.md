@@ -19,6 +19,18 @@ recorded as the workspace's own answer (no app credits). A refusal is said besid
 (`provider_error`). Only Kling 2.5 Turbo's request was confirmed field by field, so no other Pollo model is offered.
 Not built: Pollo's agent/ad recipes (not in its public docs), the webhook (polling is used). Gated by
 `tests/pollo-video.spec.js` (6 executed over a fake Pollo API; the own-key-first rule mutation-checked).
+**What Pollo does, applied to our own free Story video** (the operator, after: "no credits left - understand how it
+creates videos is what I said"; pollo.ai answers automated reads with a bot challenge, so its method was read in
+independent walkthroughs: a product link or photo + an angle -> extracted title/description/images -> script variants ->
+a storyboard of opening / product showcase / closing impression -> one SHORT literal motion prompt per shot ("slow
+push-in", a pan, "a light sweep across a packshot"), ~5 s clips, calm motion -> several versions, 15 s examples). In
+`scripts/lib/story-ad.js`: every photographed shot gets ONE camera move from `MOVES` (push-in, pan right, pull-out, pan
+left, rise; eased, never the same twice in a row; the end card is still), each product shot a light sweep, and a SHORT
+cut (`SHORT_SECONDS` 15: hook, at most two products, end card; never a line the long cut lacks) beside the full one,
+switchable and saved on its own (`#cut`). `story_brief.scenes[].motion` / `cuts.short` carry each move in words a video
+model takes. `ASSET_BUILD_VERSION` now hashes story-ad.js and motion-ad.js (saved bundles kept the old video before).
+Not taken: avatars, voiceover, music (none is recordable from the browser canvas or free), script formats needing facts
+the record does not state (problem/solution, before/after). Gated in `tests/story-video-ad.spec.js` (moves mutation-checked).
 
 ## ⭐ Asset review: mailers, landing pages, Story video, a grouped preview (2026-10-24)
 The operator: "review each asset's creation logic and rate asset wise ... mailers and landing pages are atrocious",
