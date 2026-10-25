@@ -191,7 +191,7 @@ function buildPreamble(brand, mode, opt) {
   // Every mode that renders a real-looking scene carries the render rules; a
   // design mockup is a layout and keeps the studio quality line.
   const real = m !== 'design';
-  const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' }) : '';
+  const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' && !named, productOnly: !!named }) : '';
   return [head, subject.caution, style, palette, type, textPolicy, realism, NEVER, real ? REAL_QUALITY : QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
