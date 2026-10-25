@@ -49,6 +49,17 @@ the hero sub-copy, the Bestseller sub-copy no longer prints an explanation to th
 own progress line, /brain has a jump bar and a back-to-top button, and Platform Connections is its own rail item beside
 AI Models & Routing. Gated in `catalog-identity-generation` (mutation-checked) and `cta-activity`.
 
+## ⭐ A review mail rates in one tap, and every rater is offered the public review (2026-10-24)
+From VAHDAM's "star rating widget with redirection logic" sample, WITHOUT its gating (1-3 stars kept private, 4-5
+sent to Trustpilot): review gating is prohibited by the FTC's 16 CFR 465 (review suppression), Trustpilot and Google.
+`review-recovery.reviewMailerHtml` shows five star links (when `selfBaseUrl()` and the brand's workspace uuid exist,
+else its one button) to `/review` = `public-config.js?action=review-page` (`api/_shared/review-feedback.js`, still
+12/12): the brand's tokens, the rating set and changeable, a line, what fell short, order again, follow-up; POST
+`?action=review-feedback` (rate-limited per instance) stores through the service role into `brand_review_feedback`
+(migration `20261024230000`; members read via `is_brand_member`; no email or phone stored, only the order ref and a
+hashed address) and 303s to the thank-you page. The public review link (`brand_data.review_url`, else the product's
+own page `#reviews`) is on BOTH pages at EVERY rating. Gated by `tests/review-feedback.spec.js`.
+
 ## ⭐ Gemini: Sign in with Google; a key saves with nothing set on the host (2026-10-24)
 The operator: "signin must completely integrate the signin to use the model - not just open key creation page",
 "google sign in or whatever signin mode that model accepts", and "if you save to my vercel, users will raise problems -

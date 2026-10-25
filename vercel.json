@@ -802,6 +802,10 @@
       "destination": "/landing-pages/final/knickgasm-grail-drop-3d.html"
     },
     {
+      "source": "/review",
+      "destination": "/api/public-config?action=review-page"
+    },
+    {
       "source": "/lp/:id",
       "destination": "/api/calendar?action=lp&id=:id"
     },

@@ -106,6 +106,15 @@ module.exports = async function handler(req, res) {
     catch (_) { return res.status(500).json({ ok: false, error: 'payments_router_failed' }); }
   }
 
+  // ── A customer's star rating from a review mail (2026-10-24) ─────────────
+  // Public: the brand's feedback page (/review) and its form post. Every rater
+  // is offered the brand's public review link whatever they rate (no review
+  // gating; see _shared/review-feedback.js). Written by the service role only.
+  if (req.query && (req.query.action === 'review-page' || req.query.action === 'review-feedback')) {
+    try { return await require('./_shared/review-feedback.js').handle(req, res); }
+    catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'review_router_failed', message: 'Your feedback could not be processed just now. Please try again.' }); }
+  }
+
   // ── Credits (wallet, prices, usage, recharge) ────────────────────────────
   if (req.query && req.query.action === 'credits') {
     res.setHeader('Cache-Control', 'no-store');

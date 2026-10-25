@@ -100,6 +100,25 @@ function reviewMailerHtml(product, market, brand) {
   try { ON_P = require('./brand-workspace-core.js').textOn(P, _p.surface, _p.ink); } catch (_) { ON_P = '#ffffff'; }
   const title = product.title || product.n || ('your last ' + ((brand && brand.name) || 'order'));
   const cta = reviewCtaUrl(product, market, brand);
+  // One tap rates (2026-10-24): five stars, each opening this brand's own
+  // feedback page with that rating set. The public review link is offered to
+  // EVERY rater, here and on both pages (no review gating). With no public
+  // address for this deployment or no workspace id, the single button stays.
+  let ratingBlock = `<tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:${P};color:${ON_P};text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>`;
+  try {
+    const RF = require('./review-feedback.js');
+    const base = require('./self-url.js').selfBaseUrl();
+    const ws = brand && (brand.workspace_id || brand.id);
+    const pid = String(product.sku || product.handle || product.h || title).slice(0, 160);
+    const links = [1, 2, 3, 4, 5].map((n) => RF.starLink(base, ws, n, { product: pid }));
+    if (links.every(Boolean)) {
+      let starInk = P;
+      try { starInk = require('./brand-workspace-core.js').readableAsText(P, '#ffffff', 4.5); } catch (_) { starInk = P; }
+      ratingBlock = `<tr><td style="padding:0 24px" align="center"><p style="margin:0 0 8px;font-family:${BODY};font-size:15px;color:#1b1612;font-weight:600">Tap a star to rate it</p>${RF.starRowHtml(links, { color: starInk, font: BODY })}</td></tr>
+  <tr><td style="height:12px"></td></tr>
+  <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#4a4a4a">Or <a href="${esc(cta)}" style="color:${starInk}">post a public review</a>, whatever you rate.</p></td></tr>`;
+    }
+  } catch (_) { /* keep the single button */ }
   let img = null;
   // This brand's own approved photo, or none. The shipped catalogue belongs to
   // tenant zero, so another brand renders image-free rather than borrowing one.
@@ -119,7 +138,7 @@ function reviewMailerHtml(product, market, brand) {
   <tr><td style="height:26px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#FFFFFF;border:2px solid ${P};border-radius:14px;padding:16px 22px;text-align:center"><p style="margin:0 0 6px;font-family:${BODY};font-size:11px;color:${P};font-weight:700;text-transform:uppercase;letter-spacing:2px">Three small prompts</p><p style="margin:0;font-family:${BODY};font-size:15px;color:#1b1612;line-height:1.6">The headline first · the detail that stuck · whether you would choose it again.</p></td></tr></table></td></tr>
   <tr><td style="height:26px"></td></tr>
-  <tr><td style="padding:0 24px" align="center"><a href="${esc(cta)}" style="display:inline-block;background:${P};color:${ON_P};text-decoration:none;padding:15px 38px;border-radius:8px;font-family:${BODY};font-size:16px;font-weight:600">Leave a rating</a></td></tr>
+  ${ratingBlock}
   <tr><td style="height:12px"></td></tr>
   <tr><td style="padding:0 24px" align="center"><p style="margin:0;font-family:${BODY};font-size:13px;color:#9ca3af">Rating plus a line · done before your next order</p></td></tr>
   <tr><td style="height:28px"></td></tr>
