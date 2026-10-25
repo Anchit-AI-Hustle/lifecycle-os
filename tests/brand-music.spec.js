@@ -11,12 +11,11 @@
 // (music-compose.js) over a fetch that answers exactly the documented Lyria
 // Interactions request and throws on anything else, Smart Brain's shipped
 // buildCampaign, and the Story video in Chromium: a composed track handed in by
-// message plays with it and is RECORDED into the saved file (ffprobe reads an
-// audio stream in it).
+// message plays with it and is RECORDED into the saved file (its container
+// lists an audio track).
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
-const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const BM = require(path.join(ROOT, 'api', '_shared', 'brand-music.js'));
@@ -239,7 +238,10 @@ test('the Story video takes the composed track by message, plays it and records 
   await expect(page.locator('#note')).toContainText('with music');
   const d = await dl;
   const file = await d.path();
-  const probe = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', file]).toString();
-  expect(probe, 'the saved video has no sound').toMatch(/audio/);
-  expect(probe).toMatch(/video/);
+  // The container's own track list, read from its bytes (no ffprobe on the CI
+  // runner): a WebM names its codecs (A_OPUS, V_VP9), an MP4 names each track's
+  // handler in its hdlr box (version/flags and pre_defined, then 'soun' or 'vide').
+  const bytes = fs.readFileSync(file).toString('latin1');
+  expect(/A_OPUS|A_VORBIS|hdlr[\s\S]{8}soun/.test(bytes), 'the saved video has no sound').toBe(true);
+  expect(/V_VP8|V_VP9|V_AV1|hdlr[\s\S]{8}vide/.test(bytes), 'the saved file has no video').toBe(true);
 });
