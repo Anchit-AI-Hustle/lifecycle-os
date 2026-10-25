@@ -838,7 +838,9 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
         guard.route((u) => u === 'https://api.replicate.com/v1/predictions/p2defgh', () => H.reply(200, JSON.stringify({ id: 'p2defgh', status: 'processing' }), { 'content-type': 'application/json' }));
       },
       expect: (r) => {
-        expect(r.status).toBe(202); expect(r.out).toMatchObject({ ok: true, pending: true, job: 'platform:p2defgh', provider: 'replicate', model: 'meta/musicgen' });
+        expect(r.status).toBe(202); expect(r.out).toMatchObject({ ok: true, pending: true, provider: 'replicate', model: 'meta/musicgen' });
+        // The job names the signed-in person it was made for (Codex, #358).
+        expect(r.out.job).toBe(require(require('path').join(H.ROOT, 'api', '_shared', 'music-compose.js')).jobId('platform', 'p2defgh', H.USER_ID));
         expect(JSON.parse(guard.calls.find((x) => /musicgen/.test(x.url)).body).input).toMatchObject({ duration: 30, model_version: 'stereo-large', output_format: 'mp3' });
       } },
     { name: 'a provider refusal is a sentence, not audio', env: Object.assign({}, NO_MUSIC_KEYS, { ELEVENLABS_API_KEY: 'eleven-harness', FREE_GENERATION: 'off' }), run: {},
@@ -846,7 +848,8 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
       expect: (r) => { expect(r.status).toBe(502); expect(r.out.message).toMatch(/422/); } },
   ],
 });
-add('music-job', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { id: 'platform:p2defgh' } },
+const MJOB = () => require(require('path').join(H.ROOT, 'api', '_shared', 'music-compose.js')).jobId('platform', 'p2defgh', H.USER_ID);
+add('music-job', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { get id() { return MJOB(); } } },
   env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),
   // The job compose handed back: its finished audio, streamed from Replicate's delivery host.
   stubs: () => {
@@ -856,6 +859,10 @@ add('music-job', { gate: 'user', browser: 'refuse', run: { method: 'GET', query:
   },
   expect: (r) => { expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg'); expect(r.headers['x-music-provider']).toBe('replicate'); expect(r.bytes.toString()).toBe('ID3bed'); },
   cases: [
+    { name: 'a job made for another account is refused before Replicate (Codex, #358)', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),
+      run: { method: 'GET', query: { id: require(require('path').join(H.ROOT, 'api', '_shared', 'music-compose.js')).jobId('platform', 'p2defgh', 'someone_else') } },
+      stubs: noOwnMusic,
+      expect: (r) => { expect(r.status).toBe(404); expect(r.out.error).toBe('job_not_yours'); expect(guard.calls.filter((c) => /replicate/.test(c.url))).toEqual([]); } },
     { name: 'still rendering: 202 and its state, no audio', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),
       stubs: () => { noOwnMusic(); guard.route((u) => u === 'https://api.replicate.com/v1/predictions/p2defgh', () => H.reply(200, JSON.stringify({ id: 'p2defgh', status: 'processing' }), { 'content-type': 'application/json' })); },
       expect: (r) => { expect(r.status).toBe(202); expect(r.out).toEqual({ ok: true, pending: true, status: 'processing' }); } },

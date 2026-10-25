@@ -1370,13 +1370,18 @@ module.exports = async function handler(req, res) {
 
       case 'music-compose': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+        // Whose track a Replicate job is: the signed-in caller (the meter
+        // already verified them; requireUser is memoised per request).
+        const musicOwner = async () => {
+          try { const a = __auth && __auth.ok ? __auth : await require('./_shared/brand-workspace-core.js').requireUser(req); return (a && a.ok && a.user_id) || ''; } catch (_) { return ''; }
+        };
         // Lyria (Gemini's music model) first: the workspace's own Gemini
         // connection, then the platform's key; ElevenLabs with free generation
         // off; else a code-made sketch, labelled as one (music-compose.js).
         const mc = await require('./_shared/music-compose.js').compose({
           prompt: b.prompt, seconds: b.seconds, instrumental: b.instrumental !== false,
           image_url: typeof b.image_url === 'string' ? b.image_url.slice(0, 1000) : '',
-        }, { freeGeneration: freeGenerationOn(), deadline: Date.now() + (Number(process.env.MUSIC_WAIT_MS) || 100000) });
+        }, { freeGeneration: freeGenerationOn(), owner: await musicOwner(), deadline: Date.now() + (Number(process.env.MUSIC_WAIT_MS) || 100000) });
         if (!mc.ok) return res.status(mc.status || 502).json({ ok: false, error: mc.error, message: mc.message, refusals: mc.refusals || [] });
         // A Replicate track still rendering: the page polls ?action=music-job.
         if (mc.pending) return res.status(202).json({ ok: true, pending: true, job: mc.job, provider: mc.provider, model: mc.model, quality: mc.quality, sung: mc.sung || '', message: mc.message || '' });
@@ -1400,7 +1405,7 @@ module.exports = async function handler(req, res) {
         const auth = __auth && __auth.ok ? __auth : await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
         const MC = require('./_shared/music-compose.js');
-        const j = await MC.job(String((req.query && req.query.id) || ''));
+        const j = await MC.job(String((req.query && req.query.id) || ''), { owner: auth.user_id || '' });
         if (!j.ok) return res.status(j.status || 502).json({ ok: false, error: j.error, message: j.message });
         if (j.pending) return res.status(202).json({ ok: true, pending: true, status: j.status });
         const x = MC.deliveryHost(j.url);

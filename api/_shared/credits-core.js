@@ -725,7 +725,11 @@ async function workspaceHasOwnModels() {
   try {
     const ov = await require('./workspace-connections-core.js').llmOverridesForCurrentRequest();
     const configured = Array.isArray(ov && ov.configured) ? ov.configured : Object.keys((ov && ov.keys) || {});
-    return !!(ov && configured.length);
+    if (ov && configured.length) return true;
+    // A workspace's own MEDIA keys (Pollo, ElevenLabs, Replicate, Hugging Face)
+    // are its own models too: a music or video run they make costs nothing.
+    const media = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
+    return !!(media && Object.keys(media).length);
   } catch (_) { return false; }
 }
 
