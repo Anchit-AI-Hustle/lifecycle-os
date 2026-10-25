@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A model key is the person's: it follows them to every brand they own (2026-10-25)
+The operator, on /ai-models for a newly added brand (Nik Bakers, every card "Not connected"): "ensure that once a user
+syncs a model it stays synced and signed in until user removes or unlinks". Keys were saved per brand workspace, so a new
+or switched brand had none. Now (`workspace-connections-core.js` `personalRows` / `effectiveConnections` /
+`effectiveRow`): an AI or media connection (`PERSONAL_CATEGORIES` ai, media; never a platform connection like Klaviyo
+or Meta) saved on ANY brand the caller OWNS is used and listed on every other brand they own (`shared_from`, the page
+says "Connected on your account ... until you remove it"); this brand's own key wins; read as the caller (RLS), so no
+one else's key follows anyone. Save on a brand that shows it updates it where it is saved (never a keyless row that would
+hide it); Remove there is "Unlink from my account" and deletes it where it is saved. A brand with no model order uses the
+person's most recently set one. Nothing deletes a connection except the person (a refused Google refresh leaves it
+saved). Gated in `tests/workspace-connections.spec.js` (section 5, mutation-checked).
+
 ## ⭐ Music composes with every model a key reaches, as The Third Eye does (2026-10-25)
 The operator: "The music creation is not working correctly. Ensure it works as perfectly as in Third Eye". Production had
 `FREE_GENERATION` on (unset = on) and only `GEMINI_API_KEY` for music: free generation SKIPPED ElevenLabs outright and a

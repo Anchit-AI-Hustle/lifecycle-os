@@ -495,6 +495,8 @@ function sanitize(row) {
     last_check_ok: row.last_check_ok == null ? null : !!row.last_check_ok,
     last_check_note: row.last_check_note || '',
     updated_at: row.updated_at || null,
+    // Saved on another brand this person owns, and used here too (personalRows).
+    shared_from: row.__from ? { workspace_id: row.__from.workspace_id, name: row.__from.name || '' } : null,
   };
 }
 
@@ -508,6 +510,67 @@ async function listConnections(auth, workspaceId) {
     `workspace_connections?select=${SELECT_COLS}&workspace_id=eq.${encodeURIComponent(workspaceId)}&order=category.asc,provider.asc`,
   );
   return Array.isArray(rows) ? rows : [];
+}
+
+/*
+ * A model key is the PERSON'S, not one brand's (the operator, 2026-10-25: "once a
+ * user syncs a model it stays synced and signed in until user removes or
+ * unlinks"). AI and media connections saved on any brand the caller OWNS are
+ * offered on every other brand they own, so adding or switching brands never
+ * drops a model they connected. A key saved on THIS brand wins over one from
+ * another; the person removes it (here or where it was saved) to unlink it.
+ * Read as the caller (RLS), so nobody ever sees another person's rows.
+ */
+const PERSONAL_CATEGORIES = new Set(['ai', 'media']);
+function isPersonal(provider) { const reg = BY_ID.get(provider); return !!(reg && PERSONAL_CATEGORIES.has(reg.category)); }
+
+/** The person's other brands, or null when this brand is not theirs. */
+async function ownedOtherThan(auth, workspaceId) {
+  if (!auth || !auth.user_id || !workspaceId) return null;
+  const rows = await brandCore.restAs(auth.token, `brand_workspaces?select=id,name,owner_id&owner_id=eq.${encodeURIComponent(auth.user_id)}`);
+  const list = (Array.isArray(rows) ? rows : []).filter((w) => w && w.id && w.owner_id === auth.user_id);
+  if (!list.some((w) => w.id === workspaceId)) return null;
+  return list.filter((w) => w.id !== workspaceId);
+}
+
+async function personalRows(auth, workspaceId) {
+  if (!auth || !auth.user_id) return [];
+  // Only on a brand the person OWNS: on another owner's brand (where they are
+  // a member or editor) their own keys never pay for that brand's work.
+  const owned = await ownedOtherThan(auth, workspaceId);
+  if (!owned) return [];
+  const ids = owned.map((w) => w.id);
+  if (!ids.length) return [];
+  const names = new Map((owned || []).map((w) => [w.id, w.name || '']));
+  const providers = PROVIDERS.filter((p) => PERSONAL_CATEGORIES.has(p.category)).map((p) => p.id);
+  const rows = await brandCore.restAs(
+    auth.token,
+    `workspace_connections?select=${SELECT_COLS}&workspace_id=in.(${ids.map(encodeURIComponent).join(',')})`
+    + `&provider=in.(${providers.map(encodeURIComponent).join(',')})&order=updated_at.desc`,
+  );
+  const out = new Map();
+  for (const r of Array.isArray(rows) ? rows : []) {
+    if (!r || !isPersonal(r.provider) || r.status === 'disabled' || out.has(r.provider)) continue;
+    if (!(Array.isArray(r.secret_fields) && r.secret_fields.length) && !(r.config && Object.keys(r.config).length)) continue;
+    out.set(r.provider, Object.assign({}, r, { __from: { workspace_id: r.workspace_id, name: names.get(r.workspace_id) || '' } }));
+  }
+  return [...out.values()];
+}
+
+/** This brand's connections, plus the person's own model keys saved on their other brands. */
+async function effectiveConnections(auth, workspaceId) {
+  const own = await listConnections(auth, workspaceId);
+  let mine = [];
+  try { mine = await personalRows(auth, workspaceId); } catch (_) { mine = []; }
+  const have = new Set(own.map((r) => r.provider));
+  return own.concat(mine.filter((r) => !have.has(r.provider)));
+}
+
+/** The row a provider resolves to on this brand: its own, else the person's from another brand. */
+async function effectiveRow(auth, workspaceId, provider) {
+  const own = await getConnectionRow(auth, workspaceId, provider);
+  if (own || !isPersonal(provider)) return own;
+  try { return (await personalRows(auth, workspaceId)).find((r) => r.provider === provider) || null; } catch (_) { return null; }
 }
 
 async function getConnectionRow(auth, workspaceId, provider) {
@@ -544,6 +607,20 @@ async function saveConnection(auth, input) {
   const reg = BY_ID.get(providerId);
   if (!reg) { const e = new Error(`Unknown platform "${providerId}".`); e.status = 400; throw e; }
   await brandCore.assertCanWrite(auth, workspaceId, 'change its connections');
+
+  // A model key this brand shows from the person's account is edited where it
+  // is saved, so a Save here never leaves this brand a row without the key
+  // that would hide the one they already connected.
+  if (isPersonal(providerId) && !(input && input.__redirected)) {
+    const own = await getConnectionRow(auth, workspaceId, providerId);
+    if (!own) {
+      const shared = await effectiveRow(auth, workspaceId, providerId);
+      if (shared && shared.workspace_id && shared.workspace_id !== workspaceId) {
+        const saved = await saveConnection(auth, Object.assign({}, input, { workspace_id: shared.workspace_id, __redirected: true }));
+        return Object.assign({}, saved, { shared_from: { workspace_id: shared.workspace_id, name: (shared.__from && shared.__from.name) || '' } });
+      }
+    }
+  }
 
   const supplied = (input && input.fields && typeof input.fields === 'object') ? input.fields : {};
   const config = {};
@@ -638,17 +715,35 @@ async function saveConnection(auth, input) {
     });
   }
 
+  RESOLVED.clear();
   return sanitize(savedRow);
 }
 
 /** Remove a connection. The secret row goes with it through the foreign key. */
 async function deleteConnection(auth, workspaceId, providerId) {
   await brandCore.assertCanWrite(auth, workspaceId, 'remove its connections');
+  // Removing a model key shown here from another brand unlinks it where it
+  // is saved, so it stops being used on every brand.
+  const own = await getConnectionRow(auth, workspaceId, providerId);
+  if (!own && isPersonal(providerId)) {
+    const shared = await effectiveRow(auth, workspaceId, providerId);
+    if (shared && shared.workspace_id && shared.workspace_id !== workspaceId) {
+      await brandCore.assertCanWrite(auth, shared.workspace_id, 'remove its connections');
+      await brandCore.restAs(
+        auth.token,
+        `workspace_connections?workspace_id=eq.${encodeURIComponent(shared.workspace_id)}&provider=eq.${encodeURIComponent(providerId)}`,
+        { method: 'DELETE', prefer: 'return=minimal' },
+      );
+      RESOLVED.clear();
+      return { ok: true, removed: providerId, unlinked_from: shared.workspace_id };
+    }
+  }
   await brandCore.restAs(
     auth.token,
     `workspace_connections?workspace_id=eq.${encodeURIComponent(workspaceId)}&provider=eq.${encodeURIComponent(providerId)}`,
     { method: 'DELETE', prefer: 'return=minimal' },
   );
+  RESOLVED.clear();
   return { ok: true, removed: providerId };
 }
 
@@ -817,9 +912,25 @@ async function getRouting(auth, workspaceId) {
     `workspace_ai_routing?select=entries,use_platform_fallback,updated_at&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=1`,
   );
   const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
-  return row
-    ? { entries: Array.isArray(row.entries) ? row.entries : [], use_platform_fallback: row.use_platform_fallback !== false, updated_at: row.updated_at }
-    : { entries: [], use_platform_fallback: true, updated_at: null };
+  if (row) return { entries: Array.isArray(row.entries) ? row.entries : [], use_platform_fallback: row.use_platform_fallback !== false, updated_at: row.updated_at };
+  // No order chosen on this brand: the person's own order from the brand they
+  // set it on most recently, so a model order they picked follows them too.
+  try {
+    const owned = (await ownedOtherThan(auth, workspaceId)) || [];
+    const ids = owned.map((w) => w.id);
+    if (ids.length) {
+      const other = await brandCore.restAs(
+        auth.token,
+        `workspace_ai_routing?select=workspace_id,entries,use_platform_fallback,updated_at&workspace_id=in.(${ids.map(encodeURIComponent).join(',')})&order=updated_at.desc&limit=1`,
+      );
+      const o = Array.isArray(other) && other[0] ? other[0] : null;
+      if (o) {
+        const nm = (owned.find((w) => w.id === o.workspace_id) || {}).name || '';
+        return { entries: Array.isArray(o.entries) ? o.entries : [], use_platform_fallback: o.use_platform_fallback !== false, updated_at: o.updated_at, shared_from: { workspace_id: o.workspace_id, name: nm } };
+      }
+    }
+  } catch (_) { /* this brand's default order */ }
+  return { entries: [], use_platform_fallback: true, updated_at: null };
 }
 
 async function saveRouting(auth, workspaceId, input) {
@@ -947,7 +1058,7 @@ async function llmOverridesFor(req) {
     // so the service role below is only ever asked for ids they can already see.
     const [routing, connections] = await Promise.all([
       getRouting(auth, wsId),
-      listConnections(auth, wsId),
+      effectiveConnections(auth, wsId),
     ]);
     const aiRows = connections.filter((r) => {
       const reg = BY_ID.get(r.provider);
@@ -990,7 +1101,7 @@ async function mediaKeysFor(req) {
     const body = (req && req.body && typeof req.body === 'object') ? req.body : {};
     const wsId = str(body.workspace_id || q.workspace_id) || await brandCore.activeWorkspaceId(auth);
     if (!wsId) return null;
-    const rows = (await listConnections(auth, wsId)).filter((r) => {
+    const rows = (await effectiveConnections(auth, wsId)).filter((r) => {
       const reg = BY_ID.get(r.provider);
       return reg && reg.category === 'media' && r.status !== 'disabled' && Array.isArray(r.secret_fields) && r.secret_fields.length;
     });
@@ -1038,7 +1149,7 @@ async function credentialsFor(req, providerId) {
     const wsId = str(body.workspace_id || q.workspace_id) || await brandCore.activeWorkspaceId(auth);
     if (!wsId) return null;
 
-    const row = await getConnectionRow(auth, wsId, reg.id);
+    const row = await effectiveRow(auth, wsId, reg.id);
     if (!row || row.status === 'disabled') return null;
     const secrets = (Array.isArray(row.secret_fields) && row.secret_fields.length)
       ? (await secretsByConnectionId([row.id])).get(row.id) || {}
@@ -1140,8 +1251,9 @@ async function checkConnection(auth, workspaceId, providerId) {
   if (!reg) { const e = new Error(`Unknown platform "${providerId}".`); e.status = 400; throw e; }
   await brandCore.assertCanWrite(auth, workspaceId, 'test its connections');
 
-  const row = await getConnectionRow(auth, workspaceId, reg.id);
+  const row = await effectiveRow(auth, workspaceId, reg.id);
   if (!row) { const e = new Error(`${reg.label} is not connected on this brand.`); e.status = 404; throw e; }
+  const checkWs = row.workspace_id || workspaceId;
   const secrets = (Array.isArray(row.secret_fields) && row.secret_fields.length)
     ? (await secretsByConnectionId([row.id])).get(row.id) || {}
     : {};
@@ -1226,7 +1338,7 @@ async function checkConnection(auth, workspaceId, providerId) {
 
   await brandCore.restAs(
     auth.token,
-    `workspace_connections?workspace_id=eq.${encodeURIComponent(workspaceId)}&provider=eq.${encodeURIComponent(reg.id)}`,
+    `workspace_connections?workspace_id=eq.${encodeURIComponent(checkWs)}&provider=eq.${encodeURIComponent(reg.id)}`,
     {
       method: 'PATCH',
       body: { last_checked_at: new Date().toISOString(), last_check_ok: !!result.ok, last_check_note: String(result.note || '').slice(0, 300) },
@@ -1319,7 +1431,7 @@ async function handle(req, res) {
   try {
     switch (op) {
       case 'list': {
-        const [rows, routing] = await Promise.all([listConnections(auth, workspaceId), getRouting(auth, workspaceId)]);
+        const [rows, routing] = await Promise.all([effectiveConnections(auth, workspaceId), getRouting(auth, workspaceId)]);
         return res.status(200).json({
           ok: true,
           workspace_id: workspaceId,
@@ -1397,7 +1509,7 @@ module.exports = {
   handle,
   PROVIDERS, BY_ID, BY_LLM, registryView, knownModels, freeGenerationView,
   // storage
-  listConnections, saveConnection, deleteConnection, getRouting, saveRouting, normalizeRouting,
+  listConnections, effectiveConnections, personalRows, saveConnection, deleteConnection, getRouting, saveRouting, normalizeRouting,
   // service-role storage (OAuth callback + the dispatch queue only — see the
   // warning above those functions before adding a caller)
   getConnectionAsService, secretsAsService, patchConnectionAsService, saveConnectionAsService,
