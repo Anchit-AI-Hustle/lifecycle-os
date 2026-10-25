@@ -104,17 +104,21 @@ const MARK = '<render_rules>';
  *   packshot: true when the frame IS a real product photograph: only the
  *             camera and light move, nothing is added (anti-fabrication).
  */
-function rules({ medium = 'image', people = true, packshot = false } = {}) {
+function rules({ medium = 'image', people = true, packshot = false, productOnly = false } = {}) {
   const video = medium === 'video';
   const out = [];
   out.push('REALISM (phone camera, not studio): frame 1 a third of a stop under with shadows allowed; mixed colour temperature, a warm lamp on one side and cool daylight on the other, never one clean white; visible window spill, a hot edge or a blown highlight on the wall.');
   out.push('NO production look: no cinema-grade colour grade, no empty-set staging, no magazine-styled framing.');
   if (packshot) {
     out.push('This frame is the real product photograph: move only the camera and the light, add nothing to it.');
+  } else if (productOnly) {
+    // A photograph of one named product shows that product and nothing else:
+    // the lived-in object is left out, so the two rules never disagree.
+    out.push('Show only the product: no other object is added to the frame.');
   } else {
     out.push('The room is lived in: one ordinary object out of place (a mug, a charger cable), never a product, packaging, logo, sign or readable text.');
   }
-  if (people && !packshot) {
+  if (people && !packshot && !productOnly) {
     out.push('If a person is in frame: no unbroken gaze into the lens, no perfect posture, real skin texture with warm room bounce and no beauty smoothing, hands that hold things a little wrong.');
     if (video) {
       out.push('Opening 3 seconds: exactly one micro-glitch of body language (a half-step reframe, a hand adjusting the phone); eye contact breaks by 0:02 with a glance at the phone screen; one blink lands off-rhythm before 0:03. No filler: no sighs, no hair tucks, no off-camera glances. One micro-glitch only: more reads as a bug.');

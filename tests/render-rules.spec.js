@@ -51,6 +51,14 @@ test('every real-looking image mode carries the rules and the phone-camera quali
   expect(design).toContain(IP.QUALITY);
 });
 
+test('a photograph of one named product adds no object to it: the product-only rule and the render rules agree', () => {
+  const p = IP.buildPreamble(BRAND, 'photo', { product: { title: 'House blend', category: 'Coffee' } });
+  expect(p).toMatch(/Show only the product: no other object is added to the frame/);
+  expect(p).not.toMatch(/object out of place|a mug, a charger cable/);
+  expect(p).not.toMatch(/no unbroken gaze/);
+  expect(p).toMatch(/window spill/);
+});
+
 test('the out-of-place object is ordinary, never a product, packaging, logo or text, and the anti-fabrication rules still close the prompt', () => {
   const p = IP.buildPreamble(BRAND, 'photo');
   expect(p).toMatch(/one ordinary object out of place \(a mug, a charger cable\), never a product, packaging, logo, sign or readable text/);
@@ -121,4 +129,25 @@ test('the shot brief and the story brief ask for a phone-camera look, never a fi
   const sb = story.storyBrief({ brandName: 'Fernwick Roasters', hook: 'Fresh this week', products: [{ title: 'House blend', price: '£9', image: PHOTO }], cta: 'Shop now' });
   expect(sb.render_rules.compact_block).toBe(RR.COMPACT);
   for (const sc of sb.scenes.filter((x) => x.motion)) expect(sc.motion).toMatch(/phone-camera look with no cinema grade/);
+});
+
+test('a model that never receives the photo is not told it is a packshot: Veo gets the scene rules, Pollo with the photo gets the packshot rule', async () => {
+  const VEO = 'https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning';
+  const saved = process.env.FREE_GENERATION; process.env.FREE_GENERATION = 'on';
+  const net = pollo((u) => (u === VEO + '?key=own-gemini' ? { body: { name: 'operations/op-1' } } : null));
+  try {
+    delete require.cache[VC];
+    const wc = require(WC);
+    wc.mediaKeysForCurrentRequest = async () => null;
+    wc.llmOverridesForCurrentRequest = async () => ({ keys: { gemini: 'own-gemini' } });
+    const vc = require(VC);
+    await vc.generateVideo({ prompt: 'Slow push in on the bag', duration_s: 8, aspect: '9:16', budget_ms: 3000, motion: { images: [PHOTO] } });
+    const sent = net.calls.find((c) => c.url.startsWith(VEO)).body.instances[0].prompt;
+    expect(sent).not.toMatch(/real product photograph/);
+    expect(sent).toMatch(/object out of place/);
+    expect(sent).toContain(RR.COMPACT);
+  } finally {
+    net.restore(); delete require.cache[VC];
+    if (saved === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = saved;
+  }
 });

@@ -556,10 +556,12 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   if (!raw) return { ok: false, error: 'prompt required' };
   // Every video model gets the render rules ("Kill the AI Tell",
   // render-rules.js): phone-camera light on frame 1, no cinema grade, one
-  // micro-glitch in the opening 3 seconds. A first frame that is the
-  // product's own photo is a packshot: only the camera and light move.
-  const firstFrame = motion && Array.isArray(motion.images) && motion.images.some((u) => /^https?:\/\//i.test(String(u || '')));
-  const p = require('./render-rules.js').withRules(raw, { medium: 'video', people: !firstFrame, packshot: firstFrame });
+  // micro-glitch in the opening 3 seconds. Only a provider that RECEIVES the
+  // product's own photo as its first frame (Pollo) is told it is a packshot;
+  // every other model renders from the words and gets the scene rules.
+  const RR = require('./render-rules.js');
+  const p = RR.withRules(raw, { medium: 'video', people: true });
+  const pShot = RR.withRules(raw, { medium: 'video', packshot: true });
   // One budget for the whole cascade (default 90s, inside a 120s function).
   const budget = Number(budget_ms) > 0 ? Number(budget_ms) : (Number(process.env.VIDEO_TOTAL_BUDGET_MS) > 0 ? Number(process.env.VIDEO_TOTAL_BUDGET_MS) : 90000);
   const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget };
@@ -574,7 +576,7 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   if (ownPollo) {
     const image = motion && Array.isArray(motion.images) ? motion.images.find((u) => /^https?:\/\//i.test(String(u || ''))) : '';
     try {
-      const out = await runPollo(Object.assign({}, opts, { image }), ownPollo);
+      const out = await runPollo(Object.assign({}, opts, { image }, image ? { prompt: pShot } : {}), ownPollo);
       if (out.ok) return Object.assign({}, out, { tier, audio, attempts: [] });
       pAttempts.push({ provider: 'pollo', error: out.error });
     } catch (e) {
