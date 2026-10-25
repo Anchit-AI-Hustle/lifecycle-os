@@ -70,15 +70,28 @@
       <hr class="divider mb-5">
       <div class="card p-5">
         <h2 class="text-[22px] font-bold" style="color:var(--vh-heading)">Make a new track for <span data-mk-brand>your brand</span></h2>
-        <p class="mk-note mt-1">The brief below is written from your brand's own record. Change anything, then generate it here or take it to Suno.</p>
+        <p class="mk-note mt-1">Music for a product, a sale, a launch or the brand itself. The brief is written from your brand's own record (its name, voice, tagline and products) and you can change anything. It is composed by Lyria, Google's music model, when your workspace or this deployment has a Gemini key that can use it.</p>
         <div class="mk-row mt-4">
           <label><span class="mk-label">What it is for</span>
             <select class="mk-field" id="mkUse">
-              <option value="ad" data-secs="15">Ad bed (15 seconds)</option>
-              <option value="reel" data-secs="30" selected>Reels or Shorts loop (30 seconds)</option>
+              <option value="product" data-secs="30">A product (30 seconds)</option>
+              <option value="sale" data-secs="20">A sale or offer (20 seconds)</option>
+              <option value="launch" data-secs="30">A new launch (30 seconds)</option>
               <option value="jingle" data-secs="30">Brand jingle with vocals (30 seconds)</option>
+              <option value="anthem" data-secs="60">Brand anthem (60 seconds)</option>
+              <option value="sonic_logo" data-secs="6">Sonic logo (6 seconds)</option>
+              <option value="ad_bed" data-secs="15">Ad bed (15 seconds)</option>
+              <option value="reel_loop" data-secs="30" selected>Reels or Shorts loop (30 seconds)</option>
               <option value="film" data-secs="90">Brand film underscore (90 seconds)</option>
             </select></label>
+          <label><span class="mk-label">Product</span>
+            <select class="mk-field" id="mkProduct"><option value="">None (the brand itself)</option></select></label>
+          <label><span class="mk-label">The offer, in your words</span>
+            <input class="mk-field" id="mkOffer" type="text" maxlength="80" placeholder="Only what you are offering, e.g. 20% off all cakes this weekend"></label>
+        </div>
+        <div class="mk-row mt-3">
+          <label><span class="mk-label">Genre</span>
+            <select class="mk-field" id="mkGenre"><option value="">From your brand</option></select></label>
           <label><span class="mk-label">Mood</span>
             <select class="mk-field" id="mkMood">
               <option value="">From your brand voice</option>
@@ -87,20 +100,27 @@
               <option>premium and minimal</option>
               <option>playful and bright</option>
               <option>cinematic and rising</option>
+              <option>festive and celebratory</option>
             </select></label>
           <label><span class="mk-label">Length in seconds</span>
-            <input class="mk-field" id="mkSecs" type="number" min="15" max="60" value="30"></label>
+            <input class="mk-field" id="mkSecs" type="number" min="5" max="180" value="30"></label>
         </div>
         <label class="flex items-center gap-2 mt-3 text-[13px]" style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="checkbox" id="mkInstr" checked style="width:20px;height:20px"> Instrumental only (no vocals)</label>
-        <label class="block mt-3"><span class="mk-label">Brief</span>
-          <textarea class="mk-field" id="mkPrompt" spellcheck="true"></textarea></label>
+        <div class="mk-row mt-2" id="mkVocalRow" hidden>
+          <label><span class="mk-label">Sung in</span>
+            <select class="mk-field" id="mkLang"></select></label>
+          <label style="grid-column:1/-1"><span class="mk-label">Lyrics (your brand's own words; edit freely)</span>
+            <textarea class="mk-field" id="mkLyrics" spellcheck="true" style="min-height:110px"></textarea></label>
+        </div>
+        <label class="block mt-3"><span class="mk-label">Brief for the music model</span>
+          <textarea class="mk-field" id="mkPrompt" spellcheck="true" style="min-height:180px"></textarea></label>
         <div class="flex flex-wrap gap-2 mt-3">
           <button type="button" class="btn-primary" id="mkGenerate" data-credit-feature="audio.music">Generate here</button>
           <button type="button" class="btn-lava" id="mkSuno">Open in Suno <svg class="vh-icon vh-icon-sm" aria-hidden="true"><use href="/assets/lifecycle-os/icons.svg#i-external"/></svg></button>
           <button type="button" class="btn-outline" id="mkCopy">Copy brief</button>
         </div>
         <div class="mt-3 text-[13px]" id="mkStatus" role="status" aria-live="polite"></div>
-        <p class="mk-note mt-2">Generate here makes an instrumental from the brief (its tempo if it states one, its mood words and the length above, 15 to 60 seconds) and costs credits; the same brief always gives the same track. Suno has no public API yet, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
+        <p class="mk-note mt-2">Generate here costs credits. With your own Gemini key connected on <a class="music-link" href="/ai-models">AI Models</a>, Lyria composes it on your own Google account, not from your credits. Without a music model it makes a short instrumental sketch and says so. Suno has no public API, so Open in Suno copies the brief and opens Suno's Create page: paste it into the Style box there.</p>
         <div id="mkMade"></div>
       </div>
     </section>
@@ -202,6 +222,7 @@
   </main>
 
   <script src="/auth.js"></script>
+  <script src="/brand-music.js"></script>
   <script>
   (function(){
     "use strict";
@@ -263,30 +284,35 @@
     "use strict";
     var $ = function(id){ return document.getElementById(id); };
     var brand = null, full = null, edited = false;
-    var USE = {
-      ad: "a short instrumental music bed for a paid social ad: a strong hook in the first second, a clean ending",
-      reel: "a seamless loop for vertical short-form video (Reels, Shorts), steady groove, loops without a gap",
-      jingle: "a short brand jingle with a sung hook",
-      film: "an underscore for a brand film that builds gently and resolves"
-    };
+    var products = [];
+    var BM = window.BrandMusic;
     function home(){
       try { var RC = window.RegionContext; var h = RC && RC.home; return (typeof h === "function" ? h() : h) || ""; } catch(_){ return ""; }
     }
-    function brief(){
+    function chosenProduct(){
+      var i = $("mkProduct").value; if (i === "") return null;
+      return products[Number(i)] || null;
+    }
+    function planNow(){
+      if (!BM) return null;
       var b = full || brand || {};
-      var v = b.voice || {};
-      var d = b.brand_data || {};
-      var industry = b.industry || d.industry || "";
-      var mood = $("mkMood").value || (v.tone ? "matching this brand voice: " + v.tone : "");
-      var parts = [];
-      parts.push("Original " + (USE[$("mkUse").value] || USE.reel) + ".");
-      if (b.name) parts.push("For the brand " + b.name + (industry ? " (" + industry + ")" : "") + ".");
-      if (b.tagline) parts.push("The brand describes itself as: " + b.tagline + ".");
-      if (mood) parts.push("Mood: " + mood + ".");
-      var mkt = home(); if (mkt) parts.push("Home market: " + mkt + ".");
-      parts.push($("mkInstr").checked ? "Instrumental only, no vocals." : "Vocals allowed; keep any lyrics short and family-friendly.");
-      parts.push("Do not imitate any named artist or existing song.");
-      return parts.join(" ").replace(/[\u2013\u2014]/g, "-");
+      var vocals = !$("mkInstr").checked;
+      var mood = $("mkMood").value;
+      var p = chosenProduct();
+      return BM.plan({
+        brand: b, purpose: $("mkUse").value, genre: $("mkGenre").value, mood: mood,
+        seconds: Number($("mkSecs").value) || 30, vocals: vocals, language: $("mkLang").value,
+        product: p ? { title: p.name } : null, offer: $("mkOffer").value, market: home(),
+        lyrics: lyricsEdited ? $("mkLyrics").value : "",
+      });
+    }
+    var lyricsEdited = false;
+    function brief(){
+      var pl = planNow();
+      if (!pl) return "";
+      $("mkVocalRow").hidden = !pl.vocals && $("mkInstr").checked;
+      if (!lyricsEdited) $("mkLyrics").value = pl.lyrics || "";
+      return pl.prompt;
     }
     function refresh(){ if (!edited) $("mkPrompt").value = brief(); }
     function say(text){ var el = $("mkStatus"); el.textContent = text; }
@@ -295,10 +321,28 @@
       return Promise.resolve(false);
     }
     $("mkPrompt").addEventListener("input", function(){ edited = true; });
-    ["mkUse","mkMood","mkInstr"].forEach(function(id){ $(id).addEventListener("change", function(){
-      if (id === "mkUse") { var o = $("mkUse").selectedOptions[0]; $("mkSecs").value = o.getAttribute("data-secs"); if ($("mkUse").value === "jingle") $("mkInstr").checked = false; }
+    (function fill(){
+      if (!BM) return;
+      Object.keys(BM.GENRES).forEach(function(g){ var o = document.createElement("option"); o.value = g; o.textContent = g.charAt(0).toUpperCase() + g.slice(1); $("mkGenre").appendChild(o); });
+      BM.LANGUAGES.forEach(function(l){ var o = document.createElement("option"); o.value = l; o.textContent = l; $("mkLang").appendChild(o); });
+    })();
+    $("mkLyrics").addEventListener("input", function(){ lyricsEdited = true; edited = false; refresh(); });
+    // The length re-briefs as it is typed: on "change" (fired when the field
+    // loses focus) the new brief landed while the person was already typing in
+    // the brief box, and their words were joined onto it.
+    $("mkSecs").addEventListener("input", function(){ lyricsEdited = false; edited = false; refresh(); });
+    ["mkUse","mkMood","mkInstr","mkGenre","mkLang","mkProduct"].forEach(function(id){ $(id).addEventListener("change", function(){
+      if (id === "mkUse") {
+        var o = $("mkUse").selectedOptions[0]; $("mkSecs").value = o.getAttribute("data-secs");
+        var v = $("mkUse").value;
+        if (v === "jingle") $("mkInstr").checked = false;
+        if (v === "ad_bed" || v === "film" || v === "reel_loop") $("mkInstr").checked = true;
+      }
+      if (id === "mkInstr") $("mkVocalRow").hidden = $("mkInstr").checked;
+      if (id !== "mkLang") lyricsEdited = false;
       edited = false; refresh();
     }); });
+    $("mkOffer").addEventListener("input", function(){ if (!lyricsEdited) { edited = false; refresh(); } });
     $("mkCopy").addEventListener("click", function(){
       copyText($("mkPrompt").value).then(function(ok){ say(ok ? "Brief copied." : "Select the brief and copy it with Cmd/Ctrl+C."); });
     });
@@ -308,7 +352,7 @@
         say((ok ? "Brief copied. " : "Copy the brief above, then ") + "In Suno, paste it into the Style box and press Create. Download the track and use it like any track on this page." + (w ? "" : " (Your browser blocked the new tab: open suno.com/create yourself.)"));
       });
     });
-    function addMade(url, label, fileExt, note){
+    function addMade(url, label, fileExt, note, sung){
       var box = $("mkMade");
       var row = document.createElement("div"); row.className = "mk-made"; row.setAttribute("data-made-track", "");
       var t = document.createElement("div"); t.className = "text-[13px] font-bold"; t.textContent = label; row.appendChild(t);
@@ -316,6 +360,7 @@
       var dl = document.createElement("a"); dl.className = "btn-lava mt-2"; dl.href = url; var nm = (brand && brand.name) || (window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name) || "brand"; dl.download = nm.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-track." + (fileExt || "mp3"); dl.textContent = fileExt === "wav" ? "Download .wav" : "Download";
       row.appendChild(dl);
       var n = document.createElement("p"); n.className = "mk-note mt-2"; n.textContent = (note ? note + " " : "") + "Kept in this tab only: download it to keep it."; row.appendChild(n);
+      if (sung) { var d = document.createElement("details"); d.className = "mk-note mt-1"; var su = document.createElement("summary"); su.textContent = "What the model sang or played"; d.appendChild(su); var pre = document.createElement("pre"); pre.style.whiteSpace = "pre-wrap"; pre.textContent = sung; d.appendChild(pre); row.appendChild(d); }
       box.insertBefore(row, box.firstChild);
     }
     $("mkGenerate").addEventListener("click", async function(){
@@ -327,14 +372,21 @@
       }
       btn.disabled = true; say("Composing your track. This usually takes under a minute.");
       try {
-        var r = await fetch("/api/brain?action=music-compose", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: prompt, seconds: Number($("mkSecs").value) || 30, instrumental: $("mkInstr").checked }) });
+        var body = { prompt: prompt, seconds: Number($("mkSecs").value) || 30, instrumental: $("mkInstr").checked };
+        var cp = chosenProduct();
+        if (cp && /^https:\/\//i.test(cp.img || "")) body.image_url = cp.img;
+        var r = await fetch("/api/brain?action=music-compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
         var type = r.headers.get("content-type") || "";
         if (r.ok && /audio/.test(type)) {
           var url = URL.createObjectURL(await r.blob());
           var isWav = /wav/.test(type);
+          var prov = r.headers.get("x-music-provider") || "";
+          var quality = r.headers.get("x-music-quality") || (isWav ? "sketch" : "");
+          var noteH = ""; try { noteH = decodeURIComponent(r.headers.get("x-music-note") || ""); } catch(_){}
+          var sung = ""; try { sung = decodeURIComponent(r.headers.get("x-music-sung") || ""); } catch(_){}
+          var made = prov === "lyria" ? "Composed by Lyria, Google's music model." : prov === "elevenlabs" ? "Composed by ElevenLabs Music." : "";
           addMade(url, "New track · " + $("mkUse").selectedOptions[0].textContent, isWav ? "wav" : undefined,
-            isWav ? "A generated instrumental made from the brief, not a composed song." : undefined);
+            [made, quality === "sketch" ? (noteH || "A code-made instrumental sketch from the brief, not a produced track.") : noteH].filter(Boolean).join(" "), sung);
           say("Done. Play it below.");
         } else {
           var j = null; try { j = await r.json(); } catch(_){}
@@ -351,6 +403,15 @@
     function onBrand(b){
       brand = b || null; full = null;
       document.querySelectorAll("[data-mk-brand]").forEach(function(el){ el.textContent = (brand && brand.name) || "your brand"; });
+      products = []; var ps = $("mkProduct"); while (ps.options.length > 1) ps.remove(1);
+      if (brand && window.BrandCatalog && window.BrandCatalog.load) {
+        window.BrandCatalog.load(home()).then(function(res){
+          var seen = {};
+          products = ((res && res.products) || []).map(function(p){ return { name: String(p.name || p.n || "").trim(), img: p.img || "" }; })
+            .filter(function(p){ if (!p.name || seen[p.name]) return false; seen[p.name] = 1; return true; }).slice(0, 200);
+          products.forEach(function(p, i){ var o = document.createElement("option"); o.value = String(i); o.textContent = p.name.slice(0, 70); ps.appendChild(o); });
+        }).catch(function(){});
+      }
       edited = false; refresh();
       if (brand && brand.id && window.BrandContext && typeof window.BrandContext.api === "function") {
         window.BrandContext.api("get", { query: "id=" + encodeURIComponent(brand.id) }).then(function(r){
