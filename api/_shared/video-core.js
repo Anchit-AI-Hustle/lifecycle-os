@@ -625,7 +625,7 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
   return out;
 }
 
-async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null, only = null, resolution = null } = {}) {
+async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null, only = null, resolution = null, dry_run = false } = {}) {
   const raw = String(prompt || '').trim();
   if (!raw) return { ok: false, error: 'prompt required' };
   // The brief goes to each provider as written. The render rules ("Kill the
@@ -638,6 +638,26 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget, image: firstImage, resolution };
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
+
+  // A dry run spends nothing on anyone's account: no render is submitted on
+  // any key (own or platform), only the code-rendered creative with the
+  // request the normal run would send first.
+  if (dry_run) {
+    const SHAPES = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest, pollo: polloRequest };
+    let first;
+    if (String(only || '').toLowerCase() === 'higgsfield') first = 'higgsfield';
+    else if (await higgsfieldCred({ ownOnly: true })) first = 'higgsfield';
+    else if (await polloKey()) first = 'pollo';
+    else if (await ownGeminiAuth()) first = 'veo';
+    else {
+      const keyed = [['veo', k.gemini], ['sora', k.openai], ['higgsfield', k.higgsfield && k.higgsfieldSecret], ['openmontage', k.openmontage], ['runway', k.runway]];
+      const pref = Array.isArray(preferProviders) ? preferProviders.find((n) => SHAPES[n]) : null;
+      first = pref || (keyed.find((r) => r[1]) || ['veo'])[0];
+    }
+    const shape = SHAPES[first](opts);
+    try { return codeMotion({ brand, motion, duration_s, aspect, wouldRequest: shape, reason: 'this is a dry run, so no render was submitted' }); }
+    catch (e) { return Object.assign(_notConnected(shape), { audio, motion_error: String((e && e.message) || e).slice(0, 160) }); }
+  }
 
   // Higgsfield asked for by name (the /brain "Render with Seedance" button):
   // that render or its refusal, nothing else, and ONLY on the workspace's own
