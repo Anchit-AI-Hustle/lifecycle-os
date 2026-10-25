@@ -25,7 +25,7 @@ test('the card is all here: four tells, three lighting rules, three bans, three 
   expect(RR.OPENING.map((t) => t.id)).toEqual(['micro_glitch', 'object_out_of_place', 'phone_light']);
   expect(Object.keys(RR.QUICK_FIX)).toEqual(['too_clean', 'stares', 'plastic', 'too_still', 'too_staged']);
   expect(RR.DRIFT.length).toBe(4);
-  for (const line of ['light: phone-camera, -1/3 stop, mixed temp, window spill', 'ban: unbroken gaze, perfect posture, plastic skin, phantom hands',
+  for (const line of ['light: phone-camera, -1/3 stop, mixed temp, window spill', 'ban (if a person is in frame; never add one): unbroken gaze, perfect posture, plastic skin, phantom hands',
     'cut: sighs, hair tucks, idle off-camera glances (keep the one phone-screen glance)', 'open: 1 micro-glitch, 1 object out of place', 'no: cinema grade, empty set, magazine framing']) {
     expect(RR.COMPACT).toContain(line);
   }
@@ -93,10 +93,10 @@ test('a video model is sent the rules with the compact block; over the product\'
     const t2v = net.calls[0].body.input.prompt;
     expect(t2v.startsWith('A customer unboxes the bag at the kitchen table')).toBe(true);
     expect(t2v).toContain(RR.COMPACT);
-    expect(t2v).toMatch(/exactly one micro-glitch/);
-    expect(t2v).toMatch(/eye contact breaks by 0:02/);
-    // The one glance at the phone screen is allowed; only idle glances are cut.
-    expect(t2v).toMatch(/the one glance at the phone screen is the only look away/);
+    expect(t2v).toMatch(/If a person is in frame \(never add one\), opening 3 seconds: one micro-glitch/);
+    expect(t2v).toMatch(/eye contact breaks by 0:02 with a glance at the phone screen/);
+    // Only idle glances are cut; the phone-screen glance is the gaze break itself.
+    expect(t2v).toMatch(/no sighs, hair tucks or idle off-camera glances/);
     expect(t2v).not.toMatch(/no off-camera glances/);
     expect(t2v.length).toBeLessThanOrEqual(1500);
 
@@ -205,4 +205,11 @@ test('a prompt that already carries a block is normalised to the one that fits t
   // A long pasted prompt keeps the right block after fitting.
   const fitted = RR.fit(RR.withRules('x'.repeat(1400) + '\n' + RR.COMPACT, { medium: 'video', packshot: true }), 1500);
   expect(fitted.endsWith(RR.COMPACT_PACKSHOT)).toBe(true);
+});
+
+test('an object-only video is never told to break eye contact unless a person is in frame', () => {
+  const p = RR.withRules('A slow push in on a chocolate cake', { medium: 'video', people: true });
+    expect(p).toMatch(/If a person is in frame \(never add one\), opening 3 seconds/);
+  expect(p).toMatch(/With no person: one handheld micro-shake/);
+  expect(RR.COMPACT).toMatch(/ban \(if a person is in frame; never add one\)/);
 });
