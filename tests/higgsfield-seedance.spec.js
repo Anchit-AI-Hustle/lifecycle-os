@@ -159,6 +159,11 @@ test('a dry run (social-run-daily) submits nothing on the workspace\'s own key: 
       expect(out.would_request.url).toBe(I2V);
       expect(out.note).toMatch(/dry run, so no render was submitted/);
       expect(n.calls.length).toBe(0);
+      // With only a Pollo key the preview is Pollo's request, as a real run would send.
+      const vc2 = loadVC({ pollo: { api_key: 'pollo-own' } });
+      const out2 = await vc2.generateVideo({ prompt: 'Slow push in', aspect: '9:16', dry_run: true, brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
+      expect(out2.would_request.provider).toBe('pollo');
+      expect(n.calls.length).toBe(0);
     } finally { n.restore(); delete require.cache[VC]; }
     // Through the shipped Social OS run with dry_run on.
     const n2 = higgsfield();
