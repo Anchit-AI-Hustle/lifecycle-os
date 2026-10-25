@@ -754,7 +754,8 @@ add('launch-visuals', { gate: 'user', browser: 'refuse', run: { json: { concept:
 add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
   env: { ELEVENLABS_API_KEY: 'eleven-harness' },
   // The documented compose endpoint is the core: the recorded call is the dispatch.
-  stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3fakemusic'), { 'content-type': 'audio/mpeg', 'song-id': 'song_1' })),
+  // No workspace Gemini connection here (music-compose.js asks for one first).
+  stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3fakemusic'), { 'content-type': 'audio/mpeg', 'song-id': 'song_1' })); },
   expect: (r) => {
     expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg'); expect(r.bytes.toString()).toBe('ID3fakemusic');
     const c = guard.calls.find((x) => /elevenlabs/.test(x.url));
@@ -767,7 +768,7 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
     { name: 'an empty brief is refused before the provider', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: { json: { prompt: '   ' } },
       expect: (r) => { expect(r.status).toBe(400); expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]); } },
     { name: 'the length is clamped to the documented 3 s floor and our 2 minute ceiling', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: { json: { prompt: 'x', seconds: 9999, instrumental: false } },
-      stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3'), { 'content-type': 'audio/mpeg' })),
+      stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3'), { 'content-type': 'audio/mpeg' })); },
       expect: (r) => { const b = JSON.parse(guard.calls.find((x) => /elevenlabs/.test(x.url)).body); expect(b.music_length_ms).toBe(120000); expect(b.force_instrumental).toBe(false); } },
     // Free in the backend, charged as credits (2026-10-17): with free generation
     // on, the track is composed here by music-synth.js even with a key, and no
@@ -783,8 +784,22 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
         expect(b.length).toBeLessThan(4.5 * 1024 * 1024);
         expect(guard.calls.filter((c) => /elevenlabs/.test(c.url))).toEqual([]);
       } },
+    // Gemini's own music model first (2026-10-25, music-compose.js): with a
+    // Gemini key the documented Interactions request is made and Lyria's audio
+    // is the answer, labelled with what made it, even with free generation on.
+    { name: 'with a Gemini key, Lyria composes it: the Interactions request, its audio and what it sang', env: { GEMINI_API_KEY: 'gemini-harness', FREE_GENERATION: 'on', ELEVENLABS_API_KEY: undefined }, run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15 } },
+      stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => u === 'https://generativelanguage.googleapis.com/v1beta/interactions', () => H.reply(200, JSON.stringify({ steps: [{ type: 'model_output', content: [{ type: 'text', text: 'Instrumental groove' }, { type: 'audio', data: Buffer.alloc(5000, 3).toString('base64'), mime_type: 'audio/mpeg' }] }] }), { 'content-type': 'application/json' })); },
+      expect: (r) => {
+        expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg');
+        expect(r.headers['x-music-provider']).toBe('lyria'); expect(r.headers['x-music-quality']).toBe('studio'); expect(r.headers['x-music-model']).toBe('lyria-3-clip-preview');
+        expect(decodeURIComponent(r.headers['x-music-sung'])).toBe('Instrumental groove');
+        expect(r.bytes.length).toBe(5000);
+        const c = guard.calls.find((x) => /generativelanguage/.test(x.url));
+        expect(c.headers['x-goog-api-key']).toBe('gemini-harness');
+        expect(JSON.parse(c.body)).toEqual({ model: 'lyria-3-clip-preview', input: 'Original upbeat ad bed for the brand' });
+      } },
     { name: 'a provider refusal is a sentence, not audio', env: { ELEVENLABS_API_KEY: 'eleven-harness' }, run: {},
-      stubs: () => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(422, JSON.stringify({ detail: 'bad prompt' }), { 'content-type': 'application/json' })),
+      stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(422, JSON.stringify({ detail: 'bad prompt' }), { 'content-type': 'application/json' })); },
       expect: (r) => { expect(r.status).toBe(502); expect(r.out.message).toMatch(/422/); } },
   ],
 });

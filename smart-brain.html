@@ -1400,6 +1400,51 @@ function renderAd(ad){
 // Hydrate every video ad pane: the animated creative is written into the iframe
 // from a Blob URL, so what the reviewer watches is byte-for-byte the artefact
 // the Download button hands them (srcdoc would re-serialise it).
+// Compose this send's track and score its Story videos with it (2026-10-25).
+// The server answers with the audio itself; what made it (Lyria, ElevenLabs or
+// a code sketch) and any refusal on the way come back in headers and are said.
+async function sbComposeMusic(mx, btn){
+  const box = btn.closest('[data-music-pane]');
+  const root = btn.closest('.pvroot') || document;
+  const status = box.querySelector('[data-music-status]');
+  const out = box.querySelector('[data-music-out]');
+  const mus = (window.__SB_MUSIC || [])[mx] || {};
+  const prompt = (box.querySelector('[data-music-prompt]').value || '').trim();
+  if (!prompt) { status.textContent = 'Write the brief first.'; return; }
+  if (window.LifecycleStatus) { const stop = await window.LifecycleStatus.decide('Composing a track', { metered: true }); if (stop) { window.LifecycleStatus.show(status, stop); return; } }
+  btn.disabled = true; status.textContent = 'Composing the track. A produced track takes up to a minute.';
+  try {
+    const r = await fetch('/api/brain?action=music-compose', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, seconds: mus.seconds || 30, instrumental: !mus.vocals, image_url: mus.image_url || '' }) });
+    const type = r.headers.get('content-type') || '';
+    if (!r.ok || !/audio/.test(type)) {
+      let j = null; try { j = await r.json(); } catch (_) {}
+      const err = new Error((j && (j.message || j.error)) || ('The server answered ' + r.status + '.')); err.status = r.status; if (j && j.error) err.code = j.error;
+      if (window.LifecycleFailure && window.LifecycleFailure.show && r.status !== 501) window.LifecycleFailure.show(status, err); else status.textContent = err.message;
+      return;
+    }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const quality = r.headers.get('x-music-quality') || '';
+    const provider = r.headers.get('x-music-provider') || '';
+    const noteH = decodeURIComponent(r.headers.get('x-music-note') || '');
+    const sung = decodeURIComponent(r.headers.get('x-music-sung') || '');
+    const ext = /wav/.test(type) ? 'wav' : 'mp3';
+    const fname = String(mus.title || 'track').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.' + ext;
+    out.innerHTML = `<div class="mk-made" data-music-track data-quality="${esc(quality)}" style="margin-top:8px"><audio controls src="${url}" style="width:100%"></audio>
+      <div class="akbar" style="margin-top:6px"><a class="btn sm secondary" href="${url}" download="${esc(fname)}">⬇ Download (${ext.toUpperCase()})</a></div>
+      <p class="pvnote">${provider === 'lyria' ? 'Composed by Lyria, Google\'s music model.' : provider === 'elevenlabs' ? 'Composed by ElevenLabs Music.' : ''} ${esc(noteH)}</p>
+      ${sung ? `<details class="pvnote"><summary>What the model sang or played</summary><pre style="white-space:pre-wrap">${esc(sung)}</pre></details>` : ''}</div>`;
+    // Score every Story video of this send with it (each frame makes its own
+    // address for the bytes: a sandboxed frame cannot read ours).
+    let scored = 0;
+    root.querySelectorAll('iframe.advframe').forEach((f) => { try { f.contentWindow.postMessage({ type: 'lifecycle-story-track', blob, label: mus.title || 'the composed track' }, '*'); scored++; } catch (_) {} });
+    status.textContent = (quality === 'sketch' ? 'A sketch is ready (not a produced track).' : 'The track is ready.') + (scored ? ' The Story video of this send now plays with it, and Save as video records it in.' : '');
+  } catch (e) {
+    status.textContent = 'Could not reach the server: ' + ((e && e.message) || e);
+  } finally { btn.disabled = false; }
+}
+
 function hydrateMotionAds(root){
   const store = window.__SB_MOTION || [];
   (root||document).querySelectorAll('.adcard[data-motion="1"]').forEach(card=>{
@@ -1681,6 +1726,24 @@ function renderPreview(payload, e, i, opts){
     pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderMessage(m)}`, first);
     first = false;
   });
+  // MUSIC (2026-10-25): this send's track, briefed from the brand's own record
+  // (brand-music.js). Compose sends the brief to the music model (Lyria first);
+  // the track then scores every Story video of this send and is saved with it.
+  const mus = campaign.assets && campaign.assets.music;
+  if (mus && mus.prompt) {
+    window.__SB_MUSIC = window.__SB_MUSIC || [];
+    const mx = window.__SB_MUSIC.push(mus) - 1;
+    tab('pv-music', '🎵 Music', first);
+    pane('pv-music', `<div class="pvmusic" data-music-pane="${mx}">
+      <p class="pvnote" style="margin-top:0"><b>${esc(mus.purpose_label || 'Track')}</b> · ${esc(mus.genre)} · about ${esc(String(mus.bpm))} BPM · ${esc(String(mus.seconds))} s · ${mus.vocals ? 'with vocals' : 'instrumental'} · for ${esc(mus.for || 'this send')}</p>
+      <label class="pvnote" style="display:block;margin:6px 0 4px">The brief the music model gets (edit anything):</label>
+      <textarea class="mprompt" data-music-prompt rows="8" style="width:100%;font:13px/1.5 var(--vh-font-body);padding:10px;border:1px solid var(--vh-line-hot);border-radius:8px;background:var(--vh-panel);color:var(--vh-ink)">${esc(mus.prompt)}</textarea>
+      <div class="akbar" style="margin-top:8px"><button type="button" class="btn sm" data-credit-feature="audio.music" onclick="sbComposeMusic(${mx}, this)">🎵 Compose track</button><a class="btn sm secondary" href="/music" target="_blank" rel="noopener">Open the Music Studio ↗</a></div>
+      <div class="pvnote" data-music-status role="status" aria-live="polite"></div>
+      <div data-music-out></div>
+    </div>`, first);
+    first = false;
+  }
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
@@ -1746,8 +1809,8 @@ function renderPreview(payload, e, i, opts){
       // chosen kind's items sit side by side, so a whole kind compares at a
       // glance. Every pane stays in the page (ids, downloads and prompts
       // unchanged); the other kinds are one press away.
-      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : 'json';
-      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
+      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : id === 'pv-music' ? 'music' : 'json';
+      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
       const by = {};
       panes.forEach((p) => { const g = groupOf(p.id); (by[g] = by[g] || []).push(p); });
       const present = GROUPS.filter(([k]) => by[k] && by[k].length);
