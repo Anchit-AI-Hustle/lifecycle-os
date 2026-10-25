@@ -86,7 +86,7 @@ const SCOPED_TABLES = new Set([
   // this is defence in depth: a review is a named customer's words about one
   // brand, and serving one brand's testimonial under another's name is the
   // fabrication this whole path exists to prevent.
-  'brand_review_library', 'brand_review_scan',
+  'brand_review_library', 'brand_review_scan', 'brand_review_feedback',
   // 20260818140000 — publishing and deliverability. These matter more than most
   // of the list above, because the dispatch queue runs under the SERVICE ROLE
   // with no request to resolve a workspace from: a job read without the filter

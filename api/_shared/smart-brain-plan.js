@@ -2436,7 +2436,7 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .assure{font-size:13px;margin:10px 0 0;opacity:1}
 ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;font-size:16px}'}
 .feats h2,.details h2,.revs h2,.about h2{font-size:26px}
-.feat{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;margin:22px 0}
+.feat{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;margin:22px 0}
 .feat img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
 .feat.rev img{order:2}
 .feat .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800;font-size:13px;margin-bottom:10px}
@@ -2444,14 +2444,15 @@ ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;
 .lreasons{list-style:none;padding:0;margin:0;counter-reset:none}.lreasons>li{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--chalk-warm)}
 .lreasons .num{flex:0 0 40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800}
 .lreasons h3{font-size:22px;line-height:1.3;margin:6px 0 8px}.lnext{font-weight:700;color:var(--moss-text,var(--ink));text-decoration:underline}
-.lcard{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:center;border:2px solid var(--moss);border-radius:16px;padding:18px;margin:18px 0;background:var(--chalk)}
+.lcard{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;align-items:center;border:2px solid var(--moss);border-radius:16px;padding:18px;margin:18px 0;background:var(--chalk)}
 .lcard img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}.lcard h3{margin:0 0 6px;font-size:20px}.lprice{font-family:var(--head);font-size:22px;margin:0 0 12px}
-@media(max-width:560px){.lcard{grid-template-columns:110px 1fr;gap:14px;padding:14px}.lcard h3{font-size:17px}.lreasons h3{font-size:19px}}
+@media(max-width:560px){.lcard{grid-template-columns:110px minmax(0,1fr);gap:14px;padding:14px}.lcard h3{font-size:17px}.lreasons h3{font-size:19px}}
 .details .lede{color:var(--ink);font-size:16px;max-width:680px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-top:12px}
 .dgrid div{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:14px}
 .dgrid b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px}
-.buybox{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;border:2px solid var(--moss);border-radius:18px;padding:24px;background:var(--chalk)}
+.buybox{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;border:2px solid var(--moss);border-radius:18px;padding:24px;background:var(--chalk)}
+.buybox img,.feat img,.lcard img{min-width:0;max-width:100%}
 .buybox img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}
 .bb{text-align:center}.bb h3{font-size:22px;margin:8px 0}
 .deal{display:inline-block;background:var(--moss);color:var(--on-moss);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:999px}
@@ -2466,7 +2467,7 @@ ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;
 .rgrid blockquote{margin:0 0 10px;font-size:15px;line-height:1.55}.rgrid figcaption{font-weight:700;color:var(--moss);font-size:13px}
 .about p{font-size:16px;line-height:1.65;max-width:760px}
 .endcta{text-align:center;padding:30px 18px}
-@media(max-width:760px){.feat,.buybox{grid-template-columns:1fr}.feat.rev img{order:0}.bbprice b{font-size:28px}}
+@media(max-width:760px){.feat,.buybox{grid-template-columns:minmax(0,1fr)}.feat.rev img{order:0}.bbprice b{font-size:28px}}
 .why ul{padding:0;margin:0}
 .reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:20px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
 .reveal .price{font-family:var(--head);font-size:26px;color:var(--moss)}
