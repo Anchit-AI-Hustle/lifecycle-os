@@ -2396,7 +2396,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 img{max-width:100%;height:auto;display:block}
 .bar{background:var(--chalk);color:var(--ink);text-align:center;font-size:15px;font-weight:700;letter-spacing:.04em;padding:14px 16px;border-bottom:1px solid var(--chalk-warm)}
-.bar-logo{height:28px;width:auto;margin:0 auto;display:block}
+.bar-logo{height:28px;width:auto;max-width:100%;margin:0 auto;display:block}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:34px 20px 38px}
@@ -2534,7 +2534,7 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
-${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
+${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none;display:block">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
 <section class="hero" data-recipe="${esc(_lpRecipe.id)}">
   <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
     <div class="hero-copy">
