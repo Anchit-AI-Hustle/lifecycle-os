@@ -50,6 +50,10 @@ const QUALITY_SUFFIX = `
 
 QUALITY BAR: ultra-high fidelity, 8K, razor-sharp focus, true-to-life colour, professional colour grading, natural soft lighting, fine material texture, correct anatomy and hands, balanced composition. Avoid: blur, noise, colour banding, JPEG/compression artifacts, plastic skin, warped or melted shapes, extra or missing fingers, duplicated objects, low resolution, oversaturation, HDR halos, uncanny faces.`;
 
+const REAL_QUALITY_SUFFIX = `
+
+QUALITY BAR: high resolution, true-to-life colour, phone-camera realism as the render rules above say, fine material and skin texture, correct anatomy and hands. Avoid: blur, colour banding, JPEG/compression artifacts, plastic skin, beauty smoothing, warped or melted shapes, extra or missing fingers, duplicated objects, oversaturation, HDR halos, uncanny faces.`;
+
 // Map our standard sizes to Gemini aspect ratios.
 // Includes the ad-creative sizes (Google 1.91:1 + 1:1, Meta/IG/TikTok 1:1 + 9:16).
 const GEMINI_ASPECT_MAP = {
@@ -144,7 +148,11 @@ module.exports = async function handler(req, res) {
   // SUBJECT leads: Pollinations keeps only the first 1,500 characters, and the
   // brand preamble alone is about that long, so a subject placed after it was
   // cut off and the model drew whatever the scene text suggested.
-  const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - QUALITY_SUFFIX.length) + QUALITY_SUFFIX;
+  // A design mockup keeps the studio bar; every real-looking scene takes the
+  // phone-camera bar (render-rules.js): "professional colour grading" and
+  // "natural soft lighting" are the studio-flat look the render rules ban.
+  const qualitySuffix = String(mode || 'photo') === 'design' ? QUALITY_SUFFIX : REAL_QUALITY_SUFFIX;
+  const finalPrompt = (subjectLine + preamble + userPrompt).substring(0, 4000 - qualitySuffix.length) + qualitySuffix;
 
   // Keys cleaned and de-duplicated: the same OpenAI key set twice used to be
   // sent twice after it had already been refused.

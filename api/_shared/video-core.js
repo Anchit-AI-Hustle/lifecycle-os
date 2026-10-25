@@ -81,8 +81,8 @@ async function polloKey() {
 function polloRequest({ prompt, duration_s, aspect, image }) {
   const duration = Number(duration_s) > 7 ? 10 : 5;
   const input = /^https?:\/\/[^\s"'<>]+$/i.test(String(image || ''))
-    ? { image: String(image), prompt: String(prompt).slice(0, 1500), duration, mode: 'std' }
-    : { prompt: String(prompt).slice(0, 1500), aspectRatio: normAspect(aspect), duration };
+    ? { image: String(image), prompt: require('./render-rules.js').fit(prompt, 1500), duration, mode: 'std' }
+    : { prompt: require('./render-rules.js').fit(prompt, 1500), aspectRatio: normAspect(aspect), duration };
   return { provider: 'pollo', method: 'POST', url: POLLO_BASE + '/v1/generation/' + POLLO_MODEL + '/video', body: { input } };
 }
 
@@ -552,8 +552,14 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
 }
 
 async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = 'standard', preferProviders = null, voiceover = false, brand = null, budget_ms = 0, motion = null } = {}) {
-  const p = String(prompt || '').trim();
-  if (!p) return { ok: false, error: 'prompt required' };
+  const raw = String(prompt || '').trim();
+  if (!raw) return { ok: false, error: 'prompt required' };
+  // Every video model gets the render rules ("Kill the AI Tell",
+  // render-rules.js): phone-camera light on frame 1, no cinema grade, one
+  // micro-glitch in the opening 3 seconds. A first frame that is the
+  // product's own photo is a packshot: only the camera and light move.
+  const firstFrame = motion && Array.isArray(motion.images) && motion.images.some((u) => /^https?:\/\//i.test(String(u || '')));
+  const p = require('./render-rules.js').withRules(raw, { medium: 'video', people: !firstFrame, packshot: firstFrame });
   // One budget for the whole cascade (default 90s, inside a 120s function).
   const budget = Number(budget_ms) > 0 ? Number(budget_ms) : (Number(process.env.VIDEO_TOTAL_BUDGET_MS) > 0 ? Number(process.env.VIDEO_TOTAL_BUDGET_MS) : 90000);
   const opts = { prompt: p, duration_s, aspect, deadline: Date.now() + budget };

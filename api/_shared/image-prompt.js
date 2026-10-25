@@ -147,6 +147,11 @@ const NEVER = 'NEVER render: logos, wordmarks, watermarks, UI or inbox chrome, s
 
 const QUALITY = 'Gallery-print resolution, true-to-life colour, natural soft lighting, fine material texture, correct anatomy, balanced composition. Avoid blur, noise, banding, compression artifacts, plastic skin, warped shapes, duplicated objects and oversaturation.';
 
+// A photograph of a scene reads as a phone in a real room, never a studio
+// render (render-rules.js, "Kill the AI Tell", 2026-10-25): its quality line
+// asks for real texture and correct anatomy, not studio light or a grade.
+const REAL_QUALITY = 'High resolution, true-to-life colour, fine material and skin texture, correct anatomy and hands. Avoid blur, compression artifacts, plastic skin, warped shapes, duplicated objects and oversaturation.';
+
 /**
  * Build the preamble for one brand and mode.
  * `mode` is one of MODES; anything unrecognised falls back to a photograph.
@@ -171,7 +176,7 @@ function buildPreamble(brand, mode, opt) {
     design: `High-fidelity flat design mockup of a complete marketing email for ${name}, shown as it would appear in an inbox. This is a LAYOUT, not a photograph: header band, body, a single prominent call-to-action button, and a footer.`,
     ad: `Scroll-stopping paid social ad creative for ${name}: a photoreal scene WITH a clean marketing text overlay rendered as part of the image, so it reads as a finished ad rather than a bare photograph. Render ONLY the supplied headline and offer line, spelled exactly as given, in a clear safe-zone band. Show ${subject.scene}`,
     ambient: `Photoreal ambient backdrop for ${name}. Show ${subject.ambient}`,
-    reels: `Cinematic 9:16 opening frame for a ${name} social video, graded like a film still. Strong foreground, midground and background separation for parallax, one clear subject, and generous negative space in the upper third where kinetic type will be layered later. Show ${subject.scene}`,
+    reels: `9:16 opening frame for a ${name} social video, shot like a phone in a real room. Foreground, midground and background separation for parallax, one clear subject, and generous negative space in the upper third where kinetic type will be layered later. Show ${subject.scene}`,
   }[m];
 
   const textPolicy = (m === 'ad')
@@ -183,8 +188,12 @@ function buildPreamble(brand, mode, opt) {
   const lock = brand && brand.brand_data && brand.brand_data.style_lock;
   const style = lock ? [lock.photo_style && `Photo style, the brand's own: ${String(lock.photo_style).slice(0, 400)}.`,
     Array.isArray(lock.rules) && lock.rules.length && `Never break: ${lock.rules.slice(0, 5).map((r) => String(r).slice(0, 160)).join(' ')}`].filter(Boolean).join(' ') : '';
-  return [head, subject.caution, style, palette, type, textPolicy, NEVER, QUALITY]
+  // Every mode that renders a real-looking scene carries the render rules; a
+  // design mockup is a layout and keeps the studio quality line.
+  const real = m !== 'design';
+  const realism = real ? require('./render-rules.js').rules({ medium: 'image', people: m !== 'ambient' }) : '';
+  return [head, subject.caution, style, palette, type, textPolicy, realism, NEVER, real ? REAL_QUALITY : QUALITY]
     .filter(Boolean).join(' ') + '\n\n';
 }
 
-module.exports = { buildPreamble, subjectFor, paletteBrief, MODES, NEVER };
+module.exports = { buildPreamble, subjectFor, paletteBrief, MODES, NEVER, QUALITY, REAL_QUALITY };
