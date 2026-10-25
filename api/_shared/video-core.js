@@ -41,6 +41,16 @@ const VEO_MODEL = process.env.VEO_VIDEO_MODEL || 'veo-3.1-generate-preview';
 const SORA_MODEL = process.env.SORA_VIDEO_MODEL || 'sora-2';
 const RUNWAY_MODEL = process.env.RUNWAY_VIDEO_MODEL || 'gen4_turbo';
 
+// Pollo AI (2026-10-25, docs.pollo.ai read that day): POST
+// /v1/generation/kling-ai/kling-v2-5-turbo/video with `x-api-key`, then GET
+// /v1/generation/{taskId}/status until generations[0].status is succeed or
+// failed. Kling 2.5 Turbo takes duration 5 or 10; image-to-video takes the
+// first frame as an http(s) image URL and no aspect ratio (the photo's own);
+// text-to-video takes aspectRatio 16:9 / 9:16 / 1:1. Outputs are kept 14 days.
+// The key is ONLY the workspace's own (workspace-connections-core, category
+// 'media'): no platform env key is read.
+const POLLO_BASE = 'https://pollo.ai/api/platform';
+const POLLO_MODEL = 'kling-ai/kling-v2-5-turbo';
 const SYNC_WAIT_MS = 20000;   // hard cap on synchronous waiting inside one call
 const POLL_EVERY_MS = 5000;
 
@@ -59,6 +69,59 @@ function keys() {
 function anyKey() {
   const k = keys();
   return !!(k.gemini || k.openai || k.higgsfield || k.openmontage || k.runway);
+}
+
+async function polloKey() {
+  try {
+    const m = await require('./workspace-connections-core.js').mediaKeysForCurrentRequest();
+    return (m && m.pollo && m.pollo.api_key) || '';
+  } catch (_) { return ''; }
+}
+
+function polloRequest({ prompt, duration_s, aspect, image }) {
+  const duration = Number(duration_s) > 7 ? 10 : 5;
+  const input = /^https?:\/\/[^\s"'<>]+$/i.test(String(image || ''))
+    ? { image: String(image), prompt: String(prompt).slice(0, 1500), duration, mode: 'std' }
+    : { prompt: String(prompt).slice(0, 1500), aspectRatio: normAspect(aspect), duration };
+  return { provider: 'pollo', method: 'POST', url: POLLO_BASE + '/v1/generation/' + POLLO_MODEL + '/video', body: { input } };
+}
+
+async function runPollo(opts, key) {
+  const rq = polloRequest(opts);
+  const r = await _fetchJson(rq.url, { method: 'POST', headers: { 'x-api-key': key }, body: rq.body, timeoutMs: _submitMs(opts) });
+  if (!r.ok) return { ok: false, provider: 'pollo', error: 'HTTP ' + r.status + ': ' + polloError(r) };
+  const id = r.data && r.data.taskId;
+  if (!id) return { ok: false, provider: 'pollo', error: 'no taskId in response' };
+  // The work is billed to the workspace's own Pollo account: recorded as its
+  // own answer, so the credit meter charges this app's credits for none of it.
+  try { require('./request-scope.js').noteLlm('ok', { own: true, kind: 'video', provider: 'pollo', model: POLLO_MODEL }); } catch (_) { /* no scope */ }
+  return { ok: true, provider: 'pollo', job_id: String(id), status: 'processing', model: POLLO_MODEL, mode: rq.body.input.image ? 'image-to-video' : 'text-to-video', note: 'Pollo keeps the finished video for 14 days; download it before then.' };
+}
+
+function polloError(r) {
+  const d = r && r.data;
+  if (d && (d.errorCode || d.message)) return String(d.errorCode || '') + (d.message ? ' ' + String(d.message) : '');
+  return String((r && r.errText) || '').slice(0, 200);
+}
+
+async function statusPollo(jobId) {
+  const key = await polloKey();
+  const url = POLLO_BASE + '/v1/generation/' + encodeURIComponent(jobId) + '/status';
+  if (!key) return _notConnected({ provider: 'pollo', method: 'GET', url, body: undefined });
+  const r = await _fetchJson(url, { headers: { 'x-api-key': key } });
+  if (!r.ok) return { ok: false, provider: 'pollo', job_id: jobId, status: 'unknown', error: 'HTTP ' + r.status + ': ' + polloError(r) };
+  const g = (r.data && Array.isArray(r.data.generations) && r.data.generations[0]) || null;
+  if (!g) return { ok: true, provider: 'pollo', job_id: jobId, status: 'processing' };
+  if (g.status === 'succeed' && g.url) return { ok: true, provider: 'pollo', job_id: jobId, status: 'completed', video_url: g.url, cover: g.cover || null, model: POLLO_MODEL };
+  if (g.status === 'failed') return { ok: false, provider: 'pollo', job_id: jobId, status: 'failed', error: String(g.failMsg || 'failed').slice(0, 300) };
+  return { ok: true, provider: 'pollo', job_id: jobId, status: 'processing' };
+}
+
+/** The account's credit balance: the connection check, which spends nothing. */
+async function polloBalance(key) {
+  const r = await _fetchJson(POLLO_BASE + '/v1/credit/balance', { headers: { 'x-api-key': key }, timeoutMs: 8000 });
+  if (!r.ok) return { ok: false, status: r.status };
+  return { ok: true, available: Number(r.data && r.data.availableCredits) || 0 };
 }
 
 // Map generic aspect ratios per provider.
@@ -473,12 +536,31 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
   const audio = audioBedFor(duration_s, { voiceover, brand });
   const k = keys();
 
+  // The workspace's OWN Pollo key goes first, free generation or not: it is the
+  // person's own spend, as an own image key is in api/ai/image.js. The product's
+  // own photo (the first one the caller sent) is the first frame.
+  const ownPollo = await polloKey();
+  const pAttempts = [];
+  if (ownPollo) {
+    const image = motion && Array.isArray(motion.images) ? motion.images.find((u) => /^https?:\/\//i.test(String(u || ''))) : '';
+    try {
+      const out = await runPollo(Object.assign({}, opts, { image }), ownPollo);
+      if (out.ok) return Object.assign({}, out, { tier, audio, attempts: [] });
+      pAttempts.push({ provider: 'pollo', error: out.error });
+    } catch (e) {
+      pAttempts.push({ provider: 'pollo', error: String((e && e.message) || e).slice(0, 200) });
+    }
+  }
+
   // FREE FIRST (2026-10-17, the operator: "everything will cost the user
   // credits - but it should be done for free in the backend"): with free
   // generation on, the creative is rendered in code and no paid video provider
   // is called, key or no key. FREE_GENERATION=off restores the provider cascade.
   const freeFirst = String(process.env.FREE_GENERATION || '').trim().toLowerCase() !== 'off';
   if (!anyKey() || freeFirst) {
+    if (pAttempts.length) {
+      try { return Object.assign(codeMotion({ brand, motion, duration_s, aspect, attempts: pAttempts, reason: 'your Pollo key did not start a video (' + pAttempts[0].error + ')' }), { provider_error: 'Pollo: ' + pAttempts[0].error }); } catch (_) { /* fall through */ }
+    }
     // Best rung's exact request shape — honour the caller's first preference.
     const first = (preferProviders && preferProviders[0]) || 'veo';
     const shape = { higgsfield: higgsfieldRequest, openmontage: openMontageRequest, sora: soraRequest, runway: runwayRequest, veo: veoRequest }[first] || veoRequest;
@@ -506,7 +588,7 @@ async function generateVideo({ prompt, duration_s = 8, aspect = '16:9', tier = '
     rungs = rungs.slice().sort((a, b) => rank(a.name) - rank(b.name));
   }
 
-  const attempts = [];
+  const attempts = pAttempts.slice();
   for (const rung of rungs) {
     if (!rung.hasKey) { attempts.push({ provider: rung.name, skipped: 'no key' }); continue; }
     if (opts.deadline - Date.now() < 2000) { attempts.push({ provider: rung.name, skipped: 'call budget exhausted' }); continue; }
@@ -553,13 +635,14 @@ async function getVideoStatus({ provider, job_id } = {}) {
     case 'higgsfield': return statusHiggsfield(id);
     case 'openmontage': return statusOpenMontage(id);
     case 'runway': return statusRunway(id);
+    case 'pollo': return statusPollo(id);
     case 'code-motion':
       return { ok: true, provider: 'code-motion', job_id: id, status: 'rendered', video_url: null, mp4: null, note: 'A code-rendered motion creative is returned whole by generateVideo; there is no job to poll.' };
     default:
-      return { ok: false, error: "Unknown video provider '" + provider + "'", available: ['veo', 'sora', 'higgsfield', 'openmontage', 'runway'] };
+      return { ok: false, error: "Unknown video provider '" + provider + "'", available: ['pollo', 'veo', 'sora', 'higgsfield', 'openmontage', 'runway'] };
   }
 }
 
 function isConnected() { return anyKey(); }
 
-module.exports = { generateVideo, getVideoStatus, isConnected, codeMotion, AUDIO_BEDS, audioBedFor };
+module.exports = { generateVideo, getVideoStatus, isConnected, codeMotion, AUDIO_BEDS, audioBedFor, polloRequest, polloBalance, POLLO_MODEL };
