@@ -869,6 +869,13 @@ add('music-job', { gate: 'user', browser: 'refuse', run: { method: 'GET', query:
     { name: 'an id this app did not issue is refused before Replicate', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }), run: { method: 'GET', query: { id: '../../account' } },
       stubs: noOwnMusic,
       expect: (r) => { expect(r.status).toBe(400); expect(guard.calls.filter((c) => /replicate/.test(c.url))).toEqual([]); } },
+    { name: 'a delivery host that stalls is a 504 the page can retry, inside the bound (Codex, #358)', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness', MUSIC_JOB_DOWNLOAD_MS: '1500' }),
+      stubs: () => {
+        noOwnMusic();
+        guard.route((u) => u === 'https://api.replicate.com/v1/predictions/p2defgh', () => H.reply(200, JSON.stringify({ id: 'p2defgh', status: 'succeeded', output: 'https://replicate.delivery/yhqm/bed.mp3' }), { 'content-type': 'application/json' }));
+        guard.route((u) => u === 'https://replicate.delivery/yhqm/bed.mp3', () => new Promise(() => {}));
+      },
+      expect: (r) => { expect(r.status).toBe(504); expect(r.out.error).toBe('job_download_slow'); } },
     { name: 'a finished file outside Replicate\'s delivery host is never fetched', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness' }),
       stubs: () => { noOwnMusic(); guard.route((u) => u === 'https://api.replicate.com/v1/predictions/p2defgh', () => H.reply(200, JSON.stringify({ id: 'p2defgh', status: 'succeeded', output: 'https://evil.example/x.mp3' }), { 'content-type': 'application/json' })); },
       expect: (r) => { expect(r.status).toBe(502); expect(guard.calls.filter((c) => /evil\.example/.test(c.url))).toEqual([]); } },

@@ -355,51 +355,49 @@ async function compose(spec, opts = {}) {
   const image = spec.image_url ? await imageFor(spec.image_url, opts) : null;
   const lyriaSpec = { prompt, seconds, image };
 
+  // Every key the workspace connected is tried before any of the platform's
+  // (Codex, #358): its own Gemini (Lyria), ElevenLabs and Replicate, then the
+  // platform's in the same order. Its own keys cost it nothing.
   const own = opts.own !== undefined ? opts.own : await ownGemini();
-  if (own) {
-    const r = await callLyria(lyriaSpec, own, opts);
-    if (r.ok) {
-      note('ok', { own: true, kind: 'audio', provider: 'gemini', model: r.model });
-      return { ok: true, audio: r.audio, mime: r.mime, provider: 'lyria', model: r.model, quality: 'studio', own: true, sung: r.sung, refusals, image: !!image };
-    }
-    refusals.push('Your Gemini connection: ' + r.error);
-  }
-  const platformKey = clean(process.env.GEMINI_API_KEY);
-  if (platformKey && String(process.env.LYRIA_PLATFORM || '').toLowerCase() !== 'off') {
-    const r = await callLyria(lyriaSpec, { apiKey: platformKey }, opts);
-    if (r.ok) {
-      note('ok', { own: false, kind: 'audio', provider: 'gemini', model: r.model });
-      return { ok: true, audio: r.audio, mime: r.mime, provider: 'lyria', model: r.model, quality: 'studio', own: false, sung: r.sung, refusals, image: !!image };
-    }
-    refusals.push('The platform\'s Gemini key: ' + r.error);
-  }
+  const platformKey = String(process.env.LYRIA_PLATFORM || '').toLowerCase() !== 'off' ? clean(process.env.GEMINI_API_KEY) : '';
   const deadline = opts.deadline || (Date.now() + 100000);
   const media = opts.ownKeys !== undefined ? (opts.ownKeys || {}) : await ownMediaKeys();
   const sources = [];
   const add = (src, kind, key) => { if (key) sources.push({ src, kind, key }); };
+  add('own', 'lyria', own);
   add('own', 'elevenlabs', media.elevenlabs);
   add('own', 'replicate', media.replicate);
+  add('platform', 'lyria', platformKey ? { apiKey: platformKey } : null);
   add('platform', 'elevenlabs', clean(process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || process.env.XI_API_KEY));
   add('platform', 'replicate', clean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY));
-  const LABEL = { elevenlabs: 'ElevenLabs', replicate: 'Replicate' };
+  const LABEL = { lyria: 'Gemini', elevenlabs: 'ElevenLabs', replicate: 'Replicate' };
   for (const s of sources) {
     if (deadline - Date.now() < 15000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
-    const own = s.src === 'own';
+    const mine = s.src === 'own';
+    if (s.kind === 'lyria') {
+      const r = await callLyria(lyriaSpec, s.key, opts);
+      if (r.ok) {
+        note('ok', { own: mine, kind: 'audio', provider: 'gemini', model: r.model });
+        return { ok: true, audio: r.audio, mime: r.mime, provider: 'lyria', model: r.model, quality: 'studio', own: mine, sung: r.sung, refusals, image: !!image };
+      }
+      refusals.push((mine ? 'Your Gemini connection: ' : 'The platform\'s Gemini key: ') + r.error);
+      continue;
+    }
     let r;
     if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline });
     else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline, src: s.src, owner: opts.owner });
     if (r.ok) {
-      note('ok', { own, kind: 'audio', provider: s.kind, model: r.model });
+      note('ok', { own: mine, kind: 'audio', provider: s.kind, model: r.model });
       const said = r.vocal_fallback ? ' The singing model did not answer, so this one is instrumental.' : '';
-      const base = { ok: true, provider: s.kind, model: r.model, quality: 'studio', own, sung: r.sung || '', refusals, image: false,
+      const base = { ok: true, provider: s.kind, model: r.model, quality: 'studio', own: mine, sung: r.sung || '', refusals, image: false,
         message: (refusals.length ? refusals.join(' ') : '') + said };
       if (r.pending) return Object.assign(base, { pending: true, job: r.job });
       return Object.assign(base, { audio: r.audio, mime: r.mime, songId: r.songId });
     }
-    refusals.push((own ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
+    refusals.push((mine ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
   }
   if (!opts.freeGeneration) {
-    if (!own && !platformKey && !sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
+    if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
     return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
   const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true });
