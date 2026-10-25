@@ -397,6 +397,9 @@ test('the /brain preview shows each message as its own pane, copies the plain te
       document.body.appendChild(host);
       // eslint-disable-next-line no-undef
       renderPreview({ campaign }, { id: 'chan-slot', channels: ['email', 'sms', 'whatsapp', 'push'], __device: true }, 0, { target: host });
+      // The preview is grouped by kind (2026-10-24): the messages are one press away.
+      const tab = host.querySelector('.pvgroups .pvtab[data-group="msg"]');
+      if (tab) tab.click();
       return [...host.querySelectorAll('[id^="pv-msg-"]')].map((x) => x.id);
     }, JSON.parse(JSON.stringify(c)));
     expect(ids).toEqual(['pv-msg-sms', 'pv-msg-whatsapp', 'pv-msg-push']);

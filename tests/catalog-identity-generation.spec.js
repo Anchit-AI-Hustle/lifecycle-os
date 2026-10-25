@@ -281,11 +281,33 @@ test.describe('the server', () => {
     }
     expect(w.db.find('smart_calendar_entries', (x) => x.id === 'cal_old_final').status).toBe('approved');
 
+    // Production, 2026-10-24 (Lenskart): the page holds the slot as the server
+    // planned it for the record as it is NOW, under the id of a stored row that
+    // still carries the earlier stamp. That slot is built (the row is re-planned
+    // in place with it), never refused; an approved row is still never replaced.
+    r = await plan('coherent', 'smart-brain-plan');
+    const nowIdent = ((JSON.parse(r.answer).entries || [])[0] || {}).__brand_identity;
+    expect(nowIdent).toMatch(/^bi2:/);
+    const current = (id) => ({ id, date, market: 'IN', cohort: { name: 'Nurture', size: null, estimated: true }, objective: 'second-order activation',
+      channels: ['email'], __brand_identity: nowIdent });
+    r = await plan('coherent', 'smart-brain-preview', { id: 'cal_old_record', entry: current('cal_old_record') });
+    expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
+    expect(r.answer, 'the stale bundle was replayed').not.toMatch(/Air Force|Mamaearth/);
+    const adopted = w.db.find('smart_calendar_entries', (x) => x.id === 'cal_old_record');
+    expect(adopted.payload.__brand_identity).toBe(nowIdent);
+    r = await plan('coherent', 'smart-brain-preview', { id: 'cal_old_final', entry: current('cal_old_final') });
+    expect(r.res.status).toBe(409);
+    expect(JSON.parse(r.answer).message, 'a refusal carries its sentence').toMatch(/earlier version/);
+    expect(w.db.find('smart_calendar_entries', (x) => x.id === 'cal_old_final').payload.__brand_identity).toBe('bi1:000000000000000000000000');
+    // A slot from the page still stamped for the earlier record stays refused.
+    r = await plan('coherent', 'smart-brain-preview', { id: 'cal_old_unstamped', entry: Object.assign(current('cal_old_unstamped'), { __brand_identity: 'bi1:000000000000000000000000' }) });
+    expect(r.res.status).toBe(409);
+
     // Daily Sync archives the writable ones with the reason and plans afresh;
     // every slot it writes carries the current record's fingerprint.
     r = await plan('coherent', 'smart-brain-sync-daily');
     expect(r.res.status, r.answer.slice(0, 300)).toBe(200);
-    for (const id of ['cal_old_record', 'cal_old_unstamped']) {
+    for (const id of ['cal_old_unstamped']) {
       const row = w.db.find('smart_calendar_entries', (x) => x.id === id);
       expect(row.status, id).toBe('archived');
       expect(row.change_log.map((c) => c.kind)).toContain('brand_changed');

@@ -4,6 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Asset review: mailers, landing pages, Story video, a grouped preview (2026-10-24)
+The operator: "review each asset's creation logic and rate asset wise ... mailers and landing pages are atrocious",
+then "proper video ads up to 30 s ... keep [the transitional] variant too" and "too cumbersome to view all the output".
+Rendered a Lenskart-shaped build (no industry, claims or legal sender, as production holds it) and fixed at source:
+- **Titles**: `mailer-format.dedupeTitle()` drops an exactly repeated leading phrase of 2+ words ("Bausch & Lomb Lacelle
+  Bausch & Lomb Lacelle ..."), at the catalogue read (`brand-catalog-server.fromRow`) and on stored slots at build.
+- **Text mailers** list the slot's products (name to its own page, price, View) in words, no photographs; one CTA
+  before the list; a price-only subline is dropped; the footer does not print the brand name twice.
+- **Text + Visual**: a name over 32 characters is the product's line under the picture, not spaced capitals; the
+  brand-led variant is the headline on the brand's ground with every product pictured (only when 2+ products have
+  their own photo, `ownPhotoCount`), not the product-led mail again.
+- **Landing pages** (both paths through `lpHtml`): logo in the header linked to the website, hero button on the band
+  at 3:1 (WCAG 1.4.11) else the surface, the mail's own opening line under the headline, cards with price and View to
+  the product's OWN page (no guessed `/products/<handle>`), B = a collection page (2+ pictured products), footer with
+  the website, two-column cards on phones.
+- **Story video** (`scripts/lib/story-ad.js`, `creative.story_html` / `story_brief`): hook, each product with its
+  price, the ad's own lines, end card, at most 30 s; drawn on a canvas and saved as MP4/WebM in the browser; a photo
+  host with no CORS is said, nothing blank is saved. The transitional creative stays. Gated by `story-video-ad`.
+- **/brain preview** grouped by kind (Mailers / Landing pages / Ads / Messages / Why / Data, with counts, plus All),
+  one kind at a time, items in columns. Tests that measure every asset press All.
+- `onboarding` step-1 list keeps an open delete panel and its typed text across a redraw (CI race).
+- **Long-form landing page** (the operator, with a tea brand's landing pages + reusable-section library: "implement it for any
+  brand"): offer bar (a stated offer, the shipping promise) → hero (button, trust pills) → numbered reasons with the
+  product's own photos → the details (size, servings, type, the store's description) → a buy box (price against the
+  compare-at with the saving, per serving from stated servings, pack line, CTA, service checklist) → other products →
+  reviews (approved/site only) → About <brand> (its own description) → FAQ → closing button → legal footer + sticky
+  bar. Every section only from stated facts (no rating, countdown, stock, gift or study is supplied); each claim has
+  ONE home (service promises: bar + checklist; others: reasons + pills). Story scenes go through unit-words.
+  Gated by `landing-page-structure`.
+
+## ⭐ /brain: a slot planned now is built, never refused for an older stored row (2026-10-24)
+Production /brain (Lenskart): every View and Generate all answered `brand_changed` ("0 generated, 8 failed") right
+after a Daily Sync that said "no material changes". Stored rows kept an earlier record fingerprint (their in-place
+refresh did not land, and a failed write was not reported), getPlan filtered them out and served the freshly planned
+slots under the SAME ids, and preview/approve then judged the stale row. `adoptCurrentSlot()`: when the request carries
+the slot stamped with the CURRENT fingerprint and the stored row is writable, the row is re-planned in place with it and
+the build goes on; an approved/final row and a slot still stamped for the old record stay refused. A sync write that
+does not land is a `not_saved` change, never "no material changes". The page throws the server's `message` (it showed
+"did not explain why") and re-plans once on `brand_changed`. Also: the Launch headline no longer reads "Meet Your New
+New Arrivals", a brief sentence written to the operator ("Our next Campaign ... speaks to ... customers in IN") is never
+the hero sub-copy, the Bestseller sub-copy no longer prints an explanation to the customer, an unmeasured cohort says
+"size not measured" (not "0 profiles"), objectives say the product's display name, the working tile moves off a page's
+own progress line, /brain has a jump bar and a back-to-top button, and Platform Connections is its own rail item beside
+AI Models & Routing. Gated in `catalog-identity-generation` (mutation-checked) and `cta-activity`.
+
+## ⭐ Landing page format follows the audience, from a landing-page benchmark (2026-10-25)
+The operator: "do complete benchmarking on platforms where you can see competitor mailers, ads etc like pagedeck".
+Read: Pagedeck's published analyses of pages behind long-running paid ads (robots allows), recorded with sources in
+`data/benchmarks/landing-reference.json` (rules: message match, one goal, offer above the fold, proof at the doubt,
+a buy box that does the arithmetic; formats by traffic temperature). NOT read: milled.com (robots disallows ClaudeBot,
+ai-train=no), Meta's Ad Library page (refused here; competitor ads stay on ci_ads + Apify in ad-angle-lab); mail stays
+on Really Good Emails (`mail-reference.json`). Built: `smart-brain-plan.landingFormat()` - variant A is the direct
+offer; variant B is a LISTICLE for a cold or lapsed cohort (`COOL_COHORT`) when the brand states 3+ non-service
+reasons (`listicleReasons`: the copy's why-bullets + the record's claims, never padded), headline "N reasons to come
+back to / choose <brand>", the product card after reason one, a button after each reason, the buy box last; else the
+collection page with 2+ pictured products, else direct offer. `lp.format` records it. Not built: advertorial (needs a
+problem/mechanism story the record does not state, and FTC disclosure) and quiz. Gated in
+`tests/landing-page-structure.spec.js`.
+
+## ⭐ A review mail rates in one tap, and every rater is offered the public review (2026-10-24)
+From a tea brand's "star rating widget with redirection logic" sample, WITHOUT its gating (1-3 stars kept private, 4-5
+sent to Trustpilot): review gating is prohibited by the FTC's 16 CFR 465 (review suppression), Trustpilot and Google.
+`review-recovery.reviewMailerHtml` shows five star links (when `selfBaseUrl()` and the brand's workspace uuid exist,
+else its one button) to `/review` = `public-config.js?action=review-page` (`api/_shared/review-feedback.js`, still
+12/12): the brand's tokens, the rating set and changeable, a line, what fell short, order again, follow-up; POST
+`?action=review-feedback` (rate-limited per instance) stores through the service role into `brand_review_feedback`
+(migration `20261024230000`; members read via `is_brand_member`; no email or phone stored, only the order ref and a
+hashed address) and 303s to the thank-you page. The public review link (`brand_data.review_url`, else the product's
+own page `#reviews`) is on BOTH pages at EVERY rating. Gated by `tests/review-feedback.spec.js`.
+
 ## ⭐ Gemini: Sign in with Google; a key saves with nothing set on the host (2026-10-24)
 The operator: "signin must completely integrate the signin to use the model - not just open key creation page",
 "google sign in or whatever signin mode that model accepts", and "if you save to my vercel, users will raise problems -

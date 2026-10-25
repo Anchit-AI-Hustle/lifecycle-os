@@ -749,9 +749,27 @@ function _renderVariantBody(o) {
       <tr><td align="center" data-mail-footer style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${footerClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${footerClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${esc([brandOrg(o).name, brandOrg(o).address].filter(Boolean).join(' · '))}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
+  // THE TEXT MAIL NAMES WHAT IT SELLS (2026-10-24, Lenskart: the Text
+  // variants said "Take another look" and "₹759" and never named a product).
+  // Typographic, no photographs: each product of the slot as a row - its name
+  // linking to its own page, its price - between rules in the brand's line
+  // colour. Only products the slot carries; nothing is added.
+  const _line = _bpal.line || palette.tile;
+  const listItems = Array.isArray(o.product_list) ? o.product_list.filter((p) => p && p.title).slice(0, 4) : [];
+  const _money = (p) => { if (p.price == null || p.price === '') return ''; const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return ''; };
+  const productList = listItems.length ? listItems.map((p, i) => {
+    const href = p.url || baseUrl;
+    const price = _money(p);
+    return `<tr><td data-mail-item style="padding:14px 0;border-top:1px solid ${_line};${i === listItems.length - 1 ? `border-bottom:1px solid ${_line};` : ''}">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td valign="top" style="font-family:${HEAD};font-size:15px;line-height:1.4;color:${palette.ink};font-weight:600;padding-right:12px;"><a href="${esc(href)}" target="_blank" style="color:${palette.ink};text-decoration:none;">${esc(p.title)}</a></td>
+            <td valign="top" align="right" style="font-family:${BODY};font-size:15px;line-height:1.4;color:${palette.ink};white-space:nowrap;">${price ? esc(price) : ''}${price ? '&nbsp;&nbsp;' : ''}<a href="${esc(href)}" target="_blank" style="color:${palette.greenText};text-decoration:underline;font-weight:600;">View</a></td>
+          </tr></table>
+        </td></tr>`;
+  }).join('') : '';
   const blocks = (body_blocks || []).map((b) => `
     <tr><td style="padding:18px 32px 0;">
       ${b.heading ? `<p style="font-family:${HEAD};font-size:20px;color:${palette.green};margin:0 0 6px;letter-spacing:0.2px;">${esc(b.heading)}</p>` : ''}
@@ -787,7 +805,12 @@ function _renderVariantBody(o) {
     // The eyebrow names the product as a person says it: the range, never the
     // model code ("JOHN JACOBS", not "JOHN JACOBS JJ S16881", 2026-10-18).
     const _say = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? MF.displayName(hero_product) : '';
-    const heroLabel = _say && _fold(_say) !== _fold(hero_headline) && !_fold(hero_headline).includes(_fold(_say)) ? esc(_say) : '';
+    const _named = _say && _fold(_say) !== _fold(hero_headline) && !_fold(hero_headline).includes(_fold(_say)) ? _say : '';
+    // A long name is not set in spaced capitals over the headline (Lenskart,
+    // 2026-10-24: "BAUSCH & LOMB LACELLE ... POWERED QUARTERLY"): it reads as
+    // the product's own line under the picture instead.
+    const heroLabel = _named && _named.length <= 32 ? esc(_named) : '';
+    const heroName = _named && !heroLabel ? _named : '';
     const border = _core ? _core.readableAsText(palette.lava, '#ffffff', 1.3) : '#e6e6e6';
     // 1. The picture, full width, linked to the page the button goes to.
     const heroImgRow = hero_image_url ? `
@@ -824,6 +847,10 @@ function _renderVariantBody(o) {
     const captionRow = _cap && !_bodyTxt.includes(_fold(_cap)) ? `
       <tr><td align="center" style="padding:14px 40px 0;">
         <p data-mail-caption style="font-family:${BODY};font-size:14px;line-height:1.5;color:${palette.mutedOnSurface};margin:0;text-align:center;">${esc(_cap)}</p>
+      </td></tr>` : '';
+    const heroNameRow = heroName && (hero_image_url || hero_prompt) ? `
+      <tr><td align="center" style="padding:16px 40px 0;">
+        <p data-mail-product style="font-family:${HEAD};font-size:17px;line-height:1.4;font-weight:700;color:${palette.ink};margin:0;text-align:center;">${esc(heroName)}</p>
       </td></tr>` : '';
     const sublineRow = hero_subline ? `
       <tr><td style="padding:20px 40px 0;">
@@ -906,7 +933,7 @@ function _renderVariantBody(o) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:28px 12px;">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${border};border-radius:14px;overflow:hidden;">
-      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${captionRow}${sublineRow}${ctaPair}
+      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${heroNameRow}${captionRow}${sublineRow}${ctaPair}
       ${blocks}
       ${gridSection}
       ${strip}
@@ -936,12 +963,13 @@ function _renderVariantBody(o) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, align: 'left', pad: '0 0 18px' })}</table>
         <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
-        ${textBlocks.length > 1 ? textBlocks.slice(0, 1).join('') + `<p style="font-family:${BODY};font-size:15px;line-height:1.6;margin:0 0 18px;"><a href="${baseUrl}" data-ds="cta-link" style="color:${palette.greenText};text-decoration:underline;font-weight:600;">${esc(cta_text)} →</a></p>` + textBlocks.slice(1).join('') : textBlocks.join('')}
-        <p style="font-family:${BODY};font-size:14px;line-height:1.6;color:${palette.ink};margin:24px 0 6px;">
+        ${textBlocks.join('')}
+        <p style="font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:8px 0 18px;">
           <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
         </p>
+        ${productList ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 4px;">${productList}</table>` : ''}
         <p style="font-family:${BODY};font-size:11px;color:${palette.mutedOnSurface};margin:18px 0 0;">The ${esc(teamName(brandNameOf(o)))} team</p>
-        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid #ece4d2;padding-top:16px;">${esc([brandOrg(o).name, brandOrg(o).address].filter(Boolean).join(', '))}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
+        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid ${_line};padding-top:16px;">${esc([brandOrg(o).name, brandOrg(o).address].filter(Boolean).join(', '))}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
       </td></tr>
     </table>
   </td></tr>
@@ -954,7 +982,7 @@ function _renderVariantBody(o) {
 <html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:36px 16px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid ${_line};">
       ${offerBarRow}${brandHeader}
       <tr><td style="padding:24px 32px 0;">
         <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
@@ -980,18 +1008,19 @@ function _renderVariantBody(o) {
 <html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
   <tr><td align="center" style="padding:36px 16px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #ece4d2;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid ${_line};">
       ${offerBarRow}${brandHeader}
-      <tr><td style="padding:20px 32px 0;border-bottom:1px solid #ece4d2;">
+      <tr><td style="padding:20px 32px 0;">
         <h1 data-ds="h1" style="${h1Style}">${esc(hero_headline)}</h1>
         <p data-ds="body" style="${subStyle}">${esc(hero_subline)}</p>
       </td></tr>
-      ${ctaRow('4px 32px 22px')}
+      ${ctaRow('4px 32px 10px')}
       ${blocks}
       ${productGrid}
-      <tr><td style="padding:26px 32px 8px;text-align:center;border-top:1px solid #ece4d2;">
+      ${productList ? `<tr><td style="padding:22px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${productList}</table></td></tr>` : ''}
+      ${productList || productGrid || (body_blocks || []).length > 1 ? `<tr><td style="padding:26px 32px 8px;text-align:center;">
         <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
-      </td></tr>
+      </td></tr>` : '<tr><td style="padding:0 0 18px;font-size:1px;line-height:1px;">&nbsp;</td></tr>'}
       ${secondaryCta}
       ${brandFooter}
     </table>

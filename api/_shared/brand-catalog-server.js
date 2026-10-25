@@ -173,7 +173,7 @@ function fromRow(row) {
   const img = typeof row.image_url === 'string' && /^https?:\/\//.test(row.image_url) ? row.image_url : '';
   const cols = Array.isArray(row.collections) ? row.collections.map((c) => String(c).toLowerCase()) : [];
   return {
-    n: title,
+    n: require('./mailer-format.js').dedupeTitle(title),
     i: img,
     // Every image the import read for this product (image_urls), the first
     // being image_url; the resolver's provenance rules apply to each.

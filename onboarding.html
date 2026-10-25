@@ -3476,6 +3476,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var rows = r.workspaces || [];
       var active = r.active_id || (window.BrandContext.brand && window.BrandContext.brand.id);
       if (!rows.length) { host.innerHTML = ''; return; }
+      // A delete confirmation open in this list survives the list being drawn
+      // again (2026-10-24, CI: a late refresh redrew the rows while a person
+      // was typing the name, and their panel and text vanished).
+      var openDel = host.querySelector('[data-delete-confirm]');
+      var keep = openDel ? { id: openDel.getAttribute('data-delete-confirm'), text: ((openDel.querySelector('[data-del-name]') || {}).value) || '' } : null;
       host.innerHTML =
         '<label style="display:block;margin:0 0 6px">Your brands <span class="note">' + rows.length + '</span></label>' +
         rows.map(function (w) {
@@ -3512,6 +3517,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
       var nb = $('newBrandStep1');
       if (nb) nb.addEventListener('click', function () { startNewBrand(); go(1); try { history.replaceState(history.state, '', '/onboarding?new=1&step=1'); } catch (_) {} });
+      if (keep) {
+        var keepRow = rows.filter(function (w) { return w.id === keep.id; })[0];
+        var keepEl = keepRow && host.querySelector('[data-ws="' + (window.CSS && CSS.escape ? CSS.escape(keep.id) : keep.id) + '"]');
+        if (keepEl) {
+          confirmDeleteBrand(keep.id, keepRow, active, function () { loadStep1Brands(); }, keepEl);
+          var inp = host.querySelector('[data-delete-confirm] [data-del-name]');
+          if (inp && keep.text) { inp.value = keep.text; inp.dispatchEvent(new Event('input')); }
+        }
+      }
     } catch (e) {
       host.innerHTML = '';
     }

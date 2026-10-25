@@ -439,7 +439,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         offer,
         why,
         analysis: buildEntryAnalysis({
-          cohort: { name: job.name, size: null },
+          cohort: { name: job.name, size: null, estimated: true },
           product: hero,
           channels: plannedChannels(require('../../lib/smart-brain/services.js').BASE_CHANNELS, brand),
           objective,
@@ -695,7 +695,9 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       // row read "Drive the reader to buy this product." whatever the cohort,
       // so a lapsed customer and a first-time reader got the same brief. A
       // dated offering keeps its phase's job (the date is the reason to send).
-      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, useOff.name, rotated.job);
+      // The job names the product as a person says it: the range, never the
+      // store's model code ("Vincent Chase Online VC E13033" -> "Vincent Chase Online").
+      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, require('./mailer-format.js').displayName(useOff.name) || useOff.name, rotated.job);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
@@ -737,7 +739,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         phase: rotated.phase,
         why: `Planned from ${brand.name}'s own catalogue: ${useOff.kind} "${useOff.name}"${rotated.phase && rotated.phase !== 'evergreen' ? `, ${rotated.phase} phase` : ''}${moment ? `, on ${moment.name} in ${market}` : ''}. Confidence is a DEMO figure; connect real analytics to replace it.`,
         analysis: buildEntryAnalysis({
-          cohort: { name: cohort, size: 0 },
+          cohort: { name: cohort, size: null, estimated: true },
           product: { title: useOff.name, category: useOff.kind },
           channels: plannedChannels(require('../../lib/smart-brain/services.js').BASE_CHANNELS, brand),
           objective,
@@ -948,6 +950,33 @@ function slotForOtherRecord(entry, row, ident) {
   if (!ident) return !!row || !!(entry && entry[IDENTITY_KEY]);
   if (row) return !identityMatches((row.payload || {})[IDENTITY_KEY], ident);
   return !!(entry && entry[IDENTITY_KEY]) && entry[IDENTITY_KEY] !== ident;
+}
+
+// A stored row stamped for an earlier version of the record, when the request
+// carries the SAME slot as the server planned it for the record as it is now
+// (2026-10-24, production /brain, Lenskart): Daily Sync's in-place refresh of
+// such rows did not land, getPlan then served the freshly planned slots under
+// the same ids, and every View and Generate all was refused "brand_changed".
+// The current plan wins: the row is re-planned in place with the slot the
+// page holds, its old campaign link dropped, and the build goes on. An
+// approved/final row is its reviewer's and is never replaced this way.
+async function adoptCurrentSlot(entry, row, ident, db, config) {
+  if (!row || !ident || !entry || entry[IDENTITY_KEY] !== ident) return false;
+  if (identityMatches((row.payload || {})[IDENTITY_KEY], ident)) return false;
+  if (!['tentative', 'rejected', 'needs_human_verification'].includes(row.status)) return false;
+  const payload = { ...entry };
+  delete payload[PREBUILD_MARKER];
+  delete payload[PREVIEW_MARKER];
+  delete payload.brand;
+  delete payload.workspace_id;
+  const log = Array.isArray(row.change_log) ? row.change_log.slice(-30) : [];
+  log.push({ at: nowIso(), kind: 'updated', detail: 'built for another brand record: re-planned for this one' });
+  try {
+    await db.update(config.tableNames.calendarEntries, { id: `eq.${row.id}`, status: SYNC_WRITABLE_STATUSES },
+      { status: 'tentative', payload, change_log: log, updated_at: nowIso() });
+  } catch (_) { /* the build below does not depend on the write */ }
+  row.payload = payload; row.status = 'tentative'; row.generated_campaign_id = null;
+  return true;
 }
 
 function materialDiff(oldPayload, fresh) {
@@ -1261,6 +1290,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
         } else results.skipped_locked += 1; // human approved/finalized mid-sync
       } else { results.warnings.push(upd.warning); }
     }
+    // A write that did not land is said, never folded into "no material
+    // changes" (2026-10-24): the stored row keeps its old plan until it lands.
+    const lost = results.warnings.filter(Boolean);
+    if (lost.length) changes.push({ id: null, kind: 'not_saved', detail: `${lost.length} planned change(s) could not be saved to the calendar store; the plan shown is today's, and View or Generate re-plans each slot as it opens. First reason: ${String(lost[0]).slice(0, 240)}` });
     persistence = { ok: true, ...results };
     // Roll past slots out of the active window.
     await db.update(config.tableNames.calendarEntries, { date: `lt.${start}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', updated_at: nowIso() }).catch(() => {});
@@ -2057,6 +2090,34 @@ const textOn = (ground, surface, ink) => { const k = _wsCore(); try { return k ?
 // try.knickgasm.*-style presell landing page. Self-contained (inline CSS, no external
 // fonts/scripts) so it serves at /lp/:id AND exports as a deploy-ready file.
 // creativeUrl (optional) is a generated hero image from the creative pipeline.
+// Landing page FORMAT by the audience's temperature (2026-10-25, from the
+// landing-page benchmark, data/benchmarks/landing-reference.json): a warm
+// customer gets the direct offer (variant A) and, with two or more pictured
+// products, the collection; a cold or lapsed one gets the listicle, when the
+// brand states at least three reasons. Nothing is invented to reach three.
+const COOL_COHORT = /at risk|hibernat|\blost\b|sleep|can.?t lose|lapsed|win.?back|reactivat|prospect|\bcold\b|non.?engag|new visitor|first.?time/i;
+function listicleReasons(entry, copy) {
+  let b = null;
+  try { b = require('./brand-runtime.js').scopedBrand(entry && entry.brand); } catch (_) { b = (entry && entry.brand) || {}; }
+  const svc = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const L = (copy && copy.landing) || {};
+  const seen = new Set();
+  return [].concat(Array.isArray(L.why_bullets) ? L.why_bullets : [], Array.isArray(b && b.claims) ? b.claims : [])
+    .map((x) => String(x || '').trim()).filter((x) => x && x.length <= 120 && !svc.test(x) && !/^\[DATA REQUIRED/.test(x))
+    .filter((x) => { const k = x.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, 5);
+}
+function listicleHeadline(entry, n, name) {
+  const back = COOL_COHORT.test(String((entry && entry.cohort && entry.cohort.name) || '')) && !/prospect|cold|new visitor|first.?time/i.test(String((entry && entry.cohort && entry.cohort.name) || ''));
+  return `${n} reasons to ${back ? 'come back to' : 'choose'} ${name}`;
+}
+function landingFormat(entry, copy, variant) {
+  if (variant !== 'B') return 'direct-offer';
+  const cohort = String((entry && entry.cohort && (entry.cohort.name || entry.cohort.key)) || '') + ' ' + String((entry && entry.objective) || '');
+  if (COOL_COHORT.test(cohort) && listicleReasons(entry, copy).length >= 3) return 'listicle';
+  return ownPhotoCount(entry) >= 2 ? 'collection' : 'direct-offer';
+}
+
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // This page's own composition (asset-style.js): hero arrangement varies by
   // brand and slot; the brand's palette, type and radii do not.
@@ -2085,7 +2146,10 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // off that band (under 1.5:1, the reader's own CTA floor) left the page's
   // main action as bare text (2026-10-17 audit). Then it takes the surface.
   const _k = _wsCore();
-  const HERO_BTN = (_k && _k.contrast && _k.contrast(ACC, P) < 1.5) ? SURF : ACC;
+  // (3:1, WCAG 1.4.11's floor for a component, since 2026-10-24: a grey
+  // accent on a navy band passed 1.5 at 2.3:1 and the page's main button
+  // read as a dim block.)
+  const HERO_BTN = (_k && _k.contrast && _k.contrast(ACC, P) < 3) ? SURF : ACC;
   const ON_HERO_BTN = textOn(HERO_BTN, SURF, INKC);
   // A category is shown only when it reads as words: a store's raw tag list
   // ("af1,gaming,aesthetic") is not one.
@@ -2102,7 +2166,13 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _ds = _dsx ? _dsx.resolve(_b) : { present: false, head: FONT_HEAD, body: FONT_BODY, fonts: { faces: '', googleHref: '' } };
   const _dsCss = _dsx && _ds.present ? _dsx.lpCss(_ds, { surface: SURF, ink: INKC, primary: P, heroGround: P }) : { css: '', header: null };
   const HEADF = _ds.head || FONT_HEAD, BODYF = _ds.body || FONT_BODY;
-  const bClaims = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
+  const bClaimsAll = Array.isArray(_b.claims) ? _b.claims.filter(Boolean) : [];
+  // Each claim has ONE home on the page (2026-10-24): a service promise
+  // (shipping, returns, a guarantee) sits in the offer bar and the buy box's
+  // checklist; every other claim in the reasons and the hero's pills.
+  const _svcRe0 = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const _hasBuy0 = !!(entry.heroProduct && !entry.heroProduct.placeholder && Number(entry.heroProduct.price) > 0);
+  const bClaims = bClaimsAll.filter((c) => !(_hasBuy0 && _svcRe0.test(String(c))));
   // The store and currency are THIS brand's region record. Tenant zero's map
   // (master-prompt's REGION) answers only for tenant zero; any other brand
   // with no store for the market gets an honest dead link, not another
@@ -2123,7 +2193,9 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     try { sl = slotLinks(entry); } catch (_) { sl = null; }
     if (sl && /^https?:\/\//i.test(String(sl.pdp || ''))) shopUrl = sl.pdp;
   }
-  const cta = esc(L.cta || entry.cta || 'See more');
+  // The page's button says what the mail's button says when the page has no
+  // line of its own ("See more" sat under a product with a price, 2026-10-24).
+  const cta = esc(L.cta || (copy.email && copy.email.cta) || entry.cta || 'See more');
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
   // The market's own format ("₹1,450", not "₹1450"), through the one money
@@ -2214,9 +2286,19 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     ...bClaims.filter((c) => _whyItems.indexOf(String(c).trim().toLowerCase()) < 0).slice(0, 3),
   ];
   // The send's other products, by name, each to its own page (or the store).
-  const _others = (Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [])
-    .filter((x) => x && x.title && !/^\[DATA REQUIRED/.test(String(x.title))).slice(0, 3);
-  const _otherHref = (x) => (facts.store ? `https://${facts.store}${x.handle ? `/products/${x.handle}` : ''}` : '#');
+  // Variant B is a COLLECTION page (2026-10-24: it was A with "Why" in front
+  // of the headline): no hero photo, every product of the slot as a card, the
+  // hero's first.
+  const _collection = _o.layout === 'collection';
+  const _listicle = _o.layout === 'listicle';
+  const _others = (_collection && entry.heroProduct && !entry.heroProduct.placeholder ? [Object.assign({}, entry.heroProduct, { url: shopUrl })] : [])
+    .concat(Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [])
+    .filter((x) => x && x.title && !/^\[DATA REQUIRED/.test(String(x.title))).slice(0, _collection ? 4 : 3);
+  // The product's OWN page (2026-10-24: a guessed `/products/<handle>` on the
+  // store host is not a page Lenskart has), else the store.
+  const _otherHref = (x) => (/^https?:\/\//i.test(String(x.url || x.product_url || '')) ? String(x.url || x.product_url)
+    : (() => { try { const u = productUrl(x, entry.market, entry.brand); if (/^https?:\/\//i.test(String(u || ''))) return u; } catch (_) { /* store */ } return facts.store ? `https://${facts.store}` : shopUrl; })());
+  const _otherPrice = (x) => { const n = Number(x.price); if (!Number.isFinite(n) || n <= 0) return ''; try { return require('./brand-locale.js').money(n, _b, entry.market) || ''; } catch (_) { return ''; } };
   const _otherImg = (x) => { if (x.image) return x.image; try { return (catalogImage.imagesFor(x, entry.market, { width: 600, brand: entry.brand }) || [])[0] || ''; } catch (_) { return ''; } };
   const _othersAnyImg = _others.some((x) => _otherImg(x));
   // A brand with no other product on this send still names what it offers,
@@ -2226,6 +2308,86 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _offerList = (Array.isArray(_b.offerings) ? _b.offerings : [])
     .filter((o) => o && o.name && String(o.name).trim().toLowerCase() !== _heroName && !/^\[DATA REQUIRED/.test(String(o.name)))
     .slice(0, 6).map((o) => ({ name: String(o.name), url: /^https?:\/\//.test(String(o.url || '')) ? String(o.url) : '' }));
+  // ── THE LONG-FORM SALES PAGE (2026-10-24) ─────────────────────────────────
+  // The operator, with a tea brand's own landing pages and section library: "ensure
+  // proper well thought of structure of landing pages ... understand what type
+  // of content ... and implement it for any brand". The pattern those pages
+  // follow: an offer bar, the hero with a reassurance line and trust pills, the
+  // product's reasons as numbered rows with pictures, what is inside, a buy box
+  // (price against the compare-at, per-serving, pack, checklist), the reviews,
+  // who the brand is, the questions, the buy box again, the legal footer and a
+  // sticky bar. Each section is drawn ONLY from what the brand or its catalogue
+  // states: no figure, rating, countdown, stock level, gift or study is ever
+  // supplied for it, and a section with nothing to say is left out.
+  const _hp = entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct : null;
+  const _money = (n) => { const v = Number(n); if (!Number.isFinite(v) || v <= 0) return ''; try { return require('./brand-locale.js').money(v, _b, entry.market) || ''; } catch (_) { return ''; } };
+  const _svcRe = /ship|deliver|dispatch|return|refund|guarantee|warrant|exchange|cancel|trial|cash on delivery|\bcod\b/i;
+  const _svcAll = bClaimsAll.concat(_appClaims).map(String).filter((c) => _svcRe.test(c) && c.length <= 90).filter((c, i, a) => a.indexOf(c) === i);
+  const _annClaim = _svcAll.find((c) => /ship|deliver/i.test(c)) || '';
+  // The bar says the shipping promise; the checklist (or the reassurance line)
+  // says the others, so no promise is printed twice.
+  const _svcClaims = _svcAll.filter((c) => c !== _annClaim).slice(0, 3);
+  const _offerPct = Number(entry.offer && entry.offer.pct) || 0;
+  const _annc = [_offerPct > 0 ? `${_offerPct}% off` : '', _annClaim].filter(Boolean);
+  const anncBar = _annc.length ? `<div class="annc">${_annc.map(esc).join(' · ')}</div>` : '';
+  // The claims the reasons do not carry, as pills under the hero's button
+  // (they used to be a strip under the hero as well: said twice).
+  const _pillItems = _stripItems.filter((c) => !/^★/.test(c) && String(c).length <= 40);
+  const heroPills = _pillItems.length ? `<div class="pills">${_pillItems.map((c) => `<span>✓ ${esc(c)}</span>`).join('')}</div>` : '';
+  const _hasBuy = !!(entry.heroProduct && !entry.heroProduct.placeholder && Number(entry.heroProduct.price) > 0);
+  const heroAssure = _svcClaims.length && !_hasBuy ? `<p class="assure">${_svcClaims.slice(0, 2).map(esc).join(' · ')}</p>` : '';
+  // The product's own photographs, for the numbered rows.
+  const _gallery = (() => { if (!_hp) return []; let g = []; try { g = catalogImage.imagesFor(_hp, entry.market, { width: 900, brand: entry.brand }) || []; } catch (_) { g = []; } if (!g.length && /^https:\/\//i.test(String(_hp.image || ''))) g = [String(_hp.image)]; return g.filter((u) => u && u !== creativeUrl); })();
+  const _featItems = (L.why_bullets && L.why_bullets.length ? L.why_bullets : bClaims.slice(0, 3)).map(String).filter(Boolean).slice(0, 4);
+  const featRows = (_featItems.length >= 2 && _gallery.length >= 1 && !_collection && !_listicle)
+    ? `<section class="sec feats"><h2>${esc(cleanWhyTitle)}</h2>${_featItems.map((t, i) => `<div class="feat${i % 2 ? ' rev' : ''}"><img src="${esc(_gallery[i % _gallery.length])}" alt="${esc(_hp.title)}" loading="lazy"><div><span class="num">${String(i + 1).padStart(2, '0')}</span><h3>${esc(t)}</h3></div></div>`).join('')}</section>`
+    : '';
+  // THE LISTICLE (2026-10-25, from the landing-page benchmark,
+  // data/benchmarks/landing-reference.json): for a cold or lapsed audience the
+  // page argues the case reason by reason, the product enters at item two, and
+  // a button follows every reason; the buy box closes it. Every reason is a line
+  // the brand states (listicleReasons), never one written for the page.
+  const _boxImg0 = () => (creativeUrl || (_hp && /^https:\/\//i.test(String(_hp.image || '')) ? _hp.image : '')) || '';
+  const _lReasons = _listicle ? listicleReasons(entry, copy) : [];
+  const listicleSec = _listicle && _lReasons.length >= 3 ? (() => {
+    const card = _hp ? `<div class="lcard">${_gallery[0] || _boxImg0() ? `<img src="${esc(_gallery[0] || _boxImg0())}" alt="${esc(_hp.title)}" loading="lazy">` : ''}<div><h3>${esc(_hp.title)}</h3>${priceLabel ? `<p class="lprice">${esc(priceLabel)}</p>` : ''}<a href="${esc(shopUrl)}" class="btn">${cta}</a></div></div>` : '';
+    return `<section class="sec listicle" data-format="listicle"><ol class="lreasons">${_lReasons.map((t, i) => `<li><span class="num">${i + 1}</span><div><h3>${esc(t)}</h3>${i ? `<a class="lnext" href="${esc(shopUrl)}">${cta} &rarr;</a>` : ''}</div></li>${i === 0 ? card : ''}`).join('')}</ol></section>`;
+  })() : '';
+  // What is inside / the details: only the facts the store states.
+  const _det = _hp ? [
+    _hp.unit_spec ? ['Size', _hp.unit_spec] : null,
+    _hp.piece_count ? ['In the box', String(_hp.piece_count) + ' pieces'] : null,
+    _hp.servings ? ['Servings', String(_hp.servings)] : null,
+    _cat ? ['Type', _cat] : null,
+  ].filter(Boolean) : [];
+  const _desc = _hp ? require('./mailer-format.js').productLine(_hp.description || '', _hp.title || '', bName) : '';
+  const detailSec = (_det.length || _desc) && !_collection
+    ? `<section class="sec details"><h2>The details</h2>${_desc ? `<p class="lede">${esc(_desc)}</p>` : ''}${_det.length ? `<div class="dgrid">${_det.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
+    : '';
+  // The buy box: the store's price against its own compare-at (the saving is
+  // that arithmetic, nothing more), per serving when the pack states servings.
+  const _pNum = _hp ? Number(_hp.price) : NaN;
+  const _cNum = _hp ? Number(_hp.compare_at) : NaN;
+  const _save = Number.isFinite(_pNum) && Number.isFinite(_cNum) && _cNum > _pNum && _pNum > 0 ? Math.round(((_cNum - _pNum) / _cNum) * 100) : 0;
+  const _perServ = _hp && Number(_hp.servings) > 1 && Number.isFinite(_pNum) && _pNum > 0 ? _money(_pNum / Number(_hp.servings)) : '';
+  const _boxImg = (_gallery[0] || creativeUrl || (_hp && /^https:\/\//i.test(String(_hp.image || '')) ? _hp.image : '')) || '';
+  const buyBox = (tag) => (_hp && _money(_pNum)) ? `<section class="sec buy"${tag ? ` data-buy="${tag}"` : ''}><div class="buybox">${_boxImg ? `<img src="${esc(_boxImg)}" alt="${esc(_hp.title)}" loading="lazy">` : ''}<div class="bb">
+      ${_offerPct > 0 ? `<span class="deal">${_offerPct}% off</span>` : ''}
+      <h3>${esc(_hp.title)}</h3>
+      <p class="bbprice"><b>${esc(_money(_pNum))}</b>${_save ? ` <s>${esc(_money(_cNum))}</s> <span class="off">${_save}% off</span>` : ''}</p>
+      ${_perServ ? `<p class="per">${esc(_perServ)} per serving</p>` : ''}
+      ${[_hp.unit_spec, _hp.servings ? _hp.servings + ' servings' : ''].filter(Boolean).length ? `<p class="pack">${esc([_hp.unit_spec, _hp.servings ? _hp.servings + ' servings' : ''].filter(Boolean).join(' · '))}</p>` : ''}
+      <a href="${esc(shopUrl)}" class="btn big">${cta}</a>
+      ${_svcClaims.length ? `<ul class="chk">${_svcClaims.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+    </div></div></section>` : '';
+  // More than one review: the rest of them as cards (the first leads the page).
+  const _moreReviews = _proofPool.slice(1, 4).filter((r) => r && r.quote);
+  const reviewCards = _moreReviews.length ? `<section class="sec revs"><h2>What customers say</h2><div class="rgrid">${_moreReviews.map((r) => `<figure><blockquote>“${esc(r.quote)}”</blockquote>${r.author ? `<figcaption>${esc(r.author)}</figcaption>` : ''}</figure>`).join('')}</div></section>` : '';
+  // Who the brand is, in its own words from its own record.
+  const _bd = (_b && _b.brand_data) || {};
+  const _about = String(_b.description || _bd.description || (_bd.brand_extraction && _bd.brand_extraction.applied && _bd.brand_extraction.applied.description && _bd.brand_extraction.applied.description.value) || '').trim();
+  const aboutSec = _about && _about.length > 40 ? `<section class="sec about"><h2>About ${esc(bName)}</h2><p>${esc(_about.slice(0, 600))}</p></section>` : '';
+  const _legal = (() => { const le = _b.legal_entity || _bd.legal_entity; if (!le) return ''; if (typeof le === 'string') return /^\[DATA REQUIRED/.test(le) ? '' : le; return [le.name, le.address].filter(Boolean).join(' · '); })();
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
 <style>
@@ -2233,7 +2395,8 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
 *{box-sizing:border-box}
 body{margin:0;background:var(--chalk);color:var(--ink);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 img{max-width:100%;height:auto;display:block}
-.bar{background:var(--moss-deep);color:var(--on-moss);text-align:center;font-size:13px;letter-spacing:.04em;padding:10px 16px}
+.bar{background:var(--chalk);color:var(--ink);text-align:center;font-size:15px;font-weight:700;letter-spacing:.04em;padding:14px 16px;border-bottom:1px solid var(--chalk-warm)}
+.bar-logo{height:28px;width:auto;max-width:100%;margin:0 auto;display:block}
 .wrap{max-width:920px;margin:0 auto;padding:0 22px}
 h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero{background:var(--moss);color:var(--on-moss);text-align:center;padding:34px 20px 38px}
@@ -2242,6 +2405,9 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .hero-media img{width:100%;height:280px;object-fit:cover;border-radius:12px;display:block}
 @media(min-width:900px){.hero{padding:56px 32px}.hero-grid.has-media{grid-template-columns:1fr 1fr;text-align:left;gap:48px}.hero-grid.has-media.hero--media-top{grid-template-columns:1fr;text-align:center;max-width:760px}.hero-grid.has-media.hero--media-top h1,.hero-grid.has-media.hero--media-top p{margin-left:auto;margin-right:auto}.hero-grid.has-media h1,.hero-grid.has-media p{margin-left:0;margin-right:0}.hero-media img{height:420px}}
 .others{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),260px));gap:14px}
+.others.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){.others.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.others,.others.four{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.other span{padding:10px 10px;font-size:14px}.other .op{padding:0 10px 12px;font-size:14px}}
 .other .ph{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;padding:0;background:var(--chalk-warm);color:var(--ink);font-family:var(--head);font-size:44px}
 .offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px;padding:0;margin:0;list-style:none}
 .offers li{border:1px solid var(--ink-dim);border-radius:12px;padding:14px 16px;background:var(--chalk-warm)}
@@ -2249,6 +2415,8 @@ h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0 0 14px}
 .other{display:block;text-decoration:none;color:var(--ink);background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;overflow:hidden}
 .other img{width:100%;aspect-ratio:4/3;object-fit:cover}
 .other span{display:block;padding:12px 14px;font-family:var(--head);font-size:16px;line-height:1.3}
+.other .op{display:flex;justify-content:space-between;align-items:center;padding:0 14px 14px;font-family:var(--body);font-size:15px}
+.other .op u{color:var(--moss);font-weight:700}
 body{padding-bottom:4px}
 .hero .eyebrow{color:var(--on-moss);letter-spacing:.2em;text-transform:uppercase;font-size:12px;margin:0 auto 12px}
 .hero h1{font-size:34px;max-width:680px;margin:0 auto 12px}
@@ -2260,8 +2428,46 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 24px;background:var(--chalk-warm);padding:12px 18px;font-size:12px;color:var(--ink-dim);text-align:center}
 .sec{padding:26px 0}
 .sec h2{font-size:26px;margin:0 0 12px}
-.why li{list-style:none;margin:8px 0;padding-left:6px;font-size:14px}
+.why li{list-style:none;margin:8px 0;padding-left:6px${_ds.present ? '' : ';font-size:14px'}}
 .tick{color:var(--moss);font-weight:800;margin-right:8px}
+.annc{background:var(--moss);color:var(--on-moss);text-align:center;font-size:13px;font-weight:700;letter-spacing:.04em;padding:9px 14px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}
+.pills span{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--chalk);color:var(--ink);font-size:12px;font-weight:600}
+.assure{font-size:13px;margin:10px 0 0;opacity:1}
+${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;font-size:16px}'}
+.feats h2,.details h2,.revs h2,.about h2{font-size:26px}
+.feat{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;margin:22px 0}
+.feat img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
+.feat.rev img{order:2}
+.feat .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800;font-size:13px;margin-bottom:10px}
+.feat h3{font-size:20px;line-height:1.3;margin:0}
+.lreasons{list-style:none;padding:0;margin:0;counter-reset:none}.lreasons>li{display:flex;gap:16px;align-items:flex-start;padding:22px 0;border-bottom:1px solid var(--chalk-warm)}
+.lreasons .num{flex:0 0 40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--moss);color:var(--on-moss);font-weight:800}
+.lreasons h3{font-size:22px;line-height:1.3;margin:6px 0 8px}.lnext{font-weight:700;color:var(--moss-text,var(--ink));text-decoration:underline}
+.lcard{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;align-items:center;border:2px solid var(--moss);border-radius:16px;padding:18px;margin:18px 0;background:var(--chalk)}
+.lcard img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}.lcard h3{margin:0 0 6px;font-size:20px}.lprice{font-family:var(--head);font-size:22px;margin:0 0 12px}
+@media(max-width:560px){.lcard{grid-template-columns:110px minmax(0,1fr);gap:14px;padding:14px}.lcard h3{font-size:17px}.lreasons h3{font-size:19px}}
+.details .lede{color:var(--ink);font-size:16px;max-width:680px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px;margin-top:12px}
+.dgrid div{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:14px}
+.dgrid b{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px}
+.buybox{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center;border:2px solid var(--moss);border-radius:18px;padding:24px;background:var(--chalk)}
+.buybox img,.feat img,.lcard img{min-width:0;max-width:100%}
+.buybox img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px}
+.bb{text-align:center}.bb h3{font-size:22px;margin:8px 0}
+.deal{display:inline-block;background:var(--moss);color:var(--on-moss);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:999px}
+.bbprice{font-family:var(--head);margin:6px 0}.bbprice b{font-size:34px;color:var(--moss)}.bbprice s{color:var(--ink-dim);font-size:18px;margin-left:8px}
+.off{display:inline-block;background:var(--moss);color:var(--on-moss);font-size:12px;font-weight:800;padding:3px 8px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.per,.pack{color:var(--ink-dim);font-size:14px;margin:2px 0}
+.bb .btn{margin:16px 0 10px;width:100%;max-width:360px}
+.buy .btn,.endcta .btn{background:var(--moss);color:var(--on-moss)}
+.chk{list-style:none;padding:0;margin:8px auto 0;text-align:left;max-width:360px}.chk li{padding:4px 0 4px 24px;position:relative;font-size:14px}.chk li::before{content:"✓";position:absolute;left:0;color:var(--moss);font-weight:800}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.rgrid figure{margin:0;background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:14px;padding:18px}
+.rgrid blockquote{margin:0 0 10px;font-size:15px;line-height:1.55}.rgrid figcaption{font-weight:700;color:var(--moss);font-size:13px}
+.about p{font-size:16px;line-height:1.65;max-width:760px}
+.endcta{text-align:center;padding:30px 18px}
+@media(max-width:760px){.feat,.buybox{grid-template-columns:minmax(0,1fr)}.feat.rev img{order:0}.bbprice b{font-size:28px}}
 .why ul{padding:0;margin:0}
 .reveal{background:var(--chalk);border:1px solid var(--chalk-warm);border-radius:12px;padding:20px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
 .reveal .price{font-family:var(--head);font-size:26px;color:var(--moss)}
@@ -2317,6 +2523,7 @@ ${HERO_BTN !== ACC && !_ds.present ? `.hero .btn{background:${HERO_BTN};color:${
 
 .guarantee{background:var(--chalk-warm);text-align:center;border-radius:12px;padding:20px;margin:18px 0}
 .sticky{position:-webkit-sticky;position:sticky;bottom:0;z-index:100;background:var(--chalk);border-top:1px solid var(--chalk-warm);display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 18px;padding-bottom:max(10px,env(safe-area-inset-bottom,10px));box-shadow:0 -4px 18px rgba(0,0,0,.06);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.sticky .btn{background:var(--moss);color:var(--on-moss)}
 .sticky .info{font-size:13px;min-width:0;flex:1 1 auto}.sticky .info b{display:block;font-family:var(--head);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sticky .btn{flex:0 0 auto;white-space:nowrap}
 /* The footer was a near-black band (var(--ink) is #111111 for tenant zero),
    which the design rules forbid for any section. It is the brand primary now,
@@ -2327,7 +2534,7 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
 <body>
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
-<div class="bar">${esc(bName)}</div>
+${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none;display:block">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
 <section class="hero" data-recipe="${esc(_lpRecipe.id)}">
   <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
     <div class="hero-copy">
@@ -2340,17 +2547,20 @@ ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}
         return b ? `<div class="hero-badge" style="display:inline-block;background:var(--lava);color:var(--on-lava);font-size:12px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;margin-bottom:10px">${esc(b)}</div>` : '';
       })()}
       <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
-      <h1 data-ds="h1">${esc(L.hero_headline || entry.heroProduct?.title || bName)}</h1>
-      ${(() => { const sub = L.hero_sub || _b.tagline || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
-      ${priceLabel ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 0 18px">${esc(priceLabel)}</p>` : ''}
+      <h1 data-ds="h1">${esc(listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName))}</h1>
+      ${(() => { const sub = L.hero_sub || _b.tagline || ((copy.email || {}).intro_paragraph) || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
+      ${priceLabel && !listicleSec ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
       <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
+      ${heroAssure}${listicleSec ? '' : heroPills}
     </div>
     ${creativeUrl ? `<div class="hero-media"><img class="hero-asset" src="${esc(creativeUrl)}" alt="${esc(entry.heroProduct && !entry.heroProduct.placeholder ? entry.heroProduct.title : bName)}"></div>` : ''}
   </div>
 </section>
-${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc(c)}</span>`).join('')}</div>` : ''}
+${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_appRating)}/5`)}</span></div>` : ''}
 <div class="wrap" data-ds="wrap">
-  ${(bullets || fallbackBullets) ? `<section class="sec why">
+  ${listicleSec}
+  ${featRows}
+  ${(!listicleSec && !featRows && (bullets || fallbackBullets)) ? `<section class="sec why">
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>` : ''}
@@ -2367,19 +2577,24 @@ ${_stripItems.length ? `<div class="trust">${_stripItems.map((c) => `<span>${esc
       </div>
     </div>
   </section>` : ''}
-  ${_others.length ? `<section class="sec"><h2>Also from ${esc(bName)}</h2><div class="others">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span></a>`; }).join('')}</div></section>` : ''}
+  ${detailSec}
+  ${_collection ? '' : buyBox('main')}
+  ${_others.length ? `<section class="sec"><h2>${_collection ? 'Pick yours' : `Also from ${esc(bName)}`}</h2><div class="others${_others.length === 4 ? ' four' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
   ${(!_others.length && _offerList.length) ? `<section class="sec"><h2>What ${esc(bName)} offers</h2><ul class="offers">${_offerList.map((o) => `<li>${o.url ? `<a href="${esc(o.url)}">${esc(o.name)}</a>` : `<b>${esc(o.name)}</b>`}</li>`).join('')}</ul></section>` : ''}
 </div>
 ${proofSection}
 <div class="wrap">
+  ${reviewCards}
+  ${aboutSec}
   ${faq ? `<section class="sec"><h2>Questions, answered</h2>${faq}</section>` : ''}
-  ${guaranteeBlock}
+  ${_svcAll.indexOf(_guaranteeText) >= 0 && (_hasBuy || _annClaim === _guaranteeText) ? '' : guaranteeBlock}
+  <section class="endcta"><a href="${esc(shopUrl)}" class="btn big">${cta}</a></section>
 </div>
 <div class="sticky">
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a href="${esc(shopUrl)}" class="btn">${cta}</a>
 </div>
-<footer data-ds="footer" data-campaign="${esc(campaignId)}">© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}</footer>
+<footer data-ds="footer" data-campaign="${esc(campaignId)}">${_legal ? `${esc(_legal)}<br>` : ''}© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : ''; return home ? ` · <a href="${esc(home)}" style="color:inherit">${esc(home.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))}</a>` : ''; })()}</footer>
 </body></html>`;
 }
 
@@ -2510,7 +2725,7 @@ function productUrl(product, market, brand) {
   handle = handle || (product && (product.handle || product.h)) || null;
   return handle ? `${store}/products/${handle}` : store;
 }
-function renderVariant(entry, copy, style, img) {
+function renderVariant(entry, copy, style, img, direction) {
   const E = copy.email || {};
   const heroProduct = (entry.heroProduct && entry.heroProduct.title) || entry.theme || '';
   const links = slotLinks(entry);
@@ -2578,7 +2793,9 @@ function renderVariant(entry, copy, style, img) {
     brand: entry.brand || null,
     style, subject: E.subject, preheader: E.preheader,
     hero_headline: E.hero_headline || E.subject || heroProduct,
-    hero_subline: E.subheadline || E.preheader || '',
+    // A subline that is only the hero's price ("₹759") says nothing on its own
+    // when the Text mail lists every product with its price below.
+    hero_subline: (() => { const sl = E.subheadline || E.preheader || ''; return ((!withGrid || direction === 'brand') && entry.heroProduct && !/[A-Za-z]/.test(String(sl))) ? '' : sl; })(),
     body_blocks: bodyBlocks,
     // Real PDP/collection destinations (no merge-tag literal) so every CTA
     // redirects; matches the flagship mailer's link + grid logic.
@@ -2586,16 +2803,30 @@ function renderVariant(entry, copy, style, img) {
     market: entry.market, hero_product: heroProduct, hero_image_url: img || undefined,
     // A second button only to a DIFFERENT page: for a brand with no catalogue
     // collection the "collection" was the same address as the main CTA.
-    products, collection_url: (links.collectionUrl && links.collectionUrl !== links.pdp && links.collectionUrl !== links.store) ? links.collectionUrl : undefined,
+    products,
+    // The Text variants list what they sell, in words (2026-10-24): each
+    // product of the slot with its own page and price, no photographs.
+    product_list: withGrid ? undefined : [entry.heroProduct].concat(supporting).filter((p) => p && p.title && !p.placeholder && !/^\[DATA REQUIRED/.test(String(p.title)))
+      .map((p, i) => ({ title: require('./mailer-format.js').displayName(p.title) || p.title, price: p.price, url: i === 0 ? links.pdp : productUrl(p, entry.market, entry.brand) })),
+    collection_url: (links.collectionUrl && links.collectionUrl !== links.pdp && links.collectionUrl !== links.store) ? links.collectionUrl : undefined,
     offer_bar: (withGrid && (E.offer || (copy.landing && copy.landing.offer_bar))) || undefined,
     // The studied layout, composed differently for each slot and variant
     // (asset-style.js): the brand's look stays, the arrangement moves.
-    layout: require('./asset-style.js').mailLayout(entry.__mailStudy && entry.__mailStudy.layout, require('./asset-style.js').recipe(entry, `mail:${style}`)),
+    layout: require('./asset-style.js').mailLayout(entry.__mailStudy && entry.__mailStudy.layout, require('./asset-style.js').recipe(entry, `mail:${style}${direction ? ':' + direction : ''}`)),
   }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
 // Visual, each labelled by its copy framework, with copyA driving the A-slots and
 // copyB the B-slots so the two directions read genuinely differently.
+// How many products of the slot carry a photograph of their own. The
+// collection layouts (landing B, the brand-led mail) show the products as
+// pictured cards instead of one hero picture, so they are chosen only when at
+// least two products can be pictured; otherwise the slot's picture leads.
+function ownPhotoCount(entry) {
+  const ps = [entry && entry.heroProduct].concat(Array.isArray(entry && entry.supportingProducts) ? entry.supportingProducts : []);
+  return ps.filter((p) => p && !p.placeholder && /^https:\/\//i.test(String(p.image || ''))).length;
+}
+
 function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
   if (!renderTextVariant) return null;
   const heroProduct = (entry.heroProduct && entry.heroProduct.title) || entry.theme || '';
@@ -2606,7 +2837,10 @@ function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
     { key: 'text_a',   type: 'Text',          label: `Text · ${nA}`,          framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'pure') },
     { key: 'text_b',   type: 'Text',          label: `Text · ${nB}`,          framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'editorial') },
     { key: 'visual_a', type: 'Text + Visual', label: `Text + Visual · ${nA}`, framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'visual', heroImg) },
-    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'visual', heroImg) },
+    // Brand-led leads with the brand, not the photo (2026-10-24: it was the
+    // product-led mail again): the headline on the brand's own ground, then
+    // every product of the slot side by side, the hero's card among them.
+    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: ownPhotoCount(entry) >= 2 ? renderVariant(entry, copyB, 'visual', null, 'brand') : renderVariant(entry, copyB, 'visual', heroImg) },
   ];
 }
 
@@ -2948,9 +3182,45 @@ function attachMotionCreative(ad, entry, pool) {
       loop: true,
       layout: require('./asset-style.js').recipe(entry, `ad:${ad.platform || ''}:${ad.creative_type || ''}`),
     };
+    // THE STORY VARIANT (2026-10-24, the operator: "proper video ads upto
+    // 30 s ... keep this variant too"): beside the transitional creative, a
+    // timed story up to 30 seconds - the hook, each product of the send on its
+    // own photograph with its name and price, the ad's own lines, the end
+    // card - drawn on a canvas so the reviewer can save it as a video file.
+    let story = null;
+    try {
+      const SA = require('../../scripts/lib/story-ad.js');
+      const rt = require('./brand-runtime.js');
+      const core = _wsCore();
+      const pal = rt.paletteOf(brand || {});
+      const ground = core && core.sectionGround ? core.sectionGround(pal.primary, pal.accent, pal.surface) : pal.primary;
+      const fs = rt.fontStacks(brand || {});
+      const money = (n) => { const v = Number(n); if (!Number.isFinite(v) || v <= 0) return ''; try { return require('./brand-locale.js').money(v, brand || {}, entry.market) || ''; } catch (_) { return ''; } };
+      const prods = [entry.heroProduct].concat(Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [])
+        .filter((p) => p && p.title && !p.placeholder && !/^\[DATA REQUIRED/.test(String(p.title)))
+        .map((p, i) => ({ title: p.title, price_text: money(p.price), image: (/^https:\/\//i.test(String(p.image || '')) ? String(p.image) : '') || images[i % Math.max(1, images.length)] || '' }));
+      let store = '';
+      try { store = (slotLinks(entry) || {}).store || (brand && brand.website) || ''; } catch (_) { store = (brand && brand.website) || ''; }
+      // Units as a person says them ("100 watts"), as on every other asset.
+      const U = require('./unit-words.js');
+      let uLoc = ''; try { uLoc = rt.homeRegion(brand); } catch (_) { uLoc = ''; }
+      const say = (t) => (typeof t === 'string' && /\d/.test(t) ? U.spellUnits(t, { locale: uLoc }) : t);
+      prods.forEach((p) => { p.title = say(p.title); });
+      const sspec = {
+        brand, brandName: bName, hook: say(ad.hook || ad.headline || ''), lines: sentences.map(say), products: prods, images,
+        cta: ad.cta || entry.cta || 'Shop now', store, endLine: say(ad.headline || ''),
+        palette: { primary: ground, on_primary: core && core.textOn ? core.textOn(ground, pal.surface, pal.ink) : pal.surface,
+          accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
+        fonts: { head: String(fs.head).replace(/"/g, "'"), body: String(fs.body).replace(/"/g, "'") },
+      };
+      story = { html: SA.renderStoryAd(sspec), brief: SA.storyBrief(sspec) };
+    } catch (e) { story = { error: String((e && e.message) || e).slice(0, 160) }; }
     ad.creative = Object.assign({}, ad.creative, {
       motion_html: motion.renderMotionAd(spec),
       motion_brief: motion.motionBrief(spec),
+      story_html: story && story.html ? story.html : null,
+      story_brief: story && story.brief ? story.brief : null,
+      story_error: story && story.error ? story.error : undefined,
       // The real MP4 is a separate, and currently absent, thing. Say so.
       video: videoStatus(),
       audio: audio || null,
@@ -3048,7 +3318,8 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
       : ((creatives.landing && creatives.landing.image) || heroReal || null);
     lp.title = (copy.landing && copy.landing.hero_headline) || lp.title;
     lp.creative = { brief: (copy.landing && copy.landing.image_brief) || '', image: img, provider: isB ? (poolSource(entry) || 'catalog') : ((creatives.landing && creatives.landing.provider) || poolSource(entry) || 'catalog') };
-    lp.html = lpHtml(entry, copy, campaign.campaign_id, img);
+    lp.format = landingFormat(entry, copy, lp.variant);
+    lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, img) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? img : null, { layout: lp.format });
     lp.path = isB ? `/lp/${campaign.campaign_id}?v=b` : `/lp/${campaign.campaign_id}`;
   });
   for (const ad of campaign.assets.ads || []) {
@@ -3589,6 +3860,16 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     withCreatives, noLLM,
   });
 
+  // A slot planned before titles were cleaned still carries the store's
+  // doubled name ("Bausch & Lomb Lacelle Bausch & Lomb Lacelle ..."): every
+  // asset says it once (2026-10-24).
+  if (entry && typeof entry === 'object') {
+    const MFx = require('./mailer-format.js');
+    const clean = (p) => (p && typeof p === 'object' && typeof p.title === 'string' ? { ...p, title: MFx.dedupeTitle(p.title) } : p);
+    if (entry.heroProduct) entry.heroProduct = clean(entry.heroProduct);
+    if (Array.isArray(entry.supportingProducts)) entry.supportingProducts = entry.supportingProducts.map(clean);
+  }
+
   // Review-recovery slots are a review INVITATION, not a promo: email-only, no
   // offer, no ads/landing page, CTA to the product's own review section. Render
   // the dedicated brand-compliant template directly (no LLM promo pipeline).
@@ -3755,6 +4036,16 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       const pool = slotImagePool(entry, 1200);
       const heroImg = (scene && scene.url) || pool[0] || null;
       em.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, heroImg);
+      // The landing pages on this path go through the SAME page builder as the
+      // model path (2026-10-24: the template's own page had no logo, no copy
+      // and B was A with "Why" in front): A leads with the slot's picture, B is
+      // the collection page.
+      (campaign.assets.landing_pages || []).forEach((lp) => {
+        const isB = lp.variant === 'B';
+        const copy = isB ? tc.B : tc.A;
+        lp.format = landingFormat(entry, copy, lp.variant);
+        lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, heroImg) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? heroImg : null, { layout: lp.format });
+      });
     }
   } catch (e) { console.warn('[smart-brain] template mail variants failed:', e && e.message); }
   // SMS, WHATSAPP AND PUSH (2026-10-23), on both paths, only for a slot that
@@ -4237,6 +4528,7 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
   }
 
   // Checked after the catalogue rule, whose answer names the excluded domain.
+  await adoptCurrentSlot(entry, row, ident, db, config);
   if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
 
   // Approved/final slots return the FINAL saved campaign — the reviewer sees
@@ -4442,6 +4734,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
     throw e;
   }
 
+  await adoptCurrentSlot(entry, row, ident, db, config);
   if (slotForOtherRecord(entry, row, ident)) throw brandChangedError('slot');
 
   // IDEMPOTENCY: a slot already approved with a generated campaign must NOT be
