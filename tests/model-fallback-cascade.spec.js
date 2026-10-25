@@ -56,7 +56,7 @@ const HOSTS = {
   'api.anthropic.com': 'anthropic', 'api.openai.com': 'openai', 'generativelanguage.googleapis.com': 'gemini',
   'api.x.ai': 'grok', 'api.groq.com': 'groq', 'api.cerebras.ai': 'cerebras', 'openrouter.ai': 'openrouter',
   'models.inference.ai.azure.com': 'github', 'image.pollinations.ai': 'pollinations', 'api.cloudflare.com': 'cloudflare',
-  'cloud.higgsfield.ai': 'higgsfield', 'api.dev.runwayml.com': 'runway',
+  'api.higgsfield.ai': 'higgsfield', 'api.dev.runwayml.com': 'runway',
 };
 
 /** A provider's success body, in its own shape. */
