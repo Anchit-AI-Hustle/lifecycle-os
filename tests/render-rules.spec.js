@@ -102,7 +102,9 @@ test('a video model is sent the rules with the compact block; over the product\'
     expect(i2v.image).toBe(PHOTO);
     expect(i2v.prompt).toMatch(/move only the camera and the light, add nothing to it/);
     expect(i2v.prompt).not.toMatch(/object out of place \(a mug/);
-    expect(i2v.prompt).toContain(RR.COMPACT);
+    // Its block asks for no object either: the packshot block, never "1 object out of place".
+    expect(i2v.prompt).toContain(RR.COMPACT_PACKSHOT);
+    expect(i2v.prompt).not.toMatch(/object out of place/);
   } finally { net.restore(); delete require.cache[VC]; }
 });
 
@@ -149,5 +151,23 @@ test('a model that never receives the photo is not told it is a packshot: Veo ge
   } finally {
     net.restore(); delete require.cache[VC];
     if (saved === undefined) delete process.env.FREE_GENERATION; else process.env.FREE_GENERATION = saved;
+  }
+});
+
+test('a long packshot brief keeps the packshot block, never the one that adds an object', () => {
+  const long = RR.withRules('b'.repeat(1400), { medium: 'video', packshot: true });
+  const fitted = RR.fit(long, 1500);
+  expect(fitted.endsWith(RR.COMPACT_PACKSHOT)).toBe(true);
+  expect(fitted).not.toMatch(/object out of place/);
+});
+
+test('the lighting rules and bans sit inside the first 1,000 characters of every preamble, ahead of a full style lock', () => {
+  const locked = Object.assign({}, BRAND, { brand_data: { style_lock: { photo_style: 'p'.repeat(400), rules: Array(5).fill('r'.repeat(160)) } } });
+  for (const mode of ['photo', 'ad', 'reels', 'ambient']) {
+    const p = IP.buildPreamble(locked, mode);
+    const end = p.indexOf('magazine-styled framing');
+    expect(end, mode).toBeGreaterThan(0);
+    expect(end, mode).toBeLessThan(1000);
+    expect(end, mode).toBeLessThan(p.indexOf('p'.repeat(400)));
   }
 });
