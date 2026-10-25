@@ -120,3 +120,54 @@ test('a photo host that refuses recording is said, and nothing blank is saved', 
   await page.waitForTimeout(500);
   expect(downloaded).toBe(false);
 });
+
+// From how Pollo AI builds its product ads (2026-10-25; independent walkthroughs,
+// pollo.ai refuses automated reads): each photographed shot has its own literal
+// camera move, a light sweep crosses the product, and a short cut is offered
+// beside the long one. The brief carries each move in words a video model takes.
+test('each photographed shot has its own camera move, and the short cut keeps the hook, the products and the end card', async () => {
+  const c = await build();
+  const v = c.assets.ads.find((a) => a.creative_type === 'video');
+  const b = v.creative.story_brief;
+  const shot = b.scenes.filter((x) => x.image && x.kind !== 'end');
+  expect(shot.length).toBeGreaterThanOrEqual(3);
+  shot.forEach((x) => expect(x.motion, `${x.kind} has no camera move`).toMatch(/^slow (push-in|pull-out|pan|rise)/));
+  for (let i = 1; i < shot.length; i++) expect(shot[i].motion.split(' on ')[0], 'the same move twice in a row').not.toBe(shot[i - 1].motion.split(' on ')[0]);
+  b.scenes.filter((x) => x.kind === 'product').forEach((x) => expect(x.motion).toContain('light sweep'));
+  expect(b.scenes.find((x) => x.kind === 'end').motion).toBeNull();
+  const s = b.cuts.short;
+  expect(s.duration_s).toBeLessThanOrEqual(15);
+  expect(s.duration_s).toBeLessThan(b.duration_s);
+  expect(s.scenes[0].kind).toBe('hook');
+  expect(s.scenes[s.scenes.length - 1].kind).toBe('end');
+  expect(s.scenes.some((x) => x.kind === 'product')).toBe(true);
+  // The short cut says nothing the long one does not.
+  const said = new Set(b.scenes.map((x) => x.text));
+  s.scenes.forEach((x) => expect(said.has(x.text), `the short cut wrote "${x.text}"`).toBe(true));
+});
+
+test('the camera moves within a shot, and the short cut plays and saves as its own video', async ({ page }) => {
+  test.setTimeout(90_000);
+  const STRIPES = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000">' + Array.from({ length: 40 }, (_, i) => `<rect x="${i * 20}" width="10" height="1000" fill="#${i % 2 ? '7d93b8' : '2d3a52'}"/><rect y="${i * 25}" width="800" height="6" fill="#e0c060"/>`).join('') + '</svg>';
+  const c = await build();
+  const v = c.assets.ads.find((a) => a.creative_type === 'video');
+  await page.route('**/*', (r) => (r.request().resourceType() === 'image'
+    ? r.fulfill({ contentType: 'image/svg+xml', headers: { 'access-control-allow-origin': '*' }, body: STRIPES })
+    : r.continue()));
+  await page.route('https://story.test/', (r) => r.fulfill({ contentType: 'text/html', body: v.creative.story_html }));
+  await page.goto('https://story.test/');
+  // Above the text, inside the first shot: the photograph itself moves.
+  const strip = () => page.evaluate(() => Array.from(document.getElementById('v').getContext('2d').getImageData(200, 600, 680, 1).data).join(','));
+  await page.waitForTimeout(1300);
+  const a = await strip();
+  await page.waitForTimeout(1500);
+  const b = await strip();
+  expect(a, 'the photograph did not move within its shot').not.toBe(b);
+  const short = v.creative.story_brief.cuts.short;
+  await page.click('#cut');
+  await expect(page.locator('#note')).toContainText(`${Math.round(short.duration_s)} seconds`);
+  const dl = page.waitForEvent('download', { timeout: 60_000 });
+  await page.click('#save');
+  const d = await dl;
+  expect(d.suggestedFilename()).toMatch(new RegExp(`-story-${Math.round(short.duration_s)}s\\.(mp4|webm)$`));
+});

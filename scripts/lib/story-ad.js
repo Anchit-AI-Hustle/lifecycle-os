@@ -23,6 +23,21 @@
  */
 
 const MAX_SECONDS = 30;
+// The SHORT cut (2026-10-25): from how Pollo AI builds its product ads (read
+// in independent walkthroughs; pollo.ai itself refuses automated reads): one
+// opening, the product showcase, one closing impression, offered at 15 s
+// beside longer cuts. Same facts, fewer scenes: never a line the long cut lacks.
+const SHORT_SECONDS = 15;
+// Each photographed shot has ONE literal camera move, never the same move
+// twice in a row (Pollo's per-shot motion prompts: "slow push-in", a pan,
+// "a light sweep across a packshot"). The words are the move's own brief.
+const MOVES = [
+  { id: 'push-in', say: 'slow push-in' },
+  { id: 'pan-right', say: 'slow pan left to right' },
+  { id: 'pull-out', say: 'slow pull-out' },
+  { id: 'pan-left', say: 'slow pan right to left' },
+  { id: 'rise', say: 'slow rise, bottom to top' },
+];
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -34,8 +49,9 @@ const words = (t) => String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
  *   { brand:{name}, hook, lines:[...], products:[{title, price_text, image}],
  *     cta, store, images:[...] }
  */
-function storyScenes(spec) {
+function storyScenes(spec, opts) {
   const s = spec || {};
+  const short = !!(opts && opts.cut === 'short');
   const out = [];
   const imgs = (Array.isArray(s.images) ? s.images : []).filter(Boolean);
   const products = (Array.isArray(s.products) ? s.products : []).filter((p) => p && words(p.title)).slice(0, 4);
@@ -48,19 +64,20 @@ function storyScenes(spec) {
   if (hook) seen.add(hook.toLowerCase());
   (Array.isArray(s.lines) ? s.lines : []).forEach(take);
   const firstImg = (products[0] && products[0].image) || imgs[0] || '';
-  out.push({ kind: 'hook', seconds: 3.5, headline: hook || words(products[0] && products[0].title) || words(s.brand && s.brand.name), sub: '', image: firstImg });
-  products.forEach((p, i) => {
+  out.push({ kind: 'hook', seconds: short ? 2.5 : 3.5, headline: hook || words(products[0] && products[0].title) || words(s.brand && s.brand.name), sub: '', image: firstImg });
+  (short ? products.slice(0, 2) : products).forEach((p, i) => {
     out.push({ kind: 'product', seconds: 4, headline: words(p.title), price: words(p.price_text), sub: '', image: p.image || imgs[(i + 1) % Math.max(1, imgs.length)] || '' });
   });
-  lines.slice(0, 2).forEach((l, i) => {
+  (short ? [] : lines.slice(0, 2)).forEach((l, i) => {
     out.push({ kind: 'line', seconds: 3.5, headline: l, sub: '', image: imgs[(i + 2) % Math.max(1, imgs.length)] || firstImg });
   });
   const bname = words(s.brandName || (s.brand && s.brand.name)).toLowerCase();
   const endLine = [words(s.endLine), hook].find((x) => x && x.toLowerCase() !== bname) || '';
-  out.push({ kind: 'end', seconds: 4, headline: endLine, sub: words(s.store).replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''), cta: words(s.cta) || 'Shop now', image: '' });
+  out.push({ kind: 'end', seconds: short ? 3.5 : 4, headline: endLine, sub: words(s.store).replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''), cta: words(s.cta) || 'Shop now', image: '' });
   // Held to MAX_SECONDS: the middle gives way first, never the hook or the end card.
   let total = out.reduce((a, x) => a + x.seconds, 0);
-  while (total > MAX_SECONDS && out.length > 3) {
+  const cap = short ? SHORT_SECONDS : MAX_SECONDS;
+  while (total > cap && out.length > 3) {
     const drop = out.findIndex((x, i) => i > 0 && i < out.length - 1 && x.kind === 'line') >= 0
       ? out.findIndex((x, i) => i > 0 && i < out.length - 1 && x.kind === 'line')
       : out.length - 2;
@@ -68,16 +85,35 @@ function storyScenes(spec) {
     out.splice(drop, 1);
   }
   let t = 0;
-  return out.map((x) => { const y = Object.assign({}, x, { start: +t.toFixed(2) }); t += x.seconds; return y; });
+  let m = 0;
+  return out.map((x) => {
+    // A move only where there is a photograph to move over; the end card is still.
+    const move = x.image && x.kind !== 'end' ? MOVES[(m++) % MOVES.length] : null;
+    const y = Object.assign({}, x, { start: +t.toFixed(2), move: move ? move.id : null, sweep: !!(x.image && x.kind === 'product') });
+    t += x.seconds;
+    return y;
+  });
 }
 
 /** The shot list a person (or a video model) reproduces this from. */
+function motionWords(x) {
+  const mv = MOVES.find((m) => m.id === x.move);
+  if (!mv) return null;
+  return mv.say + ' on the photograph' + (x.sweep ? ', a soft light sweep across the product' : '') + ', no added text or props';
+}
+function briefScenes(scenes) {
+  return scenes.map((x) => ({ kind: x.kind, start_s: x.start, duration_s: x.seconds, text: x.headline, price: x.price || null, image: x.image || null, cta: x.cta || null, motion: motionWords(x) }));
+}
 function storyBrief(spec) {
   const scenes = storyScenes(spec);
   const total = scenes.reduce((a, x) => a + x.seconds, 0);
+  const shortScenes = storyScenes(spec, { cut: 'short' });
+  const shortTotal = shortScenes.reduce((a, x) => a + x.seconds, 0);
   return {
     format: 'story', aspect: '9:16', size: '1080x1920', duration_s: +total.toFixed(1), max_s: MAX_SECONDS,
-    scenes: scenes.map((x) => ({ kind: x.kind, start_s: x.start, duration_s: x.seconds, text: x.headline, price: x.price || null, image: x.image || null, cta: x.cta || null })),
+    structure: 'opening, product showcase, closing impression',
+    scenes: briefScenes(scenes),
+    cuts: { short: { duration_s: +shortTotal.toFixed(1), max_s: SHORT_SECONDS, scenes: briefScenes(shortScenes) } },
   };
 }
 
@@ -89,11 +125,15 @@ function renderStoryAd(spec) {
   const s = spec || {};
   const scenes = storyScenes(s);
   const total = +scenes.reduce((a, x) => a + x.seconds, 0).toFixed(2);
+  const shortScenes = storyScenes(s, { cut: 'short' });
+  const shortTotal = +shortScenes.reduce((a, x) => a + x.seconds, 0).toFixed(2);
+  // A short cut identical to the full one is not a second version.
+  const hasShort = shortTotal < total;
   const pal = Object.assign({ primary: '#333366', on_primary: '#ffffff', accent: '#ffffff', on_accent: '#111111', surface: '#ffffff', ink: '#222222' }, s.palette || {});
   const fonts = Object.assign({ head: 'system-ui, sans-serif', body: 'system-ui, sans-serif' }, s.fonts || {});
   const name = words(s.brandName || (s.brand && s.brand.name) || '');
   // JSON in a <script> block: every "<" is escaped so no line can close it.
-  const data = JSON.stringify({ scenes, total, pal, fonts, name }).replace(/</g, '\\u003c');
+  const data = JSON.stringify({ cuts: { full: { scenes, total }, short: hasShort ? { scenes: shortScenes, total: shortTotal } : null }, pal, fonts, name }).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(name)} story video ad</title>
@@ -108,16 +148,17 @@ function renderStoryAd(spec) {
 </style></head>
 <body><div class="wrap">
 <canvas id="v" width="1080" height="1920" aria-label="${esc(name)} story video ad, ${total} seconds"></canvas>
-<div class="bar"><button type="button" id="play" class="main">Pause</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
+<div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
 <p class="note" id="note">${esc(String(total))} seconds · ${scenes.length} scenes</p>
 </div>
 <script>
 (function(){
-  var D = ${data};
+  var ALL = ${data};
+  var D = { scenes: ALL.cuts.full.scenes, total: ALL.cuts.full.total, pal: ALL.pal, fonts: ALL.fonts, name: ALL.name };
   var cv = document.getElementById('v'), cx = cv.getContext('2d');
   var W = 1080, H = 1920, note = document.getElementById('note');
   var imgs = {}, blocked = [];
-  D.scenes.forEach(function (sc) {
+  [].concat(ALL.cuts.full.scenes, ALL.cuts.short ? ALL.cuts.short.scenes : []).forEach(function (sc) {
     if (!sc.image || imgs[sc.image]) return;
     var im = new Image(); im.crossOrigin = 'anonymous';
     im.onerror = function () {
@@ -133,9 +174,24 @@ function renderStoryAd(spec) {
     String(text || '').split(' ').forEach(function (w) { var t = line ? line + ' ' + w : w; if (cx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; });
     if (line) out.push(line); return out;
   }
-  function cover(im, k) {
+  // One camera move per shot (see MOVES): eased, slow, never more than ~8%.
+  function cover(im, move, p) {
+    var e = p * p * (3 - 2 * p), k = 1.06, dx = 0, dy = 0;
+    if (move === 'push-in') k = 1.04 + 0.1 * e;
+    else if (move === 'pull-out') k = 1.14 - 0.1 * e;
+    else if (move === 'pan-right') { k = 1.12; dx = (e - 0.5) * -0.08 * W; }
+    else if (move === 'pan-left') { k = 1.12; dx = (e - 0.5) * 0.08 * W; }
+    else if (move === 'rise') { k = 1.12; dy = (e - 0.5) * 0.06 * H; }
     var r = Math.max(W / im.width, H / im.height) * k, w = im.width * r, h = im.height * r;
-    cx.drawImage(im, (W - w) / 2, (H - h) / 2, w, h);
+    cx.drawImage(im, (W - w) / 2 + dx, (H - h) / 2 + dy, w, h);
+  }
+  // A soft band of light crossing the product once, mid-shot.
+  function sweep(p) {
+    if (p < 0.2 || p > 0.75) return;
+    var q = (p - 0.2) / 0.55, x = -W * 0.4 + q * W * 1.8;
+    var g = cx.createLinearGradient(x - 220, 0, x + 220, H * 0.25);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.18)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, W, H * 0.62);
   }
   function hexA(hex, a) { var h = String(hex).replace('#', ''); if (h.length === 3) h = h.replace(/(.)/g, '$1$1'); var n = parseInt(h, 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
   function scene(sc, p, alpha) {
@@ -143,7 +199,8 @@ function renderStoryAd(spec) {
     var im = sc.image && imgs[sc.image];
     if (sc.kind === 'end' || !im) { cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H); }
     else {
-      cover(im, 1.04 + 0.1 * p);
+      cover(im, sc.move, p);
+      if (sc.sweep) sweep(p);
       var g = cx.createLinearGradient(0, H * 0.45, 0, H);
       g.addColorStop(0, hexA(D.pal.ink, 0)); g.addColorStop(1, hexA(D.pal.ink, 0.72));
       cx.fillStyle = g; cx.fillRect(0, 0, W, H);
@@ -200,6 +257,15 @@ function renderStoryAd(spec) {
   var playBtn = document.getElementById('play');
   function toggle() { if (paused) { t0 = performance.now() - pausedAt * 1000; paused = false; playBtn.textContent = 'Pause'; } else { pausedAt = now(); paused = true; playBtn.textContent = 'Play'; } }
   playBtn.onclick = toggle; cv.onclick = toggle;
+  var cutBtn = document.getElementById('cut');
+  if (cutBtn) cutBtn.onclick = function () {
+    var toShort = cutBtn.getAttribute('data-cut') === 'full', c = toShort ? ALL.cuts.short : ALL.cuts.full;
+    D.scenes = c.scenes; D.total = c.total;
+    cutBtn.setAttribute('data-cut', toShort ? 'short' : 'full'); cutBtn.setAttribute('aria-pressed', toShort ? 'true' : 'false');
+    cutBtn.textContent = toShort ? Math.round(ALL.cuts.full.total) + ' s cut' : Math.round(ALL.cuts.short.total) + ' s cut';
+    note.textContent = Math.round(c.total) + ' seconds · ' + c.scenes.length + ' scenes';
+    t0 = performance.now(); paused = false; playBtn.textContent = 'Pause';
+  };
   document.getElementById('restart').onclick = function () { t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; };
   document.getElementById('save').onclick = function () {
     if (blocked.length) { note.textContent = 'This video cannot be saved here: ' + blocked.length + ' photo(s) come from a host that does not allow them to be recorded. Play it, or save the creative page instead.'; return; }
@@ -225,4 +291,4 @@ function renderStoryAd(spec) {
 </body></html>`;
 }
 
-module.exports = { renderStoryAd, storyScenes, storyBrief, MAX_SECONDS };
+module.exports = { renderStoryAd, storyScenes, storyBrief, MAX_SECONDS, SHORT_SECONDS, MOVES };
