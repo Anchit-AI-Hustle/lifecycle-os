@@ -4,6 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Pollo AI: a workspace's own key animates the product's own photo (2026-10-25)
+The operator, with Pollo's menus (URL to Video Ads, Photo to Video Ads, Product Video) and a key: "try to understand how
+pollo_ai creates these videos". Read docs.pollo.ai (2026-10-25): one key in `x-api-key`; POST
+`https://pollo.ai/api/platform/v1/generation/kling-ai/kling-v2-5-turbo/video` with `input` {image (first frame, http(s)
+URL), prompt <=1500, duration 5|10, mode std} or {prompt, aspectRatio 16:9|9:16|1:1, duration}; GET
+`/v1/generation/{taskId}/status` -> generations[0] {status waiting|processing|succeed|failed, url, cover, failMsg};
+`/v1/credit/balance`; outputs kept 14 days. Its product videos are a product PHOTO run through an image-to-video model.
+Built: Pollo is a `media` connection on /connections (`workspace-connections-core` PROVIDERS id `pollo`; Test reads the
+credit balance, spends nothing), the key the person saves in THEIR workspace, never a platform env var (the operator's
+rule). `mediaKeysFor(req)` resolves it like `llmOverridesFor`. `video-core.generateVideo` tries it FIRST, free generation
+or not (own spend, as an own image key): the first http(s) photo the caller sent is the first frame, else text-to-video;
+recorded as the workspace's own answer (no app credits). A refusal is said beside the code-rendered creative
+(`provider_error`). Only Kling 2.5 Turbo's request was confirmed field by field, so no other Pollo model is offered.
+Not built: Pollo's agent/ad recipes (not in its public docs), the webhook (polling is used). Gated by
+`tests/pollo-video.spec.js` (6 executed over a fake Pollo API; the own-key-first rule mutation-checked).
+
 ## ⭐ Asset review: mailers, landing pages, Story video, a grouped preview (2026-10-24)
 The operator: "review each asset's creation logic and rate asset wise ... mailers and landing pages are atrocious",
 then "proper video ads up to 30 s ... keep [the transitional] variant too" and "too cumbersome to view all the output".
