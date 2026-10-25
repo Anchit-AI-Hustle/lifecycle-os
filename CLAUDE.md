@@ -647,6 +647,11 @@ the bank popup; the callback answers a RELATIVE `303 /credits#paid|#unpaid`. Env
 RAZORPAY_WEBHOOK_SECRET. Gated by `tests/razorpay-credits-executed.spec.js` (router over fake-supabase + a modelled
 Razorpay API) and `tests/razorpay-credits-page.spec.js` (Chromium, stubbed checkout.js). Production has NO pack price
 yet, so Razorpay shows nowhere until an operator sets INR prices; none was invented here.
+Checked live 2026-10-25: `op=prices` answers `razorpay:false` and every pack unpriced (no RAZORPAY_* and no
+CREDIT_PACK_PRICES on the Vercel project), so "payment not working" is configuration, not code; keys are the
+operator's to set. Same day, /credits on a phone: every table stacks (a cell = its column's label + value, under
+720px, `labelCells()`), the ledger note lists one provider per line; gated in `credits-platform-usage` (390px: no
+text cell under a third of its table; mutation-checked).
 
 ## ⭐ The agent goes on the brand's own website; /agent, /assets and /music fixed from production (2026-10-14)
 - **/agent answered "the database is unreachable"** while credits loaded from the same project. Vercel's log:
