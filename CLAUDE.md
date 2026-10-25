@@ -31,8 +31,8 @@ Higgsfield / Seedance with the rules. Now:
   never tried after the person's own key refused.
 - **/brain**: each video ad has "Render with Seedance (Higgsfield)" (`sbRenderSeedance`): the first shot's photo and
   move go to `?action=video-generate` with `provider:'higgsfield'` (Higgsfield only: no key = "Connect Higgsfield on
-  Connections", no other provider), the job is polled at `video-status` and the MP4 plays in the card.
-- Gated by `tests/higgsfield-seedance.spec.js` (9 executed over a fake Higgsfield API that throws on anything
+  Connections", no other provider, never the platform's pair; an ad with no product photo sends nothing), the job is polled at `video-status` and the MP4 plays in the card.
+- Gated by `tests/higgsfield-seedance.spec.js` (10 executed over a fake Higgsfield API that throws on anything
   undocumented, incl. the button in Chromium; 6 mutations caught) and `tests/render-rules.spec.js` (the skill holds the
   card; no generic prompt carries the rules). `image-prompt-subject`, `pollo-video` (Veo) and
   `model-fallback-cascade` (host) changed on purpose.
