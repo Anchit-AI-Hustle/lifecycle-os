@@ -89,7 +89,7 @@ const COMPACT = [
   '<render_rules>',
   'light: phone-camera, -1/3 stop, mixed temp, window spill',
   'ban: unbroken gaze, perfect posture, plastic skin, phantom hands',
-  'cut: sighs, hair tucks, off-camera glances',
+  'cut: sighs, hair tucks, idle off-camera glances (keep the one phone-screen glance)',
   'open: 1 micro-glitch, 1 object out of place',
   'no: cinema grade, empty set, magazine framing',
   '</render_rules>',
@@ -132,7 +132,7 @@ function rules({ medium = 'image', people = true, packshot = false, productOnly 
   if (people && !packshot && !productOnly) {
     out.push('If a person is in frame: no unbroken gaze into the lens, no perfect posture, real skin texture with warm room bounce and no beauty smoothing, hands that hold things a little wrong.');
     if (video) {
-      out.push('Opening 3 seconds: exactly one micro-glitch of body language (a half-step reframe, a hand adjusting the phone); eye contact breaks by 0:02 with a glance at the phone screen; one blink lands off-rhythm before 0:03. No filler: no sighs, no hair tucks, no off-camera glances. One micro-glitch only: more reads as a bug.');
+      out.push('Opening 3 seconds: exactly one micro-glitch of body language (a half-step reframe, a hand adjusting the phone); eye contact breaks by 0:02 with a glance at the phone screen; one blink lands off-rhythm before 0:03. No filler: no sighs, no hair tucks, no idle glances off camera (the one glance at the phone screen is the only look away). One micro-glitch only: more reads as a bug.');
     }
   } else if (video) {
     out.push('Opening 3 seconds: one small handheld micro-shake or half-step reframe, never more than one.');
