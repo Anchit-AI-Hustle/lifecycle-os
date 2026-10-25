@@ -149,6 +149,49 @@ test('"Render with Seedance": Higgsfield only, on the workspace\'s own key only;
   });
 });
 
+test('a dry run (social-run-daily) submits nothing on the workspace\'s own key: the code creative and the request it would send', async () => {
+  await withEnv(NO_PLATFORM, async () => {
+    const n = higgsfield();
+    try {
+      const vc = loadVC(Object.assign({ pollo: { api_key: 'pollo-own' } }, OWN));
+      const out = await vc.generateVideo({ prompt: 'Slow push in', aspect: '9:16', dry_run: true, brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
+      expect(out.provider).toBe('code-motion');
+      expect(out.would_request.url).toBe(I2V);
+      expect(out.note).toMatch(/dry run, so no render was submitted/);
+      expect(n.calls.length).toBe(0);
+      // With only a Pollo key the preview is Pollo's request, as a real run would send.
+      const vc2 = loadVC({ pollo: { api_key: 'pollo-own' } });
+      const out2 = await vc2.generateVideo({ prompt: 'Slow push in', aspect: '9:16', dry_run: true, brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
+      expect(out2.would_request.provider).toBe('pollo');
+      // Asked for Seedance by name, still nothing is submitted.
+      const vc3 = loadVC(OWN);
+      const out3 = await vc3.generateVideo({ prompt: 'Slow push in', dry_run: true, only: 'higgsfield', brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
+      expect(out3.would_request.url).toBe(I2V);
+      expect(n.calls.length).toBe(0);
+    } finally { n.restore(); delete require.cache[VC]; }
+    // No own key, a platform Gemini key: the preview is Veo's request.
+    await withEnv({ GEMINI_API_KEY: 'plat-gemini' }, async () => {
+      const vc4 = loadVC(null);
+      const out4 = await vc4.generateVideo({ prompt: 'Slow push in', dry_run: true, brand: { name: 'Fernwick Roasters' } });
+      expect(out4.would_request.provider).toBe('veo');
+    });
+    // Through the shipped Social OS run with dry_run on.
+    const n2 = higgsfield();
+    const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
+    const SC = require.resolve(path.join(ROOT, 'api', '_shared', 'social-core.js'));
+    const savedLlm = require.cache[LLM];
+    const down = async () => { throw new Error('ALL PROVIDERS FAILED'); };
+    Object.assign(down, require(LLM));
+    require.cache[LLM] = { id: LLM, filename: LLM, loaded: true, exports: down };
+    try {
+      loadVC(OWN);
+      delete require.cache[SC];
+      await require(SC).runDaily({ brand: { name: 'Fernwick Roasters', regions: [{ code: 'UK', home: true }] }, dry_run: true, date: '2026-10-20' });
+      expect(n2.calls.filter((c) => c.url.startsWith(HF)).length).toBe(0);
+    } finally { n2.restore(); require.cache[LLM] = savedLlm; delete require.cache[SC]; delete require.cache[VC]; }
+  });
+});
+
 test('an own key that refuses falls back to the code-rendered creative and says why', async () => {
   await withEnv(Object.assign({}, NO_PLATFORM, { FREE_GENERATION: null }), async () => {
     const n = higgsfield({ submit: () => ({ status: 401, body: { detail: 'Invalid credentials' } }) });
