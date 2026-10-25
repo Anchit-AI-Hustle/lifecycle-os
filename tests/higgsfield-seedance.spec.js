@@ -163,8 +163,18 @@ test('a dry run (social-run-daily) submits nothing on the workspace\'s own key: 
       const vc2 = loadVC({ pollo: { api_key: 'pollo-own' } });
       const out2 = await vc2.generateVideo({ prompt: 'Slow push in', aspect: '9:16', dry_run: true, brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
       expect(out2.would_request.provider).toBe('pollo');
+      // Asked for Seedance by name, still nothing is submitted.
+      const vc3 = loadVC(OWN);
+      const out3 = await vc3.generateVideo({ prompt: 'Slow push in', dry_run: true, only: 'higgsfield', brand: { name: 'Fernwick Roasters' }, motion: { images: [PHOTO] } });
+      expect(out3.would_request.url).toBe(I2V);
       expect(n.calls.length).toBe(0);
     } finally { n.restore(); delete require.cache[VC]; }
+    // No own key, a platform Gemini key: the preview is Veo's request.
+    await withEnv({ GEMINI_API_KEY: 'plat-gemini' }, async () => {
+      const vc4 = loadVC(null);
+      const out4 = await vc4.generateVideo({ prompt: 'Slow push in', dry_run: true, brand: { name: 'Fernwick Roasters' } });
+      expect(out4.would_request.provider).toBe('veo');
+    });
     // Through the shipped Social OS run with dry_run on.
     const n2 = higgsfield();
     const LLM = require.resolve(path.join(ROOT, 'api', '_shared', 'llm.js'));
