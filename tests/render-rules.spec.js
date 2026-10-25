@@ -213,3 +213,12 @@ test('an object-only video is never told to break eye contact unless a person is
   expect(p).toMatch(/With no person: one handheld micro-shake/);
   expect(RR.COMPACT).toMatch(/ban \(if a person is in frame; never add one\)/);
 });
+
+test('the compact preamble keeps the brand\'s style lock and type, bounded', () => {
+  const b = Object.assign({}, BRAND, { brand_data: { style_lock: { photo_style: 'Overhead daylight on raw linen, ' + 'x'.repeat(500), rules: ['Never show a hand', 'Always a terracotta prop', 'third rule'] } } });
+  const c = IP.buildPreamble(b, 'photo', { compact: true });
+  expect(c).toMatch(/Photo style: Overhead daylight on raw linen/);
+  expect(c).toMatch(/Never break: Never show a hand Always a terracotta prop/);
+  expect(c).not.toMatch(/third rule/);
+  expect(c.length).toBeLessThan(1000);
+});
