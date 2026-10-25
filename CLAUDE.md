@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance stop looking like AI): "Integrate everything
 mentioned". `api/_shared/render-rules.js` holds the card: the tells (studio-flat light on frame 1, unbroken eye contact,
 plastic skin, phantom hands), the lighting rules (frame 1 a third of a stop under, mixed warm/cool light, window spill),
-the bans (giveaway tells; cinema grade, empty set, magazine framing; filler sighs/hair tucks/off-camera glances), the
+the bans (giveaway tells; cinema grade, empty set, magazine framing; filler sighs/hair tucks/idle off-camera glances, the one phone-screen glance kept), the
 opening 3 seconds (ONE micro-glitch, ONE ordinary object out of place, phone light), the quick-fix re-prompts, the
 common drift and the compact `<render_rules>` block, set once in CODE: `image-prompt.buildPreamble` (every mode but
 `design`, person rules except `ambient`; reels is "shot like a phone in a real room", no film-still grade; quality line

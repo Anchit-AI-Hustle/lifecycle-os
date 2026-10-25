@@ -26,7 +26,7 @@ test('the card is all here: four tells, three lighting rules, three bans, three 
   expect(Object.keys(RR.QUICK_FIX)).toEqual(['too_clean', 'stares', 'plastic', 'too_still', 'too_staged']);
   expect(RR.DRIFT.length).toBe(4);
   for (const line of ['light: phone-camera, -1/3 stop, mixed temp, window spill', 'ban: unbroken gaze, perfect posture, plastic skin, phantom hands',
-    'cut: sighs, hair tucks, off-camera glances', 'open: 1 micro-glitch, 1 object out of place', 'no: cinema grade, empty set, magazine framing']) {
+    'cut: sighs, hair tucks, idle off-camera glances (keep the one phone-screen glance)', 'open: 1 micro-glitch, 1 object out of place', 'no: cinema grade, empty set, magazine framing']) {
     expect(RR.COMPACT).toContain(line);
   }
 });
@@ -95,6 +95,9 @@ test('a video model is sent the rules with the compact block; over the product\'
     expect(t2v).toContain(RR.COMPACT);
     expect(t2v).toMatch(/exactly one micro-glitch/);
     expect(t2v).toMatch(/eye contact breaks by 0:02/);
+    // The one glance at the phone screen is allowed; only idle glances are cut.
+    expect(t2v).toMatch(/the one glance at the phone screen is the only look away/);
+    expect(t2v).not.toMatch(/no off-camera glances/);
     expect(t2v.length).toBeLessThanOrEqual(1500);
 
     await vc.generateVideo({ prompt: 'Slow push in on the bag', duration_s: 8, aspect: '9:16', motion: { images: [PHOTO] } });

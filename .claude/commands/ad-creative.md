@@ -54,7 +54,7 @@ Paste the compact block once into any prompt you write by hand for Higgsfield, S
 <render_rules>
 light: phone-camera, -1/3 stop, mixed temp, window spill
 ban: unbroken gaze, perfect posture, plastic skin, phantom hands
-cut: sighs, hair tucks, off-camera glances
+cut: sighs, hair tucks, idle off-camera glances (keep the one phone-screen glance)
 open: 1 micro-glitch, 1 object out of place
 no: cinema grade, empty set, magazine framing
 </render_rules>
