@@ -75,8 +75,10 @@ function linesFor(data, cut) {
 function speakable(t) {
   let s = String(t || '');
   if (/\[DATA REQUIRED/i.test(s)) return '';
-  s = s.replace(/https?:\/\/\S+|www\.\S+/gi, '').replace(/\s*[–—]\s*/g, ', ').replace(/[*_#<>{}\[\]|~^`]/g, '').replace(/\s+/g, ' ').trim();
-  if (!s) return '';
+  // Addresses are never read out: a full URL, a www. one, or a bare host
+  // ("oakbakers.com/rye", Codex #366). A price (9.99) or "e.g." is not a host.
+  s = s.replace(/\S+@\S+\.[a-z]{2,24}\b/gi, '').replace(/https?:\/\/\S+|www\.\S+/gi, '').replace(/(^|[^\w@.-])(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,24}(?:\/\S*)?(?![\w.-]*\w)/gi, '$1').replace(/\s*[–—]\s*/g, ', ').replace(/[*_#<>{}\[\]|~^`]/g, '').replace(/\s+/g, ' ').replace(/\s+([,.!?;:])/g, '$1').replace(/^[,.;:\s]+/, '').trim();
+  if (!s || !/[\p{L}\p{N}]/u.test(s)) return '';
   if (!/[.!?…]$/.test(s)) s += '.';
   return s.slice(0, MAX_LINE);
 }

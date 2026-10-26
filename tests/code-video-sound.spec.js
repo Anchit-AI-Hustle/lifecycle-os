@@ -57,6 +57,15 @@ test('the voiceover is the ad\'s own words, scene by scene, each said once; no m
   if (d.cuts.short) expect(SV.linesFor(d, 'short').length).toBeLessThanOrEqual(full.length);
   expect(SV.speakable('[DATA REQUIRED BEFORE LAUNCH: price, x, IN]')).toBe('');
   expect(SV.speakable('Shop at https://oak.example/rye now')).toBe('Shop at now.');
+  // A bare host or an email is an address too (Codex, #366); a price or "e.g." is not.
+  expect(SV.speakable('Shop at oakbakers.com now')).toBe('Shop at now.');
+  expect(SV.speakable('Visit shop.oak-bakers.co.uk/rye today')).toBe('Visit today.');
+  expect(SV.speakable('Order at OakBakers.in.')).toBe('Order at.');
+  expect(SV.speakable('Write to hi@oak.com today')).toBe('Write to today.');
+  expect(SV.speakable('oakbakers.com')).toBe('');
+  expect(SV.speakable('Only £9.99 today')).toBe('Only £9.99 today.');
+  expect(SV.speakable('Fresh, e.g. rye')).toBe('Fresh, e.g. rye.');
+  expect(SV.speakable('Version 2.5 is here')).toBe('Version 2.5 is here.');
   expect(SV.speakable('Fresh — warm – today')).toBe('Fresh, warm, today.');
   expect(SV.speakable('Done!')).toBe('Done!');
   expect(SV.speakable('x'.repeat(400))).toHaveLength(220);
