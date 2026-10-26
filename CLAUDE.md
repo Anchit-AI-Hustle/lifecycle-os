@@ -47,7 +47,7 @@ editly, Creatomate, HF ZeroGPU), then, on /brain's Music for Nik Bakers: "The sa
 The operator: "still that same output is only being generated - use the exact same system as being used in music studio
 in the the-third-eye repo". Production has no music key (only a free-tier `GEMINI_API_KEY`, which Lyria refuses, and
 `GROQ_API_KEY`), so every press fell to the code sketch. The Third Eye's Vercel project has `ELEVENLABS_API_KEY`,
-`REPLICATE_API_TOKEN` and `HF_API_TOKEN`; this project needs the operator to set the same (never copied from here).
+`REPLICATE_API_TOKEN` and `HF_API_TOKEN`; this project needs the operator to set the first two (never copied from here).
 - **`api/_shared/third-eye-music/`** is The Third Eye's `frontend/src/lib/music` (agents, knowledge, structures,
   normalize, synth, types), types stripped by `node:module` and nothing else changed except `knowledge.js`'s genre lookup
   (marked LIFECYCLE: whole words; as substrings "d&b" matched "ad bed" and acoustic briefs became Drum and Bass at 168).
@@ -56,11 +56,12 @@ in the the-third-eye repo". Production has no music key (only a free-tier `GEMIN
   the Lyricist writes only when there are none), `plan()` = `planSong` (Musicologist -> Beat-smith + Lyricist ->
   Conductor) bounded by `MUSIC_PLAN_MS` (default 30 s, else its own fallbacks; `planned_by` says which), a reference
   artist never reaches a model, `elevenPrompt`/`clipSecondsFor` from its elevenlabs.ts, `huggingFaceMusic` (its
-  `api-inference.huggingface.co/models/facebook/musicgen-small` call, refusal said), `synthWav` (its `renderWav` seeded
+  `api-inference.huggingface.co/models/<model>` call, refusal said; runs ONLY when `HF_MUSIC_MODEL` names a model the
+  operator deployed, since no Inference Provider serves its default musicgen-small: Codex #367), `synthWav` (its `renderWav` seeded
   `description|prompt`, plus the press's take).
 - **`music-compose.js`**: Lyria takes the brand brief as before; the plan is made once, lazily, before ElevenLabs
   (`elevenPrompt(plan)`), Replicate (Conductor tags + lyrics for ACE-Step, the Beat-smith prompt for MusicGen /
-  stable-audio-open), Hugging Face (`HF_API_TOKEN`, platform only, after Replicate), then The Third Eye's synth (model
+  stable-audio-open), Hugging Face (`HF_API_TOKEN` + `HF_MUSIC_MODEL`, platform only, after Replicate), then The Third Eye's synth (model
   `third-eye-synth`, up to its 60 s clip). Answers carry `plan` {by, prompt, tags, lyrics, genre, bpm, key, moods}.
   music-synth.js stays the Story video's own bed.
 - Gated by `tests/third-eye-music.spec.js` (7 executed with a scripted model; byte parity with The Third Eye's synth

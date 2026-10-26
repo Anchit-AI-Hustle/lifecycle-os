@@ -129,14 +129,23 @@ function elevenPrompt(p) {
 }
 
 /* The Third Eye's tryHuggingFaceMusic, with its refusal said instead of dropped. */
+// LIFECYCLE (Codex #367): The Third Eye defaults to facebook/musicgen-small, and no
+// Hugging Face Inference Provider serves it (its model page lists none; read
+// 2026-10-25), so the default can only be refused, after a wait. The rung runs
+// only when HF_MUSIC_MODEL names a model the operator has deployed and confirmed.
+function hfModel() {
+  const m = String(process.env.HF_MUSIC_MODEL || '').trim();
+  return HF_MODEL_RE.test(m) ? m : '';
+}
 function hfToken() {
-  return String(process.env.HF_API_TOKEN || process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEHUB_API_TOKEN || '').replace(/[﻿​\s]/g, '');
+  if (!hfModel()) return '';
+  return String(process.env.HF_API_TOKEN || process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEHUB_API_TOKEN || '').replace(/[\ufeff\u200b\s]/g, '');
 }
 async function huggingFaceMusic(promptText, seconds, { token, fetchImpl, deadline } = {}) {
   const t = token || hfToken();
   if (!t) return { ok: false, error: 'no Hugging Face token' };
-  const model = process.env.HF_MUSIC_MODEL || 'facebook/musicgen-small';
-  if (!HF_MODEL_RE.test(model)) return { ok: false, error: 'HF_MUSIC_MODEL is not a model id' };
+  const model = hfModel();
+  if (!model) return { ok: false, error: 'HF_MUSIC_MODEL names no deployed model' };
   const duration = Math.min(Math.max(Math.round(seconds) || 15, 5), 30);
   const left = Math.max(1000, (deadline || Date.now() + 60000) - Date.now() - 2000);
   let r;
