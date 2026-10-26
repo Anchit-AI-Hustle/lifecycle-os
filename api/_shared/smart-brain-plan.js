@@ -1605,9 +1605,10 @@ STRATEGY REQUIREMENTS (Cover all 7 strategic dimensions):
 Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework".`;
 }
 
-async function strategyBrief(entry) {
+async function strategyBrief(entry, opts = {}) {
   try {
     const res = await callLLMTiered({
+      ...(opts.budgetMs > 0 ? { budgetMs: opts.budgetMs } : {}),
       systemPrompt: strategySystem(entry.brand),
       stage: 'strategy', feature: 'brain.strategy', workspaceId: (entry && entry.workspace_id) || null,
       userMessage: strategyPrompt(entry),
@@ -4158,7 +4159,10 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     if (team && team.strategy) {
       brief = Object.assign(MA.strategyAsBrief(team.strategy), { __provider: 'team' });
     } else {
-      const sb = keylessOnly ? null : await strategyBrief(entry);
+      // After a team that did not produce a strategy, the single strategist fills in only within the
+      // plan window (+15 s), in total across every tier; with too little left the copy runs without it.
+      const fillBudget = teamOn ? (__buildStart + (+process.env.TEAM_PLAN_MS || 45000) + 15000) - Date.now() : 0;
+      const sb = keylessOnly || (teamOn && fillBudget < 5000) ? null : await strategyBrief(entry, teamOn ? { budgetMs: fillBudget } : {});
       brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
       if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
     }
