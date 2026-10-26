@@ -253,3 +253,23 @@ test('/brain: "MP4 video (made in code, no key)" sends the story and plays the f
     expect(sent[0].cut).toBe('full');
   } finally { await new Promise((r) => server.close(r)); }
 });
+
+// A host that omits Content-Length is read only up to the cap, never whole
+// (Codex, #364): the stream is cancelled as soon as the count passes it, and
+// one render's photos share one budget.
+test('a photo is counted as it streams and cut at the cap; a render\'s photos share one budget', async () => {
+  const CHUNK = 1024 * 1024;
+  const endless = (served) => async () => new Response(new ReadableStream({
+    pull(c) { served.n += CHUNK; c.enqueue(new Uint8Array(CHUNK)); },
+  }), { status: 200, headers: { 'content-type': 'image/png' } });
+  const served = { n: 0 };
+  await expect(CV.fetchImage('https://img.example/huge.png', endless(served), allow)).rejects.toThrow(/image over 8 MB/);
+  expect(served.n, 'read far past the cap').toBeLessThanOrEqual(CV.MAX_IMAGE_BYTES + 3 * CHUNK);
+  // Several 6 MB photos (each under the per-photo cap) stop at the shared budget.
+  const six = async () => new Response(new Uint8Array(6 * CHUNK), { status: 200, headers: { 'content-type': 'image/png' } });
+  const budget = { left: CV.MAX_IMAGES_TOTAL };
+  const out = [];
+  for (let i = 0; i < 6; i++) out.push(await CV.fetchImage('https://img.example/' + i + '.png', six, allow, budget).then(() => 'ok', (e) => e.message));
+  expect(out.filter((x) => x === 'ok').length).toBe(4);
+  expect(out[4]).toMatch(/over 24 MB together/);
+});
