@@ -66,6 +66,9 @@ async function build(answers) {
   try {
     const real = require(LLM);
     const stub = async (o) => {
+      // The marketing team's makers and reviewers are not under test here: they answer nothing,
+      // so the copy calls alone take the scripted answers in order.
+      if (/^team-/.test(String(o.stage || ''))) throw new Error('no team in this test');
       if (/strategy/.test(String(o.stage || ''))) return { text: JSON.stringify({ angle: 'a', framework: 'PAS', hook_thesis: 'x', target_emotion: 'calm', proof_points: [], differentiator: 'x', dos: [], donts: [] }), provider: 'scripted', model: 'm' };
       const body = answers[Math.min(n, answers.length - 1)]; n += 1;
       return { text: JSON.stringify(copyWith(body)), provider: 'scripted', model: 'm' };

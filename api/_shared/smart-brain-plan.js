@@ -136,19 +136,25 @@ async function syncStatus({ config: cfg = {}, limit = 60 } = {}) {
 async function callLLMTiered(opts) {
   let wanted = (opts && opts.tier) || 'premium';
   let routeNote = '';
+  // A caller's budgetMs bounds the WHOLE call, routing included: the deadline starts here,
+  // and a balance lookup that does not answer in time is a routing failure (the caller's tier).
+  const until = Number(opts && opts.budgetMs) > 0 ? Date.now() + Number(opts.budgetMs) : 0;
   try {
     const mr = require('./model-router.js');
     const env = {
       url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
       key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     };
-    const decision = await mr.route({
+    const routed = mr.route({
       stage: (opts && (opts.stage || opts.feature)) || '',
       featureKey: opts && opts.feature,
       workspaceId: opts && opts.workspaceId,
       env,
       requested: opts && opts.tier,
     });
+    const decision = until
+      ? await Promise.race([routed, new Promise((_, rej) => setTimeout(() => rej(new Error('routing did not answer in time')), Math.max(0, Math.min(3000, until - Date.now() - 1000))))])
+      : await routed;
     if (decision && decision.allowed && decision.tier) { wanted = decision.tier; routeNote = decision.reason; }
     else if (decision && !decision.allowed) {
       const err = new Error(decision.reason);
@@ -165,8 +171,11 @@ async function callLLMTiered(opts) {
   // would only queue the same request three times.
   try { if (await require('./llm.js').keylessOnly()) tiers = [wanted]; } catch (_) { /* keep the ladder */ }
   let lastErr;
+  // ...and the ladder too: every tier gets what is left, none starts once it is spent.
   for (const tier of tiers) {
-    try { return await callLLM({ ...opts, tier }); }
+    const left = until ? until - Date.now() : 0;
+    if (until && left < 500) { lastErr = lastErr || new Error('the call budget is spent'); break; }
+    try { return await callLLM(until ? { ...opts, tier, budgetMs: left, timeoutMs: Math.min(Number(opts.timeoutMs) || left, left) } : { ...opts, tier }); }
     catch (e) { lastErr = e; }
   }
   throw lastErr;
@@ -1596,9 +1605,10 @@ STRATEGY REQUIREMENTS (Cover all 7 strategic dimensions):
 Choose the value framework (Hook-Story-Offer, PAS, or Identity-Driven) that best fits this cohort and say which in "framework".`;
 }
 
-async function strategyBrief(entry) {
+async function strategyBrief(entry, opts = {}) {
   try {
     const res = await callLLMTiered({
+      ...(opts.budgetMs > 0 ? { budgetMs: opts.budgetMs } : {}),
       systemPrompt: strategySystem(entry.brand),
       stage: 'strategy', feature: 'brain.strategy', workspaceId: (entry && entry.workspace_id) || null,
       userMessage: strategyPrompt(entry),
@@ -1850,6 +1860,13 @@ function copyOutputSpec(entry) {
  * only them; anything the row does not state is said to be absent, never
  * filled. The offer line says plainly when there is no offer on record.
  */
+/** An offer's discount as a whole percentage: the planner stores a FRACTION (0.15), a whole number is already one; 0 is none. */
+function offerPct(o) {
+  let p = o ? Number(o.pct) : NaN;
+  if (Number.isFinite(p) && p > 0 && p < 1) p *= 100;
+  return Number.isFinite(p) && p > 0 ? Math.round(p) : 0;
+}
+
 function productFactsBrief(entry) {
   const lines = [];
   let row = null;
@@ -1882,10 +1899,11 @@ function productFactsBrief(entry) {
   } else {
     lines.push('PRODUCT FACTS: none on record for this slot beyond its name; state no price, size, material or feature.');
   }
-  const o = entry.offer || {};
-  const hasOffer = !!(o.code || (o.pct && Number(o.pct) > 0) || (o.depth && o.depth !== 'none'));
+  // The offer the slot resolves to (its own, else its decision's): one offer for every reader.
+  const o = offerOf(entry) || {};
+  const hasOffer = !!(o.code || offerPct(o) || (o.depth && o.depth !== 'none'));
   lines.push(hasOffer
-    ? `- OFFER on record: ${[o.depth, o.pct ? `${o.pct}%` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
+    ? `- OFFER on record: ${[o.depth, offerPct(o) ? `${offerPct(o)}% off` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
     : '- OFFER: none on record. The reason to buy is the product itself; invent no discount, code, deadline or stock line.');
   // The Parwah mailer (2026-10-17): "pure, locally-sourced nutrition" and "the
   // best care" under a brand whose record says neither. An attribute is a
@@ -1908,7 +1926,7 @@ function benchmarkBrief(entry) {
 function mailStudyBrief(entry) {
   try { return require('./competitor-mail-study.js').briefLines(entry && entry.__mailStudy).join('\n'); } catch (_) { return ''; }
 }
-function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
+function copyPrompt(entry, fw = null, brief = null, team = null) { return OC.append(copyTask(entry, fw, brief, team), copyOutputSpec(entry)); }
 // The messaging lines the writer is briefed with, only for a slot that plans
 // SMS / WhatsApp / push (2026-10-23). Empty for every other slot, so the
 // prompt of a brand that states no such channel is unchanged.
@@ -1917,7 +1935,7 @@ function messagingRule(entry) {
   if (!want.length) return '';
   return `- Messaging (${want.join(', ')}): each is ONE short line to the reader in the brand's own facts, no offer, price or code the facts above do not state. Write no brand-name prefix, no link and no opt-out: the builder adds the sender, the slot's own page and "Reply STOP" itself. SMS in plain GSM characters (no emoji, no curly quotes).\n`;
 }
-function copyTask(entry, fw = null, brief = null) {
+function copyTask(entry, fw = null, brief = null, team = null) {
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
     : '';
@@ -1933,7 +1951,7 @@ ${productFactsBrief(entry)}
 ${creativeEvidence.briefFor(entry)}
 ${benchmarkBrief(entry)}
 ${mailStudyBrief(entry)}
-- ${regionalNuance(entry.market)}${fwLine}${briefLine}
+- ${regionalNuance(entry.market)}${fwLine}${briefLine}${team && team.briefing ? `\n\n${team.briefing}` : ''}${team && team.critique ? `\n\nTHE CONTENT QUALITY REVIEWER SENT YOUR LAST DRAFT BACK. Fix exactly these and keep everything else:\n${team.critique}` : ''}
 
 WHO THIS IS FOR:
 ${audienceBrief(entry)}
@@ -3039,7 +3057,42 @@ function emailHtml(entry, copy, creativeUrl) {
 </body></html>`;
 }
 
-async function writeCopyWithLLM(entry, fw = null, brief = null) {
+/**
+ * The SHARED MARKETING CONTEXT every agent of the team reads (marketing-agents.js):
+ * company, customers, offer, brand and goals, plus the evidence, all from the
+ * brand's own record, catalogue, cohort and history. Built once per send; the
+ * same helpers the copy prompt uses, so the team and the writer cannot disagree.
+ */
+function teamContext(entry) {
+  let b = {};
+  try { b = require('./brand-runtime.js').scopedBrand(entry && entry.brand) || {}; } catch (_) { b = (entry && entry.brand) || {}; }
+  const v = b.voice || {};
+  let model = 'commerce';
+  try { model = require('./asset-playbooks.js').businessModel(b); } catch (_) { /* commerce */ }
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean);
+  const off = offerOf(entry);
+  const offPct = offerPct(off);
+  const offerLine = off && (off.code || offPct || off.label || off.text)
+    ? `${off.label || off.text || ''}${off.code ? ` code ${off.code}` : ''}${offPct ? ` (${offPct}% off)` : ''}`.trim()
+    : 'No offer on record for this send: do not write one.';
+  const parts = {
+    company: [`${b.name || 'The brand'}${b.industry ? `, ${b.industry}` : ''}${b.website ? ` (${String(b.website).replace(/^https?:\/\//, '')})` : ''}.`,
+      b.tagline ? `Tagline: ${b.tagline}` : '', `Business model: ${model.replace('_', ' ')}.`, `Market: ${entry.market}. ${regionalNuance(entry.market)}`].filter(Boolean).join('\n'),
+    customers: [`Cohort: ${(entry.cohort && entry.cohort.name) || 'not named'}${entry.cohort && entry.cohort.size != null ? ` (${entry.cohort.size} profiles)` : ''}.`, audienceBrief(entry)].join('\n'),
+    offer: [offeringBrief(entry), productFactsBrief(entry), `Offer: ${offerLine}`].join('\n'),
+    brand: [`Voice: ${v.tone || '[DATA REQUIRED BEFORE LAUNCH: voice.tone]'}`,
+      Array.isArray(v.preferred) && v.preferred.length ? `Preferred words: ${v.preferred.join(', ')}` : '',
+      Array.isArray(v.banned) && v.banned.length ? `Never say: ${v.banned.join(', ')}` : '',
+      claims.length ? `CLAIMS (the only things the brand may assert as fact, numbered):\n${claims.map((c, i) => `${i + 1}. ${c}`).join('\n')}` : 'CLAIMS: none on record. Assert no claim.',
+      approvedProofBrief(entry)].filter(Boolean).join('\n'),
+    goals: [`Objective: ${entry.objective || 'not set'}.`, entry.festival ? `Moment: ${entry.festival.name}.` : 'No seasonal moment; evergreen.', entry.rationale ? `Why this send was planned: ${entry.rationale}` : ''].filter(Boolean).join('\n'),
+    evidence: creativeEvidence.briefFor(entry),
+  };
+  const text = ['COMPANY', parts.company, '', 'CUSTOMERS', parts.customers, '', 'OFFER', parts.offer, '', 'BRAND', parts.brand, '', 'GOALS', parts.goals, '', 'EVIDENCE', parts.evidence].join('\n');
+  return { text, parts };
+}
+
+async function writeCopyWithLLM(entry, fw = null, brief = null, team = null) {
   const sysLine = fw ? (() => { try { return '\n' + CF.copyFrameworkSystemLine(fw); } catch (_) { return ''; } })() : '';
   // NOTE: do NOT pin preferProvider here. In llm.js a preferProvider SKIPS every
   // other provider, so pinning the strategy analyst's provider left copy
@@ -3063,6 +3116,8 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
   let lastErr;
   let rounds = ROUNDS;
   try { if (await require('./llm.js').keylessOnly()) rounds = ROUNDS.slice(-1); } catch (_) { /* keep both */ }
+  // A reviewer's rewrite is one attempt: the first draft stands if it fails.
+  if (team && team.critique) rounds = ROUNDS.slice(-1).map((r) => Object.assign({}, r, { waitBefore: 0 }));
   for (let i = 0; i < rounds.length; i++) {
     const r = rounds[i];
     if (r.waitBefore) await new Promise((res) => setTimeout(res, r.waitBefore));
@@ -3070,8 +3125,9 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
     try {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
-        stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (entry && entry.workspace_id) || null,
-        userMessage: copyPrompt(entry, fw, brief),
+        stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (team && team.workspaceId) || (entry && entry.workspace_id) || null,
+        ...(team && team.budgetMs ? { budgetMs: team.budgetMs } : {}),
+        userMessage: copyPrompt(entry, fw, brief, team),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
         temperature: 0.75,
@@ -3997,6 +4053,7 @@ function brandChangedError(what) {
 }
 
 async function _buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+  const __buildStart = Date.now();
   const __run = _runId(entry);
   traceRun(__run, 'build:start', {
     slot: entry && entry.id, date: entry && entry.date, market: entry && entry.market,
@@ -4081,31 +4138,104 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // meant the copy was always refused; one copy call, no optional brief.
     let keylessOnly = false;
     try { keylessOnly = await require('./llm.js').keylessOnly(); } catch (_) { keylessOnly = false; }
-    const sb = keylessOnly ? null : await strategyBrief(entry);
-    const brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
-    if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
+    // ── THE MARKETING TEAM (marketing-agents.js, 2026-10-26): a shared context,
+    // then maker/reviewer pairs - strategy and messaging side by side, then the
+    // creative briefs - each sent back once when its reviewer finds a defect.
+    // Not on the keyless floor (one answer per 30 s cannot carry a team) and
+    // switched off with MARKETING_TEAM=off; both keep the single strategy call.
+    const teamOn = !keylessOnly && String(process.env.MARKETING_TEAM || '').toLowerCase() !== 'off';
+    const MA = require('./marketing-agents.js');
+    const tctx = teamOn ? teamContext(entry) : null;
+    // The workspace whose credits pay for the team: the router's tier choice reads its balance,
+    // and with no id a workspace out of credits would still get premium maker calls (Codex #370).
+    const teamWorkspace = (config && config.workspace_id) || (entry && entry.workspace_id) || null;
+    const teamOpts = teamOn ? {
+      call: (a) => callLLMTiered(Object.assign({ workspaceId: teamWorkspace }, a)), parseJSON, market: entry.market,
+      brandName: (entry.brand && entry.brand.name) || 'the brand',
+      left: () => (__buildStart + (+process.env.TEAM_PLAN_MS || 45000)) - Date.now(),
+    } : null;
+    const team = teamOn ? await MA.plan(tctx.text, teamOpts).catch(() => null) : null;
+    let brief = null;
+    if (team && team.strategy) {
+      brief = Object.assign(MA.strategyAsBrief(team.strategy), { __provider: 'team' });
+    } else {
+      // After a team that did not produce a strategy, the single strategist fills in only within the
+      // plan window (+15 s), in total across every tier; with too little left the copy runs without it.
+      const fillBudget = teamOn ? (__buildStart + (+process.env.TEAM_PLAN_MS || 45000) + 15000) - Date.now() : 0;
+      const sb = keylessOnly || (teamOn && fillBudget < 5000) ? null : await strategyBrief(entry, teamOn ? { budgetMs: fillBudget } : {});
+      brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
+      if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
+    }
+    const teamBriefing = team ? MA.copyBriefing(team) : '';
+    if (team) (team.members || []).forEach((m) => trace.push({ agent: m.role, role: m.department, ok: m.ok, provider: m.provider || null, output: m.kind === 'reviewer' ? { verdict: m.verdict || null, score: m.score, issues: (m.issues || []).map((x) => `${x.field ? x.field + ': ' : ''}${x.problem}`) } : (m.output ? { revision: m.revision } : { error: m.error }) }));
 
-    // ── Agent 2 · Content Writer — two diverging copy frameworks (A/B), written
-    // in parallel (same wall-clock as one call), each following the brief.
+    // ── Campaign Copywriters: two diverging copy frameworks (A/B), written in
+    // parallel, each following the strategy, the messaging and the briefs.
     const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: entry.id || entry.date || '' });
     const otherKeys = Object.keys(CF.COPY_FRAMEWORKS).filter((k) => k !== fwA.key);
     const fwB = CF.frameworkByKey(otherKeys[CF.stableIndex(`${entry.id || entry.date || ''}|b`, otherKeys.length)]) || fwA;
+    const teamCopy = teamBriefing ? { briefing: teamBriefing, workspaceId: teamWorkspace } : null;
     // Stagger the two copy directions by ~600ms so they don't hit the same
     // provider's per-minute limit in the exact same instant (reduces burst-429s).
     const [pA, pB] = keylessOnly
       ? await Promise.allSettled([writeCopyWithLLM(entry, fwA, brief), Promise.reject(new Error('one copy direction on the keyless provider'))])
       : await Promise.allSettled([
-        writeCopyWithLLM(entry, fwA, brief),
-        (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief); })(),
+        writeCopyWithLLM(entry, fwA, brief, teamCopy),
+        (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief, teamCopy); })(),
       ]);
     if (pA.status !== 'fulfilled' && pB.status !== 'fulfilled') {
       throw new Error('copy generation failed for both directions: ' + String((pA.reason && pA.reason.message) || pA.reason));
     }
-    const rawA = pA.status === 'fulfilled' ? pA.value : pB.value;
-    const rawB = pB.status === 'fulfilled' ? pB.value : pA.value;
+    let rawA = pA.status === 'fulfilled' ? pA.value : pB.value;
+    let rawB = pB.status === 'fulfilled' ? pB.value : pA.value;
+    // ── Content Quality Reviewer: each direction against the context and the
+    // briefs (message consistency across mail, landing page and ads); a draft
+    // sent back is rewritten ONCE with the reasons, and the first draft stands
+    // if the rewrite fails. Only while the build has time for it.
+    const teamCopyReview = [];
+    if (teamOn && team && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000)) {
+      const reviewOpts = Object.assign({}, teamOpts, { left: () => (__buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 12000) - Date.now() });
+      const dirs = rawB === rawA ? [['A', rawA, fwA]] : [['A', rawA, fwA], ['B', rawB, fwB]];
+      // Rewrites start at least 600 ms apart, whichever review finishes first: the slot is
+      // reserved before the wait, so two rewrites never burst one provider into a 429.
+      let nextRewrite = 0;
+      const rewriteTurn = async () => {
+        const at = Math.max(Date.now(), nextRewrite);
+        nextRewrite = at + 600;
+        if (at > Date.now()) await new Promise((r) => setTimeout(r, at - Date.now()));
+      };
+      const outs = await Promise.all(dirs.map(async ([d, raw, fw]) => {
+        const v = await MA.reviewCopy(tctx.text, team, raw.copy, reviewOpts).catch(() => null);
+        if (!v) return { d, raw };
+        teamCopyReview.push(Object.assign({ direction: d }, v.member));
+        // The rewrite has until the review window closes (+30 s), in total across every tier;
+        // with too little left it is skipped and the first draft stands.
+        const rewriteBy = __buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 30000;
+        if (v.verdict === 'revise' && v.critique && rewriteBy - Date.now() > 8000) {
+          await rewriteTurn();
+          const budgetMs = rewriteBy - Date.now();
+          const again = budgetMs > 5000 ? await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique, workspaceId: teamWorkspace, budgetMs }).catch(() => null) : null;
+          teamCopyReview.push({ direction: d, department: 'Content & Creative', role: 'Campaign Copywriter', kind: 'maker', revision: true, ok: !!again, provider: again ? again.provider : null, error: again ? null : 'the rewrite failed; the first draft stands' });
+          if (again) return { d, raw: again };
+        }
+        return { d, raw };
+      }));
+      outs.forEach((x) => { if (x.d === 'A') rawA = x.raw; else rawB = x.raw; });
+      if (dirs.length === 1) rawB = rawA;
+      teamCopyReview.forEach((m) => trace.push({ agent: m.role, role: `${m.department} (copy ${m.direction})`, ok: m.ok, provider: m.provider || null, output: m.kind === 'reviewer' ? { verdict: m.verdict || null, score: m.score, issues: (m.issues || []).map((x) => `${x.field ? x.field + ': ' : ''}${x.problem}`) } : { revision: true, error: m.error || null } }));
+    }
+    if (team) {
+      campaign.team = {
+        context: tctx.parts,
+        strategy: team.strategy, messaging: team.messaging, briefs: team.brief,
+        verdicts: Object.assign({}, team.verdicts, { copy: teamCopyReview.filter((m) => m.kind === 'reviewer').map((m) => ({ direction: m.direction, verdict: m.verdict || null, score: m.score })) }),
+        members: [].concat(team.members || [], teamCopyReview),
+        ms: Date.now() - __buildStart,
+      };
+    }
     const provider = rawA.provider || rawB.provider;
     const model = rawA.model || rawB.model;
-    trace.push({ agent: 'Content Writer', role: 'Lifecycle Copywriter', ok: true, provider, output: { frameworks: [fwA.key, fwB.key] } });
+    trace.push({ agent: 'Campaign Copywriter', role: 'Content & Creative', ok: true, provider, output: { frameworks: [fwA.key, fwB.key] } });
     // Brand scrub EVERY generated string (no banned phrases, no em/en dashes)
     // before it is baked into the mailer, landing page and ad rows. Persisted +
     // customer-served output must not rely on the prompt alone.
@@ -5311,7 +5441,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
