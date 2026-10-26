@@ -789,7 +789,7 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
       expect: (r) => { expect(r.status).toBe(200); expect(r.headers['x-music-provider']).toBe('elevenlabs'); expect(r.headers['x-music-quality']).toBe('studio'); } },
     // Free in the backend, charged as credits (2026-10-17): with free generation
     // on and no music model at all, the track is composed here by
-    // music-synth.js. A compact WAV: mono, 22.05 kHz, 15-60 s, so a minute
+    // music-synth.js. A compact WAV: mono, 22.05 kHz, 5-60 s, so a minute
     // fits the 4.5 MB serverless response.
     { name: 'free generation on and no music key: composed here as a WAV, labelled a sketch, no music service called', env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'on' }), run: { json: { prompt: 'Calm minimal underscore at 84 BPM', seconds: 9999 } },
       stubs: noOwnMusic,
@@ -801,6 +801,28 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
         expect(b.readUInt32LE(40)).toBe(60 * 22050 * 2);
         expect(b.length).toBeLessThan(4.5 * 1024 * 1024);
         expect(guard.calls.filter((c) => /elevenlabs|replicate/.test(c.url))).toEqual([]);
+      } },
+    // Every press is a take (2026-10-26, "the same song is returned every
+    // time"): the route hands the take to the sketch, so two takes of one
+    // brief are two tracks, one take is the same bytes, and a take that is
+    // not text or a number is ignored (never an object in the seed).
+    { name: 'free generation, no key: the take reaches the sketch, so another take is another track; a short length stays short', env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'on' }), run: { json: { prompt: 'Warm acoustic ad bed', seconds: 8, take: 'one' } },
+      stubs: noOwnMusic,
+      expect: (r) => {
+        expect(r.status).toBe(200); expect(r.headers['x-music-provider']).toBe('code-synth');
+        expect(r.bytes.readUInt32LE(40)).toBe(8 * 22050 * 2);
+        expect(decodeURIComponent(r.headers['x-music-note'])).toMatch(/acoustic \(from the brief\).*8 seconds.*Press Compose again for a different take/);
+        const SY = require(H.ROOT + '/music-synth.js');
+        const sh = (b) => require('crypto').createHash('sha256').update(Buffer.from(b)).digest('hex');
+        expect(sh(r.bytes)).toBe(sh(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true, take: 'one' }).bytes));
+        expect(sh(r.bytes)).not.toBe(sh(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true, take: 'two' }).bytes));
+      } },
+    { name: 'a take that is an object is ignored: the sketch is the brief\'s no-take track', env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'on' }), run: { json: { prompt: 'Warm acoustic ad bed', seconds: 8, take: { $gt: '' } } },
+      stubs: noOwnMusic,
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        const SY = require(H.ROOT + '/music-synth.js');
+        expect(Buffer.compare(r.bytes, Buffer.from(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true }).bytes))).toBe(0);
       } },
     // Gemini's own music model first (2026-10-25, music-compose.js): with a
     // Gemini key the documented Interactions request is made and Lyria's audio
@@ -894,21 +916,30 @@ add('tts', { gate: 'model', model: 'audio.tts', browser: 'refuse', run: { json: 
     expect(c.url).toContain('/v1/text-to-speech/voice_h'); expect(c.headers['xi-api-key']).toBe('eleven-harness'); expect(JSON.parse(c.body).text).toBe('hello there');
   },
   cases: [
-    { name: 'with no key and free generation OFF the client is told to fall back, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'off' },
-      expect: (r) => { expect(r.status).toBe(501); expect(r.out.audio_url).toBeUndefined(); expect(guard.calls.filter((c) => /elevenlabs|pollinations/.test(c.url))).toEqual([]); } },
-    // 2026-10-17: no key, free generation on (the default) = a keyless voice the
-    // BROWSER plays, in exactly the URL form copilot.js plays; the server
-    // fetches nothing (the URL is handed back, never called here).
-    { name: 'with no key and free generation ON it answers the keyless Pollinations voice URL, and fetches nothing itself', run: { json: { text: 'Hello  there, friend & co' } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
+    { name: 'with no voice key at all the client is told to fall back to the browser voice, and nothing leaves the process', run: {}, env: { ELEVENLABS_API_KEY: undefined, GEMINI_API_KEY: undefined, FREE_GENERATION: 'off' },
+      stubs: () => S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null),
+      expect: (r) => { expect(r.status).toBe(501); expect(r.out.error).toBe('no_voice_model'); expect(r.out.message).toMatch(/browser's own voice/); expect(r.out.audio_url).toBeUndefined(); expect(guard.calls.filter((c) => /elevenlabs|pollinations|generativelanguage/.test(c.url))).toEqual([]); } },
+    // Changed on purpose (2026-10-26): the keyless Pollinations voice URL this
+    // route handed back is gone (its free API carries no audio model and
+    // answers 404), so free generation now asks Gemini TTS, the documented
+    // Interactions request, and never hands out a dead URL.
+    { name: 'free generation ON with a Gemini key: Gemini TTS speaks it (the documented Interactions request), no Pollinations URL', run: { json: { text: 'Hello  there, friend & co' } }, env: { ELEVENLABS_API_KEY: undefined, GEMINI_API_KEY: 'gemini-harness', FREE_GENERATION: 'on' },
+      stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => u === 'https://generativelanguage.googleapis.com/v1beta/interactions', () => H.reply(200, JSON.stringify({ steps: [{ type: 'model_output', content: [{ type: 'audio', mime_type: 'audio/wav', data: Buffer.alloc(3000, 5).toString('base64') }] }] }), { 'content-type': 'application/json' })); },
       expect: (r) => {
-        expect(r.status).toBe(200);
-        expect(r.out).toMatchObject({ ok: true, provider: 'pollinations', voice: 'nova' });
-        expect(r.out.audio_url).toBe('https://text.pollinations.ai/' + encodeURIComponent('Hello there, friend & co') + '?model=openai-audio&voice=nova');
-        expect(guard.calls.filter((c) => /elevenlabs|pollinations/.test(c.url))).toEqual([]);
+        expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/wav'); expect(r.headers['x-voice-provider']).toBe('gemini'); expect(r.bytes.length).toBe(3000);
+        const c = guard.calls.find((x) => /generativelanguage/.test(x.url));
+        expect(c.headers['x-goog-api-key']).toBe('gemini-harness');
+        const asked = JSON.parse(c.body);
+        expect(asked.model).toBe('gemini-3.8-flash-tts');
+        expect(asked.input[0].content[0].text).toBe('Hello there, friend & co');
+        expect(asked.response_format).toEqual({ type: 'audio' });
+        expect(asked.generation_config.speech_config[0].voice).toBe('Kore');
+        expect(guard.calls.filter((c) => /pollinations|elevenlabs/.test(c.url))).toEqual([]);
       } },
-    { name: 'the keyless voice text is cut at 700 characters, as copilot.js cuts it', run: { json: { text: 'a'.repeat(900) } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
-      expect: (r) => { expect(r.status).toBe(200); expect(decodeURIComponent(r.out.audio_url.split('/').pop().split('?')[0])).toHaveLength(700); } },
-    { name: 'an empty text with free generation on is a 400 sentence, not a URL', run: { json: { text: '   ' } }, env: { ELEVENLABS_API_KEY: undefined, FREE_GENERATION: 'on' },
+    { name: 'free generation ON, Gemini refuses, an ElevenLabs key exists: ElevenLabs speaks it', run: { json: { text: 'hi' } }, env: { ELEVENLABS_API_KEY: 'eleven-harness', GEMINI_API_KEY: 'gemini-harness', FREE_GENERATION: 'on' },
+      stubs: () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); guard.route((u) => /generativelanguage/.test(u), () => H.reply(429, JSON.stringify({ error: { message: 'quota' } }), { 'content-type': 'application/json' })); guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from('ID3fakeaudio'), { 'content-type': 'audio/mpeg' })); },
+      expect: (r) => { expect(r.status).toBe(200); expect(String(r.headers['content-type'])).toBe('audio/mpeg'); } },
+    { name: 'an empty text with free generation on is a 400 sentence, not a URL', run: { json: { text: '   ' } }, env: { ELEVENLABS_API_KEY: undefined, GEMINI_API_KEY: undefined, FREE_GENERATION: 'on' },
       expect: (r) => { expect(r.status).toBe(400); expect(r.out.audio_url).toBeUndefined(); } },
   ],
 });

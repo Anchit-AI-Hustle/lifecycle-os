@@ -16,6 +16,10 @@ const http = require('http');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+// These renders check what the file holds, not how fast it was made: a CI
+// runner shares its CPUs between workers, so they get room the 120 s function
+// does not (the time limit has its own tests, with the real budget).
+const CI_BUDGET = 240000;
 const CV = require(path.join(ROOT, 'api', '_shared', 'code-video.js'));
 const SA = require(path.join(ROOT, 'scripts', 'lib', 'story-ad.js'));
 
@@ -84,7 +88,7 @@ test('the story is rendered to a real video file in code: the photo the server f
   test.setTimeout(240000);
   const calls = [];
   const html = story([OK_URL, BAD_URL]);
-  const r = await CV.renderStoryVideo({ html, size: '540p', fetchImpl: fakeFetch(calls), assertUrl: allow });
+  const r = await CV.renderStoryVideo({ budgetMs: CI_BUDGET, html, size: '540p', fetchImpl: fakeFetch(calls), assertUrl: allow });
   expect(r.ok, r.message).toBe(true);
   expect(['video/mp4', 'video/webm']).toContain(r.mime);
   expect(r.codec).toBe(r.container === 'mp4' ? 'H.264' : 'VP9');
@@ -113,7 +117,7 @@ test('only the story\'s own photos are fetched, behind the URL guard, and only i
   const calls = [];
   // A page, a private host and a 404: none becomes a picture.
   const html = story(['https://img.example/page.html', 'http://127.0.0.1/secret.png']);
-  const r = await CV.renderStoryVideo({ html, size: '540p', cut: 'short', fetchImpl: fakeFetch(calls) });
+  const r = await CV.renderStoryVideo({ budgetMs: CI_BUDGET, html, size: '540p', cut: 'short', fetchImpl: fakeFetch(calls) });
   expect(r.ok, r.message).toBe(true);
   expect(r.images.used).toBe(0);
   const why = Object.fromEntries(r.images.refused.map((x) => [x.url, x.why]));
@@ -149,11 +153,16 @@ test('the page rendered is rebuilt from validated story data, never markup a req
 
 test('a render that cannot finish inside its time is stopped and said, never cut off by the platform', async () => {
   test.setTimeout(120000);
-  const r = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '1080p', budgetMs: 9000, fetchImpl: fakeFetch([]), assertUrl: allow });
+  const r = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '1080p', budgetMs: 14000, fetchImpl: fakeFetch([]), assertUrl: allow });
   expect(r.ok).toBe(false);
   expect(r.error).toBe('too_slow');
-  expect(r.tried[0]).toMatch(/^1080p \(projected \d+ s at 1080x1920\)$/);
+  // Projected past its time, or (on a runner whose CPUs are shared) not even started in it.
+  expect(r.tried[0]).toMatch(/^1080p \((projected \d+ s at 1080x1920|no time left to start it)\)$/);
   expect(r.message).toMatch(/could not render the video in time/);
+  // A budget the page load alone uses up: no size could even start, and that is said as time, not as a broken encoder.
+  const r2 = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '720p', budgetMs: 1, fetchImpl: fakeFetch([]), assertUrl: allow });
+  expect([r2.ok, r2.error]).toEqual([false, 'too_slow']);
+  expect(r2.tried).toEqual(['720p (no time left to start it)']);
 });
 
 function call(handle, { method = 'POST', headers = {}, body = {} } = {}) {
@@ -203,7 +212,7 @@ test('a keyless video answer carries the story to render, as the same photos and
 test('the H.264 MP4 from the production browser (@sparticuz/chromium) decodes, at its size and length', async ({ page }) => {
   test.skip(process.platform !== 'linux' || process.arch !== 'x64', 'the serverless binary is built for Linux x64');
   test.setTimeout(300000);
-  const r = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), cut: 'short', size: '540p', prefer: 'sparticuz', fetchImpl: fakeFetch([]), assertUrl: allow });
+  const r = await CV.renderStoryVideo({ budgetMs: CI_BUDGET, html: story([OK_URL, OK_URL]), cut: 'short', size: '540p', prefer: 'sparticuz', fetchImpl: fakeFetch([]), assertUrl: allow });
   expect(r.ok, r.message).toBe(true);
   expect(r.browser.source).toBe('sparticuz');
   expect(r.container).toBe('mp4');
@@ -217,7 +226,7 @@ test('the H.264 MP4 from the production browser (@sparticuz/chromium) decodes, a
 /* ── The /brain button, in Chromium ────────────────────────────────────── */
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
-test('/brain: "MP4 video (made in code, no key)" sends the story and plays the file the server made', async ({ page }) => {
+test('/brain: "MP4 video with music and voiceover" sends the story and the send\'s music brief, and plays the file the server made, saying what is heard', async ({ page }) => {
   test.setTimeout(120000);
   const server = http.createServer((req, res) => {
     const url = (req.url || '/').split('?')[0];
@@ -233,22 +242,38 @@ test('/brain: "MP4 video (made in code, no key)" sends the story and plays the f
     const fake = Buffer.from('1a45dfa3', 'hex');
     await page.route('**/api/public-config?action=video-render', async (r) => {
       sent.push(JSON.parse(r.request().postData() || '{}'));
-      await r.fulfill({ status: 200, contentType: 'video/webm', body: fake, headers: { 'X-Video-Codec': 'VP9', 'X-Video-Size': '720x1280', 'X-Video-Seconds': '19', 'X-Video-Images-Refused': '1' } });
+      await r.fulfill({ status: 200, contentType: 'video/webm', body: fake, headers: { 'X-Video-Codec': 'VP9', 'X-Video-Size': '720x1280', 'X-Video-Seconds': '19', 'X-Video-Images-Refused': '1',
+        'X-Video-Audio': encodeURIComponent('code-made music (pop) + voiceover by ElevenLabs (your key)'), 'X-Video-Voice-Note': encodeURIComponent('Your Gemini TTS: refused (401).') } });
     });
     await page.goto(base + '/smart-brain.html', { waitUntil: 'load' });
     await page.waitForFunction(() => typeof renderAd === 'function' && typeof window.sbRenderMp4 === 'function', null, { timeout: 20000 });
     const html = story([OK_URL, BAD_URL]);
     await page.evaluate((html) => {
-      const host = document.createElement('div'); host.id = 'cv-host'; document.body.appendChild(host);
-      host.innerHTML = renderAd({ platform: 'meta', creative_type: 'video', creative: { motion_html: '<p>x</p>', story_html: html, story_brief: { duration_s: 19 } } });
+      const host = document.createElement('div'); host.id = 'cv-host'; host.className = 'pvroot'; document.body.appendChild(host);
+      host.innerHTML = '<textarea data-music-prompt>Create an original warm acoustic track for Fernwick Roasters.</textarea>' + renderAd({ platform: 'meta', creative_type: 'video', creative: { motion_html: '<p>x</p>', story_html: html, story_brief: { duration_s: 19 } } });
     }, html);
     const btn = page.locator('#cv-host [data-code-mp4]');
-    await expect(btn).toHaveText(/MP4 video \(made in code, no key\)/);
+    await expect(btn).toHaveText(/MP4 video with music and voiceover \(made in code\)/);
     await btn.click();
     await expect(page.locator('#cv-host [data-code-mp4-out] video')).toHaveCount(1, { timeout: 20000 });
     await expect(page.locator('#cv-host [data-code-mp4-out] a')).toContainText('Download the WEBM (VP9, 720x1280, 19 s');
     await expect(page.locator('#cv-host [data-code-mp4-out]')).toContainText('1 photo(s) could not be fetched');
+    // What is heard, and why a voice was not used, are said.
+    await expect(page.locator('#cv-host [data-code-mp4-sound]')).toHaveText('Sound: code-made music (pop) + voiceover by ElevenLabs (your key).');
+    await expect(page.locator('#cv-host [data-code-mp4-voice-note]')).toHaveText('Your Gemini TTS: refused (401).');
+    expect(await page.locator('#cv-host [data-code-mp4-out] video').evaluate((v) => v.muted)).toBe(false);
     expect(sent.length).toBe(1);
+    // With no composed track, the send's own music brief goes, and a take.
+    expect(sent[0].music_prompt).toBe('Create an original warm acoustic track for Fernwick Roasters.');
+    expect(sent[0].music_b64).toBeUndefined();
+    expect(sent[0].take).toMatch(/^[a-z0-9]+$/);
+    // A track composed for this send goes into the file as its music bed.
+    await page.evaluate(() => { document.getElementById('cv-host').__sbTrack = { blob: new Blob([new Uint8Array(4000).fill(7)], { type: 'audio/mpeg' }), type: 'audio/mpeg', label: 'Rye anthem' }; });
+    await btn.click();
+    await expect.poll(() => sent.length, { timeout: 20000 }).toBe(2);
+    expect(sent[1].music_mime).toBe('audio/mpeg');
+    expect(Buffer.from(sent[1].music_b64, 'base64')).toEqual(Buffer.alloc(4000, 7));
+    expect(sent[1].music_prompt).toBeUndefined();
     expect(sent[0].html).toBe(html);
     expect(sent[0].cut).toBe('full');
   } finally { await new Promise((r) => server.close(r)); }

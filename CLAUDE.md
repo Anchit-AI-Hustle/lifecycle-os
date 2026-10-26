@@ -16,10 +16,24 @@ editly, Creatomate, HF ZeroGPU), then, on /brain's Music for Nik Bakers: "The sa
   served at `https://render.invalid/` (secure context); only Mediabunny and the story's own photos are answered, each
   fetched server-side behind `assertPublicUrl` per redirect hop, images only, 8 MB. 24 fps, bitrate fitted to 4 MB, a
   1080p/720p/540p ladder that projects the total after one second of frames, else `too_slow` with a sentence. POST,
-  this site's pages or a signed-in account, `rateCheck('video')`. /brain: "MP4 video (made in code, no key)"; a keyless
-  `video-generate` answer carries `story_html` + the route. Gated by `tests/code-video.spec.js` (8 executed; the file is
-  decoded again with Mediabunny's reader and its pixels read; 2 mutations caught).
-- **Music sketch** (`music-synth.js`): seeded by brief + TAKE; `MusicClient.compose` sends a new take every press
+  this site's pages or a signed-in account, `rateCheck('video')`. /brain: "MP4 video with music and voiceover (made in
+  code)"; a keyless `video-generate` answer carries `story_html` + the route. Gated by `tests/code-video.spec.js` (the
+  file decoded again with Mediabunny's reader and its pixels read).
+- **Sound + human touch** (the operator: "background music with human voiceovers", "ensure complete human touch" with the
+  Kill the AI Tell card): `soundFor()` = a music bed (the slot's composed track as `music_b64`, else music-synth from the
+  slot's `music_prompt`) + `story-voice.js` speaking ONLY the ad's own words per scene (each said once, no marker/URL),
+  own ElevenLabs (stability 0.38, style 0.3, previous_text/next_text) -> own Gemini TTS (Interactions,
+  `gemini-3.8-flash-tts`, voice-note style) -> the platform's keys only for a signed-in caller, metered `audio.tts`
+  (released if the voice fails). Mixed in the page (OfflineAudioContext: voice at its scene, music ducked, room tone,
+  fades, -1 dBFS); AAC via `@mediabunny/aac-encoder` (FFmpeg AAC in WASM, traced in vercel.json) in the MP4, Opus in
+  the WebM. No keyless voice exists (Pollinations' `openai-audio` is gone, 404): music only, said in
+  `X-Video-Voice-Note`; `/tts` now tries Gemini TTS then ElevenLabs, else 501 so the browser voice speaks. The frame:
+  handheld drift + a reframe at 1.4 s, phone-camera light (-1/3 stop, warm/cool, window spill), a fixed plain grain;
+  text never moves. Gated by `tests/code-video-sound.spec.js` (the voice heard at its scene by Goertzel, ducked bed,
+  fades; AAC in the production MP4; the human touch in pixels; 8 mutations caught) and
+  `tests/code-video-music-fundamentals.spec.js` (every changed function branch by branch).
+- **Music sketch** (`music-synth.js`): seeded by brief + TAKE; style words are WHOLE words weighted by length, the
+  brief's own genre line read first (an instrument list never outvotes it; every Brand Music genre maps to a band); `MusicClient.compose` sends a new take every press
   (`b.take` -> `music-compose` -> `renderBytes({take})`); the brief's genre words pick a band (`STYLES`: electronic,
   acoustic, lo-fi, cinematic, rock, pop: waves, drums, swing, a melody motif), else the take picks one; 5-60 s (an 8 s
   brief was 15 s). Providers stop `SKETCH_RESERVE_MS` early so the sketch lands inside the deadline (it did not, on
