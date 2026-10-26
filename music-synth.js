@@ -224,11 +224,13 @@
       // The lead: the take's melody (every other phrase answered an octave
       // up near the end), or an arpeggio over the chord.
       if (p.energy !== 'low' || st.melody) {
-        var phrase = (b - 1) % 2;
+        // Bar 0 is a pads-only intro only when the track has more than three
+        // bars; a short take starts its melody on bar 0 (Codex, #364).
+        var phrase = (bars > 3 ? b - 1 : b) % 2;
         for (var e = 0; e < 8; e++) {
           var ta = t0 + e * beat / 2 + swingAt(e); if (ta >= secs) break;
           var d = st.melody ? p.motif[phrase * 8 + e] : [0, 2, 4, 7][p.arpeggio[e] % 4] + deg;
-          if (d < 0) continue;
+          if (!(d >= 0)) continue;
           var oct = st.melody && b >= bars - 3 && bars > 6 ? 6 : 5;
           voice(L, R, { t: ta, dur: beat, type: st.lead, freq: midiHz(degree(p, d, oct)),
             peak: st.melody ? 0.045 : 0.025, attack: 0.006, decay: st.melody ? beat * 0.85 : beat * 0.4, lowpass: cut + 400, pan: st.melody ? 0.05 : (e % 2 ? 0.25 : -0.25) });
