@@ -172,6 +172,25 @@ test('the shared context states the offer as the planner meant it: a fraction or
   }
 });
 
+test('a team answer with a field of the wrong type is not accepted; two rewrites are staggered (Codex #370)', async () => {
+  test.setTimeout(120000);
+  const base = teamScript({ copyVerdict: 'revise' });
+  const at = [];
+  script = (o) => {
+    if (o.stage === 'team-strategy') return ok({ angle: 'A string where a list belongs', framework: 'PAS', hook_thesis: 'h', target_emotion: 'e', why_now: 'w', primary_kpi: 'k', proof_points: [], differentiator: 'd', dos: 'name the loaf', donts: ['x'] });
+    if (o.stage === 'smart-brain-copy' && /GENERIC-SUBJECT-PROBLEM/.test(o.userMessage)) at.push(Date.now());
+    return base(o);
+  };
+  const c = await build();
+  const strat = c.team.members.filter((m) => m.role === 'Marketing Strategist');
+  expect(strat.every((m) => !m.ok), 'dos as a string is the wrong shape').toBe(true);
+  expect(c.team.strategy).toBeFalsy();
+  expect(byStage('smart-brain-strategy').length, 'the single strategist fills in').toBe(1);
+  expect(c.assets.email.subject).toBe('Seeded Rye Loaf, rewritten');
+  expect(at.length).toBe(2);
+  expect(Math.abs(at[1] - at[0]), 'the second rewrite waits its turn').toBeGreaterThanOrEqual(500);
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });

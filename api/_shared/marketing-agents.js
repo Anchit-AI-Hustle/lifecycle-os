@@ -117,7 +117,9 @@ async function pair(key, ctx, upstream, o) {
     try {
       const res = await call({ systemPrompt: systemFor(maker, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.6, timeoutMs: Math.min(15000, Math.max(3000, left())), tier: 'premium', stage: `team-${key}`, feature: `team.${key}` });
       const json = parseJSON(res.text);
-      const ok = json && typeof json === 'object' && !Array.isArray(json) && hasCore(key, json);
+      // Accepted only when every field the spec names has the type it was asked for (a string
+      // where a list belongs would break the copy briefing downstream), and the core is there.
+      const ok = json && typeof json === 'object' && !Array.isArray(json) && hasCore(key, json) && !wrongTypes(json, SPECS[key](brandName, market)).length;
       out.members.push({ department: maker.department, role: maker.role, kind: 'maker', revision: !!critique, ok: !!ok, provider: res.provider || null, model: res.model || null, ms: ms() - t0, output: ok ? json : null, error: ok ? null : 'its answer was not the shape it was asked for' });
       return ok ? json : null;
     } catch (e) {
@@ -138,6 +140,10 @@ async function pair(key, ctx, upstream, o) {
   }
   out.verdict = v.verdict;
   return out;
+}
+
+function wrongTypes(json, sp) {
+  return (OC.validate(json, sp) || []).filter((x) => /is not an? /.test(x));
 }
 
 function hasCore(key, j) {

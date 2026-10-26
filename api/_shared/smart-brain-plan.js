@@ -4182,6 +4182,8 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
         if (!v) return { d, raw };
         teamCopyReview.push(Object.assign({ direction: d }, v.member));
         if (v.verdict === 'revise' && v.critique && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000) + 15000) {
+          // Staggered like the first drafts, so two rewrites do not burst one provider into a 429.
+          if (d === 'B') await new Promise((r) => setTimeout(r, 600));
           const again = await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique }).catch(() => null);
           teamCopyReview.push({ direction: d, department: 'Content & Creative', role: 'Campaign Copywriter', kind: 'maker', revision: true, ok: !!again, provider: again ? again.provider : null, error: again ? null : 'the rewrite failed; the first draft stands' });
           if (again) return { d, raw: again };
