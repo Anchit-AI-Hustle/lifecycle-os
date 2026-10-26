@@ -48,6 +48,10 @@ test.beforeAll(async () => {
   finally { for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; } }
   // A brand with a catalogue: its static ads carry the product photograph.
   for (const ad of campaign.assets.ads) if (ad.creative_type === 'static') ad.creative = Object.assign({}, ad.creative, { image: PHOTO });
+  // The static ad is a composed creative now (2026-10-26, static-ad.js): the
+  // photograph set above is composed in, as the builder does for a brand
+  // whose catalogue has one.
+  sbPlan.__test_attachStaticCreative(campaign, SLOT);
   // A brand whose site wrote its logo protocol-relative, as many stores do.
   for (const v of campaign.assets.email.variants) v.html = v.html.replace(/src="https:\/\/brewline\.example\/logo\.png"/, 'src="//brewline.example/logo.png"');
   server = http.createServer((req, res) => {
@@ -121,7 +125,8 @@ test('every single-asset download opens as the asset: no code, no broken image, 
       expect(img.ok, `${it.name}: image did not load: ${img.src}`).toBe(true);
     }
     if (/^ad-.*Static$/.test(it.name)) {
-      expect(seen.imgs.map((x) => x.src), `${it.name} shows its photograph`).toContain(PHOTO);
+      // The composed creative sits in its own frame on the ad's page.
+      expect(seen.imgs.concat(...seen.frames.map((x) => x.imgs || [])).map((x) => x.src), `${it.name} shows its photograph`).toContain(PHOTO);
       expect(seen.text).toContain('Brewline Coffee');
     }
     if (/^ad-.*Video$/.test(it.name)) expect(seen.frames.length, `${it.name} carries its playable creative`).toBe(1);

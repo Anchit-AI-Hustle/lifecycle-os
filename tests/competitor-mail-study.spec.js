@@ -178,6 +178,11 @@ const OPTI = {
 const P = (title, n, price, description) => ({ sku: title, title, handle: `p${n}`, image: `https://opticraft.example/img/${n}.jpg`, price, url: `https://opticraft.example/us/p${n}-sunglasses.html`, description });
 const SLOT = {
   id: 'opti-1', date: '2026-10-20', market: 'US', objective: 'reactivation', brand: OPTI,
+  // Pinned to the stack template with a full-bleed theme (2026-10-26): every
+  // send now draws its own theme and template (asset-themes.js, gated by
+  // asset-themes-mail.spec.js); this file measures the showcase the study
+  // shaped - headline, full-width picture, button, cards - so it renders that one.
+  __design: { mail: { theme: 'bold', template: 'stack' } },
   cohort: { name: 'At Risk', size: 1200, rules: ['r'] }, channels: ['email'], confidence: 0.6, offer: { depth: 'none', pct: 0 },
   heroProduct: P('Vista VC 5158/P', 1, 59, 'Grey Gold Full Rim Aviator Vista VC 5158/P Sunglasses'),
   supportingProducts: [
@@ -338,7 +343,9 @@ test('a mail about one product: shown once, named as a person says it, its descr
   expect(m.cards, 'no card repeating the only product').toBe(0);
   expect(m.buttons, 'one button when nothing stands between it and a second').toBe(1);
   expect(m.cap).toBe('Trendy Maroon Brown Gradient Full Rim Round Tints Sunglasses');
-  expect(m.capAlign, 'a caption is centred, never justified').toBe('center');
+  // Centred or set to the theme's own edge (2026-10-26: a left-aligned theme
+  // sets its caption left); never justified, which is what this protects.
+  expect(['center', 'left', 'start'], 'a caption is never justified').toContain(m.capAlign);
   expect(m.capBelow).toBe(true);
   // With one other product, the picture's product is never the other card.
   const two = await build(Object.assign({}, one, { supportingProducts: [P('Hooper HP E16256', 4, 59, 'Black Full Rim Rectangle Hooper HP E16256 Sunglasses')] }));

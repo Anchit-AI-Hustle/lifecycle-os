@@ -4,6 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Complete themes and templates per brand, per send: mail, static ad, video, landing page (2026-10-26)
+The operator: "why does every brand mailer, video and ad have only one common structure and layout - ensure complete unique
+personalisation in each and every generation for each brand", then "no complete different templates, themes everything".
+asset-style.js only flipped a few switches inside ONE template per asset. Now `api/_shared/asset-themes.js` chooses two
+things separately for every asset of every send:
+- **THEME** (8: editorial, bold, soft, minimal, luxe, poster, playful, magazine): type case/weight/tracking/scale, corners,
+  button shape (solid/pill/outline/block/link), card + price treatment, dividers, eyebrow, image framing, header, footer,
+  ground, density. A theme brings NO colour: grounds and text stay the brand palette through sectionGround/textOn/
+  readableAsText (AA, never dark-neutral). A measured design system keeps its own type and buttons.
+- **TEMPLATE** (structure): mail stack/poster/split/magazine/catalogue/spotlight (`mail-templates.js`), text mail
+  letter/memo/numbered, static ad overlay/split/framed/type/sticker/band (`scripts/lib/static-ad.js`, `creative.static_html`,
+  shown and downloaded on /brain), video lower/title/split/editorial/frame (`story-ad.js` ALL.look, validated in
+  storyDataFrom so code-video round-trips; motion-ad `spec.look`), landing classic/immersive/split/editorial (`lpHtml`, a
+  theme `<style>` after the brand `:root`, which never changes). A template the data cannot fill falls back (`fallback()`).
+- **Per brand**: `affinity(brand)` ranks themes from its business model, industry words, voice tone, heading face, primary
+  saturation and its site's button radius/case, a brand hash breaking ties; the top four are its family (every reason kept).
+  **Per send**: `pick(entry, kind, name, {take})` walks a weighted schedule by day, market, cohort and asset: neighbours
+  differ, the four mail variants differ, the same slot rebuilt is identical, a regenerate (`__take`) moves it. `entry.__design`
+  pins one. Recorded as `campaign.design` / `ad.creative.design` / `ad.look` {theme, template, why}; outer elements carry
+  `data-theme` / `data-template`. ASSET_BUILD_VERSION hashes asset-themes, mail-templates and static-ad.
+- Gated by `tests/asset-themes-mail.spec.js`, `asset-themes-ads.spec.js`, `asset-themes-video-lp.spec.js` (Chromium: brands get
+  different families, sends rotate templates and themes, rendered structure differs, AA measured, no dark ground; forcing one
+  template or theme fails them). Changed on purpose: `competitor-mail-study` and `brain-preview-parwah` pin the stack template
+  they measure, `asset-style` (immersive hero on an opaque panel, media-bottom), `asset-rating-pass` (eyebrow aligns with the
+  headline either way), `brain-downloads` (the static creative frame).
+
 ## ⭐ A video FILE made in code with no key; the music sketch is a new take every press (2026-10-26)
 The operator: "Ensure videos are also created if no hugging face key is also provided. Figure out how to generate the
 videos using code, do proper competitive benchmarking" (`docs/code-video-benchmark.md`: Remotion, HyperFrames-style,

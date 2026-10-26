@@ -7,6 +7,14 @@
  * slots of two brands, measured in Chromium. The brand's palette, type and
  * radii never change between slots; the arrangement does, and the same slot
  * rebuilt is the same design.
+ *
+ * Changed on purpose (2026-10-26, asset-themes.js): a landing page now also
+ * has a TEMPLATE. The immersive one lays the words on a brand panel OVER the
+ * bottom of the photograph, on purpose; there the rule this test protects (the
+ * words never sit on a picture they cannot be read on) is checked as the panel
+ * having its own opaque ground. The editorial one sets the picture under the
+ * words ("media-bottom"). Every other arrangement must still not overlap, and
+ * at least three distinct arrangements must render over nine slots.
  */
 const { test, expect } = require('@playwright/test');
 const S = require('../api/_shared/asset-style.js');
@@ -47,12 +55,17 @@ test('the arrangement changes in the rendered page; the brand\'s own tokens do n
       const box = await page.evaluate(() => {
         const m = document.querySelector('.hero-media'); const c = document.querySelector('.hero-copy');
         const a = m.getBoundingClientRect(), z = c.getBoundingClientRect();
-        return a.bottom <= z.top + 1 ? 'media-top' : (a.right <= z.left + 1 ? 'media-left' : (a.left >= z.right - 1 ? 'media-right' : 'overlap'));
+        const pos = a.bottom <= z.top + 1 ? 'media-top' : (a.top >= z.bottom - 1 ? 'media-bottom' : (a.right <= z.left + 1 ? 'media-left' : (a.left >= z.right - 1 ? 'media-right' : 'overlap')));
+        if (pos !== 'overlap' || document.body.dataset.template !== 'immersive') return pos;
+        // The immersive panel: its own ground, fully opaque, under the words.
+        const bg = getComputedStyle(c).backgroundColor;
+        const m2 = bg.match(/rgba?\(([^)]+)\)/); const parts = m2 ? m2[1].split(',').map(Number) : [];
+        return parts.length >= 3 && (parts.length === 3 || parts[3] === 1) ? 'panel-over-media' : 'overlap';
       });
       seen.add(box);
     }
     expect(seen.has('overlap'), `${b.name}: a hero arrangement overlapped`).toBe(false);
-    expect(seen.size, `${b.name}: arrangements actually rendered`).toBe(3);
+    expect(seen.size, `${b.name}: arrangements actually rendered (${[...seen].join(', ')})`).toBeGreaterThanOrEqual(3);
   }
 });
 

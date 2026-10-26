@@ -250,7 +250,7 @@ function isProse(d) {
   const lower = words.filter((w) => /^[a-z]/.test(w)).length;
   return /[.!?]$/.test(s) || lower / words.length >= 0.4;
 }
-const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}}</style>';
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
   if (!s || !/<body\b/i.test(s)) return s;

@@ -39,6 +39,10 @@ const PARWAH = {
 };
 const SLOT = {
   id: 'parwah-1', date: '2026-10-17', market: 'IN', objective: 'Bring back customers who have gone quiet, with Everyday nutrition.', brand: PARWAH,
+  // Pinned to the stack template, two cards to a row (2026-10-26): every send
+  // now draws its own theme and template (asset-themes-mail.spec.js); the card
+  // checks below are about the product grid that template draws.
+  __design: { mail: { theme: 'soft', template: 'stack' } },
   cohort: { name: 'At Risk', size: 0, estimated: true, rules: ['r'] }, channels: ['email', 'meta', 'google', 'landing_page'],
   confidence: 0.52, offer: { depth: 'none', pct: 0 },
   heroProduct: { title: 'Everyday nutrition', category: 'product' },
