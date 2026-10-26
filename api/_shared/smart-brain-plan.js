@@ -2065,6 +2065,10 @@ function injectProofBlock(html, entry, style = 'visual') {
   // sender block as an ordinary paragraph inside the body table rather than a
   // <footer>, so anchor on the paragraph that carries it; appending at </body>
   // would put a customer testimonial underneath the unsubscribe line.
+  // The themed mail (mail-templates.js) draws its footer as its own table row,
+  // marked data-mail-footer: the proof is a row of its own just above it.
+  const footRow = /<tr>\s*<td[^>]*data-mail-footer/i.exec(s);
+  if (footRow) return s.slice(0, footRow.index) + `<tr><td style="padding:0;">${block}</td></tr>` + s.slice(footRow.index);
   const legal = /<p[^>]*>(?=(?:(?!<\/p>)[\s\S])*?(?:receiving this (?:as|because)|unsubscribe|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s);
   if (legal && legal.index > 0) return s.slice(0, legal.index) + block + s.slice(legal.index);
   const i = s.toLowerCase().lastIndexOf('</body>');
@@ -2725,7 +2729,34 @@ function productUrl(product, market, brand) {
   handle = handle || (product && (product.handle || product.h)) || null;
   return handle ? `${store}/products/${handle}` : store;
 }
-function renderVariant(entry, copy, style, img, direction) {
+// The theme and template of one mail of one send (asset-themes.js): the
+// brand's own family of themes, rotated by send, a different structure per
+// variant. The same slot rebuilt is the same design; entry.__take (a press of
+// regenerate) moves it.
+function mailDesign(entry, style, direction) {
+  const name = `mail:${style}${direction ? ':' + direction : ''}`;
+  const AT = require('./asset-themes.js');
+  const kind = style === 'visual' ? 'mail' : 'text';
+  // A send can be pinned to one theme and template (entry.__design.mail =
+  // {theme:'luxe', template:'stack'}): a test that measures one template, or
+  // an operator who keeps a design they approved.
+  const pin = entry && entry.__design && entry.__design[kind];
+  if (pin && AT.THEMES[pin.theme] && (AT.TEMPLATES[kind] || []).includes(pin.template)) {
+    return { id: `${pin.theme}.${pin.template}.pinned`, theme: Object.assign({}, AT.THEMES[pin.theme]), template: pin.template, kind, family: [pin.theme], why: `Pinned to ${AT.THEMES[pin.theme].label} / ${pin.template}.` };
+  }
+  // The second variant of a send is never the first one's design: B moves
+  // its take until its theme and template both differ from A's.
+  const twin = { visual_b: 'visual_a', text_b: 'text_a' }[String(direction || '')];
+  if (twin) {
+    const a = AT.pick(entry, kind, `mail:${style === 'visual' ? 'visual' : 'pure'}:${twin}`);
+    for (let t = 0; t < 12; t++) {
+      const d = AT.pick(Object.assign({}, entry, { __take: `${entry.__take == null ? '' : entry.__take}|b${t}` }), kind, name);
+      if (d.theme.id !== a.theme.id && d.template !== a.template) return d;
+    }
+  }
+  return AT.pick(entry, kind, name);
+}
+function renderVariant(entry, copy, style, img, direction, vkey) {
   const E = copy.email || {};
   const heroProduct = (entry.heroProduct && entry.heroProduct.title) || entry.theme || '';
   const links = slotLinks(entry);
@@ -2813,6 +2844,8 @@ function renderVariant(entry, copy, style, img, direction) {
     // The studied layout, composed differently for each slot and variant
     // (asset-style.js): the brand's look stays, the arrangement moves.
     layout: require('./asset-style.js').mailLayout(entry.__mailStudy && entry.__mailStudy.layout, require('./asset-style.js').recipe(entry, `mail:${style}${direction ? ':' + direction : ''}`)),
+    design: mailDesign(entry, style, vkey || direction),
+    entry,
   }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
@@ -2834,14 +2867,22 @@ function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
   const nA = (fwA && fwA.name) || 'Concise';
   const nB = (fwB && fwB.name) || 'Editorial';
   return [
-    { key: 'text_a',   type: 'Text',          label: `Text · ${nA}`,          framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'pure') },
-    { key: 'text_b',   type: 'Text',          label: `Text · ${nB}`,          framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'editorial') },
-    { key: 'visual_a', type: 'Text + Visual', label: `Text + Visual · ${nA}`, framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'visual', heroImg) },
+    { key: 'text_a',   type: 'Text',          label: `Text · ${nA}`,          framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'pure', null, '', 'text_a') },
+    { key: 'text_b',   type: 'Text',          label: `Text · ${nB}`,          framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'editorial', null, '', 'text_b') },
+    { key: 'visual_a', type: 'Text + Visual', label: `Text + Visual · ${nA}`, framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'visual', heroImg, '', 'visual_a') },
     // Brand-led leads with the brand, not the photo (2026-10-24: it was the
     // product-led mail again): the headline on the brand's own ground, then
     // every product of the slot side by side, the hero's card among them.
-    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: ownPhotoCount(entry) >= 2 ? renderVariant(entry, copyB, 'visual', null, 'brand') : renderVariant(entry, copyB, 'visual', heroImg) },
-  ];
+    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: ownPhotoCount(entry) >= 2 ? renderVariant(entry, copyB, 'visual', null, 'brand', 'visual_b') : renderVariant(entry, copyB, 'visual', heroImg, '', 'visual_b') },
+  ].map((v) => {
+    // Which theme and template drew it (read back off the document, so it is
+    // the one that rendered after any fallback), and why.
+    const style = { text_a: 'pure', text_b: 'editorial', visual_a: 'visual', visual_b: 'visual' }[v.key];
+    const d = mailDesign(entry, style, v.key);
+    const th = (String(v.html || '').match(/data-theme="([a-z]+)"/) || [])[1] || d.theme.id;
+    const tp = (String(v.html || '').match(/data-template="([a-z]+)"/) || [])[1] || d.template;
+    return Object.assign(v, { design: { theme: th, template: tp, family: d.family, why: d.why } });
+  });
 }
 
 function emailHtml(entry, copy, creativeUrl) {
@@ -3301,6 +3342,8 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     // Four framework variants: copyA drives the A-slots, copyB the B-slots.
     const emailVars = emailVariants(entry, copyA, copyB, fwA, fwB, heroImg);
     campaign.assets.email.variants = emailVars || null;
+    // Which theme and template drew each mail, and why (asset-themes.js).
+    if (emailVars) campaign.design = Object.assign({}, campaign.design, { mail: emailVars.map((v) => Object.assign({ key: v.key }, v.design)) });
     // Primary html = the Hero Text + Visual (A) variant (shared renderer) so the
     // preview matches the Studio; falls back to the local mailer if variants off.
     campaign.assets.email.html = (emailVars && emailVars.find((v) => v.key === 'visual_a').html)
@@ -3442,6 +3485,11 @@ function offerOf(entry) {
 }
 
 function checkAssetContracts(campaign, entry) {
+  // Which theme and template drew each mail, whichever path built them.
+  try {
+    const vs = campaign && campaign.assets && campaign.assets.email && campaign.assets.email.variants;
+    if (Array.isArray(vs) && vs.some((v) => v && v.design)) campaign.design = Object.assign({}, campaign.design, { mail: vs.filter((v) => v && v.design).map((v) => Object.assign({ key: v.key }, v.design)) });
+  } catch (_) { /* the record of the design never stops a build */ }
   const contracts = require('./asset-contracts.js');
   const compliance = require('./compliance-lint.js');
   // `warnings` are findings about how an asset was BUILT; `data_gaps` are
@@ -5103,7 +5151,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
