@@ -171,6 +171,7 @@ const EXEMPT_FILES = {
   'api/_shared/lifecycle-mailer-build.js': 'tenant zero\'s lifecycle programme, refused for every other workspace (lifecycle-build-mailer answers 409 here); its copy request ends with calendar-trigger\'s mailerCopySpec, the contract trigger-mailer is driven with',
   'api/_shared/brain-generate.js': 'the legacy slot engine is tenant zero\'s content library and refuses every other workspace (generate answers 409 here); its request ends with slotCopySpec, asserted by the static check below',
   'api/_shared/competitor-core.js': 'the sheet-era discovery reads the Google Sheet first, which this deployment does not configure; its request ends with the competitor.discover contract (static check below)',
+  'api/_shared/third-eye-music/llm-cascade.js': 'The Third Eye\'s four song agents, ported as written (the operator: use the exact same system); each system prompt already closes on its output ("Output ONLY a JSON object ... with keys"), each answer is parsed defensively with a deterministic fallback, and no line reaches a customer: the plan goes to a music model (tests/third-eye-music.spec.js)',
   'api/_shared/workspace-connections-core.js': 'the connection key check sends the same OutputContract.PROBE request the provider probe (driven) sends',
 };
 
@@ -299,7 +300,8 @@ test('every source file that calls a model is driven here or named with its reas
   const unlisted = callers.filter((rel) => !DRIVEN_FILES[rel] && !EXEMPT_FILES[rel]).sort();
   expect(unlisted, 'a file calls a model and is neither driven by this gate nor exempt by name').toEqual([]);
   // Every caller but the cascade itself renders an OUTPUT REQUIREMENT from the shared module.
-  const noContract = callers.filter((rel) => rel !== 'api/_shared/llm.js' && !/output-contract\.js|\bP\.OC\b|\bOC\.(append|block)\b/.test(fs.readFileSync(path.join(ROOT, rel), 'latin1')));
+  // The Third Eye's song agents keep their own closing output lines (EXEMPT_FILES says why).
+  const noContract = callers.filter((rel) => rel !== 'api/_shared/llm.js' && rel !== 'api/_shared/third-eye-music/llm-cascade.js' && !/output-contract\.js|\bP\.OC\b|\bOC\.(append|block)\b/.test(fs.readFileSync(path.join(ROOT, rel), 'latin1')));
   expect(noContract, 'a model caller that never renders an output contract').toEqual([]);
 });
 

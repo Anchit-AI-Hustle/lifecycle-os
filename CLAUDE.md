@@ -43,6 +43,31 @@ editly, Creatomate, HF ZeroGPU), then, on /brain's Music for Nik Bakers: "The sa
   line is no offer (`musicOfferText`). Platform Lyria needs a paid `GEMINI_API_KEY` (free tier limit 0). Gated in
   `brand-music` (takes, bands, short length, offer, scope) and `music-create-track` (two presses, two takes, two tracks).
 
+## ⭐ Music is planned and made by The Third Eye's own Music Studio pipeline (2026-10-26)
+The operator: "still that same output is only being generated - use the exact same system as being used in music studio
+in the the-third-eye repo". Production has no music key (only a free-tier `GEMINI_API_KEY`, which Lyria refuses, and
+`GROQ_API_KEY`), so every press fell to the code sketch. The Third Eye's Vercel project has `ELEVENLABS_API_KEY`,
+`REPLICATE_API_TOKEN` and `HF_API_TOKEN`; this project needs the operator to set the same (never copied from here).
+- **`api/_shared/third-eye-music/`** is The Third Eye's `frontend/src/lib/music` (agents, knowledge, structures,
+  normalize, synth, types), types stripped by `node:module` and nothing else changed except `knowledge.js`'s genre lookup
+  (marked LIFECYCLE: whole words; as substrings "d&b" matched "ad bed" and acoustic briefs became Drum and Bass at 168).
+  `llm-cascade.js` sends its agents to this app's `llm.js` (resolved at call time). `index.js` is the glue:
+  `inputFrom(brief)` reads a brand-music brief back into its MusicInput (the brand's own lyrics = its "manual" mode, so
+  the Lyricist writes only when there are none), `plan()` = `planSong` (Musicologist -> Beat-smith + Lyricist ->
+  Conductor) bounded by `MUSIC_PLAN_MS` (default 30 s, else its own fallbacks; `planned_by` says which), a reference
+  artist never reaches a model, `elevenPrompt`/`clipSecondsFor` from its elevenlabs.ts, `huggingFaceMusic` (its
+  `api-inference.huggingface.co/models/facebook/musicgen-small` call, refusal said), `synthWav` (its `renderWav` seeded
+  `description|prompt`, plus the press's take).
+- **`music-compose.js`**: Lyria takes the brand brief as before; the plan is made once, lazily, before ElevenLabs
+  (`elevenPrompt(plan)`), Replicate (Conductor tags + lyrics for ACE-Step, the Beat-smith prompt for MusicGen /
+  stable-audio-open), Hugging Face (`HF_API_TOKEN`, platform only, after Replicate), then The Third Eye's synth (model
+  `third-eye-synth`, up to its 60 s clip). Answers carry `plan` {by, prompt, tags, lyrics, genre, bpm, key, moods}.
+  music-synth.js stays the Story video's own bed.
+- Gated by `tests/third-eye-music.spec.js` (7 executed with a scripted model; byte parity with The Third Eye's synth
+  when that repo is beside this one; 5 mutations caught). `brand-music`, `router-brain` (music cases: the file's stub
+  model refuses there, `llmMode.refuse`), `code-video-music-fundamentals` and `prompt-output-contracts` (the agents are
+  exempt by name: their prompts close on their own JSON keys) changed on purpose.
+
 ## ⭐ Kill the AI Tell: a skill, and real Seedance renders on Higgsfield (2026-10-25)
 The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance stop looking like AI): "Integrate everything
 mentioned". The first cut (#361) put the rules into EVERY image and video prompt the app writes; the operator: "Still
