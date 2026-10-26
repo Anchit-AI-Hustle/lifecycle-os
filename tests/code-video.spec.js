@@ -152,12 +152,16 @@ test('the page rendered is rebuilt from validated story data, never markup a req
 });
 
 test('a render that cannot finish inside its time is stopped and said, never cut off by the platform', async () => {
-  test.setTimeout(120000);
-  const r = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '1080p', budgetMs: 14000, fetchImpl: fakeFetch([]), assertUrl: allow });
+  test.setTimeout(180000);
+  // A machine where a frame takes 150 ms (CI's runner is fast enough to finish
+  // a real 1080p render inside any small budget, so the pace is set, not hoped
+  // for): every size projects past 30 s, and the ladder walks down and says so.
+  const r = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '1080p', budgetMs: 40000, minFrameMs: 150, fetchImpl: fakeFetch([]), assertUrl: allow });
   expect(r.ok).toBe(false);
   expect(r.error).toBe('too_slow');
-  // Projected past its time, or (on a runner whose CPUs are shared) not even started in it.
-  expect(r.tried[0]).toMatch(/^1080p \((projected \d+ s at 1080x1920|no time left to start it)\)$/);
+  expect(r.tried[0]).toMatch(/^1080p \(projected \d+ s at 1080x1920\)$/);
+  expect(r.tried.length).toBeGreaterThanOrEqual(2);
+  expect(r.tried[1]).toMatch(/^720p \((projected \d+ s at 720x1280|no time left to start it)\)$/);
   expect(r.message).toMatch(/could not render the video in time/);
   // A budget the page load alone uses up: no size could even start, and that is said as time, not as a broken encoder.
   const r2 = await CV.renderStoryVideo({ html: story([OK_URL, OK_URL]), size: '720p', budgetMs: 1, fetchImpl: fakeFetch([]), assertUrl: allow });
@@ -297,4 +301,45 @@ test('a photo is counted as it streams and cut at the cap; a render\'s photos sh
   for (let i = 0; i < 6; i++) out.push(await CV.fetchImage('https://img.example/' + i + '.png', six, allow, budget).then(() => 'ok', (e) => e.message));
   expect(out.filter((x) => x === 'ok').length).toBe(4);
   expect(out[4]).toMatch(/over 24 MB together/);
+});
+
+// The cut the reviewer chose in the player is the cut exported (Codex, #364):
+// the player sits in a sandboxed frame the page cannot read, so it says which
+// cut it shows, and the MP4 button sends that one.
+test('/brain: the short cut chosen in the sandboxed Story player is the cut the MP4 is made of', async ({ page }) => {
+  test.setTimeout(120000);
+  const server = http.createServer((req, res) => {
+    const url = (req.url || '/').split('?')[0];
+    if (url.startsWith('/api/')) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ ok: true, workspaces: [] })); }
+    const f = path.join(ROOT, url.replace(/^\//, ''));
+    if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('nf'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const sent = [];
+    await page.route('**/api/public-config?action=video-render', async (r) => { sent.push(JSON.parse(r.request().postData() || '{}')); await r.fulfill({ status: 429, contentType: 'application/json', body: '{"ok":false,"message":"later"}' }); });
+    await page.goto('http://127.0.0.1:' + server.address().port + '/smart-brain.html', { waitUntil: 'load' });
+    await page.waitForFunction(() => typeof renderAd === 'function' && typeof window.sbVideoVariant === 'function', null, { timeout: 20000 });
+    const html = story([OK_URL, BAD_URL]);
+    await page.evaluate((html) => {
+      const host = document.createElement('div'); host.id = 'cv-host'; document.body.appendChild(host);
+      host.innerHTML = renderAd({ platform: 'meta', creative_type: 'video', creative: { motion_html: '<p>x</p>', story_html: html, story_brief: { duration_s: 19 } } });
+      const idx = window.__SB_MOTION.length - 1;
+      window.sbVideoVariant(host.querySelector('[data-vv="story"]'), idx, 'story');
+    }, html);
+    const player = page.frameLocator('#cv-host iframe.advframe');
+    await player.locator('#cut').click();
+    await expect(player.locator('#cut')).toHaveAttribute('data-cut', 'short');
+    await expect.poll(() => page.locator('#cv-host iframe.advframe').getAttribute('data-story-cut')).toBe('short');
+    await page.locator('#cv-host [data-code-mp4]').click();
+    await expect.poll(() => sent.length).toBe(1);
+    expect(sent[0].cut).toBe('short');
+    // Back to the full cut, and the next MP4 is the full one.
+    await player.locator('#cut').click();
+    await expect.poll(() => page.locator('#cv-host iframe.advframe').getAttribute('data-story-cut')).toBe('full');
+    await page.locator('#cv-host [data-code-mp4]').click();
+    await expect.poll(() => sent.length).toBe(2);
+    expect(sent[1].cut).toBe('full');
+  } finally { await new Promise((r) => server.close(r)); }
 });
