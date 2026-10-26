@@ -39,6 +39,43 @@ const MOVES = [
   { id: 'rise', say: 'slow rise, bottom to top' },
 ];
 
+// THE LOOK (2026-10-26, the operator: "complete different templates, themes
+// everything"). Every story used to be the same lower-third over the same
+// full-frame photo for every brand. A look is two ids from asset-themes.js:
+// the THEME (type case, weight and tracking, the price chip, the button, the
+// progress bar, the cut between scenes, where the brand's name sits) and the
+// TEMPLATE (where the photograph and the words are on the frame). Colours stay
+// the brand's palette. Only allow-listed ids travel in the page's data, and the
+// page draws them from the table below, never from a request.
+const THEME_TABLE = (() => {
+  let T = {};
+  try { T = require('../../api/_shared/asset-themes.js').THEMES; } catch (_) { T = {}; }
+  const out = {};
+  for (const [id, t] of Object.entries(T)) {
+    out[id] = { case: t.heading.case, weight: t.heading.weight, tracking: t.heading.tracking, scale: t.heading.scale, italic: !!t.heading.italic, price: t.price, button: t.button, radius: t.radius.image, align: t.align };
+  }
+  return out;
+})();
+const VIDEO_TEMPLATES = ['lower', 'title', 'split', 'editorial', 'frame'];
+// How each theme moves between scenes, marks progress and places the name.
+const THEME_MOTION = {
+  editorial: { cut: 'fade', progress: 'line', name: 'tl' },
+  bold: { cut: 'wipe', progress: 'segments', name: 'tl' },
+  soft: { cut: 'fade', progress: 'dots', name: 'tc' },
+  minimal: { cut: 'cut', progress: 'line', name: 'tl' },
+  luxe: { cut: 'fade', progress: 'line', name: 'tc' },
+  poster: { cut: 'slide', progress: 'dots', name: 'tc' },
+  playful: { cut: 'slide', progress: 'dots', name: 'tc' },
+  magazine: { cut: 'wipe', progress: 'segments', name: 'tl' },
+};
+/** A look the page can draw: known ids only, else the default (lower third, no theme). */
+function cleanLook(l) {
+  const x = l || {};
+  const theme = typeof x.theme === 'string' && THEME_TABLE[x.theme] ? x.theme : (x.theme && THEME_TABLE[x.theme.id] ? x.theme.id : '');
+  const template = VIDEO_TEMPLATES.includes(x.template) ? x.template : 'lower';
+  return { theme, template };
+}
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
@@ -101,6 +138,17 @@ function motionWords(x) {
   if (!mv) return null;
   return mv.say + ' on the photograph' + (x.sweep ? ', a soft light sweep across the product' : '') + ', no added text or props';
 }
+const TEMPLATE_WORDS = {
+  lower: 'full-frame photograph, the words in the lower third over a soft shade',
+  title: 'the photograph framed inset on the brand colour, a title card under it',
+  split: 'the photograph on the top half, the words on a brand-colour panel below',
+  editorial: 'full-frame photograph, the words set top-left under a thin rule like a magazine page',
+  frame: 'the photograph in an offset frame on the brand colour, the brand name on a strip beneath',
+};
+function lookWords(l) {
+  const t = l && l.theme && THEME_TABLE[l.theme];
+  return TEMPLATE_WORDS[(l && l.template) || 'lower'] + (t ? `; type ${t.case === 'upper' ? 'in capitals' : 'in sentence case'}, weight ${t.weight}` : '');
+}
 function briefScenes(scenes) {
   return scenes.map((x) => ({ kind: x.kind, start_s: x.start, duration_s: x.seconds, text: x.headline, price: x.price || null, image: x.image || null, cta: x.cta || null, motion: motionWords(x) }));
 }
@@ -112,6 +160,7 @@ function storyBrief(spec) {
   return {
     format: 'story', aspect: '9:16', size: '1080x1920', duration_s: +total.toFixed(1), max_s: MAX_SECONDS,
     structure: 'opening, product showcase, closing impression',
+    look: (() => { const l = cleanLook(spec && spec.look); return { template: l.template, theme: l.theme || null, words: lookWords(l) }; })(),
     scenes: briefScenes(scenes),
     cuts: { short: { duration_s: +shortTotal.toFixed(1), max_s: SHORT_SECONDS, scenes: briefScenes(shortScenes) } },
   };
@@ -132,7 +181,7 @@ function renderStoryAd(spec) {
   const pal = Object.assign({ primary: '#333366', on_primary: '#ffffff', accent: '#ffffff', on_accent: '#111111', surface: '#ffffff', ink: '#222222' }, s.palette || {});
   const fonts = Object.assign({ head: 'system-ui, sans-serif', body: 'system-ui, sans-serif' }, s.fonts || {});
   const name = words(s.brandName || (s.brand && s.brand.name) || '');
-  return storyPage({ cuts: { full: { scenes, total }, short: hasShort ? { scenes: shortScenes, total: shortTotal } : null }, pal, fonts, name });
+  return storyPage({ cuts: { full: { scenes, total }, short: hasShort ? { scenes: shortScenes, total: shortTotal } : null }, pal, fonts, name, look: cleanLook(s.look) });
 }
 
 /**
@@ -146,6 +195,10 @@ function storyPage(all) {
   const hasShort = !!all.cuts.short;
   const shortTotal = hasShort ? all.cuts.short.total : total;
   const pal = all.pal, fonts = all.fonts, name = all.name;
+  all = Object.assign({}, all, { look: cleanLook(all.look) });
+  const lookT = all.look.theme ? THEME_TABLE[all.look.theme] : null;
+  const lookM = (all.look.theme && THEME_MOTION[all.look.theme]) || { cut: 'fade', progress: 'segments', name: 'tl' };
+  const lookJson = JSON.stringify({ t: lookT, m: lookM, template: all.look.template }).replace(/</g, '\\u003c');
   // JSON in a <script> block: every "<" is escaped so no line can close it.
   const data = JSON.stringify(all).replace(/</g, '\\u003c');
   return `<!doctype html>
@@ -161,13 +214,14 @@ function storyPage(all) {
   .note{font-size:12px;max-width:360px;text-align:center;margin:0}
 </style></head>
 <body><div class="wrap">
-<canvas id="v" width="1080" height="1920" aria-label="${esc(name)} story video ad, ${total} seconds"></canvas>
+<canvas id="v" width="1080" height="1920" data-template="${esc(all.look.template)}" data-theme="${esc(all.look.theme || 'none')}" aria-label="${esc(name)} story video ad, ${total} seconds"></canvas>
 <div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
 <p class="note" id="note">${esc(String(total))} seconds · ${scenes.length} scenes</p>
 </div>
 <script>
 (function(){
   var ALL = ${data};
+  var LOOK = ${lookJson};
   var D = { scenes: ALL.cuts.full.scenes, total: ALL.cuts.full.total, pal: ALL.pal, fonts: ALL.fonts, name: ALL.name };
   var cv = document.getElementById('v'), cx = cv.getContext('2d');
   var W = 1080, H = 1920, note = document.getElementById('note');
@@ -266,44 +320,218 @@ function storyPage(all) {
     cx.fillStyle = g; cx.fillRect(0, 0, W, H * 0.62);
   }
   function hexA(hex, a) { var h = String(hex).replace('#', ''); if (h.length === 3) h = h.replace(/(.)/g, '$1$1'); var n = parseInt(h, 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  // THE LOOK in the frame. With no theme and the lower template, every value
+  // here is the one this player always drew (the code renderer's tests read it).
+  var TT = LOOK.t || { case: 'none', weight: 700, tracking: '0', scale: 1, italic: false, price: 'pill', button: 'pill', radius: 0, align: 'center' };
+  var TM = LOOK.m || { cut: 'fade', progress: 'segments', name: 'tl' };
+  var TPL = LOOK.template || 'lower';
+  var themed = !!LOOK.t;
+  function caseOf(t) { return TT.case === 'upper' ? String(t || '').toUpperCase() : String(t || ''); }
+  function headFont(px) { return (TT.italic ? 'italic ' : '') + (themed ? TT.weight : 700) + ' ' + px + 'px ' + D.fonts.head; }
+  function spacing(px) {
+    if (!('letterSpacing' in cx)) return;
+    var m = String(TT.tracking || '0').match(/^(-?[\d.]+)em$/);
+    cx.letterSpacing = m ? Math.round(parseFloat(m[1]) * px * 10) / 10 + 'px' : '0px';
+  }
+  function unspacing() { if ('letterSpacing' in cx) cx.letterSpacing = '0px'; }
+  // The photograph inside a rectangle (a frame, a half): the same eased move and
+  // the same hand-held drift as a full frame, clipped to its box.
+  function photoIn(im, move, p, R, rad) {
+    cx.save(); roundRect(R.x, R.y, R.w, R.h, rad || 0); cx.clip();
+    var e = p * p * (3 - 2 * p), k = 1.06, dx = 0, dy = 0;
+    if (move === 'push-in') k = 1.04 + 0.1 * e;
+    else if (move === 'pull-out') k = 1.14 - 0.1 * e;
+    else if (move === 'pan-right') { k = 1.12; dx = (e - 0.5) * -0.08 * R.w; }
+    else if (move === 'pan-left') { k = 1.12; dx = (e - 0.5) * 0.08 * R.w; }
+    else if (move === 'rise') { k = 1.12; dy = (e - 0.5) * 0.06 * R.h; }
+    var r = Math.max(R.w / im.width, R.h / im.height) * k, w = im.width * r, h = im.height * r;
+    var hh = handheld(curT);
+    cx.translate(R.x + R.w / 2, R.y + R.h / 2); cx.rotate(hh.r); cx.translate(-R.w / 2, -R.h / 2);
+    cx.drawImage(im, (R.w - w) / 2 + dx + hh.x, (R.h - h) / 2 + dy + hh.y, w, h);
+    cx.restore();
+    cx.save(); roundRect(R.x, R.y, R.w, R.h, rad || 0); cx.clip();
+    phoneLight(D.scenes.indexOf(curScene) % 2);
+    cx.restore();
+  }
+  // The price, in the theme's shape: a pill, a round sticker, a square block, or words.
+  function price(text, x, y, align, fg) {
+    var sz = TT.price === 'text' ? 60 : 64;
+    cx.font = '700 ' + sz + 'px ' + D.fonts.body; var tw = cx.measureText(text).width;
+    var cxp = align === 'left' ? x + (tw + 80) / 2 : x;
+    if (TT.price === 'text') {
+      cx.fillStyle = fg; cx.textAlign = align === 'left' ? 'left' : 'center'; cx.fillText(text, x, y + 74);
+      cx.fillRect(align === 'left' ? x : x - tw / 2, y + 92, tw, 5); cx.textAlign = 'center'; return 110;
+    }
+    cx.fillStyle = D.pal.accent;
+    if (TT.price === 'sticker') { var rr = Math.max(tw / 2 + 40, 92); cx.beginPath(); cx.arc(cxp, y + 10 + rr, rr, 0, Math.PI * 2); cx.fill(); cx.fillStyle = D.pal.on_accent; cx.textAlign = 'center'; cx.fillText(text, cxp, y + 10 + rr + 22); return rr * 2 + 20; }
+    roundRect(cxp - (tw + 80) / 2, y + 10, tw + 80, 104, TT.price === 'block' ? 0 : 52); cx.fill();
+    cx.fillStyle = D.pal.on_accent; cx.textAlign = 'center'; cx.fillText(text, cxp, y + 84); return 124;
+  }
+  // The button on the end card, in the theme's shape.
+  function button(text, x, y, align, fill, label) {
+    cx.font = '700 58px ' + D.fonts.body; var bw = cx.measureText(text).width + 140;
+    var bx = align === 'left' ? x : x - bw / 2;
+    var r = TT.button === 'pill' || !themed ? 65 : (TT.button === 'block' ? 0 : Math.min(24, (TT.radius || 0) * 1.5));
+    if (TT.button === 'link') {
+      cx.fillStyle = fill; cx.textAlign = align === 'left' ? 'left' : 'center'; cx.fillText(text + ' →', align === 'left' ? x : x, y + 90);
+      var lw = cx.measureText(text + ' →').width; cx.fillRect(align === 'left' ? x : x - lw / 2, y + 108, lw, 5); cx.textAlign = 'center'; return;
+    }
+    if (TT.button === 'outline') { cx.strokeStyle = fill; cx.lineWidth = 6; roundRect(bx, y, bw, 130, r); cx.stroke(); cx.fillStyle = fill; }
+    else { cx.fillStyle = fill; roundRect(bx, y, bw, 130, r); cx.fill(); cx.fillStyle = label; }
+    cx.textAlign = 'center'; cx.fillText(text, bx + bw / 2, y + 85);
+  }
+  // Lines of the headline at x, starting at y; returns the y under the last line.
+  function lines(text, x, y, big, maxW, align, fg) {
+    spacing(big);
+    var ls = wrap(caseOf(text), maxW, headFont(big));
+    cx.fillStyle = fg; cx.textAlign = align === 'left' ? 'left' : 'center';
+    ls.forEach(function (l, i) { cx.fillText(l, x, y + i * big * 1.15); });
+    unspacing(); cx.textAlign = 'center';
+    return y + ls.length * big * 1.15;
+  }
+  var curScene = null;
   function scene(sc, p, alpha) {
+    curScene = sc;
     cx.globalAlpha = alpha;
     var im = sc.image && imgs[sc.image];
-    if (sc.kind === 'end' || !im) { cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H); }
-    else {
+    var rise = Math.max(0, 1 - p * 4) * 40, tA = Math.min(1, p * 4) * alpha;
+    var big0 = sc.kind === 'end' ? 88 : (sc.kind === 'product' ? 72 : 84);
+    var big = themed ? Math.round(big0 * Math.max(0.85, Math.min(1.35, TT.scale))) : big0;
+    if (sc.kind === 'end') return endCard(sc, p, alpha, rise, big);
+    if (TPL === 'lower' || !im) {
+      if (!im) { cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H); }
+      else {
+        cover(im, sc.move, p);
+        phoneLight(D.scenes.indexOf(sc) % 2);
+        if (sc.sweep) sweep(p);
+        var g = cx.createLinearGradient(0, H * 0.45, 0, H);
+        g.addColorStop(0, hexA(D.pal.ink, 0)); g.addColorStop(1, hexA(D.pal.ink, 0.72));
+        cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+      }
+      var fg = im ? '#ffffff' : D.pal.on_primary;
+      cx.globalAlpha = tA; cx.textAlign = 'center';
+      spacing(big);
+      var ls = wrap(caseOf(sc.headline), W - 160, headFont(big));
+      cx.fillStyle = fg;
+      var y = H - 420 - (ls.length - 1) * big * 1.15;
+      ls.forEach(function (l, i) { cx.fillText(l, W / 2, y + rise + i * big * 1.15); });
+      unspacing();
+      y += ls.length * big * 1.15;
+      if (sc.price) price(sc.price, W / 2, y + rise, 'center', fg);
+      nameMark(fg, alpha);
+      return;
+    }
+    var fgP = D.pal.on_primary;
+    if (TPL === 'title') {
+      cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H);
+      var R = { x: 90, y: 230, w: 900, h: 1000 };
+      photoIn(im, sc.move, p, R, (TT.radius || 0) * 3);
+      if (sc.sweep) { cx.save(); roundRect(R.x, R.y, R.w, R.h, (TT.radius || 0) * 3); cx.clip(); sweep(p); cx.restore(); }
+      cx.globalAlpha = tA;
+      var y2 = lines(sc.headline, W / 2, 1360 + rise, Math.min(big, 76), W - 180, 'center', fgP);
+      if (sc.price) price(sc.price, W / 2, y2 - 20 + rise, 'center', fgP);
+    } else if (TPL === 'split') {
+      var R2 = { x: 0, y: 0, w: W, h: 1080 };
+      photoIn(im, sc.move, p, R2, 0);
+      if (sc.sweep) { cx.save(); roundRect(0, 0, W, 1080, 0); cx.clip(); sweep(p); cx.restore(); }
+      var gs = cx.createLinearGradient(0, 0, 0, 260);
+      gs.addColorStop(0, hexA(D.pal.ink, 0.62)); gs.addColorStop(1, hexA(D.pal.ink, 0));
+      cx.fillStyle = gs; cx.fillRect(0, 0, W, 260);
+      cx.fillStyle = D.pal.primary; cx.fillRect(0, 1080, W, H - 1080);
+      cx.fillStyle = D.pal.accent; cx.fillRect(80, 1150, 140, 10);
+      cx.globalAlpha = tA;
+      var y3 = lines(sc.headline, 80, 1290 + rise, Math.min(big, 80), W - 160, 'left', fgP);
+      if (sc.price) price(sc.price, 80, y3 - 20 + rise, 'left', fgP);
+      nameMark('#ffffff', alpha); cx.globalAlpha = 1; return;
+    } else if (TPL === 'editorial') {
       cover(im, sc.move, p);
       phoneLight(D.scenes.indexOf(sc) % 2);
       if (sc.sweep) sweep(p);
-      var g = cx.createLinearGradient(0, H * 0.45, 0, H);
-      g.addColorStop(0, hexA(D.pal.ink, 0)); g.addColorStop(1, hexA(D.pal.ink, 0.72));
-      cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+      var gt = cx.createLinearGradient(0, 0, 0, H * 0.62);
+      gt.addColorStop(0, hexA(D.pal.ink, 0.78)); gt.addColorStop(1, hexA(D.pal.ink, 0));
+      cx.fillStyle = gt; cx.fillRect(0, 0, W, H);
+      cx.globalAlpha = tA;
+      cx.fillStyle = '#ffffff'; cx.textAlign = 'left';
+      if ('letterSpacing' in cx) cx.letterSpacing = '8px';
+      cx.font = '600 34px ' + D.fonts.body; cx.fillText(String(D.name || '').toUpperCase(), 80, 200);
+      unspacing();
+      cx.fillRect(80, 232, 120, 4);
+      var y4 = lines(sc.headline, 80, 330 + rise, Math.min(big, 80), W - 200, 'left', '#ffffff');
+      if (sc.price) price(sc.price, 80, y4 - 20 + rise, 'left', '#ffffff');
+      cx.globalAlpha = 1; return;
+    } else if (TPL === 'frame') {
+      cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H);
+      var R3 = { x: 120, y: 200, w: 840, h: 1020 };
+      cx.fillStyle = D.pal.accent; roundRect(R3.x + 34, R3.y + 34, R3.w, R3.h, (TT.radius || 0) * 2); cx.fill();
+      photoIn(im, sc.move, p, R3, (TT.radius || 0) * 2);
+      if (sc.sweep) { cx.save(); roundRect(R3.x, R3.y, R3.w, R3.h, (TT.radius || 0) * 2); cx.clip(); sweep(p); cx.restore(); }
+      cx.globalAlpha = tA;
+      cx.fillStyle = D.pal.accent; cx.fillRect(0, 1300, W, 96);
+      cx.fillStyle = D.pal.on_accent; cx.textAlign = 'center';
+      if ('letterSpacing' in cx) cx.letterSpacing = '6px';
+      cx.font = '700 40px ' + D.fonts.body; cx.fillText(String(D.name || '').toUpperCase(), W / 2, 1362);
+      unspacing();
+      var y5 = lines(sc.headline, W / 2, 1500 + rise, Math.min(big, 70), W - 180, 'center', fgP);
+      if (sc.price) price(sc.price, W / 2, y5 - 20 + rise, 'center', fgP);
+      cx.globalAlpha = 1; return;
     }
-    var onImg = sc.kind !== 'end' && im;
-    var fg = onImg ? '#ffffff' : D.pal.on_primary;
-    var rise = Math.max(0, 1 - p * 4) * 40, tA = Math.min(1, p * 4) * alpha;
-    cx.globalAlpha = tA; cx.fillStyle = fg; cx.textAlign = 'center';
-    var big = sc.kind === 'end' ? 88 : (sc.kind === 'product' ? 72 : 84);
-    var lines = wrap(sc.headline, W - 160, '700 ' + big + 'px ' + D.fonts.head);
-    var y = sc.kind === 'end' ? H * 0.40 : H - 420 - (lines.length - 1) * big * 1.15;
-    lines.forEach(function (l, i) { cx.fillText(l, W / 2, y + rise + i * big * 1.15); });
-    y += lines.length * big * 1.15;
-    if (sc.price) {
-      cx.font = '700 64px ' + D.fonts.body; var pw = cx.measureText(sc.price).width + 80;
-      cx.fillStyle = D.pal.accent; roundRect(W / 2 - pw / 2, y + 10 + rise, pw, 104, 52); cx.fill();
-      cx.fillStyle = D.pal.on_accent; cx.fillText(sc.price, W / 2, y + 84 + rise);
-    }
-    if (sc.kind === 'end') {
-      cx.font = '700 58px ' + D.fonts.body; var bw = cx.measureText(sc.cta).width + 140;
-      cx.fillStyle = D.pal.surface; roundRect(W / 2 - bw / 2, y + 60, bw, 130, 65); cx.fill();
-      cx.fillStyle = D.pal.primary; cx.fillText(sc.cta, W / 2, y + 145);
-      if (sc.sub) { cx.fillStyle = fg; cx.font = '500 44px ' + D.fonts.body; cx.fillText(sc.sub, W / 2, y + 290); }
-    }
-    cx.globalAlpha = alpha; cx.textAlign = 'left'; cx.fillStyle = fg; cx.font = '700 44px ' + D.fonts.head;
-    if (D.name && sc.kind !== 'end') cx.fillText(D.name, 64, 150);
-    if (D.name && sc.kind === 'end') { cx.textAlign = 'center'; cx.font = '700 64px ' + D.fonts.head; cx.fillText(D.name, W / 2, H * 0.30); }
+    nameMark(fgP, alpha);
     cx.globalAlpha = 1;
   }
-  function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+  // The brand's name on a scene: top-left, or top-centre for the themes that centre.
+  function nameMark(fg, alpha) {
+    cx.globalAlpha = alpha; cx.fillStyle = fg; cx.font = '700 44px ' + D.fonts.head;
+    if (D.name) {
+      if (TM.name === 'tc') { cx.textAlign = 'center'; cx.fillText(TT.case === 'upper' ? D.name.toUpperCase() : D.name, W / 2, 150); }
+      else { cx.textAlign = 'left'; cx.fillText(D.name, 64, 150); }
+    }
+    cx.textAlign = 'left'; cx.globalAlpha = 1;
+  }
+  // The end card: a centred stack, a left-aligned page, or a split card.
+  function endCard(sc, p, alpha0, rise, big) {
+    cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H);
+    var alpha = Math.min(1, p * 4) * alpha0;
+    var fg = D.pal.on_primary;
+    if (TPL === 'editorial' || (themed && TT.align === 'left' && TPL !== 'split')) {
+      cx.globalAlpha = alpha; cx.fillStyle = fg; cx.textAlign = 'left';
+      cx.font = headFont(64); cx.fillText(caseOf(D.name), 96, 420);
+      cx.fillRect(96, 470, 160, 6);
+      var y = lines(sc.headline, 96, 640 + rise, big, W - 192, 'left', fg);
+      button(sc.cta, 96, y + 60, 'left', TT.button === 'outline' || TT.button === 'link' ? fg : D.pal.surface, D.pal.primary);
+      if (sc.sub) { cx.fillStyle = fg; cx.textAlign = 'left'; cx.font = '500 44px ' + D.fonts.body; cx.fillText(sc.sub, 96, y + 300); }
+      cx.textAlign = 'left'; cx.globalAlpha = 1; return;
+    }
+    if (TPL === 'split') {
+      cx.fillStyle = D.pal.surface; cx.fillRect(0, H * 0.56, W, H * 0.44);
+      cx.globalAlpha = alpha; cx.fillStyle = fg; cx.textAlign = 'center';
+      cx.font = headFont(64); cx.fillText(caseOf(D.name), W / 2, 380);
+      lines(sc.headline, W / 2, 640 + rise, big, W - 160, 'center', fg);
+      button(sc.cta, W / 2, H * 0.56 + 170, 'center', D.pal.primary, D.pal.on_primary === D.pal.surface ? D.pal.surface : D.pal.on_primary);
+      if (sc.sub) { cx.fillStyle = D.pal.on_accent; cx.textAlign = 'center'; cx.font = '500 44px ' + D.fonts.body; cx.fillText(sc.sub, W / 2, H * 0.56 + 420); }
+      cx.textAlign = 'left'; cx.globalAlpha = 1; return;
+    }
+    // The centred stack (the player's own end card), framed for the frame template.
+    if (TPL === 'frame') { cx.strokeStyle = fg; cx.lineWidth = 4; cx.strokeRect(48, 48, W - 96, H - 96); }
+    cx.globalAlpha = alpha; cx.textAlign = 'center';
+    spacing(big);
+    var ls = wrap(caseOf(sc.headline), W - 160, headFont(big));
+    cx.fillStyle = fg;
+    var y0 = H * 0.40;
+    ls.forEach(function (l, i) { cx.fillText(l, W / 2, y0 + rise + i * big * 1.15); });
+    unspacing();
+    y0 += ls.length * big * 1.15;
+    if (themed) button(sc.cta, W / 2, y0 + 60, 'center', TT.button === 'outline' || TT.button === 'link' ? fg : D.pal.surface, D.pal.primary);
+    else {
+      cx.font = '700 58px ' + D.fonts.body; var bw = cx.measureText(sc.cta).width + 140;
+      cx.fillStyle = D.pal.surface; roundRect(W / 2 - bw / 2, y0 + 60, bw, 130, 65); cx.fill();
+      cx.fillStyle = D.pal.primary; cx.fillText(sc.cta, W / 2, y0 + 145);
+    }
+    if (sc.sub) { cx.fillStyle = fg; cx.font = '500 44px ' + D.fonts.body; cx.fillText(sc.sub, W / 2, y0 + 290); }
+    cx.globalAlpha = alpha0;
+    if (D.name) { cx.textAlign = 'center'; cx.fillStyle = fg; cx.font = themed ? headFont(64) : '700 64px ' + D.fonts.head; cx.fillText(themed ? caseOf(D.name) : D.name, W / 2, H * 0.30); }
+    cx.textAlign = 'left'; cx.globalAlpha = 1;
+  }
+  function roundRect(x, y, w, h, r) { r = Math.max(0, Math.min(r || 0, w / 2, h / 2)); cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
   function frame(t) {
     curT = t;
     cx.clearRect(0, 0, W, H);
@@ -311,15 +539,30 @@ function storyPage(all) {
     var sc = D.scenes[i], p = Math.min(1, (t - sc.start) / sc.seconds);
     scene(sc, p, 1);
     var nx = D.scenes[i + 1], left = sc.start + sc.seconds - t;
-    if (nx && left < 0.45) scene(nx, 0, 1 - left / 0.45);
+    // Into the next scene, the theme's way: a cross-fade, a wipe, a slide, or a plain cut.
+    if (nx && left < 0.45) {
+      var q = 1 - left / 0.45;
+      if (TM.cut === 'fade') scene(nx, 0, q);
+      else if (TM.cut === 'wipe') { cx.save(); cx.beginPath(); cx.rect(0, 0, W * q, H); cx.clip(); scene(nx, 0, 1); cx.restore(); }
+      else if (TM.cut === 'slide') { cx.save(); cx.translate(W * (1 - q * q * (3 - 2 * q)), 0); cx.beginPath(); cx.rect(0, 0, W, H); cx.clip(); scene(nx, 0, 1); cx.restore(); }
+    }
     grain();
-    // story progress: one segment per scene
-    var gap = 10, segW = (W - 96 - gap * (D.scenes.length - 1)) / D.scenes.length;
-    D.scenes.forEach(function (s2, k) {
-      var f = k < i ? 1 : (k === i ? p : 0);
-      cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillRect(48 + k * (segW + gap), 60, segW, 8);
-      cx.fillStyle = '#ffffff'; cx.fillRect(48 + k * (segW + gap), 60, segW * f, 8);
-    });
+    // Story progress: segments, one line, or dots.
+    if (TM.progress === 'line') {
+      var done = (t / Math.max(0.01, D.total));
+      cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillRect(48, 64, W - 96, 4);
+      cx.fillStyle = '#ffffff'; cx.fillRect(48, 64, (W - 96) * Math.min(1, done), 4);
+    } else if (TM.progress === 'dots') {
+      var n = D.scenes.length, step = 34, x0 = W / 2 - (n - 1) * step / 2;
+      D.scenes.forEach(function (s2, k) { cx.fillStyle = k <= i ? '#ffffff' : 'rgba(255,255,255,0.35)'; cx.beginPath(); cx.arc(x0 + k * step, 66, k === i ? 10 : 7, 0, Math.PI * 2); cx.fill(); });
+    } else {
+      var gap = 10, segW = (W - 96 - gap * (D.scenes.length - 1)) / D.scenes.length;
+      D.scenes.forEach(function (s2, k) {
+        var f = k < i ? 1 : (k === i ? p : 0);
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillRect(48 + k * (segW + gap), 60, segW, 8);
+        cx.fillStyle = '#ffffff'; cx.fillRect(48 + k * (segW + gap), 60, segW * f, 8);
+      });
+    }
   }
   var t0 = performance.now(), paused = false, pausedAt = 0, recording = null;
   // THE TRACK (2026-10-25): the brand's composed music, handed in by the page
@@ -462,7 +705,8 @@ function storyDataFrom(html) {
     pal: { primary: hex(p.primary, '#333366'), on_primary: hex(p.on_primary, '#ffffff'), accent: hex(p.accent, '#ffffff'), on_accent: hex(p.on_accent, '#111111'), surface: hex(p.surface, '#ffffff'), ink: hex(p.ink, '#222222') },
     fonts: { head: fam(raw.fonts && raw.fonts.head), body: fam(raw.fonts && raw.fonts.body) },
     name: str(raw.name, 80),
+    look: cleanLook({ theme: str(raw.look && raw.look.theme, 40), template: str(raw.look && raw.look.template, 40) }),
   };
 }
 
-module.exports = { renderStoryAd, storyPage, storyDataFrom, storyScenes, storyBrief, MAX_SECONDS, SHORT_SECONDS, MOVES };
+module.exports = { renderStoryAd, storyPage, storyDataFrom, storyScenes, storyBrief, cleanLook, VIDEO_TEMPLATES, THEME_TABLE, MAX_SECONDS, SHORT_SECONDS, MOVES };
