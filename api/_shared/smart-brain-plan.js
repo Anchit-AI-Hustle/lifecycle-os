@@ -3053,8 +3053,12 @@ function teamContext(entry) {
   try { model = require('./asset-playbooks.js').businessModel(b); } catch (_) { /* commerce */ }
   const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean);
   const off = offerOf(entry);
-  const offerLine = off && (off.code || off.pct || off.label || off.text)
-    ? `${off.label || off.text || ''}${off.code ? ` code ${off.code}` : ''}${off.pct ? ` (${Math.round(+off.pct * 100)}% off)` : ''}`.trim()
+  // The planner stores a FRACTION (0.15 = 15%); a whole number is already a percentage (as musicOfferText reads it).
+  let offPct = off ? Number(off.pct) : NaN;
+  if (Number.isFinite(offPct) && offPct > 0 && offPct < 1) offPct *= 100;
+  offPct = Number.isFinite(offPct) && offPct > 0 ? Math.round(offPct) : 0;
+  const offerLine = off && (off.code || offPct || off.label || off.text)
+    ? `${off.label || off.text || ''}${off.code ? ` code ${off.code}` : ''}${offPct ? ` (${offPct}% off)` : ''}`.trim()
     : 'No offer on record for this send: do not write one.';
   const parts = {
     company: [`${b.name || 'The brand'}${b.industry ? `, ${b.industry}` : ''}${b.website ? ` (${String(b.website).replace(/^https?:\/\//, '')})` : ''}.`,
