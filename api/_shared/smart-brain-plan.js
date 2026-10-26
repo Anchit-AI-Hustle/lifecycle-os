@@ -136,19 +136,25 @@ async function syncStatus({ config: cfg = {}, limit = 60 } = {}) {
 async function callLLMTiered(opts) {
   let wanted = (opts && opts.tier) || 'premium';
   let routeNote = '';
+  // A caller's budgetMs bounds the WHOLE call, routing included: the deadline starts here,
+  // and a balance lookup that does not answer in time is a routing failure (the caller's tier).
+  const until = Number(opts && opts.budgetMs) > 0 ? Date.now() + Number(opts.budgetMs) : 0;
   try {
     const mr = require('./model-router.js');
     const env = {
       url: (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, ''),
       key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '',
     };
-    const decision = await mr.route({
+    const routed = mr.route({
       stage: (opts && (opts.stage || opts.feature)) || '',
       featureKey: opts && opts.feature,
       workspaceId: opts && opts.workspaceId,
       env,
       requested: opts && opts.tier,
     });
+    const decision = until
+      ? await Promise.race([routed, new Promise((_, rej) => setTimeout(() => rej(new Error('routing did not answer in time')), Math.max(0, Math.min(3000, until - Date.now() - 1000))))])
+      : await routed;
     if (decision && decision.allowed && decision.tier) { wanted = decision.tier; routeNote = decision.reason; }
     else if (decision && !decision.allowed) {
       const err = new Error(decision.reason);
@@ -165,9 +171,7 @@ async function callLLMTiered(opts) {
   // would only queue the same request three times.
   try { if (await require('./llm.js').keylessOnly()) tiers = [wanted]; } catch (_) { /* keep the ladder */ }
   let lastErr;
-  // A caller's budgetMs bounds the WHOLE ladder, not each tier: every tier gets what is left,
-  // and none starts once it is spent (the team's makers and reviewers must end by their deadline).
-  const until = Number(opts && opts.budgetMs) > 0 ? Date.now() + Number(opts.budgetMs) : 0;
+  // ...and the ladder too: every tier gets what is left, none starts once it is spent.
   for (const tier of tiers) {
     const left = until ? until - Date.now() : 0;
     if (until && left < 500) { lastErr = lastErr || new Error('the call budget is spent'); break; }
@@ -1894,7 +1898,8 @@ function productFactsBrief(entry) {
   } else {
     lines.push('PRODUCT FACTS: none on record for this slot beyond its name; state no price, size, material or feature.');
   }
-  const o = entry.offer || {};
+  // The offer the slot resolves to (its own, else its decision's): one offer for every reader.
+  const o = offerOf(entry) || {};
   const hasOffer = !!(o.code || offerPct(o) || (o.depth && o.depth !== 'none'));
   lines.push(hasOffer
     ? `- OFFER on record: ${[o.depth, offerPct(o) ? `${offerPct(o)}% off` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`

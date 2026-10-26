@@ -247,6 +247,27 @@ test('a slow model does not carry the team past its deadline: the tier ladder st
   expect(Date.now() - t0).toBeLessThan(60000);
 });
 
+test('a balance lookup that never answers does not hold the team past its deadline; an offer on the decision is the one every reader sees (Codex #370)', async () => {
+  test.setTimeout(120000);
+  script = teamScript({ copyVerdict: 'pass' });
+  const MR_PATH = path.join(ROOT, 'api', '_shared', 'model-router.js');
+  require(MR_PATH);
+  const realRoute = require.cache[MR_PATH].exports.route;
+  // The team's routing hangs (a stalled credit_wallets read); every other call routes at once.
+  require.cache[MR_PATH].exports.route = (o) => (/^team-/.test(String(o.stage)) ? new Promise(() => {}) : Promise.resolve({ allowed: true, tier: o.requested, reason: 'test' }));
+  const realFetch = global.fetch;
+  global.fetch = async (u) => { throw new Error('offline in this test: ' + u); };
+  const t0 = Date.now();
+  try {
+    await P.previewEntry({ entry: Object.assign(entry(), { decision: { offer: { label: 'Weekend rye', pct: 0.2 } } }) });
+  } finally { global.fetch = realFetch; require.cache[MR_PATH].exports.route = realRoute; }
+  expect(byStage('team-strategy').length, 'the team called its model once routing gave up').toBeGreaterThan(0);
+  expect(Date.now() - t0, 'the plan did not wait on the stalled lookup').toBeLessThan(60000);
+  const copy = byStage('smart-brain-copy')[0].userMessage;
+  expect(copy, 'the offer on the decision reaches the product facts').toContain('20% off');
+  expect(copy).not.toMatch(/OFFER: none on record/);
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });
