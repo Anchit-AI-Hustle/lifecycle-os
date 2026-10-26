@@ -660,7 +660,10 @@ add('video-generate', { gate: 'model', model: 'video.generate', browser: 'refuse
       expect: (r) => {
         expect(r.status).toBe(200);
         expect(r.out.provider).toBe('code-motion');
-        expect(r.out.mp4).toBeNull();
+        // The story_html it carries is rendered to an MP4 in code on request
+        // (code-video.js), so the hint names that route, never a provider.
+        expect(r.out.mp4).toMatchObject({ method: 'POST', url: '/api/public-config?action=video-render' });
+        expect(r.out.story_html).toContain('Harness Brand');
         expect(r.out.motion_html).toContain('Harness Brand');
         expect(r.out.motion_html).toContain('#1d4ed8');
         expect(r.out.motion_html).toContain('https://harness.example/p/one.jpg');

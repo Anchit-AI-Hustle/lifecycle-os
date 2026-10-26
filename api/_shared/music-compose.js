@@ -121,7 +121,12 @@ async function callLyria(spec, auth, { fetchImpl, timeoutMs } = {}) {
     return { ok: false, error: /timeout|abort/i.test(String(e && e.name)) ? 'Lyria did not finish in time' : 'Lyria could not be reached: ' + String(e && e.message || e).slice(0, 120) };
   }
   const raw = await r.text();
-  if (!r.ok) return { ok: false, status: r.status, error: refusal(r.status, raw) };
+  if (!r.ok) {
+    // A Sign in with Google token made before Lyria's scope was asked for.
+    const why = refusal(r.status, raw);
+    if (r.status === 403 && /insufficient authentication scopes/i.test(raw) && auth && auth.bearer) return { ok: false, status: 403, error: why + '. Sign in with Google again on AI Models: the earlier sign-in did not grant the access Lyria needs' };
+    return { ok: false, status: r.status, error: why };
+  }
   let json = null; try { json = JSON.parse(raw); } catch (_) { return { ok: false, error: 'Lyria answered with something that was not JSON' }; }
   const out = readLyria(json);
   if (!out.audio || out.audio.length < 2000) return { ok: false, error: 'Lyria answered without audio' + (out.text ? ': ' + out.text.slice(0, 160) : '') };
@@ -347,6 +352,7 @@ function note(kind, info) {
  * opts: { freeGeneration, fetchImpl, own (override for tests) }
  * -> { ok, audio, mime, provider, model, quality, sung, refusals[], message }
  */
+const SKETCH_RESERVE_MS = 4000;
 async function compose(spec, opts = {}) {
   const prompt = String(spec.prompt || '').trim().slice(0, 4100);
   if (!prompt) return { ok: false, status: 400, error: 'prompt_required', message: 'Describe the track first.' };
@@ -360,7 +366,12 @@ async function compose(spec, opts = {}) {
   // platform's in the same order. Its own keys cost it nothing.
   const own = opts.own !== undefined ? opts.own : await ownGemini();
   const platformKey = String(process.env.LYRIA_PLATFORM || '').toLowerCase() !== 'off' ? clean(process.env.GEMINI_API_KEY) : '';
+  // With free generation on, the code-made sketch is the floor, and it takes
+  // a second or two to render: the providers stop early enough for it to
+  // finish inside the caller's deadline (it rendered past it before).
+  // (`deadline` still decides whether a provider is worth starting at all.)
   const deadline = opts.deadline || (Date.now() + 100000);
+  const callBy = deadline - (opts.freeGeneration ? SKETCH_RESERVE_MS : 0);
   const media = opts.ownKeys !== undefined ? (opts.ownKeys || {}) : await ownMediaKeys();
   const sources = [];
   const add = (src, kind, key) => { if (key) sources.push({ src, kind, key }); };
@@ -375,7 +386,8 @@ async function compose(spec, opts = {}) {
     if (deadline - Date.now() < 15000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
     const mine = s.src === 'own';
     if (s.kind === 'lyria') {
-      const r = await callLyria(lyriaSpec, s.key, opts);
+      // Lyria is bounded by the same deadline as the others (it waited 100 s).
+      const r = await callLyria(lyriaSpec, s.key, Object.assign({}, opts, { timeoutMs: opts.timeoutMs || Math.max(1000, callBy - Date.now()) }));
       if (r.ok) {
         note('ok', { own: mine, kind: 'audio', provider: 'gemini', model: r.model });
         return { ok: true, audio: r.audio, mime: r.mime, provider: 'lyria', model: r.model, quality: 'studio', own: mine, sung: r.sung, refusals, image: !!image };
@@ -384,8 +396,8 @@ async function compose(spec, opts = {}) {
       continue;
     }
     let r;
-    if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline });
-    else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline, src: s.src, owner: opts.owner });
+    if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy });
+    else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy, src: s.src, owner: opts.owner });
     if (r.ok) {
       note('ok', { own: mine, kind: 'audio', provider: s.kind, model: r.model });
       const said = r.vocal_fallback ? ' The singing model did not answer, so this one is instrumental.' : '';
@@ -400,10 +412,11 @@ async function compose(spec, opts = {}) {
     if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
     return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
-  const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true });
+  const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true, take: String(spec.take || '').slice(0, 64) });
   return {
     ok: true, audio: Buffer.from(out.bytes), mime: 'audio/wav', provider: 'code-synth', model: 'music-synth', quality: 'sketch', refusals,
-    message: 'This is a code-made instrumental sketch, not a produced track.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
+    plan: out.plan,
+    message: 'This is a code-made instrumental sketch, not a produced track (' + out.plan.summary + '). Press Compose again for a different take.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
   };
 }
 

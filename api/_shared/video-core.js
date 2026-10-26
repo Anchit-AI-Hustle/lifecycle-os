@@ -617,6 +617,26 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
       '. It is not an MP4: ' + (reason || 'no video provider key is configured') + '.' +
       (String(aspect || '9:16') !== '9:16' ? ' Rendered at 9:16 (asked for ' + String(aspect) + ').' : ''),
   };
+  // THE VIDEO FILE (2026-10-26): the same photos and lines as a timed Story
+  // video, which code-video.js renders to an MP4 in this deployment's own
+  // browser with no key at all (POST /api/public-config?action=video-render
+  // { html: story_html }). It is not rendered here: one render takes most of a
+  // function's time, and this answer is wanted at once.
+  try {
+    const SA = require('../../scripts/lib/story-ad.js');
+    const pal = rt.paletteOf(b);
+    let core = null; try { core = require('./brand-workspace-core.js'); } catch (_) { core = null; }
+    const ground = core && core.sectionGround ? core.sectionGround(pal.primary, pal.accent, pal.surface) : pal.primary;
+    const fs2 = rt.fontStacks(b);
+    out.story_html = SA.renderStoryAd({
+      brand: b, brandName: name, hook: beats[0] || name, lines: beats.slice(1),
+      products: product ? [{ title: product, price_text: '', image: images[0] || '' }] : [], images, cta,
+      palette: { primary: ground, on_primary: core && core.textOn ? core.textOn(ground, pal.surface, pal.ink) : pal.surface,
+        accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
+      fonts: { head: String(fs2.head).replace(/"/g, "'"), body: String(fs2.body).replace(/"/g, "'") },
+    });
+    out.mp4 = { method: 'POST', url: '/api/public-config?action=video-render', body: { html: '<story_html>' }, note: 'An MP4 made in code from this story, with no key: send story_html as html. Up to about a minute and a half.' };
+  } catch (_) { /* the HTML creative still answers */ }
   if (attempts) out.attempts = attempts;
   if (wouldRequest) {
     out.would_request = wouldRequest;

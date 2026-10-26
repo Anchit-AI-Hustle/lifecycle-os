@@ -53,7 +53,7 @@
     },
     "api/public-config.js": {
       "maxDuration": 120,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,node_modules/mediabunny/dist/bundles/mediabunny.min.cjs}"
     }
   },
   "redirects": [

@@ -36,6 +36,11 @@
   }
   async function compose(body, opts) {
     opts = opts || {};
+    // Every press is a new take (2026-10-26, the operator: "the same song is
+    // returned every time"): the code-made sketch is seeded by brief + take,
+    // so one brief composed twice is two tracks. A caller may pin a take.
+    body = Object.assign({}, body);
+    if (body.take == null || body.take === '') body.take = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     var r = await fetch('/api/brain?action=music-compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     var type = r.headers.get('content-type') || '';
     if (r.ok && /audio/.test(type)) return audioOf(r, {});
