@@ -178,7 +178,12 @@ test.describe('music-synth: the WAV', () => {
 /* ── music-compose.js ───────────────────────────────────────────────────── */
 
 const fresh = () => { delete require.cache[require.resolve(path.join(ROOT, 'api', '_shared', 'music-compose.js'))]; return require(path.join(ROOT, 'api', '_shared', 'music-compose.js')); };
-const NO_KEYS = ['GEMINI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVEN_API_KEY', 'XI_API_KEY', 'REPLICATE_API_TOKEN', 'REPLICATE_API_KEY'];
+// No text model answers here: The Third Eye's song agents take their fallbacks
+// (third-eye-music/), so the plan, and the sketch it seeds, is deterministic.
+const LLM_PATH = path.join(ROOT, 'api', '_shared', 'llm.js');
+require(LLM_PATH);
+require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, require.cache[LLM_PATH].exports);
+const NO_KEYS = ['HF_API_TOKEN', 'HUGGINGFACE_API_KEY', 'HUGGINGFACEHUB_API_TOKEN', 'GEMINI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVEN_API_KEY', 'XI_API_KEY', 'REPLICATE_API_TOKEN', 'REPLICATE_API_KEY'];
 async function noKeys(fn) {
   const saved = Object.fromEntries(NO_KEYS.map((k) => [k, process.env[k]]));
   for (const k of NO_KEYS) delete process.env[k];
@@ -196,13 +201,17 @@ test.describe('music-compose', () => {
       expect([a.provider, a.quality, a.mime]).toEqual(['code-synth', 'sketch', 'audio/wav']);
       expect(sha(a.audio)).toBe(sha(a2.audio));
       expect(sha(a.audio)).not.toBe(sha(b.audio));
-      expect(a.plan.take).toBe('one');
-      expect(a.message).toContain('(' + a.plan.summary + ')');
+      // The Third Eye's plan says what the sketch is: its genre and tempo.
+      expect(a.plan).toMatchObject({ by: 'fallback', genre: expect.any(String), bpm: expect.any(Number) });
+      expect(a.message).toContain('(' + a.plan.genre + ', ' + a.plan.bpm + ' BPM');
       expect(a.message).toMatch(/Press Compose again for a different take\./);
       expect(readWav(a.audio).dataLen).toBe(6 * 22050 * 2);
-      // A take is held to 64 characters on the way in.
+      // A take is held to 64 characters on the way in: 200 characters seed what the first 64 do.
+      const TE = require(path.join(ROOT, 'api', '_shared', 'third-eye-music'));
       const c = await MC.compose({ prompt: 'A pop jingle', seconds: 6, take: 'y'.repeat(200) }, o);
-      expect(c.plan.take).toBe('y'.repeat(64));
+      const P = TE.fallbackPlan(TE.inputFrom('A pop jingle', { seconds: 6 }));
+      expect(sha(c.audio)).toBe(sha(TE.synthWav(P, 'A pop jingle', 6, 'y'.repeat(64))));
+      expect(sha(c.audio)).not.toBe(sha(TE.synthWav(P, 'A pop jingle', 6, 'y'.repeat(65))));
     });
   });
 

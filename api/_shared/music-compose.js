@@ -32,11 +32,19 @@
  *      A prediction is waited for (Prefer: wait) and polled inside the
  *      request; one still running is handed back as a job the page polls
  *      (`music-job`), never dropped.
- *   Hugging Face is not a rung: no Inference Provider hosts MusicGen (its
- *   inferenceProviderMapping is empty for every size, read 2026-10-25), so a
- *   call there could only be refused.
- *   4. Only then, and only with free generation on, music-synth.js: a
- *      code-made instrumental SKETCH, labelled as one. Free generation is the
+ *   Before rungs 2-4 the song is PLANNED as The Third Eye plans it
+ *   (third-eye-music/, its own agents, knowledge base and structures, 2026-10-26,
+ *   the operator: "use the exact same system as being used in music studio in
+ *   the the-third-eye repo"): Musicologist -> Beat-smith + Lyricist ->
+ *   Conductor, each a JSON call on this app's model cascade with a
+ *   deterministic fallback. ElevenLabs gets its elevenPrompt(plan), Replicate
+ *   the plan's tags, lyrics and prompt. A brand's own lyrics are sung as written.
+ *   4. Hugging Face MusicGen (HF_API_TOKEN), as The Third Eye calls it
+ *      (api-inference.huggingface.co, x-wait-for-model). Its refusal is said:
+ *      no Inference Provider was found hosting MusicGen on 2026-10-25.
+ *   5. Only then, and only with free generation on, The Third Eye's code synth
+ *      (renderWav) seeded by the request, the plan's prompt and the press's
+ *      take: an instrumental SKETCH, labelled as one. Free generation is the
  *      keyless floor; it never skips a model a key reaches (it did: with it on,
  *      ElevenLabs was never called and every track was the sketch).
  * Every answer says what made it, the quality class (`studio` or `sketch`),
@@ -261,13 +269,16 @@ async function fetchOutput(u, { fetchImpl, deadline } = {}) {
 async function callReplicate(spec, token, { fetchImpl, deadline, src, owner } = {}) {
   const f = fetchImpl || fetch;
   const seconds = Math.round(Number(spec.seconds) || 30);
-  const parts = partsOf(spec.prompt);
+  // The Third Eye's plan when compose made one (tags + lyrics for ACE-Step,
+  // the beat-smith's prompt for the instrumental models), else the brief read back.
+  const parts = spec.plan ? { tags: spec.plan.tags, lyrics: spec.plan.lyrics } : partsOf(spec.prompt);
+  const instr = String(spec.plan ? spec.plan.prompt : spec.prompt).slice(0, 1500);
   const sing = spec.instrumental === false && !!parts.lyrics;
   const tries = sing
     ? [[VOCAL_MODEL, { tags: parts.tags, lyrics: parts.lyrics, duration: Math.min(240, Math.max(5, seconds)) }]]
     : [];
-  tries.push([INSTR_MODEL, { prompt: String(spec.prompt).slice(0, 1500), duration: Math.min(60, Math.max(5, seconds)), model_version: process.env.MUSIC_INSTRUMENTAL_VERSION || 'stereo-large', output_format: 'mp3', normalization_strategy: 'loudness' }]);
-  tries.push([STABLE_AUDIO, { prompt: String(spec.prompt).slice(0, 1500), seconds_total: Math.min(47, Math.max(5, seconds)) }, STABLE_AUDIO_VERSION]);
+  tries.push([INSTR_MODEL, { prompt: instr, duration: Math.min(60, Math.max(5, seconds)), model_version: process.env.MUSIC_INSTRUMENTAL_VERSION || 'stereo-large', output_format: 'mp3', normalization_strategy: 'loudness' }]);
+  tries.push([STABLE_AUDIO, { prompt: instr, seconds_total: Math.min(47, Math.max(5, seconds)) }, STABLE_AUDIO_VERSION]);
   const errors = [];
   for (const [model, input, version] of tries) {
     let p;
@@ -353,6 +364,10 @@ function note(kind, info) {
  * -> { ok, audio, mime, provider, model, quality, sung, refusals[], message }
  */
 const SKETCH_RESERVE_MS = 4000;
+// The Third Eye's SYNTH_CLIP_MAX: 60 s (22 kHz mono WAV, ~2.6 MB, under
+// Vercel's 4.5 MB answer); a longer request is played as that clip.
+const SKETCH_MAX_S = 60;
+const TE = require('./third-eye-music');
 async function compose(spec, opts = {}) {
   const prompt = String(spec.prompt || '').trim().slice(0, 4100);
   if (!prompt) return { ok: false, status: 400, error: 'prompt_required', message: 'Describe the track first.' };
@@ -381,7 +396,20 @@ async function compose(spec, opts = {}) {
   add('platform', 'lyria', platformKey ? { apiKey: platformKey } : null);
   add('platform', 'elevenlabs', clean(process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || process.env.XI_API_KEY));
   add('platform', 'replicate', clean(process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY));
-  const LABEL = { lyria: 'Gemini', elevenlabs: 'ElevenLabs', replicate: 'Replicate' };
+  add('platform', 'huggingface', TE.hfToken());
+  const LABEL = { lyria: 'Gemini', elevenlabs: 'ElevenLabs', replicate: 'Replicate', huggingface: 'Hugging Face' };
+  // The Third Eye's Music Studio plans the song before any model it calls:
+  // Musicologist -> Beat-smith + Lyricist -> Conductor (third-eye-music/). Lyria
+  // takes the brand brief as written, so the plan is made only when a rung that
+  // takes it is reached, once, inside the time that leaves for the model.
+  const input = TE.inputFrom(prompt, { instrumental: spec.instrumental, seconds });
+  let planned = opts.planned || null;
+  const getPlan = async () => {
+    if (!planned) planned = await TE.plan(input, { ms: Math.max(3000, Math.min(Number(process.env.MUSIC_PLAN_MS) || 30000, callBy - Date.now() - 45000)) });
+    return planned;
+  };
+  const planInfo = () => planned && { by: planned.planned_by, prompt: planned.plan.prompt, tags: planned.plan.tags, lyrics: planned.plan.lyrics,
+    genre: planned.brief && planned.brief.genre, bpm: planned.brief && planned.brief.bpm, key: planned.brief && planned.brief.key, moods: planned.brief && planned.brief.moods };
   for (const s of sources) {
     if (deadline - Date.now() < 15000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
     const mine = s.src === 'own';
@@ -395,28 +423,42 @@ async function compose(spec, opts = {}) {
       refusals.push((mine ? 'Your Gemini connection: ' : 'The platform\'s Gemini key: ') + r.error);
       continue;
     }
+    const P = await getPlan();
+    const pl = P.plan;
     let r;
-    if (s.kind === 'elevenlabs') r = await callEleven({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy });
-    else r = await callReplicate({ prompt, seconds, instrumental: spec.instrumental }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy, src: s.src, owner: opts.owner });
+    if (s.kind === 'elevenlabs') r = await callEleven({ prompt: TE.elevenPrompt({ prompt: pl.prompt, tags: pl.tags, lyrics: pl.lyrics, sing: P.sing }), seconds: TE.clipSecondsFor(seconds), instrumental: !P.sing }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy });
+    else if (s.kind === 'replicate') r = await callReplicate({ prompt, plan: pl, seconds, instrumental: P.sing ? false : true }, s.key, { fetchImpl: opts.fetchImpl, deadline: callBy, src: s.src, owner: opts.owner });
+    else {
+      r = await TE.huggingFaceMusic(pl.prompt, seconds, { token: s.key, fetchImpl: opts.fetchImpl, deadline: callBy });
+      if (r.ok && r.audio.length > MAX_AUDIO) r = { ok: false, error: 'Hugging Face made a track too large to send back here' };
+    }
     if (r.ok) {
       note('ok', { own: mine, kind: 'audio', provider: s.kind, model: r.model });
       const said = r.vocal_fallback ? ' The singing model did not answer, so this one is instrumental.' : '';
-      const base = { ok: true, provider: s.kind, model: r.model, quality: 'studio', own: mine, sung: r.sung || '', refusals, image: false,
-        message: (refusals.length ? refusals.join(' ') : '') + said };
+      const sungNow = r.sung || (s.kind === 'elevenlabs' && P.sing ? pl.lyrics : '');
+      const said2 = s.kind === 'huggingface' && P.sing ? ' This one is instrumental: the Hugging Face model does not sing.' : '';
+      const base = { ok: true, provider: s.kind, model: r.model, quality: 'studio', own: mine, sung: sungNow, refusals, image: false, plan: planInfo(),
+        message: (refusals.length ? refusals.join(' ') : '') + said + said2 };
       if (r.pending) return Object.assign(base, { pending: true, job: r.job });
       return Object.assign(base, { audio: r.audio, mime: r.mime, songId: r.songId });
     }
     refusals.push((mine ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
   }
   if (!opts.freeGeneration) {
-    if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY or REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
+    if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY, REPLICATE_API_TOKEN or HF_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
     return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
-  const out = require('../../music-synth.js').renderBytes(prompt, seconds || 30, { compact: true, take: String(spec.take || '').slice(0, 64) });
+  // The Third Eye's own code synth (third-eye-music/synth.js renderWav),
+  // seeded by the request and the plan as there, plus this press's take.
+  const P = await getPlan();
+  const sketchSeconds = Math.max(5, Math.min(seconds || 30, SKETCH_MAX_S));
+  const wav = TE.synthWav(P, input.description, sketchSeconds, String(spec.take || '').slice(0, 64));
+  const b = P.brief || {};
+  const summary = [b.genre, b.bpm && b.bpm + ' BPM', b.key, (b.moods || []).slice(0, 2).join(', ')].filter(Boolean).join(', ');
   return {
-    ok: true, audio: Buffer.from(out.bytes), mime: 'audio/wav', provider: 'code-synth', model: 'music-synth', quality: 'sketch', refusals,
-    plan: out.plan,
-    message: 'This is a code-made instrumental sketch, not a produced track (' + out.plan.summary + '). Press Compose again for a different take.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
+    ok: true, audio: wav, mime: 'audio/wav', provider: 'code-synth', model: 'third-eye-synth', quality: 'sketch', refusals,
+    plan: planInfo(),
+    message: 'This is a code-made instrumental sketch, not a produced track (' + summary + (P.planned_by === 'agents' ? ', planned by the song agents' : '') + '). Press Compose again for a different take.' + (refusals.length ? ' ' + refusals.join(' ') : ' No music model is connected: connect your own Gemini (Lyria), ElevenLabs or Replicate key to compose a produced track.'),
   };
 }
 

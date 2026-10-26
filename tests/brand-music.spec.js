@@ -97,6 +97,15 @@ const MP3 = Buffer.alloc(9000, 7);
 const SONG = { id: 'i1', steps: [{ type: 'user_input' }, { type: 'model_output', content: [{ type: 'text', text: '[Hook]\nNik Bakers' }, { type: 'audio', data: MP3.toString('base64'), mime_type: 'audio/mpeg' }] }] };
 
 function fresh() { delete require.cache[MC_PATH]; return require(MC_PATH); }
+// The Third Eye's song agents plan before ElevenLabs / Replicate / the synth
+// (third-eye-music/). These cases are about the provider chain, so no text
+// model answers here and every agent takes its own deterministic fallback;
+// tests/third-eye-music.spec.js drives the agents with a scripted model.
+const LLM_PATH = path.join(ROOT, 'api', '_shared', 'llm.js');
+require(LLM_PATH);
+require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, require.cache[LLM_PATH].exports);
+const TE = require(path.join(ROOT, 'api', '_shared', 'third-eye-music'));
+const planOf = (prompt, o) => TE.fallbackPlan(TE.inputFrom(prompt, o));
 function withEnv(env, fn) {
   const saved = {};
   for (const k of Object.keys(env)) { saved[k] = process.env[k]; if (env[k] === undefined) delete process.env[k]; else process.env[k] = env[k]; }
@@ -191,7 +200,11 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
       expect(r.quality).toBe('studio');
       expect(net.calls).toHaveLength(1);
       expect(net.calls[0].headers['xi-api-key']).toBe('sk_own');
-      expect(net.calls[0].body).toEqual({ prompt: 'A warm acoustic bed', music_length_ms: 20000, model_id: 'music_v2_5', force_instrumental: true });
+      // The Third Eye's elevenPrompt over its plan: the plan's prompt, then its style tags.
+      const pl = planOf('A warm acoustic bed', { seconds: 20 }).plan;
+      expect(net.calls[0].body).toEqual({ prompt: TE.elevenPrompt({ prompt: pl.prompt, tags: pl.tags, lyrics: '', sing: false }), music_length_ms: 20000, model_id: 'music_v2_5', force_instrumental: true });
+      expect(net.calls[0].body.prompt).toMatch(/^A warm acoustic bed\. /);
+      expect(net.calls[0].body.prompt).toMatch(/\n\nStyle: \d+ bpm, .*instrumental, no vocals$/);
     });
   } finally { net.restore(); }
 
@@ -227,11 +240,14 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
       expect(r.refusals[0]).toMatch(/The platform's ElevenLabs key: ElevenLabs music needs a paid plan/);
       const ace = net.calls.find((c) => /ace-step/.test(c.url));
       expect(ace.headers.Authorization).toBe('Bearer r8_platform');
-      expect(ace.body.input.lyrics).toBe(plan.lyrics);
+      // The brand's own lyrics, sung as written (section tags lowercased, as ACE-Step reads them).
+      expect(ace.body.input.lyrics).toBe(TE.inputFrom(plan.prompt, { instrumental: false }).lyricsText);
+      expect(ace.body.input.lyrics).toBe(plan.lyrics.replace(/\[([A-Za-z -]+)\]/g, (_, t) => '[' + t.toLowerCase() + ']'));
       expect(ace.body.input.tags).toContain(plan.genre);
       expect(ace.body.input.tags).toContain(plan.bpm + ' bpm');
       expect(ace.body.input.duration).toBe(20);
-      expect(r.sung).toBe(plan.lyrics);
+      expect(r.sung).toBe(ace.body.input.lyrics);
+      expect(r.plan).toMatchObject({ by: 'fallback', genre: plan.genre, bpm: plan.bpm });
     });
   } finally { net.restore(); }
 
@@ -246,7 +262,7 @@ test('the Third Eye chain: own ElevenLabs first, then Replicate sings the lyrics
       const MC = fresh();
       const r = await MC.compose({ prompt: 'An instrumental bed', seconds: 30 }, { own: null, ownKeys: { replicate: 'r8_own' }, freeGeneration: true, owner: 'user-1', deadline: Date.now() + 16000 });
       expect(r).toMatchObject({ ok: true, pending: true, job: MC.jobId('own', 'pred2abc', 'user-1'), provider: 'replicate', model: 'meta/musicgen', own: true });
-      expect(net.calls[0].body.input).toMatchObject({ prompt: 'An instrumental bed', duration: 30, model_version: 'stereo-large', output_format: 'mp3' });
+      expect(net.calls[0].body.input).toMatchObject({ prompt: planOf('An instrumental bed', { seconds: 30 }).plan.prompt, duration: 30, model_version: 'stereo-large', output_format: 'mp3' });
       // The job is read with the key that started it, and its audio only from Replicate's delivery host.
       const j = await MC.job(r.job, { ownKeys: { replicate: 'r8_own' }, owner: 'user-1' });
       expect(j).toEqual({ ok: true, pending: true, status: 'processing' });
