@@ -72,6 +72,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .chip.partial{color:var(--vh-warn-text,var(--vh-ink));border-color:currentColor}
   .chip.not_built{color:var(--vh-err-text,var(--vh-ink));border-color:currentColor}
   .chip.slot{color:var(--vh-primary-text);border-color:currentColor}
+  .chip.agent{color:var(--vh-ok-text,var(--vh-ink));border-color:currentColor}
+  .chip.none{color:var(--vh-ink-dim)}
   .does{font-size:13px;line-height:1.5;margin:4px 0 2px;color:var(--vh-ink)}
   .gap{font-size:13px;line-height:1.5;border-left:3px solid var(--vh-accent);padding:2px 0 2px 8px;margin:4px 0;color:var(--vh-ink)}
   .links{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}
@@ -101,6 +103,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   <div class="tabs" role="tablist" aria-label="Marketing team">
     <button type="button" class="tab" role="tab" data-tab="map" aria-selected="true">Departments</button>
+    <button type="button" class="tab" role="tab" data-tab="team" aria-selected="false">Agent team</button>
     <button type="button" class="tab" role="tab" data-tab="seo" aria-selected="false">SEO audit</button>
     <button type="button" class="tab" role="tab" data-tab="ab" aria-selected="false">A/B test</button>
     <button type="button" class="tab" role="tab" data-tab="utm" aria-selected="false">UTM builder</button>
@@ -109,6 +112,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <section data-panel="map">
     <div class="summary" id="summary"></div>
     <div class="depts" id="depts"></div>
+  </section>
+
+  <section data-panel="team" id="roster" hidden>
+    <p class="does">Every send with a model key is made by a team that reads one <b>shared marketing context</b> (company, customers, offer, brand, goals, evidence). Strategy and messaging are written side by side, then the creative briefs, then two copy directions; each has a reviewer that passes it or sends it back once with the reason. The code checks after them (grounding, proof, brand guard, compliance, contracts, contrast) still have the last word. Below is every role of a full marketing department and what does it here.</p>
+    <div class="summary" id="rosterSummary"></div>
+    <div class="depts" id="roster-depts"></div>
   </section>
 
   <section data-panel="seo" hidden>
@@ -187,8 +196,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join('');
   }
 
+  var BY = { agent: 'Agent, every send', code: 'Code check', feature: 'Page', skill: 'Skill (Claude Code)', none: 'Not covered' };
+  var PAIR = { strategy: 'strategy pair', messaging: 'messaging pair', brief: 'creative brief pair', copy: 'copy pair' };
+  function renderRoster() {
+    if (!MT() || !MT().ROSTER) return;
+    var roles = [];
+    MT().ROSTER.forEach(function (d) { d.roles.forEach(function (r) { roles.push(r[1]); }); });
+    var n = function (k) { return roles.filter(function (x) { return x.by === k; }).length; };
+    $('rosterSummary').innerHTML = '<span><b>' + roles.length + '</b> roles</span><span><b>' + n('agent') + '</b> agents on every send</span>'
+      + '<span><b>' + n('code') + '</b> code checks</span><span><b>' + (n('feature') + n('skill')) + '</b> pages or skills</span><span><b>' + n('none') + '</b> not covered</span>';
+    $('roster-depts').innerHTML = MT().ROSTER.map(function (d) {
+      return '<article class="card" data-roster-dept="' + d.n + '"><div class="dept-n">Department ' + String(d.n).padStart(2, '0') + '</div><h3>' + esc(d.department) + '</h3><ul class="steps">'
+        + d.roles.map(function (r) {
+          var x = r[1];
+          var link = x.where && x.where.charAt(0) === '/' ? '<div class="links"><a href="' + esc(x.where) + '">' + esc(x.where.replace(/[?#].*$/, '')) + '</a></div>' : (x.where ? '<p class="does"><code>' + esc(x.where) + '</code></p>' : '');
+          return '<li data-role="' + esc(r[0]) + '" data-by="' + esc(x.by) + '"><div class="step-head"><span class="step-name">' + esc(r[0]) + '</span>'
+            + '<span class="chip ' + esc(x.by) + '">' + esc(BY[x.by] || x.by) + '</span>' + (x.pair ? '<span class="chip slot">' + esc(PAIR[x.pair] || x.pair) + '</span>' : '') + '</div>'
+            + (x.note ? '<p class="' + (x.by === 'none' ? 'gap' : 'does') + '">' + esc(x.note) + '</p>' : '') + link + '</li>';
+        }).join('') + '</ul></article>';
+    }).join('');
+  }
+
   function show(tab) {
-    if (['map', 'seo', 'ab', 'utm'].indexOf(tab) < 0) tab = 'map';
+    if (['map', 'team', 'seo', 'ab', 'utm'].indexOf(tab) < 0) tab = 'map';
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === tab ? 'true' : 'false'); });
     document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== tab; });
     try { var u = new URL(location.href); if (tab === 'map') u.searchParams.delete('tool'); else u.searchParams.set('tool', tab); history.replaceState(null, '', u.toString()); } catch (_) {}
@@ -259,9 +289,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   function boot() {
-    renderMap(); fillChannels();
+    renderMap(); renderRoster(); fillChannels();
     try { var b = window.BrandContext && window.BrandContext.brand; if (b && b.name) $('brandLabel').textContent = b.name + ' · Marketing team'; } catch (_) {}
     var t = null; try { t = new URL(location.href).searchParams.get('tool'); } catch (_) {}
+    if (!t && location.hash === '#roster') t = 'team';
     show(t || 'map');
   }
   if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
