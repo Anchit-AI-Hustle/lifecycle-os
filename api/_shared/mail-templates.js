@@ -55,7 +55,7 @@ function visualTemplate(c) {
     const pic = !!(c.hero_image_url || c.hero_prompt);
     if (t === 'split' || t === 'spotlight') return !!c.hero_image_url;
     if (t === 'magazine') return pic;
-    if (t === 'catalogue') return c.allProducts.filter((p) => c.productImg(p)).length >= 3;
+    if (t === 'catalogue') return !(c.hero_prompt && !c.hero_image_url) && c.allProducts.filter((p) => c.productImg(p)).length >= 3;
     if (t === 'poster') return pic || pics >= 2;
     return true;
   };
@@ -376,7 +376,7 @@ const VISUAL = {
     const band = `<tr><td align="center" style="background:${k.P.green};padding:${k.V + 14}px ${k.PADX}px ${c.hero_image_url ? k.V + 40 : k.V + 14}px;"><!-- Brand-palette hero block -->${hp.head}${hp.sub}</td></tr>`;
     const pic = c.hero_image_url
       ? `<tr><td align="center" style="padding:0 ${k.PADX + 10}px;background:#ffffff;"><div style="margin-top:-28px;">${k.picture(c.hero_image_url, c.heroAlt, { hero: true, mode: k.T.image === 'bleed' ? 'rounded' : k.T.image, width: 600 - 2 * (k.PADX + 10) })}</div></td></tr>`
-      : '';
+      : (c.hero_prompt ? `<tr><td style="padding:${k.V}px ${k.PADX}px 0;">${c.assetSlot}</td></tr>` : "");
     const rows = c.others.slice(0, 3);
     return [c.offerBar, k.header(), band, pic, nameCaption(c, k),
       k.ctaRow(`${k.V}px ${k.PADX}px 4px`, false, 'center'), k.promiseLine(),
