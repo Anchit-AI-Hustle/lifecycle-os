@@ -62,6 +62,8 @@ function agentsAnswer({ artist = 'Famous Singer', bpm = 96, prompt = 'warm finge
 }
 
 test.afterEach(() => { prompts.length = 0; script = () => { throw new Error('no model'); }; });
+// The scripted model stays in this file: a later spec in the same worker reads llm.js from require.cache.
+test.afterAll(() => { require.cache[LLM_PATH].exports = realLlm; delete require.cache[MC_PATH]; });
 
 test('the ported files are The Third Eye\'s own, and every agent is there', async () => {
   for (const f of ['agents', 'knowledge', 'structures', 'normalize', 'synth', 'types']) {

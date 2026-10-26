@@ -103,7 +103,10 @@ function fresh() { delete require.cache[MC_PATH]; return require(MC_PATH); }
 // tests/third-eye-music.spec.js drives the agents with a scripted model.
 const LLM_PATH = path.join(ROOT, 'api', '_shared', 'llm.js');
 require(LLM_PATH);
-require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, require.cache[LLM_PATH].exports);
+const realLlmExports = require.cache[LLM_PATH].exports;
+require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, realLlmExports);
+// The stub stays in this file: a later spec in the same worker reads llm.js from require.cache.
+test.afterAll(() => { require.cache[LLM_PATH].exports = realLlmExports; });
 const TE = require(path.join(ROOT, 'api', '_shared', 'third-eye-music'));
 const planOf = (prompt, o) => TE.fallbackPlan(TE.inputFrom(prompt, o));
 function withEnv(env, fn) {
