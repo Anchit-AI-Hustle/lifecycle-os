@@ -420,6 +420,12 @@ test('the sketch: every press is a new take, the genre picks the band, a short t
     let peak = 0; const v = Buffer.from(o.bytes);
     for (let i = 44; i < v.length; i += 2) peak = Math.max(peak, Math.abs(v.readInt16LE(i)));
     expect(peak, style + ' is silent').toBeGreaterThan(20000);
+    // A 5 s take has no intro bar: its opening must sound, not read the motif
+    // before its start (NaN, written as silence; Codex, #364).
+    const s5 = Buffer.from(SY.renderBytes('A ' + SY.STYLES[style].words[0] + ' track', 5, { compact: true, take: 'q' }).bytes);
+    let quiet = 0;
+    for (let i = 0; i < 22050; i++) if (s5.readInt16LE(44 + 2 * (11025 + i)) === 0) quiet++;
+    expect(quiet, style + ': the first bar of a 5 s take is silent').toBeLessThan(22050 / 4);
   }
 });
 
