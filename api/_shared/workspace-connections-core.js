@@ -997,7 +997,10 @@ const OLLAMA_MODEL_RE = /^[a-z0-9][a-z0-9._:\/-]{0,120}$/i;
 const OLLAMA_TAGS = new Map();
 async function ollamaModels(root, key) {
   if (!root) return [];
-  const hit = OLLAMA_TAGS.get(root);
+  // The list depends on the account (Ollama Cloud), so the key is part of the
+  // cache key: one workspace's list is never served to another key's calls.
+  const cacheKey = root + '|' + require('crypto').createHash('sha256').update(String(key || '')).digest('hex').slice(0, 16);
+  const hit = OLLAMA_TAGS.get(cacheKey);
   if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.models;
   let models = [];
   try {
@@ -1005,10 +1008,14 @@ async function ollamaModels(root, key) {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 4000);
     const headers = key ? { Authorization: 'Bearer ' + key } : {};
-    const r = await fetch(root + '/api/tags', { headers, signal: ctl.signal });
-    clearTimeout(t);
-    if (r.ok) {
-      const j = await r.json();
+    let j = null;
+    try {
+      // The timer stays on through the body: a server that sends headers and
+      // then stalls must not hold the generation past the four seconds.
+      const r = await fetch(root + '/api/tags', { headers, signal: ctl.signal });
+      if (r.ok) j = await r.json();
+    } finally { clearTimeout(t); }
+    if (j) {
       models = (Array.isArray(j && j.models) ? j.models : [])
         .map((m) => ({ name: String((m && (m.model || m.name)) || '').trim(), size: Number(m && m.size) || 0 }))
         .filter((m) => OLLAMA_MODEL_RE.test(m.name) && !/embed/i.test(m.name))
@@ -1017,7 +1024,7 @@ async function ollamaModels(root, key) {
         .map((m) => m.name);
     }
   } catch (_) { models = []; }
-  OLLAMA_TAGS.set(root, { at: Date.now(), models });
+  OLLAMA_TAGS.set(cacheKey, { at: Date.now(), models });
   return models;
 }
 

@@ -371,6 +371,18 @@ test('the server\'s own model list is read from <root>/api/tags, largest first, 
     expect(out).toEqual(['gemma4:31b', 'mid:8b', 'small:1b']);
     expect(seen[0].url).toBe('https://tags-test.example/api/tags');
     expect(seen[0].auth).toBe('Bearer ol-key');
+    // Another account at the same address is asked again, never given the first one's list.
+    await w.ollamaModels('https://tags-test.example', 'other-key');
+    expect(seen.length).toBe(2);
+    expect(seen[1].auth).toBe('Bearer other-key');
+    // A server that sends headers and then stalls on the body is cut off at four seconds.
+    global.fetch = async (url, init) => ({ ok: true, json: () => new Promise((resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(new Error('aborted')));
+    }) });
+    const t0 = Date.now();
+    const stalled = await w.ollamaModels('https://stall-test.example', 'k');
+    expect(stalled).toEqual([]);
+    expect(Date.now() - t0).toBeLessThan(6000);
   } finally { global.fetch = realFetch; brandCore.assertPublicUrl = realGuard; }
 });
 
