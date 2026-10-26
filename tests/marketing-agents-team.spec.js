@@ -138,6 +138,9 @@ test('every team call is routed on the workspace that pays for it (Codex #370)',
   const team = routed.filter((o) => /^team-/.test(String(o.stage)));
   expect(team.length, 'the team ran through the router').toBeGreaterThan(3);
   for (const o of team) expect(o.workspaceId, o.stage).toBe('ws-oak-pays');
+  // ...and priced, so a low balance downgrades a team call's tier (an unpriced key costs nothing to the router).
+  const MR = require(MR_PATH);
+  for (const o of team) expect(MR.costFor(o.featureKey), `${o.stage} is priced`).toBeGreaterThan(0);
   const copy = routed.filter((o) => o.stage === 'smart-brain-copy');
   expect(copy.length, 'two drafts and two rewrites').toBe(4);
   for (const o of copy) expect(o.workspaceId, 'the copywriters and their rewrites too').toBe('ws-oak-pays');
