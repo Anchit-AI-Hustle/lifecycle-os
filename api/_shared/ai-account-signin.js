@@ -36,7 +36,10 @@ const SIGNIN = {
     kind: 'google',
     authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth',
     exchange_url: 'https://oauth2.googleapis.com/token',
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    // Both scopes the Gemini OAuth guide's own example requests (2026-10-26):
+    // with cloud-platform alone, Lyria answered 403 "Request had insufficient
+    // authentication scopes".
+    scope: 'https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/generative-language.retriever',
     source: 'https://ai.google.dev/gemini-api/docs/oauth',
     note: 'Sign in with your Google account and pick your Google Cloud project: Gemini then runs as you, billed to that project. Nothing to copy or paste.',
   },

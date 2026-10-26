@@ -1153,11 +1153,17 @@ const RATE = { perIp: 4, global: 24, windowMs: 10 * 60 * 1000 };
 const RATES = {
   render: RATE,
   document: { perIp: 6, global: 40, windowMs: 10 * 60 * 1000 },
+  // A video rendered in code (code-video.js): this server's CPU, no provider.
+  video: { perIp: 12, global: 60, windowMs: 10 * 60 * 1000 },
 };
 const RATE_SENTENCE = {
   render: {
     ip: (n, m) => `This address has asked for ${n} rendered reads in the last ${m} minutes, the most this server renders for one visitor without an account it can check. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`,
     all: (n, m) => `This server has rendered ${n} sites for visitors without a checkable account in the last ${m} minutes, its limit. The site was read from its published HTML and CSS instead; try the rendered read again in a few minutes.`,
+  },
+  video: {
+    ip: (n, m) => `This address has asked for ${n} videos in the last ${m} minutes, the most this server renders for one visitor. Try again in a few minutes, or save the video from the Story player in your own browser.`,
+    all: (n, m) => `This server has rendered ${n} videos in the last ${m} minutes, its limit. Try again in a few minutes, or save the video from the Story player in your own browser.`,
   },
   document: {
     ip: (n, m) => `This address has asked this server to fetch ${n} linked documents in the last ${m} minutes, the most it fetches for one visitor without an account it can check. Download the file and choose it with "Upload a file" (nothing is sent to the server then), or try the link again in a few minutes.`,

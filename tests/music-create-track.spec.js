@@ -68,7 +68,7 @@ async function harness(page, host, opts) {
             // What the shipped route answers with free generation on: the same
             // music-synth.js, composed server-side as a compact WAV.
             const body = JSON.parse(req.postData() || '{}');
-            const out = require(path.join(ROOT, 'music-synth.js')).renderBytes(String(body.prompt || ''), Number(body.seconds) || 30, { compact: true });
+            const out = require(path.join(ROOT, 'music-synth.js')).renderBytes(String(body.prompt || ''), Number(body.seconds) || 30, { compact: true, take: body.take });
             return route.fulfill({ status: 200, contentType: 'audio/wav', body: Buffer.from(out.bytes) });
           }
           if (o.job) return json({ ok: true, pending: true, job: 'platform:pjob123', provider: 'replicate', model: 'lucataco/ace-step', quality: 'studio', sung: '[chorus]\nLensbrand', message: '' }, 202);
@@ -140,7 +140,7 @@ test('Generate here sends the edited brief once and plays the track that comes b
   await page.locator('#mkPrompt').fill('Short confident ad bed');
   await page.click('#mkGenerate');
   await expect(page.locator('[data-made-track] audio')).toHaveCount(1);
-  expect(log.compose).toEqual([{ prompt: 'Short confident ad bed', seconds: 15, instrumental: true }]);
+  expect(log.compose).toEqual([{ prompt: 'Short confident ad bed', seconds: 15, instrumental: true, take: expect.stringMatching(/^[a-z0-9]{6,}$/) }]);
   const audioSrc = await page.locator('[data-made-track] audio').getAttribute('src');
   expect(audioSrc).toMatch(/^blob:/);
   await expect(page.locator('[data-made-track] a[download]')).toHaveAttribute('download', 'lensbrand-track.mp3');
@@ -173,8 +173,9 @@ async function readMade(page, index) {
     const tag = (o) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
     const dataBytes = v.getUint32(40, true);
     let peak = 0;
-    for (let o = 44; o < 44 + dataBytes; o += 2) { const x = Math.abs(v.getInt16(o, true)); if (x > peak) peak = x; }
-    return { src, riff: tag(0), wave: tag(8), channels: v.getUint16(22, true), rate: v.getUint32(24, true), dataBytes, peak };
+    let hash = 0x811c9dc5;
+    for (let o = 44; o < 44 + dataBytes; o += 2) { const s = v.getInt16(o, true), x = Math.abs(s); if (x > peak) peak = x; hash = Math.imul(hash ^ (s & 0xffff), 0x01000193) >>> 0; }
+    return { src, hash, riff: tag(0), wave: tag(8), channels: v.getUint16(22, true), rate: v.getUint32(24, true), dataBytes, peak };
   }, index);
 }
 
@@ -197,7 +198,16 @@ for (const width of [390, 1280]) {
     expect(a.dataBytes).toBe(15 * 22050 * 2);
     expect(a.peak, 'the track is silent').toBeGreaterThan(20000);
     await expect(page.locator('[data-made-track] a[download]').first()).toHaveAttribute('download', 'lensbrand-track.wav');
-    expect(log.compose).toEqual([{ prompt: 'Calm minimal underscore at 84 BPM for an eyewear film', seconds: 15, instrumental: true }]);
+    expect(log.compose).toEqual([{ prompt: 'Calm minimal underscore at 84 BPM for an eyewear film', seconds: 15, instrumental: true, take: expect.stringMatching(/^[a-z0-9]{6,}$/) }]);
+    // The same brief composed again is a NEW take, so a new track (the
+    // operator, 2026-10-26: "the same song is returned every time").
+    await page.click('#mkGenerate');
+    await expect.poll(() => log.compose.length, { timeout: 30000 }).toBe(2);
+    expect(log.compose[1].prompt).toBe(log.compose[0].prompt);
+    expect(log.compose[1].take, 'a second press sent the same take').not.toBe(log.compose[0].take);
+    await expect.poll(async () => (await readMade(page, 0)).hash !== a.hash || (await page.locator('[data-made-track] audio').count()) > 1, { timeout: 30000 }).toBe(true);
+    const two = await page.locator('[data-made-track] audio').count() > 1 ? [await readMade(page, 0), await readMade(page, 1)] : [a, await readMade(page, 0)];
+    expect(two[0].hash, 'the second take is the same track').not.toBe(two[1].hash);
     expect(log.errors).toEqual([]);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'the page scrolls sideways').toBeLessThanOrEqual(0);

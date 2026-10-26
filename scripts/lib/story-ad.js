@@ -132,8 +132,22 @@ function renderStoryAd(spec) {
   const pal = Object.assign({ primary: '#333366', on_primary: '#ffffff', accent: '#ffffff', on_accent: '#111111', surface: '#ffffff', ink: '#222222' }, s.palette || {});
   const fonts = Object.assign({ head: 'system-ui, sans-serif', body: 'system-ui, sans-serif' }, s.fonts || {});
   const name = words(s.brandName || (s.brand && s.brand.name) || '');
+  return storyPage({ cuts: { full: { scenes, total }, short: hasShort ? { scenes: shortScenes, total: shortTotal } : null }, pal, fonts, name });
+}
+
+/**
+ * The player page for one story's data ({cuts, pal, fonts, name}). The code
+ * renderer (api/_shared/code-video.js) rebuilds the page from the data it reads
+ * back out of a saved page (storyDataFrom), so the script it runs is always this
+ * one, never a page a request supplied.
+ */
+function storyPage(all) {
+  const scenes = all.cuts.full.scenes, total = all.cuts.full.total;
+  const hasShort = !!all.cuts.short;
+  const shortTotal = hasShort ? all.cuts.short.total : total;
+  const pal = all.pal, fonts = all.fonts, name = all.name;
   // JSON in a <script> block: every "<" is escaped so no line can close it.
-  const data = JSON.stringify({ cuts: { full: { scenes, total }, short: hasShort ? { scenes: shortScenes, total: shortTotal } : null }, pal, fonts, name }).replace(/</g, '\\u003c');
+  const data = JSON.stringify(all).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(name)} story video ad</title>
@@ -157,17 +171,20 @@ function renderStoryAd(spec) {
   var D = { scenes: ALL.cuts.full.scenes, total: ALL.cuts.full.total, pal: ALL.pal, fonts: ALL.fonts, name: ALL.name };
   var cv = document.getElementById('v'), cx = cv.getContext('2d');
   var W = 1080, H = 1920, note = document.getElementById('note');
-  var imgs = {}, blocked = [];
+  var imgs = {}, blocked = [], imgsWanted = {};
   [].concat(ALL.cuts.full.scenes, ALL.cuts.short ? ALL.cuts.short.scenes : []).forEach(function (sc) {
-    if (!sc.image || imgs[sc.image]) return;
-    var im = new Image(); im.crossOrigin = 'anonymous';
-    im.onerror = function () {
-      // No CORS from the photo's host: shown, but it cannot be recorded.
-      var plain = new Image(); plain.onload = function () { imgs[sc.image] = plain; plain.__plain = true; }; plain.src = sc.image;
-      if (blocked.indexOf(sc.image) < 0) blocked.push(sc.image);
-    };
-    im.onload = function () { imgs[sc.image] = im; };
-    im.src = sc.image;
+    if (!sc.image || imgsWanted[sc.image]) return;
+    imgsWanted[sc.image] = new Promise(function (done) {
+      var im = new Image(); im.crossOrigin = 'anonymous';
+      im.onerror = function () {
+        // No CORS from the photo's host: shown, but it cannot be recorded.
+        if (window.__STORY_RENDER) { if (blocked.indexOf(sc.image) < 0) blocked.push(sc.image); done(); return; }
+        var plain = new Image(); plain.onload = function () { imgs[sc.image] = plain; plain.__plain = true; done(); }; plain.onerror = function () { done(); }; plain.src = sc.image;
+        if (blocked.indexOf(sc.image) < 0) blocked.push(sc.image);
+      };
+      im.onload = function () { imgs[sc.image] = im; done(); };
+      im.src = sc.image;
+    });
   });
   function wrap(text, maxW, font) {
     cx.font = font; var out = [], line = '';
@@ -288,7 +305,21 @@ function renderStoryAd(spec) {
     if (track && gain && actx) { var left = D.total - t; gain.gain.value = left < 0.8 ? Math.max(0, left / 0.8) : 1; }
     frame(t); requestAnimationFrame(loop);
   }
-  requestAnimationFrame(loop);
+  // THE CODE RENDERER (api/_shared/code-video.js) draws every frame at its own
+  // time and encodes it; the live loop would draw over it, so it stays off.
+  window.__story = {
+    canvas: cv, frame: frame,
+    // Draw straight at the size being encoded (the scene is laid out at 1080 x 1920).
+    size: function (w, h) { cv.width = w; cv.height = h; cx.setTransform(w / W, 0, 0, h / H, 0, 0); },
+    cut: function (c) { var x = c === 'short' && ALL.cuts.short ? ALL.cuts.short : ALL.cuts.full; D.scenes = x.scenes; D.total = x.total; return D.total; },
+    total: function () { return D.total; },
+    blocked: function () { return blocked.slice(); },
+    ready: function () {
+      var want = Object.keys(imgsWanted);
+      return Promise.all(want.map(function (u) { return imgsWanted[u]; }));
+    }
+  };
+  if (!window.__STORY_RENDER) requestAnimationFrame(loop);
   var playBtn = document.getElementById('play');
   function toggle() {
     if (paused) { t0 = performance.now() - pausedAt * 1000; paused = false; playBtn.textContent = 'Pause'; if (track) { if (actx && actx.state === 'suspended') actx.resume(); trackFrom(pausedAt); } }
@@ -331,4 +362,45 @@ function renderStoryAd(spec) {
 </body></html>`;
 }
 
-module.exports = { renderStoryAd, storyScenes, storyBrief, MAX_SECONDS, SHORT_SECONDS, MOVES };
+/**
+ * The story's data, read back out of a page renderStoryAd made (the JSON after
+ * `var ALL = `), validated field by field: only the fields the player reads, as
+ * strings and numbers, images only as http(s) addresses. Null when it is not one.
+ */
+function storyDataFrom(html) {
+  const m = String(html || '').match(/var ALL = (\{[\s\S]*?\});\n/);
+  if (!m) return null;
+  let raw;
+  try { raw = JSON.parse(m[1]); } catch (_) { return null; }
+  const str = (v, n) => (typeof v === 'string' ? v.slice(0, n || 300) : '');
+  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const KINDS = new Set(['hook', 'product', 'line', 'end']);
+  const MOVE_IDS = new Set(MOVES.map((x) => x.id));
+  const cut = (c) => {
+    if (!c || !Array.isArray(c.scenes) || !c.scenes.length) return null;
+    const scenes = c.scenes.slice(0, 12).map((x) => ({
+      kind: KINDS.has(x && x.kind) ? x.kind : 'line',
+      headline: str(x && x.headline, 200), price: str(x && x.price, 40) || undefined,
+      sub: str(x && x.sub, 120) || undefined, cta: str(x && x.cta, 40) || undefined,
+      image: /^https?:\/\/[^\s"'<>]+$/i.test(str(x && x.image, 2000)) ? str(x.image, 2000) : undefined,
+      move: MOVE_IDS.has(x && x.move) ? x.move : undefined, sweep: !!(x && x.sweep),
+      start: Math.max(0, num(x && x.start)), seconds: Math.min(MAX_SECONDS, Math.max(0.5, num(x && x.seconds))),
+    }));
+    const total = +scenes.reduce((a, x) => a + x.seconds, 0).toFixed(2);
+    let t = 0; scenes.forEach((x) => { x.start = +t.toFixed(2); t += x.seconds; });
+    return total <= MAX_SECONDS + 0.01 ? { scenes, total } : null;
+  };
+  const full = cut(raw && raw.cuts && raw.cuts.full);
+  if (!full) return null;
+  const hex = (v, d) => (/^#[0-9a-f]{3,8}$/i.test(String(v || '')) ? v : d);
+  const fam = (v) => String(v || 'system-ui, sans-serif').replace(/[^\w\s,'"-]/g, '').slice(0, 160);
+  const p = (raw && raw.pal) || {};
+  return {
+    cuts: { full, short: cut(raw.cuts.short) },
+    pal: { primary: hex(p.primary, '#333366'), on_primary: hex(p.on_primary, '#ffffff'), accent: hex(p.accent, '#ffffff'), on_accent: hex(p.on_accent, '#111111'), surface: hex(p.surface, '#ffffff'), ink: hex(p.ink, '#222222') },
+    fonts: { head: fam(raw.fonts && raw.fonts.head), body: fam(raw.fonts && raw.fonts.body) },
+    name: str(raw.name, 80),
+  };
+}
+
+module.exports = { renderStoryAd, storyPage, storyDataFrom, storyScenes, storyBrief, MAX_SECONDS, SHORT_SECONDS, MOVES };

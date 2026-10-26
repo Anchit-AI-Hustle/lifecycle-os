@@ -86,6 +86,7 @@
     "googleapis": "^187.0.0",
     "imapflow": "^2.8.0",
     "mailparser": "^3.12.2",
+    "mediabunny": "1.62.1",
     "pixelmatch": "^8.0.0",
     "playwright-core": "^1.63.0",
     "pngjs": "^7.0.0",
