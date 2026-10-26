@@ -4152,10 +4152,14 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
 // sends this brief to ?action=music-compose (Lyria first).
 function musicOfferText(o) {
   if (!o || typeof o !== 'object') return '';
+  // A line that says nothing off ("0% off") is no offer at all.
   const said = String(o.headline || o.label || o.text || '').trim();
-  if (said) return said.slice(0, 80);
-  const pct = Number(o.pct);
-  if (Number.isFinite(pct) && pct > 0) return `${Math.round(pct)}% off${o.code ? ` with code ${String(o.code).slice(0, 24)}` : ''}`;
+  if (said && !/(^|[^\d.])0+(\.0+)?\s*%/.test(said)) return said.slice(0, 80);
+  // The planner stores the discount as a FRACTION (0.15 = 15%); a whole
+  // number is read as a percentage. Rounded to 0, it is no offer.
+  let pct = Number(o.pct);
+  if (Number.isFinite(pct) && pct > 0 && pct < 1) pct *= 100;
+  if (Number.isFinite(pct) && Math.round(pct) > 0) return `${Math.round(pct)}% off${o.code ? ` with code ${String(o.code).slice(0, 24)}` : ''}`;
   return '';
 }
 function attachMusic(campaign, entry, trace) {

@@ -86,7 +86,10 @@ test('video-core with no key renders the code-motion creative in THIS brand, fro
     expect(out.ok).toBe(true);
     expect(out.provider).toBe('code-motion');
     expect(out.status).toBe('rendered');
-    expect(out.mp4).toBeNull();
+    // No provider made an MP4; the story it carries is rendered to one in code on
+    // request (code-video.js, 2026-10-26), so the hint is that route.
+    expect(out.mp4).toMatchObject({ method: 'POST', url: '/api/public-config?action=video-render' });
+    expect(out.story_html).toMatch(/var ALL = /);
     expect(out.video_url).toBeNull();
     expect(out.note).toMatch(/not an MP4/);
     expect(out.note).not.toMatch(/[–—]/);

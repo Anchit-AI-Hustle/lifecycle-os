@@ -4,6 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A video FILE made in code with no key; the music sketch is a new take every press (2026-10-26)
+The operator: "Ensure videos are also created if no hugging face key is also provided. Figure out how to generate the
+videos using code, do proper competitive benchmarking" (`docs/code-video-benchmark.md`: Remotion, HyperFrames-style,
+editly, Creatomate, HF ZeroGPU), then, on /brain's Music for Nik Bakers: "The same song is returned every time".
+- **Code video** (`api/_shared/code-video.js` on `public-config.js?action=video-render`, still 12/12): the Story video
+  is drawn as a pure `frame(t)` (`story-ad.js` `window.__story`, `__STORY_RENDER` stops self-play) in headless Chromium
+  and encoded by WebCodecs + Mediabunny 1.62.1 (MPL-2.0; its browser bundle is read by path and traced in vercel.json):
+  H.264/MP4 where the browser encodes it (`@sparticuz/chromium`), else VP9/WebM; silent (no AAC encoder in Chromium).
+  The page is REBUILT from `storyDataFrom()` (validated kinds, http(s) images, moves, <= 30 s, hex palette, clean fonts),
+  served at `https://render.invalid/` (secure context); only Mediabunny and the story's own photos are answered, each
+  fetched server-side behind `assertPublicUrl` per redirect hop, images only, 8 MB. 24 fps, bitrate fitted to 4 MB, a
+  1080p/720p/540p ladder that projects the total after one second of frames, else `too_slow` with a sentence. POST,
+  this site's pages or a signed-in account, `rateCheck('video')`. /brain: "MP4 video (made in code, no key)"; a keyless
+  `video-generate` answer carries `story_html` + the route. Gated by `tests/code-video.spec.js` (8 executed; the file is
+  decoded again with Mediabunny's reader and its pixels read; 2 mutations caught).
+- **Music sketch** (`music-synth.js`): seeded by brief + TAKE; `MusicClient.compose` sends a new take every press
+  (`b.take` -> `music-compose` -> `renderBytes({take})`); the brief's genre words pick a band (`STYLES`: electronic,
+  acoustic, lo-fi, cinematic, rock, pop: waves, drums, swing, a melody motif), else the take picks one; 5-60 s (an 8 s
+  brief was 15 s). Providers stop `SKETCH_RESERVE_MS` early so the sketch lands inside the deadline (it did not, on
+  main too), and Lyria is bounded by it (it waited 100 s). Sign in with Google now asks `cloud-platform` +
+  `generative-language.retriever` (the Gemini OAuth guide's example); an old token's 403 "insufficient authentication
+  scopes" says to sign in again. /brain's sale brief read a FRACTION discount as "0% off": 0.15 is 15% and a "0% off"
+  line is no offer (`musicOfferText`). Platform Lyria needs a paid `GEMINI_API_KEY` (free tier limit 0). Gated in
+  `brand-music` (takes, bands, short length, offer, scope) and `music-create-track` (two presses, two takes, two tracks).
+
 ## ⭐ Kill the AI Tell: a skill, and real Seedance renders on Higgsfield (2026-10-25)
 The operator, with a "Kill the AI Tell" card (make Higgsfield & Seedance stop looking like AI): "Integrate everything
 mentioned". The first cut (#361) put the rules into EVERY image and video prompt the app writes; the operator: "Still

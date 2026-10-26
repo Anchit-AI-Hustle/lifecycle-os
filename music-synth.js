@@ -13,9 +13,15 @@
  *     minimal ...) against major-leaning ones (upbeat, bright, playful, happy,
  *     confident ...) choose the scale;
  *   - energy words choose how dense the drums are (sparse, groove, driving);
- *   - the length is the page's own length field, held to 15-60 seconds.
- * Everything else (key, progression, arpeggio pattern) comes from a hash of
- * the brief, so the SAME brief always gives the SAME track, byte for byte.
+ *   - genre words choose the band (electronic, acoustic, lo-fi, cinematic,
+ *     rock, pop): which waves play the pad, bass and lead, the drum pattern,
+ *     the swing, and whether the lead plays a melody or an arpeggio;
+ *   - the length is the page's own length field, held to 5-60 seconds.
+ * Everything else (key, progression, melody, band when no genre is named)
+ * comes from a hash of the brief AND the take. A take is one press of
+ * Compose (2026-10-26, the operator: "the same song is returned every time"):
+ * every press sends a new take, so it hears a new track; the SAME brief and
+ * take still give the SAME track, byte for byte. No take = take ''.
  *
  * Why not an OfflineAudioContext node graph: measured 2026-10-17 in Chromium,
  * two renders of the SAME graph differed by one LSB on 62 to 200 samples, so
@@ -25,13 +31,13 @@
  * page plays it in an <audio> element. It is a generated instrumental bed, not
  * a composed song, and the page says so.
  *
- * window.MusicSynth = { plan(brief, seconds), render(brief, seconds) -> Promise<{blob, plan, sampleRate, seconds}>, wav([left, right]) }
+ * window.MusicSynth = { plan(brief, seconds, {take}), render(brief, seconds, {take}) -> Promise<{blob, plan, sampleRate, seconds}>, wav([left, right]) }
  */
 (function (root) {
   'use strict';
 
   var SAMPLE_RATE = 44100;
-  var MIN_SECS = 15, MAX_SECS = 60;
+  var MIN_SECS = 5, MAX_SECS = 60;
 
   function hash(str) { // FNV-1a, 32 bit
     var h = 0x811c9dc5;
@@ -65,15 +71,39 @@
     major: [[0, 4, 5, 3], [0, 5, 3, 4], [0, 3, 4, 3], [5, 3, 0, 4]],
     minor: [[0, 5, 2, 6], [0, 3, 4, 0], [0, 6, 5, 6], [0, 5, 3, 4]]
   };
+  // The band per genre. pad/bass/lead are waves; kicks/snares are beats in a
+  // bar; hat is the hat step in beats (0 = none); swing delays every second
+  // eighth; melody = the lead plays a tune (else an arpeggio); pluck = short
+  // notes instead of held ones.
+  var STYLES = {
+    electronic: { words: ['electronic', 'edm', 'house', 'techno', 'synth', 'dance', 'club', 'trance', 'electro', 'future'], pad: 'saw', bass: 'saw', lead: 'square', kicks: [0, 1, 2, 3], snares: [1, 3], hat: 0.5, offHat: true, swing: 0, melody: true, pluck: false, lowpass: 2400, label: 'electronic: saw pads, four-on-the-floor kick, off-beat hats, square lead' },
+    acoustic: { words: ['acoustic', 'folk', 'guitar', 'unplugged', 'country', 'organic', 'indie folk'], pad: 'triangle', bass: 'triangle', lead: 'triangle', kicks: [0, 2.5], snares: [], hat: 1, offHat: false, swing: 0.08, melody: true, pluck: true, lowpass: 1800, label: 'acoustic: plucked strings, soft kick, light shaker, a sung-style melody' },
+    lofi: { words: ['lo-fi', 'lofi', 'lo fi', 'hip hop', 'hip-hop', 'chillhop', 'boom bap', 'jazz', 'jazzy', 'study'], pad: 'triangle', bass: 'sine', lead: 'sine', kicks: [0, 2.25], snares: [1, 3], hat: 0.5, offHat: false, swing: 0.16, melody: true, pluck: false, lowpass: 1200, label: 'lo-fi: dusty keys, swung hats, laid-back kick and snare, a soft lead' },
+    cinematic: { words: ['cinematic', 'orchestral', 'epic', 'film', 'score', 'trailer', 'strings', 'piano', 'ambient'], pad: 'saw', bass: 'sine', lead: 'triangle', kicks: [0], snares: [], hat: 0, offHat: false, swing: 0, melody: true, pluck: false, lowpass: 1500, label: 'cinematic: wide string-like pads, a low pulse, a slow melody that rises' },
+    rock: { words: ['rock', 'punk', 'grunge', 'garage', 'metal', 'anthem', 'stadium', 'guitar riff'], pad: 'square', bass: 'saw', lead: 'saw', kicks: [0, 1.5, 2], snares: [1, 3], hat: 0.5, offHat: false, swing: 0, melody: false, pluck: true, lowpass: 3000, label: 'rock: driving power chords, steady eighths on the hat, kick and backbeat snare' },
+    pop: { words: ['pop', 'jingle', 'catchy', 'radio', 'upbeat pop', 'funk', 'disco', 'reggaeton', 'afrobeat'], pad: 'triangle', bass: 'sine', lead: 'square', kicks: [0, 2], snares: [1, 3], hat: 0.5, offHat: false, swing: 0, melody: true, pluck: true, lowpass: 2600, label: 'pop: bright plucked chords, a hook melody, kick and clap' }
+  };
+  var STYLE_ORDER = ['pop', 'electronic', 'acoustic', 'lofi', 'cinematic', 'rock'];
+  function styleOf(text, r) {
+    var best = '', n = 0;
+    for (var i = 0; i < STYLE_ORDER.length; i++) {
+      var k = STYLE_ORDER[i], c = count(text, STYLES[k].words);
+      if (c > n) { n = c; best = k; }
+    }
+    return best ? { name: best, from: 'brief' } : { name: STYLE_ORDER[Math.floor(r() * STYLE_ORDER.length)], from: 'take' };
+  }
+
   var KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-  function plan(brief, seconds) {
+  function plan(brief, seconds, opts) {
     var text = String(brief || '');
     var secs = Math.round(Number(seconds));
     if (!isFinite(secs) || secs <= 0) secs = 30;
     secs = Math.max(MIN_SECS, Math.min(MAX_SECS, secs));
-    var seed = hash(text + '|' + secs);
+    var take = String((opts && opts.take) || '').slice(0, 64);
+    var seed = hash(text + '|' + secs + (take ? '|' + take : ''));
     var r = rng(seed);
+    var style = styleOf(text, r);
     var minorScore = count(text, MINOR_WORDS), majorScore = count(text, MAJOR_WORDS);
     var mode = minorScore > majorScore ? 'minor' : (majorScore > minorScore ? 'major' : (r() < 0.5 ? 'major' : 'minor'));
     var hi = count(text, HIGH_WORDS), lo = count(text, LOW_WORDS);
@@ -89,10 +119,20 @@
     var prog = PROGS[mode][Math.floor(r() * PROGS[mode].length)];
     var arp = [];
     for (var i = 0; i < 8; i++) arp.push(Math.floor(r() * 3) + (r() < 0.25 ? 3 : 0));
+    // A two-bar motif: eight steps, each a scale degree or a rest (-1), held
+    // for one or two eighths; the second half answers the first.
+    var motif = [], prev = Math.floor(r() * 5);
+    for (var m = 0; m < 16; m++) {
+      if (m % 2 === 1 && r() < 0.45) { motif.push(-1); continue; }
+      prev = Math.max(0, Math.min(9, prev + [-2, -1, -1, 0, 1, 1, 2, 3][Math.floor(r() * 8)]));
+      motif.push(prev);
+    }
+    var st = STYLES[style.name];
     return {
-      seconds: secs, seed: seed, mode: mode, energy: energy, bpm: bpm, tempo_source: tempoSource,
-      key: KEY_NAMES[rootPc] + ' ' + mode, root_pc: rootPc, progression: prog, arpeggio: arp,
-      summary: KEY_NAMES[rootPc] + ' ' + mode + ', ' + bpm + ' BPM (' + tempoSource + '), ' + energy + ' energy, ' + secs + ' seconds'
+      seconds: secs, seed: seed, take: take, mode: mode, energy: energy, bpm: bpm, tempo_source: tempoSource,
+      key: KEY_NAMES[rootPc] + ' ' + mode, root_pc: rootPc, progression: prog, arpeggio: arp, motif: motif,
+      style: style.name, style_from: style.from, band: st.label,
+      summary: style.name + ' (' + (style.from === 'brief' ? 'from the brief' : 'picked for this take') + '), ' + KEY_NAMES[rootPc] + ' ' + mode + ', ' + bpm + ' BPM (' + tempoSource + '), ' + energy + ' energy, ' + secs + ' seconds'
     };
   }
 
@@ -115,6 +155,7 @@
     var x = ph - Math.floor(ph);
     if (type === 'sine') return Math.sin(TAU * x);
     if (type === 'triangle') return x < 0.5 ? 4 * x - 1 : 3 - 4 * x;
+    if (type === 'saw') return 2 * x - 1;
     return x < 0.5 ? 1 : -1; // square
   }
   function gainAt(dt, peak, attack, decay) {
@@ -151,43 +192,68 @@
   function synthesise(p) {
     var total = Math.floor(SAMPLE_RATE * p.seconds);
     var L = new Float32Array(total), R = new Float32Array(total);
+    var st = STYLES[p.style] || STYLES.pop;
     var beat = 60 / p.bpm, bar = beat * 4, secs = p.seconds;
     var bars = Math.ceil(secs / bar), hit = 0;
+    var cut = p.energy === 'low' ? st.lowpass * 0.7 : st.lowpass;
+    var swingAt = function (e) { return e % 2 ? st.swing * beat : 0; };
     for (var b = 0; b < bars; b++) {
       var t0 = b * bar;
       if (t0 >= secs) break;
       var deg = p.progression[b % p.progression.length];
+      var intro = b === 0 && bars > 3, last = b === bars - 1 && bars > 3;
+      // Chords: held pads, or plucked on each beat.
       [0, 2, 4].forEach(function (iv, k) {
-        voice(L, R, { t: t0, dur: bar + 0.05, type: 'triangle', freq: midiHz(degree(p, deg + iv, 4)) * (1 + (k - 1) * 0.0023),
-          peak: 0.06, attack: Math.min(0.4, bar * 0.2), decay: bar * 0.95, lowpass: p.energy === 'low' ? 1400 : 2200, pan: (k - 1) * 0.3 });
+        var f = midiHz(degree(p, deg + iv, 4)) * (1 + (k - 1) * 0.0023);
+        if (st.pluck && !intro) {
+          for (var q = 0; q < 4; q++) {
+            var tq = t0 + q * beat + k * 0.012; if (tq >= secs) break;
+            voice(L, R, { t: tq, dur: beat, type: st.pad, freq: f, peak: 0.05, attack: 0.004, decay: beat * 0.8, lowpass: cut, pan: (k - 1) * 0.35 });
+          }
+        } else {
+          voice(L, R, { t: t0, dur: bar + 0.05, type: st.pad, freq: f, peak: st.pad === 'saw' ? 0.035 : 0.06, attack: Math.min(0.4, bar * 0.2), decay: bar * 0.95, lowpass: cut * 0.8, pan: (k - 1) * 0.3 });
+        }
       });
-      var bassStep = p.energy === 'low' ? 2 : 1;
-      for (var q = 0; q < 4; q += bassStep) {
-        var tb = t0 + q * beat; if (tb >= secs) break;
-        voice(L, R, { t: tb, dur: beat * bassStep, type: 'sine', freq: midiHz(degree(p, deg + (q === 2 && p.energy === 'high' ? 4 : 0), 2)),
-          peak: 0.22, attack: 0.01, decay: beat * bassStep * 0.9 });
+      if (intro) continue;
+      var bassStep = p.energy === 'low' || p.style === 'cinematic' ? 2 : 1;
+      for (var q2 = 0; q2 < 4; q2 += bassStep) {
+        var tb = t0 + q2 * beat; if (tb >= secs) break;
+        voice(L, R, { t: tb, dur: beat * bassStep, type: st.bass, freq: midiHz(degree(p, deg + (q2 === 2 && p.energy === 'high' ? 4 : 0), 2)),
+          peak: st.bass === 'sine' ? 0.22 : 0.12, attack: 0.01, decay: beat * bassStep * 0.9, lowpass: st.bass === 'sine' ? 0 : 500 });
       }
-      if (p.energy !== 'low' && b > 0) {
+      // The lead: the take's melody (every other phrase answered an octave
+      // up near the end), or an arpeggio over the chord.
+      if (p.energy !== 'low' || st.melody) {
+        // Bar 0 is a pads-only intro only when the track has more than three
+        // bars; a short take starts its melody on bar 0 (Codex, #364).
+        var phrase = (bars > 3 ? b - 1 : b) % 2;
         for (var e = 0; e < 8; e++) {
-          var ta = t0 + e * beat / 2; if (ta >= secs) break;
-          voice(L, R, { t: ta, dur: beat / 2, type: 'square', freq: midiHz(degree(p, deg + [0, 2, 4, 7][p.arpeggio[e] % 4], 5)),
-            peak: 0.025, attack: 0.005, decay: beat * 0.4, lowpass: 2600, pan: e % 2 ? 0.25 : -0.25 });
+          var ta = t0 + e * beat / 2 + swingAt(e); if (ta >= secs) break;
+          var d = st.melody ? p.motif[phrase * 8 + e] : [0, 2, 4, 7][p.arpeggio[e] % 4] + deg;
+          if (!(d >= 0)) continue;
+          var oct = st.melody && b >= bars - 3 && bars > 6 ? 6 : 5;
+          voice(L, R, { t: ta, dur: beat, type: st.lead, freq: midiHz(degree(p, d, oct)),
+            peak: st.melody ? 0.045 : 0.025, attack: 0.006, decay: st.melody ? beat * 0.85 : beat * 0.4, lowpass: cut + 400, pan: st.melody ? 0.05 : (e % 2 ? 0.25 : -0.25) });
         }
       }
-      var kicks = p.energy === 'low' ? [0] : (p.energy === 'mid' ? [0, 2] : [0, 1.5, 2, 3.5]);
-      var snares = p.energy === 'low' ? [] : [1, 3];
-      var hatStep = p.energy === 'low' ? 1 : (p.energy === 'mid' ? 0.5 : 0.25);
+      if (last) continue;
+      var kicks = p.energy === 'low' ? [0] : st.kicks;
+      var snares = p.energy === 'low' ? [] : st.snares;
+      var hatStep = p.energy === 'high' && st.hat ? st.hat / 2 : st.hat;
       kicks.forEach(function (k) {
         var tk = t0 + k * beat; if (tk >= secs) return;
-        voice(L, R, { t: tk, dur: 0.3, type: 'sine', freq: 150, sweepTo: 45, sweepTime: 0.12, peak: 0.5, attack: 0.003, decay: 0.25 });
+        voice(L, R, { t: tk, dur: 0.3, type: 'sine', freq: p.style === 'cinematic' ? 90 : 150, sweepTo: 45, sweepTime: 0.12, peak: p.style === 'cinematic' ? 0.4 : 0.5, attack: 0.003, decay: p.style === 'cinematic' ? 0.6 : 0.25 });
       });
-      snares.forEach(function (s) {
-        var ts = t0 + s * beat; if (ts >= secs) return;
-        voice(L, R, { t: ts, dur: 0.2, noise: (p.seed ^ (++hit * 2654435761)) >>> 0, highpass: 1200, peak: 0.18, attack: 0.002, decay: 0.16 });
+      snares.forEach(function (sn) {
+        var ts = t0 + sn * beat; if (ts >= secs) return;
+        voice(L, R, { t: ts, dur: 0.2, noise: (p.seed ^ (++hit * 2654435761)) >>> 0, highpass: p.style === 'lofi' ? 900 : 1200, lowpass: p.style === 'lofi' ? 5000 : 0, peak: 0.18, attack: 0.002, decay: 0.16 });
       });
-      for (var h = 0; h < 4; h += hatStep) {
-        var th = t0 + h * beat; if (th >= secs) break;
-        voice(L, R, { t: th, dur: 0.07, noise: (p.seed ^ (++hit * 2654435761)) >>> 0, highpass: 7000, peak: (h % 1 === 0) ? 0.07 : 0.045, attack: 0.001, decay: 0.05, pan: 0.2 });
+      if (hatStep) {
+        for (var h = 0; h < 4; h += hatStep) {
+          if (st.offHat && h % 1 === 0) continue;
+          var th = t0 + h * beat + (h % 1 ? st.swing * beat : 0); if (th >= secs) break;
+          voice(L, R, { t: th, dur: 0.07, noise: (p.seed ^ (++hit * 2654435761)) >>> 0, highpass: p.style === 'acoustic' ? 4000 : 7000, peak: (h % 1 === 0) ? 0.07 : 0.045, attack: 0.001, decay: 0.05, pan: 0.2 });
+        }
       }
     }
     // Master fade in and out.
@@ -234,7 +300,7 @@
   // kept once), so a 60 s track is ~2.6 MB and fits a serverless response
   // (Vercel caps one at 4.5 MB; 60 s of 16-bit stereo at 44.1 kHz is 10.6 MB).
   function renderBytes(brief, seconds, opts) {
-    var p = plan(brief, seconds);
+    var p = plan(brief, seconds, opts);
     var ch = synthesise(p);
     if (!(opts && opts.compact)) return { bytes: wavBytes(ch), plan: p, sampleRate: SAMPLE_RATE, seconds: p.seconds };
     var L = ch[0], R = ch[1] || ch[0], n = Math.floor(L.length / 2), m = new Float32Array(n);
@@ -242,12 +308,12 @@
     return { bytes: wavBytes([m], SAMPLE_RATE / 2), plan: p, sampleRate: SAMPLE_RATE / 2, seconds: p.seconds };
   }
 
-  function render(brief, seconds) {
+  function render(brief, seconds, opts) {
     return new Promise(function (resolve, reject) {
       // Yield once so the page can paint its "making" line first.
       setTimeout(function () {
         try {
-          var p = plan(brief, seconds);
+          var p = plan(brief, seconds, opts);
           var ch = synthesise(p);
           resolve({ blob: wav(ch), plan: p, sampleRate: SAMPLE_RATE, seconds: p.seconds });
         } catch (e) { reject(e); }
@@ -255,7 +321,7 @@
     });
   }
 
-  var api = { plan: plan, render: render, renderBytes: renderBytes, wav: wav, SAMPLE_RATE: SAMPLE_RATE, MIN_SECS: MIN_SECS, MAX_SECS: MAX_SECS };
+  var api = { STYLES: STYLES, plan: plan, render: render, renderBytes: renderBytes, wav: wav, SAMPLE_RATE: SAMPLE_RATE, MIN_SECS: MIN_SECS, MAX_SECS: MAX_SECS };
   root.MusicSynth = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : {});
