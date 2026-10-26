@@ -49,6 +49,9 @@ const path = require('path');
 const ORIGIN = 'https://render.invalid';
 const MAX_BYTES_OUT = 4 * 1024 * 1024;       // a Vercel response caps at 4.5 MB
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+// Every photo of one render together (the page asks for them at once): a
+// render never holds more than this in memory, whatever the hosts declare.
+const MAX_IMAGES_TOTAL = 24 * 1024 * 1024;
 const SIZES = { '1080p': [1080, 1920], '720p': [720, 1280], '540p': [540, 960] };
 const SIZE_ORDER = ['1080p', '720p', '540p'];
 // Inside the 120 s function, with room to send the answer. Measured on
@@ -68,7 +71,7 @@ function bitrateFor(seconds, ceiling) {
 }
 
 /** One image, fetched by the server: public hosts only, every hop checked, images only, capped. */
-async function fetchImage(url, fetchImpl, assertUrl) {
+async function fetchImage(url, fetchImpl, assertUrl, budget) {
   const assertPublicUrl = assertUrl || require('./brand-workspace-core.js').assertPublicUrl;
   let at = url;
   for (let hop = 0; hop < 4; hop++) {
@@ -80,9 +83,34 @@ async function fetchImage(url, fetchImpl, assertUrl) {
     if (!/^image\/(jpeg|png|webp|gif|avif)$/.test(type)) throw new Error('not an image (' + (type || 'no type') + ')');
     const len = Number(r.headers.get('content-length') || 0);
     if (len > MAX_IMAGE_BYTES) throw new Error('image over ' + (MAX_IMAGE_BYTES >> 20) + ' MB');
-    const buf = Buffer.from(await r.arrayBuffer());
-    if (buf.length > MAX_IMAGE_BYTES) throw new Error('image over ' + (MAX_IMAGE_BYTES >> 20) + ' MB');
-    return { type, buf };
+    // Counted as it arrives and cut at the cap (Codex, #364): a host that
+    // omits or understates Content-Length is never read whole into memory.
+    const tooBig = () => new Error('image over ' + (MAX_IMAGE_BYTES >> 20) + ' MB');
+    const shared = () => new Error('the photos of this story are over ' + (MAX_IMAGES_TOTAL >> 20) + ' MB together');
+    if (budget && len > budget.left) throw shared();
+    const parts = [];
+    let got = 0;
+    if (r.body && typeof r.body.getReader === 'function') {
+      const reader = r.body.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          got += value.byteLength;
+          if (budget) budget.left -= value.byteLength;
+          if (got > MAX_IMAGE_BYTES) throw tooBig();
+          if (budget && budget.left < 0) throw shared();
+          parts.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
+        }
+      } catch (e) { try { await reader.cancel(); } catch (_) { /* gone */ } throw e; }
+    } else {
+      const b = Buffer.from(await r.arrayBuffer());
+      got = b.length; if (budget) budget.left -= got;
+      if (got > MAX_IMAGE_BYTES) throw tooBig();
+      if (budget && budget.left < 0) throw shared();
+      parts.push(b);
+    }
+    return { type, buf: Buffer.concat(parts, got) };
   }
   throw new Error('too many redirects');
 }
@@ -164,6 +192,7 @@ async function renderStoryVideo(opts) {
       const ctx = await browser.newContext({ viewport: { width: 400, height: 800 }, serviceWorkers: 'block', acceptDownloads: false });
       await ctx.addInitScript(() => { window.__STORY_RENDER = true; });
       const pg = await ctx.newPage();
+      const imageBudget = { left: MAX_IMAGES_TOTAL };
       await pg.route('**/*', async (route) => {
         const req = route.request();
         const url = req.url();
@@ -172,7 +201,7 @@ async function renderStoryVideo(opts) {
         if (url === ORIGIN + '/mediabunny.js') return route.fulfill({ status: 200, contentType: 'text/javascript', body: mb });
         if (!wanted.has(url)) return route.abort();
         try {
-          const img = await fetchImage(url, fetchImpl, o.assertUrl);
+          const img = await fetchImage(url, fetchImpl, o.assertUrl, imageBudget);
           images.used += 1;
           return route.fulfill({ status: 200, contentType: img.type, body: img.buf, headers: { 'Access-Control-Allow-Origin': '*' } });
         } catch (e) {
@@ -255,4 +284,4 @@ async function handle(req, res) {
   return res.status(200).end(r.buffer);
 }
 
-module.exports = { renderStoryVideo, handle, bitrateFor, fetchImage, fileName, SIZES, SIZE_ORDER, MAX_BYTES_OUT, ORIGIN, DEFAULT_BUDGET_MS };
+module.exports = { renderStoryVideo, handle, bitrateFor, fetchImage, MAX_IMAGE_BYTES, MAX_IMAGES_TOTAL, fileName, SIZES, SIZE_ORDER, MAX_BYTES_OUT, ORIGIN, DEFAULT_BUDGET_MS };
