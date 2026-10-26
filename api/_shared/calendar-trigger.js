@@ -712,7 +712,7 @@ function _renderVariantBody(o) {
     const note = _productNote(p, market, o && o.brand);
     const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
     const price = (p.price != null && p.price !== '') ? (() => { const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; })() : '';
-    return `<td align="center" valign="top" style="width:33%;padding:8px;">
+    return `<td data-mail-three align="center" valign="top" style="width:33%;padding:8px;">
           <a href="${pdp}" target="_blank" style="text-decoration:none;">
             <div style="background:${palette.chalk};border:1px solid ${palette.lava}33;border-radius:10px;padding:12px 8px 16px;">
               ${tile}
@@ -785,248 +785,51 @@ function _renderVariantBody(o) {
       <tr><td style="padding:${pad};text-align:center;">
         <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
       </td></tr>`;
-  // ── V2 · Text + Visual: same editorial copy with a botanical lava divider
-  //    and a brand palette hero block. Visual elements stay light and on-brand.
-  if (style === 'visual') {
-    // THE SHOWCASE (2026-10-18). Built from what the brand's competitors'
-    // emails are made of (competitor-mail-study.js: the brand's own captured
-    // competitor mail, else the category reference set, measured as rendered).
-    // In the eyewear set 96% put a picture before the first button and 61%
-    // open with a full-width one; headlines run about five words; the buttons
-    // say Shop / Find / Get; a fifth or more carry a row of products side by
-    // side, a strip of service promises or a row of shop-by links. The mail it
-    // replaced was a 140px product thumbnail grid under a one-line body, the
-    // hero product printed twice, and the headline a product code.
-    //
-    // Every section is drawn only when the study's share says the category
-    // uses it AND the brand has the facts to fill it: no claims, no strip; no
-    // URLs, no shop-by row; fewer than two other products, no grid.
-    const layout = o.layout || (() => { try { return require('./competitor-mail-study.js').referenceStudy(_brand(o)).layout; } catch (_) { return null; } })() || {};
-    // The eyebrow names the product as a person says it: the range, never the
-    // model code ("JOHN JACOBS", not "JOHN JACOBS JJ S16881", 2026-10-18).
-    const _say = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? MF.displayName(hero_product) : '';
-    const _named = _say && _fold(_say) !== _fold(hero_headline) && !_fold(hero_headline).includes(_fold(_say)) ? _say : '';
-    // A long name is not set in spaced capitals over the headline (Lenskart,
-    // 2026-10-24: "BAUSCH & LOMB LACELLE ... POWERED QUARTERLY"): it reads as
-    // the product's own line under the picture instead.
-    const heroLabel = _named && _named.length <= 32 ? esc(_named) : '';
-    const heroName = _named && !heroLabel ? _named : '';
-    const border = _core ? _core.readableAsText(palette.lava, '#ffffff', 1.3) : '#e6e6e6';
-    // 1. The picture, full width, linked to the page the button goes to.
-    const heroImgRow = hero_image_url ? `
-      <tr><td align="center" style="padding:${layout.hero_full_width === false ? '20px 32px 0' : '8px 0 0'};background:#ffffff;">
-        <a href="${baseUrl}" target="_blank" style="display:block;text-decoration:none;"><img data-mail-hero src="${esc(hero_image_url)}" width="${layout.hero_full_width === false ? 536 : 600}" alt="${heroLabel || esc(hero_headline || '')}" style="display:block;width:100%;height:auto;max-height:440px;object-fit:contain;border:0;margin:0 auto;" /></a>
-      </td></tr>` : (hero_prompt ? `
-      <tr><td style="padding:20px 32px 0;">
-        ${MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green })}
-      </td></tr>` : '');
-    // 2. The headline above the picture (Warby Parker, ASICS, CULTURE all set
-    //    it there): eyebrow, a short headline, then the picture and the button.
-    const headRow = `
-      <tr><td align="center" style="padding:${hero_image_url || hero_prompt ? '22px 36px 6px' : '26px 32px 6px'};">
-        ${heroLabel ? `<div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;color:${palette.greenText};text-transform:uppercase;margin:0 0 10px;">${heroLabel}</div>` : ''}
-        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:32px;line-height:1.15;color:${palette.greenText};font-weight:700;margin:0;letter-spacing:-0.4px;text-align:center;`, '0', palette.greenText)}text-align:center;">${esc(hero_headline)}</h1>
-      </td></tr>`;
-    // No picture at all: the headline sits on the brand's own section ground
-    // (the eyebrow and headline move into it; they are not printed twice).
-    const bandRow = hero_image_url || hero_prompt ? '' : `
-      <tr><td style="padding:12px 32px 0;">
-        <!-- Brand-palette hero block (no external image needed) -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.green};border-radius:10px;">
-          <tr><td style="padding:34px 26px;text-align:center;">
-            ${heroLabel ? `<div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;color:${palette.onGreen};text-transform:uppercase;margin-bottom:10px;">${heroLabel}</div>` : ''}
-            <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.2;color:${palette.onGreen};font-weight:700;margin:0;`, '0', palette.onGreen)}">${esc(hero_headline)}</h1>
-          </td></tr>
-        </table>
-      </td></tr>`;
-    // The pictured product's own description line, as a caption under its
-    // picture (the store's words, the name and code left out), centred and
-    // never justified: an attribute list is not a paragraph (2026-10-18).
-    const _heroRow = hero_image_url && hero_product ? (Array.isArray(products) ? products : []).find((p) => p && _fold(p.title || p.n) === _fold(hero_product)) : null;
-    const _cap = _heroRow ? _productNote(_heroRow, market, o && o.brand) : '';
-    const captionRow = _cap && !_bodyTxt.includes(_fold(_cap)) ? `
-      <tr><td align="center" style="padding:14px 40px 0;">
-        <p data-mail-caption style="font-family:${BODY};font-size:14px;line-height:1.5;color:${palette.mutedOnSurface};margin:0;text-align:center;">${esc(_cap)}</p>
-      </td></tr>` : '';
-    const heroNameRow = heroName && (hero_image_url || hero_prompt) ? `
-      <tr><td align="center" style="padding:16px 40px 0;">
-        <p data-mail-product style="font-family:${HEAD};font-size:17px;line-height:1.4;font-weight:700;color:${palette.ink};margin:0;text-align:center;">${esc(heroName)}</p>
-      </td></tr>` : '';
-    const sublineRow = hero_subline ? `
-      <tr><td style="padding:20px 40px 0;">
-        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:16px;line-height:1.6;color:${palette.ink};margin:0;`, '0')}text-align-last:center;">${esc(hero_subline)}</p>
-      </td></tr>` : '';
-    // 3. The button(s): one solid, and an outline one only to another page.
-    const outline = `display:inline-block;font-family:${BODY};font-size:14px;font-weight:700;color:${palette.greenText};border:1.5px solid ${palette.greenText};border-radius:${_E && _E.button && _E.button.radius != null ? _px(_E.button.radius) : '6px'};padding:12px 24px;text-decoration:none;`;
-    const solid = `${ctaStyle}${_E && _E.button && _E.button.radius != null ? '' : 'border-radius:6px;'}`;
-    const ctaPair = `
-      <tr><td align="center" style="padding:22px 24px 6px;">
-        <a href="${baseUrl}" data-ds="button-primary" style="${solid}">${esc(cta_text)}</a>${collection_url ? `&nbsp;&nbsp;<a href="${esc(collection_url)}" target="_blank" style="${outline}">Explore the collection</a>` : ''}
-      </td></tr>`;
-    // 4. Products side by side, each with its OWN photo, the store's own name
-    //    and description line, its price and its own page. The hero product
-    //    already has the picture above, so it is not printed again.
-    //    Never the hero again: a mail about one product had that product
-    //    printed twice, above and as the only card (2026-10-18).
-    //    (Only when that picture can be its own: a hero with no photo of its
-    //    own keeps its card.)
-    const others = (Array.isArray(products) ? products.filter(Boolean) : []).filter((p) => !(hero_image_url && hero_product && _fold(p.title || p.n) === _fold(hero_product) && _productImg(p, market, o && o.brand)));
-    const pool = others;
-    const cols = layout.grid_columns === 3 ? 3 : 2;
-    const gridItems = layout.product_grid === false ? [] : pool.slice(0, Math.max(cols, Math.min(layout.grid_max || 4, pool.length - (pool.length % cols)) || cols));
-    const pic = cols === 3 ? 160 : 230;
-    const money = (p) => { if (p.price == null || p.price === '') return ''; const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; };
-    const anyNote = gridItems.some((p) => _productNote(p, market, o && o.brand));
-    const card = (p) => {
-      const img = _productImg(p, market, o && o.brand);
-      const pdp = p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl);
-      const note = _productNote(p, market, o && o.brand);
-      const price = money(p);
-      return `<td data-mail-col valign="top" width="${Math.floor(100 / cols)}%" style="width:${Math.floor(100 / cols)}%;padding:8px;">
-          <a href="${esc(pdp)}" target="_blank" style="display:block;text-decoration:none;">
-            <div data-mail-card style="background:#ffffff;border:1px solid ${border};border-radius:12px;overflow:hidden;">
-              <div data-mail-pic style="height:${pic}px;background:#ffffff;text-align:center;">${img
-    ? `<img data-mail-pic src="${esc(img)}" alt="${esc(p.title || p.n || '')}" width="${pic}" height="${pic}" style="display:block;width:100%;height:${pic}px;object-fit:cover;margin:0 auto;border:0;" />`
-    : `<div role="presentation" style="height:${pic}px;line-height:${pic}px;background:${palette.tile};color:${palette.greenText};font-family:${HEAD};font-size:44px;text-align:center;">${esc(String(p.title || p.n || '').trim().charAt(0).toUpperCase())}</div>`}</div>
-              <div style="padding:12px 14px 16px;border-top:1px solid ${border};">
-                <div style="font-family:${HEAD};font-size:15px;font-weight:700;color:${palette.ink};line-height:20px;height:40px;overflow:hidden;">${esc(p.title || p.n || '')}</div>
-                ${anyNote ? `<div style="font-family:${BODY};font-size:12px;color:${palette.mutedOnSurface};line-height:17px;height:34px;overflow:hidden;margin-top:4px;">${esc(note || '')}</div>` : ''}
-                <div style="font-family:${BODY};font-size:14px;line-height:20px;margin-top:10px;"><span style="font-weight:700;color:${palette.greenText};">${price || '&nbsp;'}</span><span style="float:right;color:${palette.greenText};text-decoration:underline;font-weight:600;">View</span></div>
-              </div>
-            </div>
-          </a></td>`;
-    };
-    const rows = [];
-    for (let i = 0; i < gridItems.length; i += cols) rows.push(gridItems.slice(i, i + cols));
-    const gridSection = gridItems.length >= 2 ? `
-      <tr><td align="center" style="padding:30px 32px 4px;">
-        <div style="font-family:${HEAD};font-size:20px;font-weight:700;color:${palette.greenText};">More to see</div>
-      </td></tr>
-      <tr><td style="padding:6px 16px 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          ${rows.map((r) => `<tr>${r.map(card).join('')}${r.length < cols ? `<td width="${Math.floor(100 / cols) * (cols - r.length)}%" colspan="${cols - r.length}"></td>` : ''}</tr>`).join('')}
-        </table>
-      </td></tr>` : '';
-    // 5. The brand's own promises, side by side (Sunglass Hut, ASICS, CULTURE,
-    //    Oakley): only claims the record states, only the ones the body did not.
-    const promises = layout.service_strip === false ? [] : brandClaims.filter((c) => !_bodyTxt.includes(_fold(c)) && c.length <= 70);
-    const strip = promises.length >= 2 ? `
-      <tr><td style="padding:26px 24px 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.tile};border-radius:10px;"><tr>
-          ${promises.map((c, i) => `<td align="center" valign="top" width="${Math.floor(100 / promises.length)}%" style="padding:18px 12px;${i ? `border-left:1px solid ${border};` : ''}">
-            <div style="width:24px;height:3px;background:${palette.lava};margin:0 auto 10px;line-height:3px;font-size:1px;">&nbsp;</div>
-            <div style="font-family:${BODY};font-size:13px;line-height:1.45;color:${palette.ink};font-weight:600;">${esc(c)}</div></td>`).join('')}
-        </tr></table>
-      </td></tr>` : '';
-    // 6. Shop-by links (Ray-Ban, Oakley, ASICS): the brand's own named
-    //    offerings that have their own page, never one the button already is.
-    const offers = layout.shop_by_links === false ? [] : (Array.isArray(_brand(o).offerings) ? _brand(o).offerings : [])
-      .filter((x) => x && x.name && /^https:\/\//i.test(String(x.url || '')) && String(x.url).replace(/\/+$/, '') !== String(baseUrl).replace(/\/+$/, ''))
-      .filter((x, i, a) => a.findIndex((y) => String(y.url).replace(/\/+$/, '') === String(x.url).replace(/\/+$/, '')) === i).slice(0, 4);
-    const shopBy = offers.length >= 2 ? `
-      <tr><td align="center" style="padding:26px 24px 0;">
-        <div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${palette.mutedOnSurface};margin:0 0 12px;">Shop by</div>
-        ${offers.map((x) => `<a href="${esc(x.url)}" target="_blank" style="display:inline-block;margin:0 4px 8px;${outline}padding:9px 18px;font-size:13px;">${esc(x.name)}</a>`).join('')}
-      </td></tr>` : '';
-    return `<!doctype html>
-<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
-  <tr><td align="center" style="padding:28px 12px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${border};border-radius:14px;overflow:hidden;">
-      ${offerBarRow}${brandHeader}${bandRow || headRow}${heroImgRow}${heroNameRow}${captionRow}${sublineRow}${ctaPair}
-      ${blocks}
-      ${gridSection}
-      ${strip}
-      ${shopBy}
-      ${gridSection || strip ? `<tr><td style="padding:30px 32px 26px;text-align:center;">
-        <a href="${baseUrl}" data-ds="button-primary" style="${solid}">${esc(cta_text)}</a>
-      </td></tr>` : '<tr><td style="padding:0 0 26px;font-size:1px;line-height:1px;">&nbsp;</td></tr>'}
-      ${brandFooter}
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
-  }
-
-  // ── V1 · Pure Text: simple, monospace-free, no decorative blocks at all.
-  if (style === 'pure') {
-    const textBlocks = (body_blocks || []).map((b) => `
-      <p data-mail-body style="font-family:${BODY};font-size:15px;line-height:1.7;color:${palette.ink};margin:0 0 14px;${MF.JUSTIFY}">
-        ${b.heading ? `<strong style="color:${palette.greenText};">${esc(b.heading)}${/\n/.test(b.body || '') ? '' : ': '}</strong>${/\n/.test(b.body || '') ? '<br>' : ''}` : ''}${esc(b.body || '').replace(/\n\n+/g, '<br>').replace(/\n/g, '<br>')}
-      </p>`);
-    return `<!doctype html>
-<html>${emailHead}<body style="margin:0;padding:0;background:#fff;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr><td align="center" style="padding:40px 16px;">
-    <table role="presentation" width="560" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:0 8px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${MF.logoHeader({ brand: _brand(o), store, color: palette.greenText, font: HEAD, align: 'left', pad: '0 0 18px' })}</table>
-        <h1 data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:28px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</h1>
-        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.65;color:${palette.ink};margin:0 0 22px;`, '0 0 22px')}">${esc(hero_subline)}</p>
-        ${textBlocks.join('')}
-        <p style="font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:8px 0 18px;">
-          <a href="${baseUrl}" data-ds="cta-link" style="color:${palette.green};text-decoration:underline;font-weight:600;${_E ? `font-family:${_E.body};` : ''}">${esc(cta_text)} →</a>
-        </p>
-        ${productList ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 4px;">${productList}</table>` : ''}
-        <p style="font-family:${BODY};font-size:11px;color:${palette.mutedOnSurface};margin:18px 0 0;">The ${esc(teamName(brandNameOf(o)))} team</p>
-        <p data-mail-footer style="font-family:${BODY};font-size:11px;line-height:1.7;color:${palette.mutedOnSurface};margin:20px 0 0;border-top:1px solid ${_line};padding-top:16px;">${esc([brandOrg(o).name, brandOrg(o).address].filter(Boolean).join(', '))}<br>You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer. Manage preferences or unsubscribe from your account settings.</p>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
-  }
-
-  if (style === 'founder') {
-    return `<!doctype html>
-<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
-  <tr><td align="center" style="padding:36px 16px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid ${_line};">
-      ${offerBarRow}${brandHeader}
-      <tr><td style="padding:24px 32px 0;">
-        <p data-ds="h1" style="${h1With(`font-family:${HEAD};font-size:30px;line-height:1.25;color:${palette.green};margin:0 0 10px;font-weight:500;`, '0 0 10px')}">${esc(hero_headline)}</p>
-        <p data-ds="body" style="${subWith(`font-family:${BODY};font-size:15px;line-height:1.6;color:${palette.ink};margin:0 0 8px;`, '0 0 8px')}">${esc(hero_subline)}</p>
-        <p style="font-family:${BODY};font-size:13px;color:${palette.mutedOnSurface};margin:0;">A note from the ${esc(teamName(brandNameOf(o)))} team</p>
-      </td></tr>
-      ${ctaRow('18px 32px 4px')}
-      ${blocks}
-      ${productGrid}
-      <tr><td style="padding:26px 32px 8px;text-align:center;">
-        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
-      </td></tr>
-      ${secondaryCta}
-      ${brandFooter}
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
-  }
-
-  // editorial style (default)
-  return `<!doctype html>
-<html>${emailHead}<body style="margin:0;padding:0;background:${palette.chalk};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${palette.chalk};">
-  <tr><td align="center" style="padding:36px 16px;">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid ${_line};">
-      ${offerBarRow}${brandHeader}
-      <tr><td style="padding:20px 32px 0;">
-        <h1 data-ds="h1" style="${h1Style}">${esc(hero_headline)}</h1>
-        <p data-ds="body" style="${subStyle}">${esc(hero_subline)}</p>
-      </td></tr>
-      ${ctaRow('4px 32px 10px')}
-      ${blocks}
-      ${productGrid}
-      ${productList ? `<tr><td style="padding:22px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${productList}</table></td></tr>` : ''}
-      ${productList || productGrid || (body_blocks || []).length > 1 ? `<tr><td style="padding:26px 32px 8px;text-align:center;">
-        <a href="${baseUrl}" data-ds="button-primary" style="${ctaStyle}">${esc(cta_text)}</a>
-      </td></tr>` : '<tr><td style="padding:0 0 18px;font-size:1px;line-height:1px;">&nbsp;</td></tr>'}
-      ${secondaryCta}
-      ${brandFooter}
-    </table>
-  </td></tr>
-</table>
-</body></html>`;
+  // THE THEME AND THE TEMPLATE (2026-10-26, the operator: "no complete
+  // different templates, themes everything"). Every brand and every send used
+  // to get this one document. asset-themes.js chooses a whole theme (type,
+  // corners, buttons, frames, dividers, header, footer, ground) from the
+  // brand's own record and a template (the structure) per send; the caller
+  // passes it as `design`, else it is chosen here from the brand and the
+  // subject. mail-templates.js arranges the pieces computed above.
+  const AT = require('./asset-themes.js');
+  const design = (o.design && o.design.theme && o.design.template) ? o.design
+    : AT.pick({ brand: _brand(o), id: `${subject || hero_headline || ''}|${style || 'editorial'}`, date: (o.entry && o.entry.date) || '', market }, style === 'visual' ? 'mail' : 'text', `mail:${style || 'editorial'}`);
+  const layout = o.layout || (() => { try { return require('./competitor-mail-study.js').referenceStudy(_brand(o)).layout; } catch (_) { return null; } })() || {};
+  // The eyebrow names the product as a person says it: the range, never the
+  // model code ("JOHN JACOBS", not "JOHN JACOBS JJ S16881", 2026-10-18); a long
+  // name is the product's own line under the picture instead.
+  const _say = hero_product && !/^\[DATA REQUIRED/.test(String(hero_product)) ? MF.displayName(hero_product) : '';
+  const _named = _say && _fold(_say) !== _fold(hero_headline) && !_fold(hero_headline).includes(_fold(_say)) ? _say : '';
+  const heroLabel = _named && _named.length <= 32 ? esc(_named) : '';
+  const heroName = _named && !heroLabel ? _named : '';
+  const border = _core ? _core.readableAsText(palette.lava, '#ffffff', 1.3) : '#e6e6e6';
+  const _heroRow = hero_product ? (Array.isArray(products) ? products : []).find((p) => p && _fold(p.title || p.n) === _fold(hero_product)) : null;
+  const _cap = hero_image_url && _heroRow ? _productNote(_heroRow, market, o && o.brand) : '';
+  const allProducts = Array.isArray(products) ? products.filter(Boolean) : [];
+  // Never the hero again when it already has the picture above (2026-10-18).
+  const others = allProducts.filter((p) => !(hero_image_url && hero_product && _fold(p.title || p.n) === _fold(hero_product) && _productImg(p, market, o && o.brand)));
+  const money = (p) => { if (p.price == null || p.price === '') return ''; const n = Number(p.price); if (Number.isFinite(n) && n > 0) { try { return _rtm.money ? _rtm.money(n, _brand(o), market) : require('./brand-locale.js').money(n, _brand(o), market); } catch (_) { /* fall through */ } } return `${cur}${p.price}`; };
+  const gridItems = (cols) => (layout.product_grid === false ? [] : others.slice(0, Math.max(cols, Math.min(layout.grid_max || 4, others.length - (others.length % cols)) || cols)));
+  const promises = layout.service_strip === false ? [] : brandClaims.filter((c) => !_bodyTxt.includes(_fold(c)) && c.length <= 70);
+  const offers = layout.shop_by_links === false ? [] : (Array.isArray(_brand(o).offerings) ? _brand(o).offerings : [])
+    .filter((x) => x && x.name && /^https:\/\//i.test(String(x.url || '')) && String(x.url).replace(/\/+$/, '') !== String(baseUrl).replace(/\/+$/, ''))
+    .filter((x, i, a) => a.findIndex((y) => String(y.url).replace(/\/+$/, '') === String(x.url).replace(/\/+$/, '')) === i).slice(0, 4);
+  const legal = `${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${MF.article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.`;
+  const _logoIsImage = (() => { try { return !!MF.logoSourceOf(_brand(o)).url; } catch (_) { return false; } })();
+  return require('./mail-templates.js').render({
+    style, design, core: _core, palette, HEAD, BODY, E: _E, _px, ctaStyle, h1With, subWith, JUSTIFY: MF.JUSTIFY,
+    emailHead, baseUrl, cta_text, collection_url, hero_headline, hero_subline, hero_image_url, hero_prompt,
+    assetSlot: hero_prompt ? MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green }) : '',
+    heroLabel, heroName, heroAlt: heroLabel || esc(hero_headline || ''), caption: _cap && !_bodyTxt.includes(_fold(_cap)) ? _cap : '',
+    heroRow: _heroRow, border, body_blocks, others, allProducts, gridItems, promises, offers, money,
+    productImg: (p) => _productImg(p, market, o && o.brand), productNote: (p) => _productNote(p, market, o && o.brand),
+    pdp: (p) => p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl),
+    offerBar: offerBarRow, productList, productGrid, team: teamName(brandNameOf(o)),
+    logoIsImage: _logoIsImage,
+    logoHeader: (x) => MF.logoHeader(Object.assign({ brand: _brand(o), store, font: HEAD, tagline: headerTagline }, x)),
+    footer: { name: brandNameOf(o), claims: footerClaims, legal },
+  });
 }
 
 function esc(s) {
