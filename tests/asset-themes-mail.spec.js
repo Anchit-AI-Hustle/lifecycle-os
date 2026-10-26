@@ -205,9 +205,11 @@ test('every theme x template keeps AA text and never draws a dark-neutral ground
 
 test('a template that needs a picture is not drawn without one; a mail with none leads on the brand\'s ground', async ({ page }) => {
   for (const tp of ['split', 'spotlight', 'magazine']) {
-    const html = CT.renderTextVariant(Object.assign(opts(BRANDS[0], 'visual', pinned('soft', tp)), { hero_image_url: undefined, products: [] }));
-    expect(html).not.toMatch(new RegExp(`data-template="${tp}"`));
-    expect(html, `${tp} falls back to a template led by the brand's ground`).toContain('Brand-palette hero block');
+    const mail = CT.renderTextVariant(Object.assign(opts(BRANDS[0], 'visual', pinned('soft', tp)), { hero_image_url: undefined, products: [] }));
+    const drawn = (mail.match(/data-template="([a-z]+)"/) || [])[1];
+    expect(drawn, `${tp} needs a picture, so another template is drawn`).toBeTruthy();
+    expect(drawn).not.toBe(tp);
+    expect(mail.includes('Brand-palette hero block'), `${tp} falls back to a template led by the brand's ground`).toBe(true);
   }
   await page.setViewportSize({ width: 375, height: 800 });
   for (const th of AT.THEME_IDS) {
