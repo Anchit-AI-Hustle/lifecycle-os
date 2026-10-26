@@ -2065,6 +2065,10 @@ function injectProofBlock(html, entry, style = 'visual') {
   // sender block as an ordinary paragraph inside the body table rather than a
   // <footer>, so anchor on the paragraph that carries it; appending at </body>
   // would put a customer testimonial underneath the unsubscribe line.
+  // The themed mail (mail-templates.js) draws its footer as its own table row,
+  // marked data-mail-footer: the proof is a row of its own just above it.
+  const footRow = /<tr>\s*<td[^>]*data-mail-footer/i.exec(s);
+  if (footRow) return s.slice(0, footRow.index) + `<tr><td style="padding:0;">${block}</td></tr>` + s.slice(footRow.index);
   const legal = /<p[^>]*>(?=(?:(?!<\/p>)[\s\S])*?(?:receiving this (?:as|because)|unsubscribe|DATA REQUIRED BEFORE LAUNCH: legal|DATA REQUIRED BEFORE LAUNCH: sender))/i.exec(s);
   if (legal && legal.index > 0) return s.slice(0, legal.index) + block + s.slice(legal.index);
   const i = s.toLowerCase().lastIndexOf('</body>');
@@ -2118,10 +2122,91 @@ function landingFormat(entry, copy, variant) {
   return ownPhotoCount(entry) >= 2 ? 'collection' : 'direct-offer';
 }
 
+/**
+ * THE LANDING PAGE'S THEME AND TEMPLATE (asset-themes.js, 2026-10-26; the
+ * operator: "complete different templates, themes everything"). One <style>
+ * after the page's own, so the brand's tokens (:root) never change between
+ * pages and a block the page gates is never removed: the template moves where
+ * things sit (classic, an immersive photograph under a brand panel, a split
+ * hero with alternating sections, an editorial long-read), the theme sets the
+ * type, corners, buttons, cards, dividers, the hero's ground, the header and the
+ * footer. Every colour is a token the page already pairs for AA: the ink on the
+ * surface, the on-primary on the primary, the hero button picked for 3:1
+ * against the ground it sits on. A measured design system keeps its own type,
+ * buttons, header and footer; the template and the card shapes still apply.
+ */
+function lpThemeCss(T, tpl, c) {
+  const css = [];
+  const h = T.heading;
+  const onSurfaceHero = !c.ds && (['open', 'framed', 'cards'].includes(T.ground) || tpl === 'editorial');
+  if (!c.ds) {
+    const hs = (n) => Math.round(n * Math.max(0.85, Math.min(1.5, h.scale)));
+    const type = `font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}`;
+    css.push(`.hero h1{${type}font-size:${hs(34)}px}.sec h2,.feats h2,.details h2,.revs h2,.about h2,.sec-head h2{${type}font-size:${hs(26)}px}`);
+    css.push(`@media(max-width:640px){.hero h1{font-size:${hs(22)}px}.sec h2,.sec-head h2{font-size:${hs(19)}px}}`);
+    const br = T.button === 'pill' ? '999px' : (T.button === 'block' ? '0' : `${Math.min(14, T.radius.button)}px`);
+    css.push(`.btn,.btn.big,.hero .btn,.sticky .btn{border-radius:${br}}`);
+    if (T.button === 'block') css.push(`.endcta .btn,.bb .btn{display:flex;width:100%;max-width:420px;margin-left:auto;margin-right:auto}.hero .btn{min-width:min(100%,320px)}`);
+    if (T.button === 'outline' || T.button === 'link') css.push(`.endcta .btn{background:transparent;color:var(--ink);border:2px solid var(--ink)}`);
+    if (onSurfaceHero) {
+      css.push(`.hero{background:${T.ground === 'cards' ? 'var(--chalk-warm)' : 'var(--chalk)'};color:var(--ink)}.hero .eyebrow,.hero p,.hero .assure{color:var(--ink)}.hero .pills span{background:${T.ground === 'cards' ? 'var(--chalk)' : 'var(--chalk-warm)'};color:var(--ink)}`);
+      css.push(`.hero .btn{background:${c.heroBtn};color:${c.onHeroBtn}}`);
+      if (T.button === 'outline') css.push(`.hero .btn{background:transparent;color:var(--ink);border:2px solid var(--ink)}`);
+      if (T.ground === 'framed') css.push(`.hero{outline:1px solid var(--ink);outline-offset:-14px}`);
+      if (T.ground === 'cards') css.push(`.hero{margin:14px;border-radius:${Math.min(28, T.radius.card)}px}`);
+    } else if (T.button === 'outline') {
+      css.push(`.hero .btn{background:transparent;color:var(--on-moss);border:2px solid var(--on-moss)}`);
+    }
+    if (T.align === 'left') css.push(`.hero{text-align:left}.hero h1,.hero p,.hero .eyebrow{margin-left:0;margin-right:auto}.hero .hero-price{margin-left:0!important}.hero .pills{justify-content:flex-start}.sec-head{text-align:left;margin-left:0}`);
+    if (T.eyebrow === 'rule') css.push(`.hero .eyebrow::after{content:"";display:block;width:48px;height:2px;background:currentColor;margin:10px 0 0}`);
+    if (T.eyebrow === 'spaced') css.push(`.hero .eyebrow{letter-spacing:.38em}`);
+    if (T.header === 'left') css.push(`.bar{text-align:left;padding-left:22px}.bar-logo{margin:0}`);
+    if (T.header === 'band') css.push(`.bar:not(:has(img)){background:var(--moss);color:var(--on-moss);border-bottom:0}`);
+    if (T.footer === 'rule') css.push(`footer{background:var(--chalk);color:var(--ink);border-top:3px solid var(--moss)}`);
+    if (T.footer === 'plain') css.push(`footer{background:var(--chalk);color:var(--ink);border-top:1px solid var(--chalk-warm);text-align:left}`);
+    if (T.footer === 'tint') css.push(`footer{background:var(--chalk-warm);color:var(--ink)}`);
+  }
+  // Cards, pictures, dividers and rhythm: every theme, design system or not.
+  const rc = `${Math.min(28, T.radius.card)}px`, ri = `${Math.min(24, T.radius.image)}px`;
+  const cardSel = '.other,.rgrid figure,.dgrid div,.f-card,.t-step,.reveal,.offers li,.lcard,.buybox,.metrics-card,.guarantee';
+  css.push(`${cardSel}{border-radius:${rc}}.feat img,.buybox img,.lcard img,.hero-media img{border-radius:${ri}}`);
+  if (T.card === 'tint') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{background:var(--chalk-warm);border-color:transparent}`);
+  if (T.card === 'frame') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{border:2px solid var(--ink)}`);
+  if (T.card === 'band') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{border:0;border-top:6px solid var(--moss);background:var(--chalk)}`);
+  if (T.divider === 'hairline') css.push(`.wrap>.sec+.sec{border-top:1px solid var(--chalk-warm)}`);
+  if (T.divider === 'double') css.push(`.wrap>.sec+.sec{border-top:4px double var(--chalk-warm)}`);
+  if (T.divider === 'thick') css.push(`.sec>h2::after{content:"";display:block;width:56px;height:5px;background:var(--moss);margin-top:10px}`);
+  if (T.divider === 'dots') css.push(`.sec>h2::after{content:"";display:block;width:46px;height:8px;margin-top:10px;background:radial-gradient(circle,var(--moss) 3px,transparent 4px) 0 0/16px 8px repeat-x}`);
+  if (T.density === 'airy') css.push(`.sec{padding:42px 0}`);
+  if (T.density === 'compact') css.push(`.sec{padding:18px 0}`);
+  // The template.
+  if (tpl === 'immersive') {
+    css.push(`.hero:has(.hero-grid.has-media){padding:0 0 34px}.hero-grid.has-media{display:flex;flex-direction:column;max-width:none;gap:0}.hero-grid.has-media .hero-media{order:-1;width:100%}`);
+    css.push(`.hero-grid.has-media .hero-media img{width:100%;height:min(74vh,620px);border-radius:0}`);
+    css.push(`.hero-grid.has-media .hero-copy{position:relative;z-index:2;margin:-120px auto 0;max-width:680px;width:calc(100% - 32px);background:var(--moss);color:var(--on-moss);padding:28px 26px;border-radius:${rc};text-align:center}.hero-grid.has-media .hero-copy h1,.hero-grid.has-media .hero-copy p,.hero-grid.has-media .hero-copy .eyebrow{color:var(--on-moss);margin-left:auto;margin-right:auto}`);
+    if (!c.ds) css.push(`.hero:has(.hero-grid.has-media){background:var(--chalk)}.hero-grid.has-media .hero-copy .btn{background:${c.bandBtn};color:${c.onBandBtn}}`);
+    css.push(`@media(max-width:640px){.hero-grid.has-media .hero-media img{height:300px}.hero-grid.has-media .hero-copy{margin-top:-60px;padding:20px 16px}}`);
+  } else if (tpl === 'split') {
+    // A split screen: the photograph fills its half edge to edge, the words sit
+    // in the other half on the hero's own ground.
+    css.push(`@media(min-width:900px){.hero:has(.hero-grid.has-media){padding:0}.hero-grid.has-media,.hero-grid.has-media.hero--media-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr);text-align:left;max-width:none;gap:0;align-items:stretch}.hero-grid.has-media .hero-copy{padding:64px 56px;align-self:center}.hero-grid.has-media .hero-media img{height:100%;min-height:560px;border-radius:0}}`);
+    css.push(`.wrap>.sec:nth-of-type(even){background:var(--chalk-warm);box-shadow:0 0 0 100vmax var(--chalk-warm);clip-path:inset(0 -100vmax)}`);
+  } else if (tpl === 'editorial') {
+    css.push(`.hero-grid,.hero-grid.has-media{display:grid;grid-template-columns:minmax(0,1fr)!important;max-width:820px;text-align:left}.hero-grid .hero-media{order:2!important}.hero h1{max-width:none}`);
+    css.push(`.hero-grid.has-media .hero-media img{height:auto;aspect-ratio:16/9}`);
+    css.push(`.wrap{max-width:780px;counter-reset:lpsec}.wrap>.sec>h2::before{counter-increment:lpsec;content:counter(lpsec,decimal-leading-zero);display:block;font-size:14px;letter-spacing:.2em;margin-bottom:6px;color:var(--ink)}`);
+  }
+  return `<style data-theme="${T.id}" data-template="${tpl}">${css.join('\n')}</style>`;
+}
+
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // This page's own composition (asset-style.js): hero arrangement varies by
   // brand and slot; the brand's palette, type and radii do not.
   const _lpRecipe = require('./asset-style.js').recipe(entry, `landing:${campaignId || ''}`);
+  const _lpLook = require('./asset-themes.js').pick(entry, 'landing', `landing:${campaignId || ''}`);
+  // The split template is always two columns; the editorial one puts the
+  // picture under the words; the classic and immersive ones keep the recipe's.
+  const _lpHero = _lpLook.template === 'split' && _lpRecipe.hero === 'media-top' ? 'media-right' : (_lpLook.template === 'editorial' ? 'media-top' : _lpRecipe.hero);
   const L = copy.landing || {};
   const _o = opts || {};
   // Everything brand-visible derives from the ACTIVE brand on the entry:
@@ -2531,12 +2616,19 @@ ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
 @media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:12px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:12px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
-</style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
-<body>
+</style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}${(() => {
+  // The hero's button where the hero sits on the surface: the first of the
+  // accent and the primary that stands 3:1 off it, else the ink (a control may
+  // be dark; a section may not).
+  const k = _wsCore(); const cr = (a, b) => (k && k.contrast ? k.contrast(a, b) : 4.5);
+  const heroBtn = [ACC, P].find((x) => cr(x, SURF) >= 3) || INKC;
+  return lpThemeCss(_lpLook.theme, _lpLook.template, { ds: !!_ds.present, heroBtn, onHeroBtn: textOn(heroBtn, SURF, INKC), bandBtn: HERO_BTN, onBandBtn: ON_HERO_BTN });
+})()}</head>
+<body data-template="${esc(_lpLook.template)}" data-theme="${esc(_lpLook.theme.id)}">
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none;display:block">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
-<section class="hero" data-recipe="${esc(_lpRecipe.id)}">
-  <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
+<section class="hero" data-recipe="${esc(_lpRecipe.id)}" data-look="${esc(_lpLook.id)}">
+  <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpHero)}">
     <div class="hero-copy">
       ${(() => {
         const hp = entry.heroProduct || {};
@@ -2725,7 +2817,34 @@ function productUrl(product, market, brand) {
   handle = handle || (product && (product.handle || product.h)) || null;
   return handle ? `${store}/products/${handle}` : store;
 }
-function renderVariant(entry, copy, style, img, direction) {
+// The theme and template of one mail of one send (asset-themes.js): the
+// brand's own family of themes, rotated by send, a different structure per
+// variant. The same slot rebuilt is the same design; entry.__take (a press of
+// regenerate) moves it.
+function mailDesign(entry, style, direction) {
+  const name = `mail:${style}${direction ? ':' + direction : ''}`;
+  const AT = require('./asset-themes.js');
+  const kind = style === 'visual' ? 'mail' : 'text';
+  // A send can be pinned to one theme and template (entry.__design.mail =
+  // {theme:'luxe', template:'stack'}): a test that measures one template, or
+  // an operator who keeps a design they approved.
+  const pin = entry && entry.__design && entry.__design[kind];
+  if (pin && AT.THEMES[pin.theme] && (AT.TEMPLATES[kind] || []).includes(pin.template)) {
+    return { id: `${pin.theme}.${pin.template}.pinned`, theme: Object.assign({}, AT.THEMES[pin.theme]), template: pin.template, kind, family: [pin.theme], why: `Pinned to ${AT.THEMES[pin.theme].label} / ${pin.template}.` };
+  }
+  // The second variant of a send is never the first one's design: B moves
+  // its take until its theme and template both differ from A's.
+  const twin = { visual_b: 'visual_a', text_b: 'text_a' }[String(direction || '')];
+  if (twin) {
+    const a = AT.pick(entry, kind, `mail:${style === 'visual' ? 'visual' : 'pure'}:${twin}`);
+    for (let t = 0; t < 12; t++) {
+      const d = AT.pick(Object.assign({}, entry, { __take: `${entry.__take == null ? '' : entry.__take}|b${t}` }), kind, name);
+      if (d.theme.id !== a.theme.id && d.template !== a.template) return d;
+    }
+  }
+  return AT.pick(entry, kind, name);
+}
+function renderVariant(entry, copy, style, img, direction, vkey) {
   const E = copy.email || {};
   const heroProduct = (entry.heroProduct && entry.heroProduct.title) || entry.theme || '';
   const links = slotLinks(entry);
@@ -2813,6 +2932,8 @@ function renderVariant(entry, copy, style, img, direction) {
     // The studied layout, composed differently for each slot and variant
     // (asset-style.js): the brand's look stays, the arrangement moves.
     layout: require('./asset-style.js').mailLayout(entry.__mailStudy && entry.__mailStudy.layout, require('./asset-style.js').recipe(entry, `mail:${style}${direction ? ':' + direction : ''}`)),
+    design: mailDesign(entry, style, vkey || direction),
+    entry,
   }), entry, style);
 }
 // Four variants in the SAME taxonomy as the Mailer Calendar: 2 Text + 2 Text +
@@ -2834,14 +2955,22 @@ function emailVariants(entry, copyA, copyB, fwA, fwB, creativeUrl) {
   const nA = (fwA && fwA.name) || 'Concise';
   const nB = (fwB && fwB.name) || 'Editorial';
   return [
-    { key: 'text_a',   type: 'Text',          label: `Text · ${nA}`,          framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'pure') },
-    { key: 'text_b',   type: 'Text',          label: `Text · ${nB}`,          framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'editorial') },
-    { key: 'visual_a', type: 'Text + Visual', label: `Text + Visual · ${nA}`, framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'visual', heroImg) },
+    { key: 'text_a',   type: 'Text',          label: `Text · ${nA}`,          framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'pure', null, '', 'text_a') },
+    { key: 'text_b',   type: 'Text',          label: `Text · ${nB}`,          framework: fwB && fwB.key, ...variantMeta(copyB), html: renderVariant(entry, copyB, 'editorial', null, '', 'text_b') },
+    { key: 'visual_a', type: 'Text + Visual', label: `Text + Visual · ${nA}`, framework: fwA && fwA.key, ...variantMeta(copyA), html: renderVariant(entry, copyA, 'visual', heroImg, '', 'visual_a') },
     // Brand-led leads with the brand, not the photo (2026-10-24: it was the
     // product-led mail again): the headline on the brand's own ground, then
     // every product of the slot side by side, the hero's card among them.
-    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: ownPhotoCount(entry) >= 2 ? renderVariant(entry, copyB, 'visual', null, 'brand') : renderVariant(entry, copyB, 'visual', heroImg) },
-  ];
+    { key: 'visual_b', type: 'Text + Visual', label: `Text + Visual · ${nB}`, framework: fwB && fwB.key, ...variantMeta(copyB), html: ownPhotoCount(entry) >= 2 ? renderVariant(entry, copyB, 'visual', null, 'brand', 'visual_b') : renderVariant(entry, copyB, 'visual', heroImg, '', 'visual_b') },
+  ].map((v) => {
+    // Which theme and template drew it (read back off the document, so it is
+    // the one that rendered after any fallback), and why.
+    const style = { text_a: 'pure', text_b: 'editorial', visual_a: 'visual', visual_b: 'visual' }[v.key];
+    const d = mailDesign(entry, style, v.key);
+    const th = (String(v.html || '').match(/data-theme="([a-z]+)"/) || [])[1] || d.theme.id;
+    const tp = (String(v.html || '').match(/data-template="([a-z]+)"/) || [])[1] || d.template;
+    return Object.assign(v, { design: { theme: th, template: tp, family: d.family, why: d.why } });
+  });
 }
 
 function emailHtml(entry, copy, creativeUrl) {
@@ -3182,6 +3311,14 @@ function attachMotionCreative(ad, entry, pool) {
       loop: true,
       layout: require('./asset-style.js').recipe(entry, `ad:${ad.platform || ''}:${ad.creative_type || ''}`),
     };
+    // THE LOOK (asset-themes.js, 2026-10-26): each video is drawn in one of the
+    // brand's own themes and one of the video templates, chosen per send and per
+    // platform; the Story and the Transitional variant are chosen apart, so the
+    // two cuts of one ad are not the same design either.
+    const TH = require('./asset-themes.js');
+    const motionLook = TH.pick(entry, 'video', `motion:${ad.platform || ''}`);
+    const storyLook = TH.pick(entry, 'video', `story:${ad.platform || ''}`);
+    spec.look = { theme: motionLook.theme.id, template: motionLook.template };
     // THE STORY VARIANT (2026-10-24, the operator: "proper video ads upto
     // 30 s ... keep this variant too"): beside the transitional creative, a
     // timed story up to 30 seconds - the hook, each product of the send on its
@@ -3212,9 +3349,12 @@ function attachMotionCreative(ad, entry, pool) {
         palette: { primary: ground, on_primary: core && core.textOn ? core.textOn(ground, pal.surface, pal.ink) : pal.surface,
           accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
         fonts: { head: String(fs.head).replace(/"/g, "'"), body: String(fs.body).replace(/"/g, "'") },
+        look: { theme: storyLook.theme.id, template: storyLook.template },
       };
       story = { html: SA.renderStoryAd(sspec), brief: SA.storyBrief(sspec) };
     } catch (e) { story = { error: String((e && e.message) || e).slice(0, 160) }; }
+    ad.look = { theme: storyLook.theme.id, template: storyLook.template, why: storyLook.why };
+    ad.motion_look = { theme: motionLook.theme.id, template: motionLook.template, why: motionLook.why };
     ad.creative = Object.assign({}, ad.creative, {
       motion_html: motion.renderMotionAd(spec),
       motion_brief: motion.motionBrief(spec),
@@ -3301,6 +3441,8 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     // Four framework variants: copyA drives the A-slots, copyB the B-slots.
     const emailVars = emailVariants(entry, copyA, copyB, fwA, fwB, heroImg);
     campaign.assets.email.variants = emailVars || null;
+    // Which theme and template drew each mail, and why (asset-themes.js).
+    if (emailVars) campaign.design = Object.assign({}, campaign.design, { mail: emailVars.map((v) => Object.assign({ key: v.key }, v.design)) });
     // Primary html = the Hero Text + Visual (A) variant (shared renderer) so the
     // preview matches the Studio; falls back to the local mailer if variants off.
     campaign.assets.email.html = (emailVars && emailVars.find((v) => v.key === 'visual_a').html)
@@ -3442,6 +3584,11 @@ function offerOf(entry) {
 }
 
 function checkAssetContracts(campaign, entry) {
+  // Which theme and template drew each mail, whichever path built them.
+  try {
+    const vs = campaign && campaign.assets && campaign.assets.email && campaign.assets.email.variants;
+    if (Array.isArray(vs) && vs.some((v) => v && v.design)) campaign.design = Object.assign({}, campaign.design, { mail: vs.filter((v) => v && v.design).map((v) => Object.assign({ key: v.key }, v.design)) });
+  } catch (_) { /* the record of the design never stops a build */ }
   const contracts = require('./asset-contracts.js');
   const compliance = require('./compliance-lint.js');
   // `warnings` are findings about how an asset was BUILT; `data_gaps` are
@@ -4113,6 +4260,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   attachPlacementCopy(campaign, entry);
   fillLandingUrl(campaign, entry);
   attachUnitWords(campaign, entry);
+  attachStaticCreative(campaign, entry);
   // The review gap is in the checks even when nothing was dropped: the asset
   // shows no proof section, and the reviewer still sees why.
   if (!(Array.isArray(entry.__reviews) && entry.__reviews.length)) {
@@ -4369,6 +4517,57 @@ function attachUnitWords(campaign, entry) {
 // already have, within the headline limit, plus the safe zone; a carousel only
 // when two or more products have their own photo (one card each). Nothing is
 // written here that the copy or the record does not already say.
+// THE STATIC AD AS ITS OWN CREATIVE (2026-10-26, the operator: "no complete
+// different templates, themes everything"). Every static ad of every brand was
+// the same picture with the same dark gradient and button drawn by the
+// console. Each static ad is now composed by scripts/lib/static-ad.js in one
+// of six templates and one of the brand's own themes (asset-themes.js: picked
+// per brand, per send, per ad; the same slot rebuilt is the same design, a
+// regeneration moves it). Its words are the ad's finished copy (units in
+// words, after attachUnitWords), its picture the ad's own photograph.
+function attachStaticCreative(campaign, entry) {
+  const ads = ((campaign && campaign.assets && campaign.assets.ads) || []).filter((ad) => ad && ad.creative_type !== 'video');
+  if (!ads.length) return;
+  let SA, AT, rt;
+  try { SA = require('../../scripts/lib/static-ad.js'); AT = require('./asset-themes.js'); rt = require('./brand-runtime.js'); } catch (_) { return; }
+  let brand = {};
+  try { brand = rt.scopedBrand(entry && entry.brand, { allowTenantZero: true }) || {}; } catch (_) { brand = (entry && entry.brand) || {}; }
+  const pal = rt.paletteOf(brand);
+  const fs = rt.fontStacks(brand);
+  const core = _wsCore();
+  let fontsHref = '';
+  try { fontsHref = core && core.fontsHref ? core.fontsHref(brand) : ''; } catch (_) { fontsHref = ''; }
+  const hp = entry && entry.heroProduct && !entry.heroProduct.placeholder && !/^\[DATA REQUIRED/.test(String(entry.heroProduct.title || '')) ? entry.heroProduct : null;
+  let price = '';
+  try { const n = Number(hp && hp.price); if (Number.isFinite(n) && n > 0) price = require('./brand-locale.js').money(n, brand, entry.market) || ''; } catch (_) { price = ''; }
+  const first = (t) => ((String(t || '').match(/[^.!?]+[.!?]?/) || [''])[0]).replace(/\s+/g, ' ').trim();
+  const clean = (t) => (/DATA REQUIRED/.test(String(t || '')) ? '' : String(t || '').trim());
+  const gaps = [];
+  for (const ad of ads) {
+    try {
+      const ov = ad.overlay || {};
+      const headline = clean(ov.headline || ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || '');
+      const line = clean(first(ad.primary_text || ad.description || (Array.isArray(ad.descriptions) && ad.descriptions[0]) || ad.caption));
+      const name = `ad:${ad.platform || ''}:static:${ad.variant || ''}:${ad.id || ''}`;
+      const p = AT.pick(entry, 'ad', name);
+      const out = SA.renderStaticAd({
+        id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template,
+        brandName: brand.name || '', logo: brand.logo_url || '', market: entry && entry.market,
+        ratio: ad.aspect || '1:1', headline, line: line && line.toLowerCase() !== headline.toLowerCase() ? line : '',
+        price, proof: clean(ov.proof), cta: clean(ov.cta || ad.cta),
+        image: (ad.creative && ad.creative.image) || '',
+        palette: pal, fonts: { head: fs.head, body: fs.body }, fontsHref,
+      });
+      ad.creative = Object.assign({}, ad.creative || {}, {
+        static_html: out.html,
+        design: { theme: out.theme, template: out.template, id: p.id, why: p.why },
+      });
+      gaps.push(...out.data_gaps);
+    } catch (_) { /* the ad keeps its photo and overlay */ }
+  }
+  if (gaps.length) campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), ...gaps])];
+}
+
 function attachPlacementCopy(campaign, entry) {
   try {
     const specs = require('./asset-specs.js').ADS;
@@ -4697,6 +4896,12 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
 
   const normType = String(assetType || '').toLowerCase();
 
+  // A regeneration is a new generation (asset-themes.js): a take moves the
+  // asset to another theme and template; an ordinary rebuild stays as it was.
+  // Every own property, the hidden ones too (the mail study, the scene): a
+  // plain copy would drop them and the regenerated mail would lose its study.
+  const regen = Object.defineProperties({}, Object.getOwnPropertyDescriptors(entry));
+  regen.__take = `regen-${Date.now().toString(36)}`;
   if (normType === 'mailer' || normType === 'email') {
     const CF = require('./copy-frameworks.js');
     const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: `${entry.id || entry.date || ''}_${Date.now()}` });
@@ -4709,7 +4914,7 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
       if (rawA && rawA.copy) {
         const copyA = gateProof(scrubCopyDeep(rawA.copy, entry), entry);
         const copyB = rawB && rawB.copy ? gateProof(scrubCopyDeep(rawB.copy, entry), entry) : copyA;
-        applyCopy(campaign, entry, copyA, copyB, fwA, fwB, {}, _runId(entry));
+        applyCopy(campaign, regen, copyA, copyB, fwA, fwB, {}, _runId(entry));
       } else {
         throw new Error('LLM unavailable for single mailer generation');
       }
@@ -4717,19 +4922,22 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
       const tc = require('../../lib/smart-brain/services.js').templateEmailCopy(entry, campaign.assets?.email);
       const pool = slotImagePool(entry, 1200);
       campaign.assets.email = campaign.assets.email || {};
-      campaign.assets.email.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
+      campaign.assets.email.variants = emailVariants(regen, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
     }
   } else if (normType === 'landing' || normType === 'landing_page') {
     // The same builder as the full build (2026-10-23): it called a function
     // services.js does not export, so "Regenerate landing" always failed.
-    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'hero' });
+    const fresh = await buildCampaign(regen, config, { withCreatives: 'hero' });
     if (fresh && fresh.assets && Array.isArray(fresh.assets.landing_pages) && fresh.assets.landing_pages.length) {
       campaign.assets.landing_pages = fresh.assets.landing_pages;
     }
   } else if (normType === 'ads' || normType === 'ad') {
     // New copy AND creatives, from the same builder as the full build: this
     // only re-attached pictures, so "Regenerate ads" changed no words.
-    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'lean' });
+    // A regeneration is a new generation: a take moves every ad to another
+    // theme and template (asset-themes.js), so "Regenerate ads" changes the
+    // design as well as the words.
+    const fresh = await buildCampaign(regen, config, { withCreatives: 'lean' });
     if (fresh && fresh.assets && Array.isArray(fresh.assets.ads) && fresh.assets.ads.length) {
       campaign.assets.ads = fresh.assets.ads;
       if (fresh.platform_ready) campaign.platform_ready = fresh.platform_ready;
@@ -5103,7 +5311,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
@@ -5323,6 +5531,7 @@ module.exports = {
   __test_generateCreatives: generateCreatives,
   __test_applyCopy: applyCopy,
   __test_attachMotionCreative: attachMotionCreative,
+  __test_attachStaticCreative: attachStaticCreative,
   // The contract check the builder runs on its own output, so a renderer that
   // lives outside this module (the html pipeline stage) can be judged by the
   // SAME summary shape rather than by a second walk that could drift from it.
