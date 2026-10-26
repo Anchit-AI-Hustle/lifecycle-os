@@ -130,6 +130,26 @@ test('every team call is routed on the workspace that pays for it (Codex #370)',
   for (const o of team) expect(o.workspaceId, o.stage).toBe('ws-oak-pays');
 });
 
+test('the brief reviewer reads the strategy and message the brief was made from; a one-channel brief is not accepted (Codex #370)', async () => {
+  test.setTimeout(120000);
+  const base = teamScript({ copyVerdict: 'pass' });
+  script = base;
+  await build();
+  const rb = byStage('team-review-brief');
+  expect(rb.length).toBe(1);
+  expect(rb[0].userMessage, 'the reviewer can compare the brief with the key message').toContain('KEY-MESSAGE-RYE-TODAY');
+  expect(rb[0].userMessage).toContain('Fresh rye for the weekend table');
+  // A brief that covers one channel (or carries a string for one) is the wrong shape.
+  calls = [];
+  script = (o) => o.stage === 'team-brief' ? ok({ channel_roles: 'x', email: { hook: 'h' }, landing: 'see email', ads: null }) : base(o);
+  const c = await build();
+  const briefMaker = c.team.members.filter((m) => m.role === 'Creative Brief Writer');
+  expect(briefMaker.length).toBeGreaterThan(0);
+  expect(briefMaker.every((m) => !m.ok), 'the partial brief is recorded as failed').toBe(true);
+  expect(byStage('team-review-brief').length, 'a rejected brief is not reviewed').toBe(0);
+  for (const x of byStage('smart-brain-copy')) expect(x.userMessage).not.toContain('see email');
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });

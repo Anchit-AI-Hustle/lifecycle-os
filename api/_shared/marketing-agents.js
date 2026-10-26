@@ -129,7 +129,8 @@ async function pair(key, ctx, upstream, o) {
   if (!work) return out;
   out.result = work;
   if (left() < 6000) { out.members.push({ department: reviewer.department, role: reviewer.role, kind: 'reviewer', ok: false, skipped: true, error: 'no time left in this build for the review' }); return out; }
-  const v = await review(key, ctx, JSON.stringify(work), o);
+  // The reviewer reads what the maker read: a brief is checked against the strategy and message it was given.
+  const v = await review(key, ctx, JSON.stringify(work), o, upstream);
   out.members.push(v.member);
   if (v.verdict === 'revise' && left() > 9000) {
     const again = await make(v.critique);
@@ -142,17 +143,19 @@ async function pair(key, ctx, upstream, o) {
 function hasCore(key, j) {
   if (key === 'strategy') return !!(j.angle && String(j.angle).trim());
   if (key === 'messaging') return !!(j.key_message && String(j.key_message).trim());
-  if (key === 'brief') return !!(j.email || j.landing || j.ads);
+  // Every channel's copywriter reads its own brief: all three, each an object, or the brief is not accepted.
+  const obj = (x) => !!x && typeof x === 'object' && !Array.isArray(x) && Object.keys(x).length > 0;
+  if (key === 'brief') return obj(j.email) && obj(j.landing) && obj(j.ads);
   return true;
 }
 
 /** A reviewer's verdict on a piece of work. Never throws. */
-async function review(key, ctx, work, o) {
+async function review(key, ctx, work, o, upstream) {
   const { call, parseJSON, brandName, market, left } = o;
   const r = REVIEWER[key];
   const t0 = ms();
   const sp = REVIEW_SPEC(`team.review.${key}`, brandName, market, key === 'copy' ? 'copy of every asset' : key);
-  const user = OC.append(['SHARED MARKETING CONTEXT', ctx, `\nTHE WORK TO REVIEW\n${work}`, `\nCHECK: ${r.check}`].join('\n'), sp);
+  const user = OC.append(['SHARED MARKETING CONTEXT', ctx, upstream ? `\nWORK OF THE TEAM SO FAR (what the maker was given)\n${upstream}` : '', `\nTHE WORK TO REVIEW\n${work}`, `\nCHECK: ${r.check}`].join('\n'), sp);
   try {
     const res = await call({ systemPrompt: systemFor(r, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 700, temperature: 0.2, timeoutMs: Math.min(12000, Math.max(3000, left())), tier: 'fast', stage: `team-review-${key}`, feature: `team.review.${key}` });
     const j = parseJSON(res.text);
