@@ -76,20 +76,38 @@
   // eighth; melody = the lead plays a tune (else an arpeggio); pluck = short
   // notes instead of held ones.
   var STYLES = {
-    electronic: { words: ['electronic', 'edm', 'house', 'techno', 'synth', 'dance', 'club', 'trance', 'electro', 'future'], pad: 'saw', bass: 'saw', lead: 'square', kicks: [0, 1, 2, 3], snares: [1, 3], hat: 0.5, offHat: true, swing: 0, melody: true, pluck: false, lowpass: 2400, label: 'electronic: saw pads, four-on-the-floor kick, off-beat hats, square lead' },
+    electronic: { words: ['electronic', 'edm', 'house', 'techno', 'synth', 'synthwave', 'dance', 'club', 'trance', 'electro', 'future bass'], pad: 'saw', bass: 'saw', lead: 'square', kicks: [0, 1, 2, 3], snares: [1, 3], hat: 0.5, offHat: true, swing: 0, melody: true, pluck: false, lowpass: 2400, label: 'electronic: saw pads, four-on-the-floor kick, off-beat hats, square lead' },
     acoustic: { words: ['acoustic', 'folk', 'guitar', 'unplugged', 'country', 'organic', 'indie folk'], pad: 'triangle', bass: 'triangle', lead: 'triangle', kicks: [0, 2.5], snares: [], hat: 1, offHat: false, swing: 0.08, melody: true, pluck: true, lowpass: 1800, label: 'acoustic: plucked strings, soft kick, light shaker, a sung-style melody' },
-    lofi: { words: ['lo-fi', 'lofi', 'lo fi', 'hip hop', 'hip-hop', 'chillhop', 'boom bap', 'jazz', 'jazzy', 'study'], pad: 'triangle', bass: 'sine', lead: 'sine', kicks: [0, 2.25], snares: [1, 3], hat: 0.5, offHat: false, swing: 0.16, melody: true, pluck: false, lowpass: 1200, label: 'lo-fi: dusty keys, swung hats, laid-back kick and snare, a soft lead' },
+    lofi: { words: ['lo-fi', 'lofi', 'lo fi', 'hip hop', 'hip-hop', 'chillhop', 'boom bap', 'jazz', 'jazzy', 'study', 'r&b', 'rnb', 'soul'], pad: 'triangle', bass: 'sine', lead: 'sine', kicks: [0, 2.25], snares: [1, 3], hat: 0.5, offHat: false, swing: 0.16, melody: true, pluck: false, lowpass: 1200, label: 'lo-fi: dusty keys, swung hats, laid-back kick and snare, a soft lead' },
     cinematic: { words: ['cinematic', 'orchestral', 'epic', 'film', 'score', 'trailer', 'strings', 'piano', 'ambient'], pad: 'saw', bass: 'sine', lead: 'triangle', kicks: [0], snares: [], hat: 0, offHat: false, swing: 0, melody: true, pluck: false, lowpass: 1500, label: 'cinematic: wide string-like pads, a low pulse, a slow melody that rises' },
     rock: { words: ['rock', 'punk', 'grunge', 'garage', 'metal', 'anthem', 'stadium', 'guitar riff'], pad: 'square', bass: 'saw', lead: 'saw', kicks: [0, 1.5, 2], snares: [1, 3], hat: 0.5, offHat: false, swing: 0, melody: false, pluck: true, lowpass: 3000, label: 'rock: driving power chords, steady eighths on the hat, kick and backbeat snare' },
-    pop: { words: ['pop', 'jingle', 'catchy', 'radio', 'upbeat pop', 'funk', 'disco', 'reggaeton', 'afrobeat'], pad: 'triangle', bass: 'sine', lead: 'square', kicks: [0, 2], snares: [1, 3], hat: 0.5, offHat: false, swing: 0, melody: true, pluck: true, lowpass: 2600, label: 'pop: bright plucked chords, a hook melody, kick and clap' }
+    pop: { words: ['pop', 'jingle', 'catchy', 'radio', 'funk', 'disco', 'reggaeton', 'afrobeat', 'afrobeats', 'bollywood', 'bhangra', 'latin'], pad: 'triangle', bass: 'sine', lead: 'square', kicks: [0, 2], snares: [1, 3], hat: 0.5, offHat: false, swing: 0, melody: true, pluck: true, lowpass: 2600, label: 'pop: bright plucked chords, a hook melody, kick and clap' }
   };
   var STYLE_ORDER = ['pop', 'electronic', 'acoustic', 'lofi', 'cinematic', 'rock'];
-  function styleOf(text, r) {
+  // A style word counts as a WHOLE word ("pop" is not "popular", "house" is
+  // not "household"), and the brief's own genre line ("Create an original
+  // warm acoustic track", brand-music.js) is read before the rest, so an
+  // instrument list ("piano, light strings") never outvotes the genre.
+  function wholeCount(text, words) {
+    var n = 0;
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // A phrase weighs its words, so "guitar riff" (rock) beats "guitar".
+      if (new RegExp('(^|[^a-z0-9])' + w + '(?=$|[^a-z0-9])', 'i').test(text)) n += words[i].split(' ').length;
+    }
+    return n;
+  }
+  function bestStyle(text) {
     var best = '', n = 0;
     for (var i = 0; i < STYLE_ORDER.length; i++) {
-      var k = STYLE_ORDER[i], c = count(text, STYLES[k].words);
+      var k = STYLE_ORDER[i], c = wholeCount(text, STYLES[k].words);
       if (c > n) { n = c; best = k; }
     }
+    return best;
+  }
+  function styleOf(text, r) {
+    var line = (String(text).match(/original\s+(.{1,80}?)\s+(?:track|song|jingle|piece|bed)\b/i) || [])[1] || '';
+    var best = (line && bestStyle(line)) || bestStyle(text);
     return best ? { name: best, from: 'brief' } : { name: STYLE_ORDER[Math.floor(r() * STYLE_ORDER.length)], from: 'take' };
   }
 
