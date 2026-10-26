@@ -40,8 +40,9 @@
  *   deterministic fallback. ElevenLabs gets its elevenPrompt(plan), Replicate
  *   the plan's tags, lyrics and prompt. A brand's own lyrics are sung as written.
  *   4. Hugging Face MusicGen (HF_API_TOKEN), as The Third Eye calls it
- *      (api-inference.huggingface.co, x-wait-for-model). Its refusal is said:
- *      no Inference Provider was found hosting MusicGen on 2026-10-25.
+ *      (api-inference.huggingface.co, x-wait-for-model), only for a model
+ *      HF_MUSIC_MODEL names: no Inference Provider serves the default
+ *      musicgen-small (read 2026-10-25), so with none named it is skipped.
  *   5. Only then, and only with free generation on, The Third Eye's code synth
  *      (renderWav) seeded by the request, the plan's prompt and the press's
  *      take: an instrumental SKETCH, labelled as one. Free generation is the
@@ -445,7 +446,7 @@ async function compose(spec, opts = {}) {
     refusals.push((mine ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ' key: ' + r.error + '.');
   }
   if (!opts.freeGeneration) {
-    if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY, REPLICATE_API_TOKEN or HF_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
+    if (!sources.length) return { ok: false, status: 501, error: 'music_unconfigured', message: 'Generating a track here needs a music model: connect your own Gemini key on AI Models (Lyria), or an ElevenLabs or Replicate key on Platform Connections, or set GEMINI_API_KEY, ELEVENLABS_API_KEY, REPLICATE_API_TOKEN on this deployment. Until then, use Open in Suno: the brief is copied for you.', refusals };
     return { ok: false, status: 502, error: 'music_provider_refused', message: refusals.join(' ') + ' Use Open in Suno meanwhile: the brief is copied for you.', refusals };
   }
   // The Third Eye's own code synth (third-eye-music/synth.js renderWav),
