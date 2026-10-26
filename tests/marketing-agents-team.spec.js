@@ -111,6 +111,25 @@ test('a send is made by the team: a shared context, maker/reviewer pairs, and co
   expect(Object.keys(c.team.context)).toEqual(['company', 'customers', 'offer', 'brand', 'goals', 'evidence']);
 });
 
+test('every team call is routed on the workspace that pays for it (Codex #370)', async () => {
+  test.setTimeout(120000);
+  script = teamScript({ copyVerdict: 'pass' });
+  const MR_PATH = path.join(ROOT, 'api', '_shared', 'model-router.js');
+  require(MR_PATH);
+  const realRoute = require.cache[MR_PATH].exports.route;
+  const routed = [];
+  require.cache[MR_PATH].exports.route = async (o) => { routed.push(o); return { allowed: true, tier: o.requested, reason: 'test' }; };
+  const realFetch = global.fetch;
+  global.fetch = async (u) => { throw new Error('offline in this test: ' + u); };
+  try {
+    // The workspace is on the build's config only, not on the slot.
+    await P.buildCampaign(entry(), require(path.join(ROOT, 'lib', 'smart-brain', 'services.js')).smartConfig({ workspace_id: 'ws-oak-pays' }), { withCreatives: false });
+  } finally { global.fetch = realFetch; require.cache[MR_PATH].exports.route = realRoute; }
+  const team = routed.filter((o) => /^team-/.test(String(o.stage)));
+  expect(team.length, 'the team ran through the router').toBeGreaterThan(3);
+  for (const o of team) expect(o.workspaceId, o.stage).toBe('ws-oak-pays');
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });

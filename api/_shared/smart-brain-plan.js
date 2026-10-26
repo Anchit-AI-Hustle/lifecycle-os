@@ -4126,8 +4126,11 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const teamOn = !keylessOnly && String(process.env.MARKETING_TEAM || '').toLowerCase() !== 'off';
     const MA = require('./marketing-agents.js');
     const tctx = teamOn ? teamContext(entry) : null;
+    // The workspace whose credits pay for the team: the router's tier choice reads its balance,
+    // and with no id a workspace out of credits would still get premium maker calls (Codex #370).
+    const teamWorkspace = (config && config.workspace_id) || (entry && entry.workspace_id) || null;
     const teamOpts = teamOn ? {
-      call: callLLMTiered, parseJSON, market: entry.market,
+      call: (a) => callLLMTiered(Object.assign({ workspaceId: teamWorkspace }, a)), parseJSON, market: entry.market,
       brandName: (entry.brand && entry.brand.name) || 'the brand',
       left: () => (__buildStart + (+process.env.TEAM_PLAN_MS || 45000)) - Date.now(),
     } : null;
