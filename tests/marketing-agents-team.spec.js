@@ -226,6 +226,25 @@ test('a malformed review is not a pass; an incomplete brief is not accepted; the
   expect(byStage('smart-brain-copy')[0].userMessage).toContain('15% off');
 });
 
+test('a slow model does not carry the team past its deadline: the tier ladder stops with the budget (Codex #370)', async () => {
+  test.setTimeout(120000);
+  const base = teamScript({ copyVerdict: 'pass' });
+  // Every tier of the strategist hangs 1.5 s then fails; with 2.5 s for the plan, the ladder of three tiers must stop.
+  script = async (o) => {
+    if (o.stage === 'team-strategy' || o.stage === 'team-messaging') { await new Promise((r) => setTimeout(r, 1500)); throw new Error('provider too slow'); }
+    return base(o);
+  };
+  const t0 = Date.now();
+  await build({ TEAM_PLAN_MS: '2500' });
+  for (const st of ['team-strategy', 'team-messaging']) {
+    const xs = byStage(st);
+    expect(xs.length, `${st}: the ladder stopped at the deadline`).toBeLessThanOrEqual(2);
+    for (const x of xs) expect(x.budgetMs, `${st} carries the time it has left`).toBeLessThanOrEqual(2500);
+  }
+  expect(byStage('smart-brain-strategy').length, 'the single strategist fills in').toBe(1);
+  expect(Date.now() - t0).toBeLessThan(60000);
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });

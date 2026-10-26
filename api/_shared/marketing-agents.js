@@ -115,7 +115,7 @@ async function pair(key, ctx, upstream, o) {
       critique ? `\nTHE REVIEWER SENT THIS BACK. Fix exactly these and keep the rest:\n${critique}` : '',
     ].join('\n'), SPECS[key](brandName, market));
     try {
-      const res = await call({ systemPrompt: systemFor(maker, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.6, timeoutMs: Math.min(15000, Math.max(3000, left())), tier: 'premium', stage: `team-${key}`, feature: `team.${key}` });
+      const res = await call({ systemPrompt: systemFor(maker, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 900, temperature: 0.6, timeoutMs: Math.min(15000, Math.max(3000, left())), budgetMs: Math.max(1000, left()), tier: 'premium', stage: `team-${key}`, feature: `team.${key}` });
       const json = parseJSON(res.text);
       // Accepted only when every field the spec names has the type it was asked for (a string
       // where a list belongs would break the copy briefing downstream), and the core is there.
@@ -165,7 +165,7 @@ async function review(key, ctx, work, o, upstream) {
   const sp = REVIEW_SPEC(`team.review.${key}`, brandName, market, key === 'copy' ? 'copy of every asset' : key);
   const user = OC.append(['SHARED MARKETING CONTEXT', ctx, upstream ? `\nWORK OF THE TEAM SO FAR (what the maker was given)\n${upstream}` : '', `\nTHE WORK TO REVIEW\n${work}`, `\nCHECK: ${r.check}`].join('\n'), sp);
   try {
-    const res = await call({ systemPrompt: systemFor(r, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 700, temperature: 0.2, timeoutMs: Math.min(12000, Math.max(3000, left())), tier: 'fast', stage: `team-review-${key}`, feature: `team.review.${key}` });
+    const res = await call({ systemPrompt: systemFor(r, brandName), userMessage: user, responseFormat: { type: 'json_object' }, maxTokens: 700, temperature: 0.2, timeoutMs: Math.min(12000, Math.max(3000, left())), budgetMs: Math.max(1000, left()), tier: 'fast', stage: `team-review-${key}`, feature: `team.review.${key}` });
     const j = parseJSON(res.text);
     const verdict = j && (j.verdict === 'pass' || j.verdict === 'revise') ? j.verdict : null;
     if (!verdict) return { verdict: null, member: { department: r.department, role: r.role, kind: 'reviewer', ok: false, provider: res.provider || null, ms: ms() - t0, error: 'its answer carried no verdict' } };

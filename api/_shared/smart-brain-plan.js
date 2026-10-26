@@ -165,8 +165,13 @@ async function callLLMTiered(opts) {
   // would only queue the same request three times.
   try { if (await require('./llm.js').keylessOnly()) tiers = [wanted]; } catch (_) { /* keep the ladder */ }
   let lastErr;
+  // A caller's budgetMs bounds the WHOLE ladder, not each tier: every tier gets what is left,
+  // and none starts once it is spent (the team's makers and reviewers must end by their deadline).
+  const until = Number(opts && opts.budgetMs) > 0 ? Date.now() + Number(opts.budgetMs) : 0;
   for (const tier of tiers) {
-    try { return await callLLM({ ...opts, tier }); }
+    const left = until ? until - Date.now() : 0;
+    if (until && left < 500) { lastErr = lastErr || new Error('the call budget is spent'); break; }
+    try { return await callLLM(until ? { ...opts, tier, budgetMs: left, timeoutMs: Math.min(Number(opts.timeoutMs) || left, left) } : { ...opts, tier }); }
     catch (e) { lastErr = e; }
   }
   throw lastErr;
