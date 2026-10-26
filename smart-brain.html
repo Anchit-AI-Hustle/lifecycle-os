@@ -677,6 +677,35 @@ function departmentsHTML(c){
   return `<div class="pvnote" data-departments style="margin-top:8px"><b>Marketing team for this send</b> · ${d.done} of ${d.steps} steps done${d.gaps ? `, ${d.gaps} with a gap` : ''} · <a href="/marketing-team">all departments</a></div>${kpi}${test}${trk}<ul style="margin:4px 0 0;padding-left:18px;font-size:12px;line-height:1.5">${rows}</ul>`;
 }
 
+// The marketing team that made THIS send (marketing-agents.js): the shared
+// context it read, each maker's work and each reviewer's verdict, with what a
+// reviewer sent back and whether the rewrite landed. Nothing when no team ran
+// (no model key, the keyless floor, or MARKETING_TEAM=off).
+function teamHTML(c){
+  const t = c && c.team;
+  if (!t || !Array.isArray(t.members) || !t.members.length) return '';
+  const s = t.strategy || {}, m = t.messaging || {}, b = t.briefs || {};
+  const sent = t.members.filter(x => x.kind === 'reviewer' && x.verdict === 'revise').length;
+  const rows = t.members.map(x => {
+    const state = x.kind === 'reviewer'
+      ? (x.ok ? (x.verdict === 'revise' ? `sent back${x.score != null ? ` (${x.score}/10)` : ''}` : `passed${x.score != null ? ` (${x.score}/10)` : ''}`) : (x.skipped ? 'skipped: ' + esc(x.error || '') : 'did not answer'))
+      : (x.ok ? (x.revision ? 'rewrote it' : 'made it') : 'failed: ' + esc(x.error || ''));
+    const issues = (x.issues || []).length ? `<ul style="margin:2px 0 0;padding-left:16px">${x.issues.map(i => `<li>${esc((i.field ? i.field + ': ' : '') + (i.problem || ''))}${i.fix ? ` <i>→ ${esc(i.fix)}</i>` : ''}</li>`).join('')}</ul>` : '';
+    return `<li data-team-member data-kind="${esc(x.kind)}" data-state="${esc(x.kind === 'reviewer' ? (x.verdict || 'none') : (x.ok ? 'ok' : 'failed'))}" style="margin:3px 0"><b>${esc(x.role)}</b> <span class="pvnote" style="margin:0">${esc(x.department)}${x.direction ? ` · copy ${esc(x.direction)}` : ''}</span>: ${state}${issues}</li>`;
+  }).join('');
+  const work = [
+    s.angle ? `<div><b>Strategy:</b> ${esc(s.angle)}${s.why_now ? ` · why now: ${esc(s.why_now)}` : ''}${s.primary_kpi ? ` · KPI: ${esc(s.primary_kpi)}` : ''}</div>` : '',
+    m.key_message ? `<div><b>Key message:</b> ${esc(m.key_message)}${m.value_proposition ? ` · ${esc(m.value_proposition)}` : ''}</div>` : '',
+    (m.objections || []).length ? `<div><b>Objections answered:</b> ${m.objections.map(o => `${esc(o.objection)} → ${esc(o.answer)}`).join('; ')}</div>` : '',
+    b.channel_roles ? `<div><b>Channel roles:</b> ${esc(b.channel_roles)}</div>` : '',
+  ].join('');
+  return `<details class="pvteam" data-team style="margin-top:14px;border:1px solid var(--vh-line);border-radius:8px;padding:8px 10px;background:var(--vh-panel)">
+    <summary style="cursor:pointer;font-weight:600">Made by the marketing team <span class="pvnote" style="margin:0;font-weight:400">· ${t.members.length} agent steps${sent ? `, ${sent} sent back by a reviewer` : ''} · <a href="/marketing-team#roster">every role</a></span></summary>
+    <div class="pvnote" style="margin-top:6px;line-height:1.5">${work}</div>
+    <ul style="margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.5">${rows}</ul>
+  </details>`;
+}
+
 // ── The three visible end states ────────────────────────────────────────────
 // Every generate, sync or approve action has to finish in exactly one of these,
 // because the alternative is what this page used to do: leave the previous
@@ -1927,6 +1956,7 @@ function renderPreview(payload, e, i, opts){
       const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
       return bar + present.map(([k]) => `<div class="pvgroup pvgroup-${k}" data-group="${k}"${k === open ? '' : ' hidden'}>${by[k].map(section).join('')}</div>`).join('');
     })()}
+    ${teamHTML(campaign)}
     ${checksBlock}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
   // bytes of it (Blob URL) now that the panes are in the DOM.
