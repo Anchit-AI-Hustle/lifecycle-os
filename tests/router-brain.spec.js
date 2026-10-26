@@ -94,6 +94,9 @@ const BRAND = Object.assign({}, H.BRAND_ROW, { regions: H.BRAND_ROW.regions.map(
 let restoreEnv, srv;
 const FILE = new H.Stubs();          // the llm swap + brain reload, for the whole file
 const llmCalls = [];
+// Set by a case whose core plans with a model it should not reach (the music
+// chain's song agents take their deterministic fallbacks when no model answers).
+const llmMode = { refuse: false };
 let S, guard, db;
 
 test.beforeAll(async () => {
@@ -102,7 +105,7 @@ test.beforeAll(async () => {
   // the real llm.js; only then swap llm.js and re-execute brain.js alone.
   require(H.ROOT + '/' + BRAIN);
   const realLlm = require(H.ROOT + '/' + LLM);
-  const stubLlm = async function callLLMStub(opts) { llmCalls.push(opts); return { ok: true, text: 'stubbed reply', provider: 'stub', model: 'stub' }; };
+  const stubLlm = async function callLLMStub(opts) { llmCalls.push(opts); if (llmMode.refuse) throw new Error('no model answered (router-brain music case)'); return { ok: true, text: 'stubbed reply', provider: 'stub', model: 'stub' }; };
   for (const k of Object.keys(realLlm)) stubLlm[k] = realLlm[k];
   FILE.swap(LLM, stubLlm);
   FILE.reload(BRAIN);
@@ -115,6 +118,7 @@ test.afterAll(async () => {
 });
 test.beforeEach(() => {
   llmCalls.length = 0;
+  llmMode.refuse = false;
   require(H.ROOT + '/' + WS_SCOPE).invalidate();
   guard = H.netGuard();
   guard.route((u) => u.startsWith(H.SELF_BASE_URL), () => H.reply(200, { ok: true, chained: true }));
@@ -756,8 +760,11 @@ add('launch-visuals', { gate: 'user', browser: 'refuse', run: { json: { concept:
 });
 // The music chain (music-compose.js, 2026-10-25): no workspace connection here,
 // and no platform music key unless a case sets one.
-const NO_MUSIC_KEYS = { GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined };
-const noOwnMusic = () => { S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null); };
+const NO_MUSIC_KEYS = { GEMINI_API_KEY: undefined, ELEVENLABS_API_KEY: undefined, REPLICATE_API_TOKEN: undefined, HF_API_TOKEN: undefined, HUGGINGFACE_API_KEY: undefined, HUGGINGFACEHUB_API_TOKEN: undefined };
+// The Third Eye's song plan with no model answering: what every provider is sent.
+const TEM = () => require(H.ROOT + '/api/_shared/third-eye-music');
+const fbPlan = (prompt, o) => { const T = TEM(); const i = T.inputFrom(prompt, o); return Object.assign(T.fallbackPlan(i), { input: i }); };
+const noOwnMusic = () => { llmMode.refuse = true; S.on(M.connections, 'llmOverridesForCurrentRequest', async () => null); S.on(M.connections, 'mediaKeysForCurrentRequest', async () => null); };
 const elevenOk = (body) => guard.route((u) => u.startsWith('https://api.elevenlabs.io/'), () => H.reply(200, Buffer.from(body || 'ID3fakemusic'), { 'content-type': 'audio/mpeg', 'song-id': 'song_1' }));
 add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', run: { json: { prompt: 'Original upbeat ad bed for the brand', seconds: 15, instrumental: true } },
   env: Object.assign({}, NO_MUSIC_KEYS, { ELEVENLABS_API_KEY: 'eleven-harness' }),
@@ -769,7 +776,10 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
     const c = guard.calls.find((x) => /elevenlabs/.test(x.url));
     expect(c.url).toBe('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128'); expect(c.headers['xi-api-key']).toBe('eleven-harness');
     // music_v2_5 is ElevenLabs' current model (its compose reference, read 2026-10-25), as The Third Eye uses.
-    expect(JSON.parse(c.body)).toEqual({ prompt: 'Original upbeat ad bed for the brand', music_length_ms: 15000, model_id: 'music_v2_5', force_instrumental: true });
+    // The Third Eye's elevenPrompt over its song plan (third-eye-music/, 2026-10-26).
+    const pl = fbPlan('Original upbeat ad bed for the brand', { instrumental: true, seconds: 15 }).plan;
+    expect(JSON.parse(c.body)).toEqual({ prompt: TEM().elevenPrompt({ prompt: pl.prompt, tags: pl.tags, lyrics: '', sing: false }), music_length_ms: 15000, model_id: 'music_v2_5', force_instrumental: true });
+    expect(JSON.parse(c.body).prompt).toMatch(/^Original upbeat ad bed for the brand\. /);
   },
   cases: [
     { name: 'with no key and free generation off it says what to set and offers Suno, and nothing leaves the process', run: {}, env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'off' }),
@@ -811,18 +821,20 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
       expect: (r) => {
         expect(r.status).toBe(200); expect(r.headers['x-music-provider']).toBe('code-synth');
         expect(r.bytes.readUInt32LE(40)).toBe(8 * 22050 * 2);
-        expect(decodeURIComponent(r.headers['x-music-note'])).toMatch(/acoustic \(from the brief\).*8 seconds.*Press Compose again for a different take/);
-        const SY = require(H.ROOT + '/music-synth.js');
+        // The Third Eye's synth, seeded by the request, the plan's prompt and the take.
+        const note = decodeURIComponent(r.headers['x-music-note']);
+        expect(note).toMatch(/^This is a code-made instrumental sketch, not a produced track \(Folk, \d+ BPM.*\)\. Press Compose again for a different take\./);
+        const P = fbPlan('Warm acoustic ad bed', { instrumental: true, seconds: 8 });
         const sh = (b) => require('crypto').createHash('sha256').update(Buffer.from(b)).digest('hex');
-        expect(sh(r.bytes)).toBe(sh(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true, take: 'one' }).bytes));
-        expect(sh(r.bytes)).not.toBe(sh(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true, take: 'two' }).bytes));
+        expect(sh(r.bytes)).toBe(sh(TEM().synthWav(P, P.input.description, 8, 'one')));
+        expect(sh(r.bytes)).not.toBe(sh(TEM().synthWav(P, P.input.description, 8, 'two')));
       } },
     { name: 'a take that is an object is ignored: the sketch is the brief\'s no-take track', env: Object.assign({}, NO_MUSIC_KEYS, { FREE_GENERATION: 'on' }), run: { json: { prompt: 'Warm acoustic ad bed', seconds: 8, take: { $gt: '' } } },
       stubs: noOwnMusic,
       expect: (r) => {
         expect(r.status).toBe(200);
-        const SY = require(H.ROOT + '/music-synth.js');
-        expect(Buffer.compare(r.bytes, Buffer.from(SY.renderBytes('Warm acoustic ad bed', 8, { compact: true }).bytes))).toBe(0);
+        const P = fbPlan('Warm acoustic ad bed', { instrumental: true, seconds: 8 });
+        expect(Buffer.compare(r.bytes, TEM().synthWav(P, P.input.description, 8, ''))).toBe(0);
       } },
     // Gemini's own music model first (2026-10-25, music-compose.js): with a
     // Gemini key the documented Interactions request is made and Lyria's audio
@@ -854,7 +866,10 @@ add('music-compose', { gate: 'model', model: 'audio.music', browser: 'refuse', r
         expect(decodeURIComponent(r.headers['x-music-sung'])).toBe('[chorus]\nNik Bakers, fresh today');
         const c = guard.calls.find((x) => /api\.replicate\.com/.test(x.url));
         expect(c.headers.authorization || c.headers.Authorization).toBe('Bearer r8_harness');
-        expect(JSON.parse(c.body)).toEqual({ input: { tags: 'modern pop, bright and upbeat, 112 bpm, synth bass, claps', lyrics: '[chorus]\nNik Bakers, fresh today', duration: 20 } });
+        // ACE-Step gets the Conductor's tags (tempo and genre first, then the vocal) and the brand's own lyrics.
+        const P = fbPlan(JSON.parse(c.body).input && 'Create an original modern pop track, about 20 seconds long.\nMood: bright and upbeat; in the brand\'s voice: warm.\nTempo: about 112 BPM. Instruments: synth bass, claps.\nVocals: a clear, catchy lead vocal in English. Sing exactly these lyrics, in this order, and no others:\n[chorus]\nNik Bakers, fresh today\nDo not imitate any named artist, voice or existing song.', { instrumental: false, seconds: 20 });
+        expect(JSON.parse(c.body)).toEqual({ input: { tags: P.plan.tags, lyrics: '[chorus]\nNik Bakers, fresh today', duration: 20 } });
+        expect(P.plan.tags).toMatch(/^112 bpm, mid-tempo, modern pop, /);
       } },
     { name: 'a Replicate track still rendering comes back as a job the page polls (202), not an error', env: Object.assign({}, NO_MUSIC_KEYS, { REPLICATE_API_TOKEN: 'r8_harness', MUSIC_WAIT_MS: '16000' }), run: { json: { prompt: 'An instrumental bed', seconds: 30, instrumental: true } },
       stubs: () => {
