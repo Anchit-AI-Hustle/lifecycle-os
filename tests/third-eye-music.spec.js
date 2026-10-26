@@ -140,10 +140,20 @@ test('compose sends the plan: ElevenLabs gets elevenPrompt(plan), and the answer
   } finally { net.restore(); }
 });
 
-test('Hugging Face MusicGen is called as The Third Eye calls it; its refusal is said and the synth plays', async () => {
-  let net = fakeNet((u) => (u === 'https://api-inference.huggingface.co/models/facebook/musicgen-small' ? { bytes: Buffer.from('RIFFwav-from-hf'), type: 'audio/wav' } : null));
+test('Hugging Face MusicGen is called as The Third Eye calls it, only for a model the operator names; its refusal is said and the synth plays', async () => {
+  // A token alone calls nothing: the default (musicgen-small) is served by no Inference Provider.
+  let net = fakeNet(() => null);
   try {
     await withEnv({ HF_API_TOKEN: 'hf_test' }, async () => {
+      const r = await fresh().compose({ prompt: 'Warm acoustic ad bed', seconds: 8 }, { own: null, ownKeys: {}, freeGeneration: true });
+      expect(r.provider).toBe('code-synth');
+      expect(net.calls).toEqual([]);
+      expect(r.message).not.toMatch(/Hugging Face/);
+    });
+  } finally { net.restore(); }
+  net = fakeNet((u) => (u === 'https://api-inference.huggingface.co/models/facebook/musicgen-small' ? { bytes: Buffer.from('RIFFwav-from-hf'), type: 'audio/wav' } : null));
+  try {
+    await withEnv({ HF_API_TOKEN: 'hf_test', HF_MUSIC_MODEL: 'facebook/musicgen-small' }, async () => {
       const r = await fresh().compose({ prompt: 'Warm acoustic ad bed', seconds: 45 }, { own: null, ownKeys: {}, freeGeneration: true });
       expect(r).toMatchObject({ ok: true, provider: 'huggingface', model: 'huggingface:facebook/musicgen-small', quality: 'studio', own: false });
       expect(r.audio.toString()).toBe('RIFFwav-from-hf');
@@ -154,7 +164,7 @@ test('Hugging Face MusicGen is called as The Third Eye calls it; its refusal is 
   } finally { net.restore(); }
   net = fakeNet((u) => (u.startsWith('https://api-inference.huggingface.co/') ? { status: 404, body: { error: 'Model not found' } } : null));
   try {
-    await withEnv({ HF_API_TOKEN: 'hf_test' }, async () => {
+    await withEnv({ HF_API_TOKEN: 'hf_test', HF_MUSIC_MODEL: 'facebook/musicgen-small' }, async () => {
       const r = await fresh().compose({ prompt: 'Warm acoustic ad bed', seconds: 8 }, { own: null, ownKeys: {}, freeGeneration: true });
       expect(r.provider).toBe('code-synth');
       expect(r.message).toMatch(/The platform's Hugging Face key: Hugging Face answered 404/);
