@@ -1295,20 +1295,36 @@ module.exports = async function handler(req, res) {
       case 'tts': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const apiKey = process.env.ELEVENLABS_API_KEY;
-        // Free first: with free generation on, the free voice speaks even when
-        // a paid key exists (the operator: "done for free in the backend").
+        // 2026-10-26: the keyless voice this route used to hand back
+        // (text.pollinations.ai ... model=openai-audio) is gone: Pollinations'
+        // free API now lists one text model and answers that URL 404. So, with
+        // free generation on (or no ElevenLabs key), Gemini TTS speaks it
+        // (the workspace's own Gemini connection, then the platform's key);
+        // else ElevenLabs when a key exists; else 501 and the page's own
+        // browser voice speaks (every caller already falls back to it).
         if (!apiKey || freeGenerationOn()) {
-          // No key: a keyless voice the browser plays itself (2026-10-17). The
-          // SAME Pollinations audio URL form copilot.js already plays
-          // (text.pollinations.ai/<text>?model=openai-audio&voice=<voice>),
-          // so nothing is fetched here and no key is spent. FREE_GENERATION=off
-          // turns it off and the client keeps its browser-voice fallback.
-          if (!freeGenerationOn()) return res.status(501).json({ ok: false, error: 'ELEVENLABS_API_KEY not configured — client should use browser speechSynthesis fallback' });
-          const clean = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, 700);
+          const clean = String(b.text || '').replace(/\s+/g, ' ').trim().slice(0, 2400);
           if (!clean) return res.status(400).json({ ok: false, error: 'text_required', message: 'Nothing to speak.' });
-          const voice = /^[a-z]{2,20}$/i.test(String(b.voice || '')) ? String(b.voice) : 'nova';
-          const audio_url = 'https://text.pollinations.ai/' + encodeURIComponent(clean) + '?model=openai-audio&voice=' + encodeURIComponent(voice);
-          return res.status(200).json({ ok: true, provider: 'pollinations', voice, audio_url, note: 'The browser plays this voice directly; if it does not load, the browser voice speaks instead.' });
+          const SV = require('./_shared/story-voice.js');
+          const auths = [];
+          try {
+            const ov = await require('./_shared/workspace-connections-core.js').llmOverridesForCurrentRequest();
+            const kk = ov && ov.keys;
+            if (kk && kk.gemini) auths.push({ apiKey: String(kk.gemini) });
+            else if (kk && kk.gemini_oauth && kk.gemini_oauth.access_token) auths.push({ bearer: kk.gemini_oauth.access_token, project: kk.gemini_oauth.project || '' });
+          } catch (_) { /* no workspace */ }
+          const gk = String(process.env.GEMINI_API_KEY || '').trim();
+          if (gk) auths.push({ apiKey: gk });
+          const why = [];
+          for (const auth of auths) {
+            try {
+              const v = await SV.speakGemini(clean, auth, { timeoutMs: 25000 });
+              res.setHeader('X-Voice-Provider', 'gemini');
+              res.setHeader('Content-Type', v.mime);
+              return res.status(200).send(v.audio);
+            } catch (e) { why.push(String((e && e.message) || e)); }
+          }
+          if (!apiKey) return res.status(501).json({ ok: false, error: 'no_voice_model', message: 'No voice model answered' + (why.length ? ' (' + why.join('; ') + ')' : '') + ': connect your own Gemini or ElevenLabs key for a produced voice. Until then the browser\'s own voice speaks.' });
         }
         const voiceId = b.voice_id || process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
         const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {

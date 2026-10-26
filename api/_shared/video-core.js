@@ -635,7 +635,7 @@ function codeMotion({ brand = null, motion = null, duration_s = 8, aspect = '9:1
         accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
       fonts: { head: String(fs2.head).replace(/"/g, "'"), body: String(fs2.body).replace(/"/g, "'") },
     });
-    out.mp4 = { method: 'POST', url: '/api/public-config?action=video-render', body: { html: '<story_html>' }, note: 'An MP4 made in code from this story, with no key: send story_html as html. Up to about a minute and a half.' };
+    out.mp4 = { method: 'POST', url: '/api/public-config?action=video-render', body: { html: '<story_html>' }, note: 'An MP4 made in code from this story, with a music bed and a voiceover of its own words: send story_html as html. Up to about a minute and a half.' };
   } catch (_) { /* the HTML creative still answers */ }
   if (attempts) out.attempts = attempts;
   if (wouldRequest) {

@@ -33,9 +33,15 @@
  * every other request the page makes is refused, behind the launcher's dead proxy.
  *
  * OUTPUT. H.264 in MP4 where the encoder exists (production), else VP9 in WebM
- * (a Chromium without the H.264 encoder), said in `codec`/`container`. Silent:
- * the encoder offers no AAC, the audio ad platforms expect; a track composed
- * on /brain is still mixed in by the page's own "Save as video". 720 x 1280
+ * (a Chromium without the H.264 encoder), said in `codec`/`container`.
+ * SOUND (2026-10-26, the operator: "audio missing in the video assets ...
+ * background music with human voiceovers"): a music bed (the track composed
+ * on /brain, else the code-made one from music-synth.js, as long as the video)
+ * and a voiceover of the ad's own words (story-voice.js), mixed in the page by
+ * an OfflineAudioContext: the voice placed at its scene, the music ducked
+ * under it, a little room tone, faded in and out. AAC in the MP4 (Chromium's
+ * WebCodecs has no AAC encoder, so @mediabunny/aac-encoder, FFmpeg's AAC
+ * encoder in WebAssembly, MPL-2.0), Opus in the WebM. 720 x 1280
  * by default (TikTok's minimum is 540 x 960), the bitrate chosen so the file
  * stays under the 4.5 MB a Vercel response may carry.
  *
@@ -58,15 +64,22 @@ const SIZE_ORDER = ['1080p', '720p', '540p'];
 // @sparticuz/chromium 153 (2026-10-26): ~75 ms a frame at 720p, ~49 at 540p.
 const DEFAULT_BUDGET_MS = 95000;
 
+function aacSource() {
+  // FFmpeg's AAC-LC encoder built to WebAssembly (MPL-2.0); traced by vercel.json.
+  return fs.readFileSync(path.join(__dirname, '..', '..', 'node_modules', '@mediabunny', 'aac-encoder', 'dist', 'bundles', 'mediabunny-aac-encoder.min.js'), 'utf8');
+}
+
 function mediabunnySource() {
   // The package exports no path to its browser bundle, so it is read by file;
   // vercel.json includeFiles puts this exact file in the function.
   return fs.readFileSync(path.join(__dirname, '..', '..', 'node_modules', 'mediabunny', 'dist', 'bundles', 'mediabunny.min.cjs'), 'utf8');
 }
 
-/** The bitrate that keeps `seconds` of video under the response cap, at most `ceiling`. */
-function bitrateFor(seconds, ceiling) {
-  const budget = Math.floor((MAX_BYTES_OUT * 8 * 0.9) / Math.max(1, seconds));
+const AUDIO_BPS = 128000;
+
+/** The video bitrate that keeps `seconds` (and its audio) under the response cap, at most `ceiling`. */
+function bitrateFor(seconds, ceiling, audioBps) {
+  const budget = Math.floor((MAX_BYTES_OUT * 8 * 0.9) / Math.max(1, seconds)) - (Number(audioBps) || 0);
   return Math.max(400000, Math.min(ceiling || 3000000, budget));
 }
 
@@ -128,11 +141,24 @@ async function encodeInPage(o) {
   let codec = null, format = null, container = null;
   if (await M.canEncodeVideo('avc', { width: W, height: H, bitrate: o.bitrate })) { codec = 'avc'; format = new M.Mp4OutputFormat({ fastStart: 'in-memory' }); container = 'mp4'; }
   else if (await M.canEncodeVideo('vp9', { width: W, height: H, bitrate: o.bitrate })) { codec = 'vp9'; format = new M.WebMOutputFormat(); container = 'webm'; }
-  else return { ok: false, error: 'this browser has no video encoder (WebCodecs H.264 or VP9)' };
+  else return { ok: false, unsupported: true, error: 'no H.264 or VP9 encoder at ' + W + 'x' + H };
   const output = new M.Output({ format, target: new M.BufferTarget() });
   const source = new M.CanvasSource(S.canvas, { codec, bitrate: new M.Quality({ bitrate: o.bitrate }), keyFrameInterval: 2, latencyMode: o.latency || 'quality' });
   output.addVideoTrack(source, { frameRate: o.fps });
+  // THE SOUND: mixed once, before the frames, by an OfflineAudioContext.
+  let mix = null, audioSource = null, audioCodec = null, sound = null;
+  if (o.audio && (o.audio.music || (o.audio.voice && o.audio.voice.length))) {
+    mix = await mixAudio(total, o.audio);
+    audioCodec = container === 'mp4' ? 'aac' : 'opus';
+    if (!(await M.canEncodeAudio(audioCodec)) && audioCodec === 'aac' && window.MediabunnyAacEncoder) window.MediabunnyAacEncoder.registerAacEncoder();
+    if (await M.canEncodeAudio(audioCodec)) {
+      audioSource = new M.AudioBufferSource({ codec: audioCodec, bitrate: o.audioBps || 128000 });
+      output.addAudioTrack(audioSource);
+      sound = { codec: audioCodec, voice_placed: mix.placed, voice_dropped: mix.dropped, music: !!o.audio.music };
+    } else sound = { codec: null, error: 'no ' + audioCodec + ' encoder in this browser' };
+  }
   await output.start();
+  if (audioSource) { await audioSource.add(mix.buffer); audioSource.close(); }
   const frames = Math.round(total * o.fps), dt = 1 / o.fps;
   let drawMs = 0, encMs = 0;
   const started = performance.now();
@@ -156,7 +182,62 @@ async function encodeInPage(o) {
   const bytes = new Uint8Array(output.target.buffer);
   let bin = '';
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return { ok: true, codec, container, frames, seconds: total, bytes: bytes.length, b64: btoa(bin), blocked: S.blocked(), draw_ms: Math.round(drawMs), encode_ms: Math.round(encMs) };
+  return { ok: true, codec, container, frames, seconds: total, bytes: bytes.length, b64: btoa(bin), blocked: S.blocked(), draw_ms: Math.round(drawMs), encode_ms: Math.round(encMs), sound };
+
+  // The mix. Voice lines at their scenes (never on top of each other: a line
+  // that would start before the last one finished waits for it); the music
+  // under them at a bed level, ducked while someone speaks; a quiet room
+  // tone so the silences sound like a room, not a void; faded in and out;
+  // the whole mix brought to -1 dBFS.
+  async function mixAudio(total, a) {
+    const rate = 48000, len = Math.ceil(total * rate);
+    const ctx = new OfflineAudioContext(2, len, rate);
+    const dec = async (u) => ctx.decodeAudioData(await (await fetch(u)).arrayBuffer());
+    const voices = [];
+    for (const v of (a.voice || [])) { try { voices.push({ start: v.start, buf: await dec(v.url) }); } catch (_) { /* a clip the browser cannot decode */ } }
+    let at = 0, placed = 0, dropped = 0;
+    const spans = [];
+    for (const v of voices) {
+      const start = Math.max(v.start + 0.25, at + 0.12);
+      if (start > total - 0.6) { dropped++; continue; }
+      const src = ctx.createBufferSource(); src.buffer = v.buf;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 85;
+      const vg = ctx.createGain(); vg.gain.value = 1;
+      src.connect(hp).connect(vg).connect(ctx.destination); src.start(start);
+      const end = Math.min(total, start + v.buf.duration);
+      spans.push([start, end]); at = start + v.buf.duration; placed++;
+    }
+    if (a.music) {
+      let mb = null; try { mb = await dec(a.music); } catch (_) { mb = null; }
+      if (mb) {
+        const src = ctx.createBufferSource(); src.buffer = mb; src.loop = mb.duration < total - 0.05;
+        const g = ctx.createGain(), bed = spans.length ? 0.42 : 0.75, duck = 0.14;
+        g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(bed, 0.4);
+        let last = 0.4, lvl = bed;
+        for (const [s, e] of spans) {
+          const a1 = Math.max(last, s - 0.18), a2 = Math.max(a1 + 0.01, s), b1 = Math.max(a2, e), b2 = b1 + 0.35;
+          g.gain.setValueAtTime(bed, a1); g.gain.linearRampToValueAtTime(duck, a2); last = a2; lvl = duck;
+          if (b2 > total - 0.9) break;
+          g.gain.setValueAtTime(duck, b1); g.gain.linearRampToValueAtTime(bed, b2); last = b2; lvl = bed;
+        }
+        g.gain.setValueAtTime(lvl, Math.max(last, total - 0.9)); g.gain.linearRampToValueAtTime(0, total);
+        src.connect(g).connect(ctx.destination); src.start(0);
+      }
+    }
+    // Room tone: soft filtered noise, about -50 dB.
+    const room = ctx.createBuffer(1, Math.min(len, rate * 2), rate), rd = room.getChannelData(0);
+    let seed = 99;
+    for (let i = 0; i < rd.length; i++) { seed = (seed * 1664525 + 1013904223) >>> 0; rd[i] = (seed / 4294967296) * 2 - 1; }
+    const rs = ctx.createBufferSource(); rs.buffer = room; rs.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+    const rg = ctx.createGain(); rg.gain.value = 0.006;
+    rs.connect(lp).connect(rg).connect(ctx.destination); rs.start(0);
+    const buffer = await ctx.startRendering();
+    let peak = 0;
+    for (let c = 0; c < buffer.numberOfChannels; c++) { const d = buffer.getChannelData(c); for (let i = 0; i < d.length; i++) { const x = Math.abs(d[i]); if (x > peak) peak = x; } }
+    if (peak > 0) { const k = 0.89 / peak; for (let c = 0; c < buffer.numberOfChannels; c++) { const d = buffer.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k; } }
+    return { buffer, placed, dropped };
+  }
 }
 
 /**
@@ -178,7 +259,17 @@ async function renderStoryVideo(opts) {
   let [width, height] = SIZES[o.size] || SIZES['720p'];
   // 24 frames a second by default: the film rate, and a fifth fewer frames to encode.
   const fps = Number(o.fps) === 30 ? 30 : 24;
-  let bitrate = bitrateFor(seconds, width >= 1080 ? 4000000 : 2500000);
+  const sound = o.audio && ((o.audio.music && o.audio.music.bytes) || (o.audio.voice && o.audio.voice.length)) ? o.audio : null;
+  const abps = sound ? AUDIO_BPS : 0;
+  let bitrate = bitrateFor(seconds, width >= 1080 ? 4000000 : 2500000, abps);
+  // The sound's files, served to the page from this process (never fetched).
+  const assets = new Map();
+  if (sound && sound.music && sound.music.bytes) assets.set(ORIGIN + '/a/music', sound.music);
+  (sound && sound.voice || []).forEach((v, i) => assets.set(ORIGIN + '/a/v' + i, { bytes: v.audio, mime: v.mime }));
+  const audioArg = sound ? {
+    music: sound.music && sound.music.bytes ? '/a/music' : null,
+    voice: (sound.voice || []).map((v, i) => ({ start: v.start, url: '/a/v' + i })),
+  } : null;
   const deadline = Date.now() + (Number(o.budgetMs) > 0 ? Number(o.budgetMs) : DEFAULT_BUDGET_MS);
   const fetchImpl = o.fetchImpl || fetch;
   const page = story.storyPage(data);
@@ -199,6 +290,8 @@ async function renderStoryVideo(opts) {
         if (req.method() !== 'GET') return route.abort();
         if (url === ORIGIN + '/') return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: page });
         if (url === ORIGIN + '/mediabunny.js') return route.fulfill({ status: 200, contentType: 'text/javascript', body: mb });
+        if (url === ORIGIN + '/aac.js' && sound) return route.fulfill({ status: 200, contentType: 'text/javascript', body: aacSource() });
+        if (assets.has(url)) { const a = assets.get(url); return route.fulfill({ status: 200, contentType: a.mime || 'application/octet-stream', body: Buffer.from(a.bytes) }); }
         if (!wanted.has(url)) return route.abort();
         try {
           const img = await fetchImage(url, fetchImpl, o.assertUrl, imageBudget);
@@ -211,26 +304,34 @@ async function renderStoryVideo(opts) {
       });
       await pg.goto(ORIGIN + '/', { waitUntil: 'load', timeout: 30000 });
       await pg.addScriptTag({ url: ORIGIN + '/mediabunny.js' });
+      if (sound) await pg.addScriptTag({ url: ORIGIN + '/aac.js' });
       const tPage = Date.now();
       // The size asked for first, then each smaller one, while time remains.
       const ladder = SIZE_ORDER.slice(SIZE_ORDER.indexOf(SIZE_ORDER.includes(o.size) ? o.size : '720p'));
-      let r = null, tried = [];
+      let r = null, tried = [], anySlow = false;
       for (const sz of ladder) {
         const [w, h] = SIZES[sz];
         const left = deadline - Date.now();
-        if (left < 8000) break;
-        r = await pg.evaluate(encodeInPage, { cut, width: w, height: h, fps, bitrate: bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000), latency: o.latency, budgetMs: left - 4000 });
-        tried.push(sz + (r && r.slow ? ' (' + r.error + ')' : ''));
-        if (r && r.ok) { width = w; height = h; bitrate = bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000); break; }
-        if (!(r && r.slow)) break;
+        // No time left to try this size: that is running out of time, said as such.
+        if (left < 8000) { tried.push(sz + ' (no time left to start it)'); anySlow = true; break; }
+        try {
+          r = await pg.evaluate(encodeInPage, { cut, width: w, height: h, fps, bitrate: bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000, abps), audio: audioArg, audioBps: AUDIO_BPS, latency: o.latency, budgetMs: left - 4000 });
+        } catch (e) {
+          // An encoder that fails part-way (it can at one size and not another).
+          r = { ok: false, failed: true, error: String((e && e.message) || e).split('\n')[0].slice(0, 160) };
+        }
+        tried.push(sz + (r && !r.ok ? ' (' + r.error + ')' : ''));
+        if (r && r.ok) { width = w; height = h; bitrate = bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000, abps); break; }
+        if (r && r.slow) anySlow = true;
+        if (!nextRung(r)) break;
       }
-      if (!r || !r.ok) return { ok: false, error: r && r.slow ? 'too_slow' : 'encode_failed', tried, message: r && r.slow ? 'This server could not render the video in time (' + tried.join('; ') + '). Try the short cut, or save it from the Story player in your browser.' : 'The video could not be encoded: ' + ((r && r.error) || 'no answer from the page') + '.' };
+      if (!r || !r.ok) return { ok: false, error: anySlow ? 'too_slow' : 'encode_failed', tried, message: anySlow ? 'This server could not render the video in time (' + tried.join('; ') + '). Try the short cut, or save it from the Story player in your browser.' : 'The video could not be encoded: ' + ((r && r.error) || 'no answer from the page') + '.' };
       const buffer = Buffer.from(r.b64, 'base64');
       return {
         ok: true, buffer, mime: r.container === 'mp4' ? 'video/mp4' : 'video/webm',
         codec: r.codec === 'avc' ? 'H.264' : 'VP9', container: r.container, frames: r.frames, seconds: r.seconds,
         width, height, fps, bitrate, bytes: buffer.length, render_ms: Date.now() - t0, cut,
-        images, audio: 'none (silent: this browser encodes no AAC)', browser: { source: info.source, version: info.version },
+        images, audio: audioSummary(r.sound, o.audio), browser: { source: info.source, version: info.version },
         timing: { launch_ms: info.launch_ms, page_ms: tPage - t0 - (info.launch_ms || 0), draw_ms: r.draw_ms, encode_ms: r.encode_ms }, tried,
       };
     }, { waitMs: 4000, prefer: o.prefer });
@@ -239,6 +340,83 @@ async function renderStoryVideo(opts) {
     if (e && e.code === 'no_browser') return { ok: false, error: 'no_browser', message: 'This server has no browser to render the video with.' };
     return { ok: false, error: 'render_failed', message: 'The video could not be rendered: ' + String((e && e.message) || e).slice(0, 200) };
   }
+}
+
+/**
+ * The sound for one render: { music, voice, voiceLabel, voice_provider,
+ * voice_own, voice_refusals, chars }.
+ *   music: the track the caller composed ({ bytes, mime }), else the
+ *          code-made one (music-synth.js) as long as the video, from the
+ *          brief the caller sends (the slot's own music brief) or the brand's
+ *          name, a new take each render unless one is named.
+ *   voice: the ad's own words (story-voice.linesFor), spoken by the
+ *          workspace's own ElevenLabs, then its own Gemini; the platform's
+ *          keys only when `platform` is allowed, and `meter(chars)` agrees.
+ */
+async function soundFor(data, cut, o = {}) {
+  const SV = require('./story-voice.js');
+  const c = cut === 'short' && data.cuts.short ? data.cuts.short : data.cuts.full;
+  const out = { music: null, voice: [], voiceLabel: '', voice_provider: null, voice_own: false, voice_refusals: [], chars: 0 };
+  if (o.music && o.music.bytes && o.music.bytes.length) out.music = { bytes: o.music.bytes, mime: o.music.mime || 'audio/mpeg', label: 'your composed track' };
+  else if (o.musicOff !== true) {
+    const SY = require('../../music-synth.js');
+    const brief = String(o.musicPrompt || '').slice(0, 4000) || ('An original warm, upbeat modern pop bed for ' + (data.name || 'the brand') + ', confident and friendly.');
+    const m = SY.renderBytes(brief, Math.ceil(c.total), { take: String(o.take || Date.now().toString(36)).slice(0, 64) });
+    out.music = { bytes: Buffer.from(m.bytes), mime: 'audio/wav', label: 'code-made music (' + m.plan.style + ')' };
+  }
+  if (o.voiceOff === true) return out;
+  const lines = SV.linesFor(data, cut);
+  if (!lines.length) { out.voice_refusals.push('The story has no words to speak.'); return out; }
+  const own = [];
+  const k = o.ownKeys || {};
+  if (k.elevenlabs) own.push({ src: 'own', kind: 'elevenlabs', key: k.elevenlabs });
+  if (k.gemini) own.push({ src: 'own', kind: 'gemini', auth: k.gemini });
+  let v = own.length ? await SV.voiceTrack(lines, own, { fetchImpl: o.fetchImpl, deadline: o.deadline }) : { ok: false, refusals: [] };
+  out.voice_refusals.push(...v.refusals);
+  if (!v.ok) {
+    const plat = [];
+    const clean = (x) => String(x || '').replace(/[﻿​\s]/g, '');
+    const ek = clean(process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_API_KEY || process.env.XI_API_KEY), gk = clean(process.env.GEMINI_API_KEY);
+    if (ek) plat.push({ src: 'platform', kind: 'elevenlabs', key: ek });
+    if (gk) plat.push({ src: 'platform', kind: 'gemini', auth: { apiKey: gk } });
+    if (plat.length && !o.platform) out.voice_refusals.push('The platform\'s voice is for a signed-in account: sign in to add a voiceover, or connect your own ElevenLabs or Gemini key.');
+    else if (plat.length) {
+      const chars = lines.reduce((n, l) => n + l.text.length, 0);
+      const m = o.meter ? await o.meter(chars) : { ok: true, settle: async () => {}, release: async () => {} };
+      if (!m || !m.ok) out.voice_refusals.push((m && m.message) || 'The voiceover could not be charged, so it was not made.');
+      else {
+        v = await SV.voiceTrack(lines, plat, { fetchImpl: o.fetchImpl, deadline: o.deadline });
+        out.voice_refusals.push(...v.refusals);
+        if (v.ok) { try { await m.settle(); } catch (_) { /* receipt only */ } } else { try { await m.release('no voice'); } catch (_) { /* nothing held */ } }
+      }
+    }
+  }
+  if (v.ok) {
+    out.voice = v.clips; out.voice_provider = v.provider; out.voice_own = v.own; out.chars = v.chars;
+    out.voiceLabel = 'voiceover by ' + (v.provider === 'elevenlabs' ? 'ElevenLabs' : 'Gemini TTS') + (v.own ? ' (your key)' : '');
+  } else if (!out.voice_refusals.length) {
+    out.voice_refusals.push('No voice model is connected: connect your own ElevenLabs or Gemini key on Connections / AI Models for a voiceover.');
+  }
+  return out;
+}
+
+/** What is heard in the file, in words. */
+function audioSummary(sound, req) {
+  if (!sound) return { codec: null, music: null, voice: null, words: 'silent' };
+  if (!sound.codec) return { codec: null, music: null, voice: null, words: 'silent (' + sound.error + ')' };
+  const music = sound.music ? ((req && req.music && req.music.label) || 'music') : null;
+  const voice = sound.voice_placed ? ((req && req.voiceLabel) || 'voiceover') : null;
+  const parts = [music, voice && (voice + (sound.voice_dropped ? ' (' + sound.voice_dropped + ' line(s) did not fit)' : ''))].filter(Boolean);
+  return { codec: sound.codec === 'aac' ? 'AAC' : 'Opus', music, voice, voice_lines: sound.voice_placed || 0, words: parts.join(' + ') || 'silent' };
+}
+
+/**
+ * Whether a size that did not render is worth trying one size smaller: it was
+ * too slow, the browser has no encoder at that size, or the encoder failed
+ * part-way. A story the page could not start is not (no size fixes it).
+ */
+function nextRung(r) {
+  return !!(r && !r.ok && (r.slow || r.unsupported || r.failed));
 }
 
 /** The file name a download carries. */
@@ -266,14 +444,56 @@ async function handle(req, res) {
   }
   const limited = require('./brand-render.js').rateCheck(req, Date.now(), 'video');
   if (limited) return res.status(429).json({ ok: false, error: 'rate_limited', message: limited });
+  const tStart = Date.now();
   const b = (req.body && typeof req.body === 'object') ? req.body : {};
-  const r = await renderStoryVideo({ html: typeof b.html === 'string' ? b.html.slice(0, 400000) : '', data: b.data && typeof b.data === 'object' ? b.data : null, cut: b.cut, size: b.size, fps: b.fps });
+  const html = typeof b.html === 'string' ? b.html.slice(0, 400000) : '';
+  const story = require('../../scripts/lib/story-ad.js');
+  const sdata = b.data && typeof b.data === 'object' ? story.storyDataFrom('  var ALL = ' + JSON.stringify(b.data) + ';\n') : story.storyDataFrom(html);
+  if (!sdata) return res.status(400).json({ ok: false, error: 'not_a_story', message: 'That is not a story video this app made, so there is nothing to render.' });
+  const cutAsked = b.cut === 'short' && sdata.cuts.short ? 'short' : 'full';
+  // The sound: music (the caller's composed track, else code-made) and the
+  // voiceover (own keys; the platform's only for a signed-in account, metered).
+  let audio = null, sound = null;
+  if (b.audio !== false) {
+    let music = null;
+    if (typeof b.music_b64 === 'string' && b.music_b64.length <= 3500000 && /^audio\/(mpeg|mp3|wav|x-wav|wave|ogg|webm|mp4|aac|x-m4a)$/i.test(String(b.music_mime || ''))) {
+      const bytes = Buffer.from(b.music_b64, 'base64');
+      if (bytes.length > 1000) music = { bytes, mime: String(b.music_mime).toLowerCase() };
+    }
+    const ownKeys = {};
+    try {
+      const wc = require('./workspace-connections-core.js');
+      const m = await wc.mediaKeysForCurrentRequest();
+      if (m && m.elevenlabs && m.elevenlabs.api_key) ownKeys.elevenlabs = String(m.elevenlabs.api_key);
+      const ov = await wc.llmOverridesForCurrentRequest();
+      const kk = ov && ov.keys;
+      if (kk && kk.gemini) ownKeys.gemini = { apiKey: String(kk.gemini) };
+      else if (kk && kk.gemini_oauth && kk.gemini_oauth.access_token) ownKeys.gemini = { bearer: kk.gemini_oauth.access_token, project: kk.gemini_oauth.project || '' };
+    } catch (_) { /* no workspace: no own keys */ }
+    sound = await soundFor(sdata, cutAsked, {
+      music, musicPrompt: typeof b.music_prompt === 'string' ? b.music_prompt : '', take: typeof b.take === 'string' ? b.take : '',
+      voiceOff: b.voice === false, ownKeys, platform: signedIn, deadline: Date.now() + 25000,
+      meter: async (chars) => {
+        try {
+          const m = await require('./credits-core.js').meter(req, 'audio.tts', { units: Math.max(1, Math.ceil(chars / 1000)), meta: { channel: 'video-render' } });
+          if (!m.ok) return { ok: false, message: m.message || 'There are not enough credits for the voiceover.' };
+          return m;
+        } catch (e) { return { ok: false, message: 'The voiceover could not be charged: ' + String((e && e.message) || e).slice(0, 120) }; }
+      },
+    });
+    audio = { music: sound.music, voice: sound.voice, voiceLabel: sound.voiceLabel };
+  }
+  // One function call is 120 s: the render gets what the sound left of 100 s.
+  const r = await renderStoryVideo({ data: sdata, cut: b.cut, size: b.size, fps: b.fps, audio, budgetMs: Math.max(20000, Math.min(DEFAULT_BUDGET_MS, 100000 - (Date.now() - tStart))) });
   if (r.ok) res.setHeader('X-Video-Tried', (r.tried || []).join('; ').slice(0, 300));
   if (!r.ok) return res.status(r.error === 'not_a_story' ? 400 : (r.error === 'busy' ? 429 : 500)).json(r);
   if (r.bytes > MAX_BYTES_OUT) return res.status(413).json({ ok: false, error: 'too_large', message: 'The video came out at ' + (r.bytes / 1048576).toFixed(1) + ' MB, over what one answer can carry. Try the short cut or 540p.' });
-  const data = require('../../scripts/lib/story-ad.js').storyDataFrom(typeof b.html === 'string' ? b.html : '  var ALL = ' + JSON.stringify(b.data || {}) + ';\n');
   res.setHeader('Content-Type', r.mime);
-  res.setHeader('Content-Disposition', 'attachment; filename="' + fileName(r, data && data.name) + '"');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + fileName(r, sdata.name) + '"');
+  res.setHeader('X-Video-Audio', encodeURIComponent(String(r.audio.words || 'silent')).slice(0, 300));
+  if (r.audio.codec) res.setHeader('X-Video-Audio-Codec', r.audio.codec);
+  if (sound && sound.voice_refusals.length) res.setHeader('X-Video-Voice-Note', encodeURIComponent(sound.voice_refusals.join(' ')).slice(0, 1500));
+  res.setHeader('Access-Control-Expose-Headers', 'X-Video-Codec, X-Video-Container, X-Video-Seconds, X-Video-Frames, X-Video-Size, X-Video-Render-Ms, X-Video-Images-Refused, X-Video-Tried, X-Video-Audio, X-Video-Audio-Codec, X-Video-Voice-Note');
   res.setHeader('X-Video-Codec', r.codec);
   res.setHeader('X-Video-Container', r.container);
   res.setHeader('X-Video-Seconds', String(r.seconds));
@@ -284,4 +504,4 @@ async function handle(req, res) {
   return res.status(200).end(r.buffer);
 }
 
-module.exports = { renderStoryVideo, handle, bitrateFor, fetchImage, MAX_IMAGE_BYTES, MAX_IMAGES_TOTAL, fileName, SIZES, SIZE_ORDER, MAX_BYTES_OUT, ORIGIN, DEFAULT_BUDGET_MS };
+module.exports = { renderStoryVideo, handle, bitrateFor, nextRung, audioSummary, soundFor, AUDIO_BPS, fetchImage, MAX_IMAGE_BYTES, MAX_IMAGES_TOTAL, fileName, SIZES, SIZE_ORDER, MAX_BYTES_OUT, ORIGIN, DEFAULT_BUDGET_MS };

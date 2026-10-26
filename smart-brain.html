@@ -1348,7 +1348,7 @@ function renderAd(ad){
       ? `${cr.story_html ? `<div class="advswitch" role="tablist" aria-label="Video variant"><button type="button" role="tab" class="btn sm" aria-selected="true" data-vv="story" onclick="sbVideoVariant(this,${midx},'story')">Story · ${storySecs} s</button><button type="button" role="tab" class="btn sm secondary" aria-selected="false" data-vv="transitional" onclick="sbVideoVariant(this,${midx},'transitional')">Transitional</button></div>` : ''}<div class="advstage"><iframe class="advframe" sandbox="allow-scripts allow-downloads" title="${esc(platform)} video creative"></iframe></div>`
       : `<p class="advnote adgap">No animated creative was built for this ad, and no MP4 exists. Regenerate the send to build one.</p>`;
     const bar = midx>=0
-      ? `<div class="akbar">${cr.story_html ? `<button type="button" class="btn sm" data-code-mp4 onclick="sbRenderMp4(this,${midx})" title="Renders the Story video to an MP4 file on the server, in code: no AI key or model needed">⬇ MP4 video (made in code, no key)</button><button type="button" class="btn sm secondary" onclick="sbDownloadStory(${midx})">⬇ Story video page (HTML, saves the video)</button>` : ''}<button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Transitional creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button><button type="button" class="btn sm" data-seedance onclick="sbRenderSeedance(this,${midx})" title="Renders an MP4 with Seedance 2.0 on your own Higgsfield key, under the phone-camera render rules">▶ Render with Seedance (Higgsfield)</button>`:''}</div><div class="advnote" data-seedance-out hidden></div>`
+      ? `<div class="akbar">${cr.story_html ? `<button type="button" class="btn sm" data-code-mp4 onclick="sbRenderMp4(this,${midx})" title="Renders the Story video to an MP4 on the server, in code, with a music bed and a voiceover of the ad's own words (the voice needs your ElevenLabs or Gemini key, or sign-in)">⬇ MP4 video with music and voiceover (made in code)</button><button type="button" class="btn sm secondary" onclick="sbDownloadStory(${midx})">⬇ Story video page (HTML, saves the video)</button>` : ''}<button type="button" class="btn sm secondary" onclick="sbDownloadMotion(${midx})">⬇ Transitional creative (HTML)</button>${cr.motion_brief?`<button type="button" class="btn sm secondary" onclick="sbDownloadBrief(${midx})">⬇ Download shot brief (JSON)</button><button type="button" class="btn sm" data-seedance onclick="sbRenderSeedance(this,${midx})" title="Renders an MP4 with Seedance 2.0 on your own Higgsfield key, under the phone-camera render rules">▶ Render with Seedance (Higgsfield)</button>`:''}</div><div class="advnote" data-seedance-out hidden></div>`
       : '';
     const shots = (cr.motion_brief && Array.isArray(cr.motion_brief.shots)) ? cr.motion_brief.shots : [];
     const board = shots.length
@@ -1432,6 +1432,8 @@ async function sbComposeMusic(mx, btn){
     // Score every Story video of this send with it (each frame makes its own
     // address for the bytes: a sandboxed frame cannot read ours).
     let scored = 0;
+    // Kept for the MP4 made in code: it goes into the file as the music bed.
+    root.__sbTrack = { blob, type: t.type, label: mus.title || 'the composed track' };
     root.querySelectorAll('iframe.advframe').forEach((f) => { try { f.contentWindow.postMessage({ type: 'lifecycle-story-track', blob, label: mus.title || 'the composed track' }, '*'); scored++; } catch (_) {} });
     status.textContent = (quality === 'sketch' ? 'A sketch is ready (not a produced track).' : 'The track is ready.') + (scored ? ' The Story video of this send now plays with it, and Save as video records it in.' : '');
   } catch (e) {
@@ -1486,9 +1488,21 @@ window.sbRenderMp4 = async function(btn, idx){
   const frame = card.querySelector('.advframe');
   let cut = 'full';
   try { const cb = frame && frame.contentDocument && frame.contentDocument.getElementById('cut'); if(cb && cb.getAttribute('data-cut') === 'short') cut = 'short'; } catch(_){ /* sandboxed */ }
-  btn.disabled = true; say('Rendering the video on the server, frame by frame. This takes up to a minute and a half.');
+  btn.disabled = true; say('Rendering the video on the server, frame by frame, with its music and voiceover. This takes up to a minute and a half.');
   try {
-    const r = await fetch('/api/public-config?action=video-render', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ html: item.story, cut })});
+    // The sound: the track composed for this send (when it fits one request),
+    // else the send's music brief, so the code-made bed fits the send.
+    const root = btn.closest('.pvroot') || document;
+    const body = { html: item.story, cut, take: Date.now().toString(36) };
+    const tr = root.__sbTrack;
+    if (tr && tr.blob && tr.blob.size <= 2600000) {
+      body.music_b64 = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = no; fr.readAsDataURL(tr.blob); });
+      body.music_mime = String(tr.type || tr.blob.type || 'audio/mpeg').split(';')[0];
+    } else {
+      const mp = root.querySelector && root.querySelector('[data-music-prompt]');
+      if (mp && mp.value) body.music_prompt = String(mp.value).slice(0, 4000);
+    }
+    const r = await fetch('/api/public-config?action=video-render', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
     const type = r.headers.get('content-type') || '';
     if(!r.ok || !/^video\//.test(type)){ const j = await r.json().catch(()=>({})); say(j.message || ('The video could not be rendered (HTTP '+r.status+').')); return; }
     const blob = await r.blob();
@@ -1497,9 +1511,15 @@ window.sbRenderMp4 = async function(btn, idx){
     out.textContent = '';
     const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.muted = true; v.src = url; v.style.cssText = 'width:100%;max-width:360px;display:block;margin:8px 0';
     const a = document.createElement('a'); a.href = url; a.download = String(item.name||'video-ad') + '-story.' + ext;
-    a.textContent = 'Download the ' + ext.toUpperCase() + ' (' + (r.headers.get('X-Video-Codec')||'') + ', ' + (r.headers.get('X-Video-Size')||'') + ', ' + Math.round(Number(r.headers.get('X-Video-Seconds')||0)) + ' s, ' + (blob.size/1048576).toFixed(1) + ' MB, silent)';
+    const dec = (x)=>{ try { return decodeURIComponent(x||''); } catch(_) { return x||''; } };
+    const heard = dec(r.headers.get('X-Video-Audio')) || 'silent';
+    a.textContent = 'Download the ' + ext.toUpperCase() + ' (' + (r.headers.get('X-Video-Codec')||'') + ', ' + (r.headers.get('X-Video-Size')||'') + ', ' + Math.round(Number(r.headers.get('X-Video-Seconds')||0)) + ' s, ' + (blob.size/1048576).toFixed(1) + ' MB)';
+    v.muted = false;
     const refused = Number(r.headers.get('X-Video-Images-Refused')||0);
-    out.append(v, a);
+    const sound = document.createElement('p'); sound.setAttribute('data-code-mp4-sound',''); sound.textContent = 'Sound: ' + heard + '.';
+    out.append(v, a, sound);
+    const vnote = dec(r.headers.get('X-Video-Voice-Note'));
+    if(vnote){ const n = document.createElement('p'); n.setAttribute('data-code-mp4-voice-note',''); n.textContent = vnote; out.append(n); }
     if(refused){ const n = document.createElement('p'); n.textContent = refused + ' photo(s) could not be fetched, so their scenes show the brand colour instead.'; out.append(n); }
   } catch(e){ say('The video could not be rendered: ' + (e && e.message || e)); }
   finally { btn.disabled = false; }

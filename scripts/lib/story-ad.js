@@ -191,6 +191,58 @@ function storyPage(all) {
     String(text || '').split(' ').forEach(function (w) { var t = line ? line + ' ' + w : w; if (cx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; });
     if (line) out.push(line); return out;
   }
+  // THE HUMAN TOUCH (2026-10-26, the operator with the "Kill the AI Tell" card:
+  // "ensure complete human touch"). A perfectly smooth, perfectly lit frame
+  // is the tell before second 3. So the PHOTO (never the brand's text or
+  // buttons) is held like a phone: a slow handheld drift, one half-step
+  // reframe inside the first 3 seconds (a micro-glitch), and phone-camera light:
+  // a third of a stop under, warm on one side and cool on the other, a soft
+  // window spill; light grain over the whole frame. All of it is a function of
+  // time, so every render of the same story is the same video.
+  var curT = 0;
+  function handheld(t) {
+    var x = Math.sin(t * 1.3) * 3.2 + Math.sin(t * 2.9 + 1.7) * 1.6 + Math.sin(t * 7.1 + 0.4) * 0.5;
+    var y = Math.sin(t * 1.1 + 2.1) * 2.6 + Math.sin(t * 3.3 + 0.9) * 1.3 + Math.sin(t * 6.7 + 2.6) * 0.4;
+    // The half-step reframe: at 1.4 s the hand adjusts the phone, overshoots a
+    // little and settles over a quarter second.
+    var g = t - 1.4;
+    if (g > 0 && g < 0.6) { var k = g < 0.12 ? g / 0.12 : Math.max(0, 1 - (g - 0.12) / 0.48); x += 9 * k; y -= 5 * k; }
+    return { x: x, y: y, r: Math.sin(t * 0.9 + 0.3) * 0.0016 };
+  }
+  function phoneLight(side) {
+    cx.fillStyle = 'rgba(0,0,0,0.12)'; cx.fillRect(0, 0, W, H);
+    var m = cx.createLinearGradient(0, 0, W, 0);
+    m.addColorStop(side ? 1 : 0, 'rgba(255,170,90,0.09)'); m.addColorStop(0.5, 'rgba(255,255,255,0)'); m.addColorStop(side ? 0 : 1, 'rgba(110,160,255,0.08)');
+    cx.fillStyle = m; cx.fillRect(0, 0, W, H);
+    var sx = side ? W * 0.9 : W * 0.1, spill = cx.createRadialGradient(sx, H * 0.12, 0, sx, H * 0.12, W * 0.55);
+    spill.addColorStop(0, 'rgba(255,247,232,0.20)'); spill.addColorStop(1, 'rgba(255,247,232,0)');
+    cx.fillStyle = spill; cx.fillRect(0, 0, W, H);
+  }
+  var grainTiles = null;
+  function grain() {
+    if (!grainTiles) {
+      grainTiles = [];
+      var seed = 7;
+      for (var n = 0; n < 1; n++) {
+        var c = document.createElement('canvas'); c.width = c.height = 192;
+        var g2 = c.getContext('2d'), img = g2.createImageData(192, 192);
+        for (var q = 0; q < img.data.length; q += 4) {
+          seed = (seed * 1103515245 + 12345) >>> 0;
+          var v = (seed >>> 16) & 255;
+          img.data[q] = img.data[q + 1] = img.data[q + 2] = v; img.data[q + 3] = 255;
+        }
+        g2.putImageData(img, 0, 0); grainTiles.push(cx.createPattern(c, 'repeat'));
+      }
+    }
+    cx.save(); cx.setTransform(1, 0, 0, 1, 0, 0);
+    // A FIXED sensor texture, not one that boils every frame: noise that
+    // changes per frame cannot be predicted by the encoder and eats the file's
+    // bitrate. Laid on plainly (measured on @sparticuz/chromium, a 26.5 s story
+    // at 540p: overlay blending 65 s, plain 56 s, none 56 s).
+    cx.globalAlpha = 0.03; cx.globalCompositeOperation = 'source-over';
+    cx.fillStyle = grainTiles[0]; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.restore();
+  }
   // One camera move per shot (see MOVES): eased, slow, never more than ~8%.
   function cover(im, move, p) {
     var e = p * p * (3 - 2 * p), k = 1.06, dx = 0, dy = 0;
@@ -200,7 +252,10 @@ function storyPage(all) {
     else if (move === 'pan-left') { k = 1.12; dx = (e - 0.5) * 0.08 * W; }
     else if (move === 'rise') { k = 1.12; dy = (e - 0.5) * 0.06 * H; }
     var r = Math.max(W / im.width, H / im.height) * k, w = im.width * r, h = im.height * r;
-    cx.drawImage(im, (W - w) / 2 + dx, (H - h) / 2 + dy, w, h);
+    var hh = handheld(curT);
+    cx.save(); cx.translate(W / 2, H / 2); cx.rotate(hh.r); cx.translate(-W / 2, -H / 2);
+    cx.drawImage(im, (W - w) / 2 + dx + hh.x, (H - h) / 2 + dy + hh.y, w, h);
+    cx.restore();
   }
   // A soft band of light crossing the product once, mid-shot.
   function sweep(p) {
@@ -217,6 +272,7 @@ function storyPage(all) {
     if (sc.kind === 'end' || !im) { cx.fillStyle = D.pal.primary; cx.fillRect(0, 0, W, H); }
     else {
       cover(im, sc.move, p);
+      phoneLight(D.scenes.indexOf(sc) % 2);
       if (sc.sweep) sweep(p);
       var g = cx.createLinearGradient(0, H * 0.45, 0, H);
       g.addColorStop(0, hexA(D.pal.ink, 0)); g.addColorStop(1, hexA(D.pal.ink, 0.72));
@@ -249,12 +305,14 @@ function storyPage(all) {
   }
   function roundRect(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
   function frame(t) {
+    curT = t;
     cx.clearRect(0, 0, W, H);
     var i = 0; while (i < D.scenes.length - 1 && t >= D.scenes[i + 1].start) i++;
     var sc = D.scenes[i], p = Math.min(1, (t - sc.start) / sc.seconds);
     scene(sc, p, 1);
     var nx = D.scenes[i + 1], left = sc.start + sc.seconds - t;
     if (nx && left < 0.45) scene(nx, 0, 1 - left / 0.45);
+    grain();
     // story progress: one segment per scene
     var gap = 10, segW = (W - 96 - gap * (D.scenes.length - 1)) / D.scenes.length;
     D.scenes.forEach(function (s2, k) {
@@ -392,7 +450,8 @@ function storyDataFrom(html) {
   };
   const full = cut(raw && raw.cuts && raw.cuts.full);
   if (!full) return null;
-  const hex = (v, d) => (/^#[0-9a-f]{3,8}$/i.test(String(v || '')) ? v : d);
+  // #rgb or #rrggbb only: the page's hexA() and the canvas read nothing else.
+  const hex = (v, d) => (/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v || '')) ? v : d);
   const fam = (v) => String(v || 'system-ui, sans-serif').replace(/[^\w\s,'"-]/g, '').slice(0, 160);
   const p = (raw && raw.pal) || {};
   return {

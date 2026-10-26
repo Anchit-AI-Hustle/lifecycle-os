@@ -402,8 +402,8 @@ test('the function that serves Read my site stays under Vercel\'s 250 MB limit, 
   const { minimatch } = require('minimatch');
   const walk = (dir) => fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)]));
   // The browser binary, and the muxer the code video renderer injects (code-video.js).
-  expect(fn.includeFiles).toBe('{node_modules/@sparticuz/chromium/bin/**,node_modules/mediabunny/dist/bundles/mediabunny.min.cjs}');
-  for (const f of walk('node_modules/@sparticuz/chromium/bin').concat(walk('node_modules/mediabunny/dist/bundles'))) if (minimatch(f, fn.includeFiles)) files.add(f);
+  expect(fn.includeFiles).toBe('{node_modules/@sparticuz/chromium/bin/**,node_modules/mediabunny/dist/bundles/mediabunny.min.cjs,node_modules/@mediabunny/aac-encoder/dist/bundles/mediabunny-aac-encoder.min.js}');
+  for (const f of walk('node_modules/@sparticuz/chromium/bin').concat(walk('node_modules/mediabunny/dist/bundles'), walk('node_modules/@mediabunny/aac-encoder/dist/bundles'))) if (minimatch(f, fn.includeFiles)) files.add(f);
   let bytes = 0;
   for (const f of files) { try { const st = fs.statSync(path.join(ROOT, f)); if (st.isFile()) bytes += st.size; } catch (_) { /* a traced symlink target */ } }
   const mb = bytes / 1048576;
@@ -411,6 +411,8 @@ test('the function that serves Read my site stays under Vercel\'s 250 MB limit, 
   expect([...files].some((f) => /@sparticuz\/chromium\/bin\/chromium\.br$/.test(f))).toBe(true);
   expect([...files].some((f) => /playwright-core\/lib\//.test(f))).toBe(true);
   expect([...files].some((f) => /mediabunny\/dist\/bundles\/mediabunny\.min\.cjs$/.test(f))).toBe(true);
+  // The AAC encoder the code video's sound needs (code-video.js aacSource()).
+  expect([...files].some((f) => /@mediabunny\/aac-encoder\/dist\/bundles\/mediabunny-aac-encoder\.min\.js$/.test(f))).toBe(true);
   // 250 MB is Vercel's hard limit (unzipped, per function); 220 keeps headroom.
   expect(mb).toBeLessThan(220);
 });
