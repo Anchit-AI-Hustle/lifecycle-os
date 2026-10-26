@@ -278,5 +278,87 @@
     return [...out];
   }
 
-  return { DEPARTMENTS, map, CHANNEL_UTM, utmFor, utmUrl, taggable, tagLinks, normCdf, abTest, sampleSize, seoCheck, paths, slug };
+  /* ── The B2B marketing department picture (2026-10-26): its fifty roles, ten
+     departments of five, and what does each one here: an agent of the team that
+     builds every send (marketing-agents.js; `pair` names it), a code check, a
+     page, a skill run in Claude Code, or nothing, with the reason. */
+  const A = (pair) => ({ by: 'agent', pair });
+  const C = (where, note) => ({ by: 'code', where, note });
+  const F = (where, note) => ({ by: 'feature', where, note });
+  const N = (note) => ({ by: 'none', note });
+  const K = (where, note) => ({ by: 'skill', where, note });
+  const ROSTER = [
+    { n: 1, department: 'Strategy & Planning', roles: [
+      ['Marketing Strategist', A('strategy')],
+      ['Quarterly Planning Lead', F('/brain', 'The rolling 90-day plan per market, re-planned daily.')],
+      ['Budget Allocation Planner', F('/publishing?tab=launch', 'Paid launch splits a daily budget across ad sets by test share.')],
+      ['Go-to-Market Planner', F('/plan', 'Market moments and launches placed in the plan.')],
+      ['Marketing Priorities Reviewer', A('strategy')],
+    ] },
+    { n: 2, department: 'Customer & Market Intelligence', roles: [
+      ['Customer Interview Analyst', N('No interview transcripts are collected; review text is mined instead (Owner\'s Desk).')],
+      ['Market Research Analyst', F('/research', 'A study per market.')],
+      ['Competitor Intelligence Analyst', F('/competitor-benchmarking', 'The brand\'s competitor set, their mail and long-running ads.')],
+      ['Customer Proof Auditor', C('api/_shared/brand-reviews.js', 'Only the brand\'s own published reviews, verbatim; the proof gate drops anything else.')],
+      ['Win-Loss Researcher', N('B2B deal outcomes: this product has no sales pipeline to read.')],
+    ] },
+    { n: 3, department: 'Segments & Buying Journeys', roles: [
+      ['Segmentation Strategist', C('api/_shared/rfm-core.js', 'Cohorts computed from the brand\'s own orders.')],
+      ['ICP Definition Lead', K('.claude/commands/icp-builder.md', 'The ICP builder skill (run in Claude Code, not in the app).')],
+      ['Buying Group Mapper', N('B2B buying committees: not applicable to consumer sends.')],
+      ['Buyer Journey Designer', F('/mailer-calendar', 'Lifecycle journeys per cohort.')],
+      ['Buying Situation Analyst', A('strategy')],
+    ] },
+    { n: 4, department: 'Positioning & Messaging', roles: [
+      ['Positioning Strategist', A('messaging')],
+      ['Value Proposition Designer', A('messaging')],
+      ['Messaging Architect', A('messaging')],
+      ['Objection Narrative Lead', A('messaging')],
+      ['Message Consistency Reviewer', A('copy')],
+    ] },
+    { n: 5, department: 'Content & Creative', roles: [
+      ['Content Strategist', A('brief')],
+      ['Editorial Planning Lead', F('/brain', 'One send per slot on the calendar, each with its own angle.')],
+      ['Creative Brief Writer', A('brief')],
+      ['Campaign Copywriter', A('copy')],
+      ['Content Quality Reviewer', A('copy')],
+    ] },
+    { n: 6, department: 'Campaigns & Distribution', roles: [
+      ['Campaign Planner', F('/brain', 'Every slot planned with channels, cohort and date.')],
+      ['Channel Mix Strategist', A('brief')],
+      ['Distribution Coordinator', F('/publishing', 'The dispatch queue to each platform.')],
+      ['Paid Media Brief Writer', A('brief')],
+      ['Partner Campaign Planner', N('No partner or affiliate data is connected.')],
+    ] },
+    { n: 7, department: 'Search & Demand Capture', roles: [
+      ['Search Demand Analyst', N('Keyword volumes need a source that is not connected (Ahrefs or Search Console).')],
+      ['Keyword Intent Mapper', N('Same: no keyword source is connected.')],
+      ['SEO Content Planner', F('/marketing-team', 'Every landing page gets its own meta description and SEO checks.')],
+      ['Technical SEO Reviewer', C('api/_shared/marketing-team.js', 'seoCheck on every landing page; the site audit on /marketing-team.')],
+      ['Demand Capture Strategist', A('brief')],
+    ] },
+    { n: 8, department: 'Website & Lifecycle Conversion', roles: [
+      ['Landing Page Reviewer', C('api/_shared/asset-contracts.js', 'The landing page contract: one goal, a working button, every link resolved.')],
+      ['Conversion Copywriter', A('copy')],
+      ['Form Friction Analyst', N('The landing pages carry no forms; the button goes to the product page.')],
+      ['Lifecycle Journey Planner', F('/mailer-calendar', 'Cohort journeys and frequency caps.')],
+      ['Email Nurture Designer', K('.claude/commands/email-flow.md', 'The email-flow skill designs a flow and builds it in Klaviyo when connected.')],
+    ] },
+    { n: 9, department: 'Marketing Ops & Sales Alignment', roles: [
+      ['Marketing Operations Planner', C('api/_shared/contact-fatigue.js', 'One contact ledger and fatigue policy across channels.')],
+      ['Lead Routing Designer', N('B2B lead routing: no sales team flow in this product.')],
+      ['CRM Data Quality Reviewer', C('api/_shared/brand-coherence.js', 'The brand record and catalogue are checked to describe one brand.')],
+      ['Sales Handoff Coordinator', N('B2B: no sales handoff.')],
+      ['Sales Enablement Brief Writer', N('B2B: no sales team to brief.')],
+    ] },
+    { n: 10, department: 'Measurement & Experimentation', roles: [
+      ['Funnel Performance Analyst', F('/data-analysis', 'Funnels and channel performance from the brand\'s own data.')],
+      ['Campaign Measurement Lead', C('api/_shared/marketing-team-server.js', 'A KPI, the brand\'s own baseline and a read date on every send.')],
+      ['Attribution Evidence Reviewer', C('api/_shared/creative-evidence.js', 'Only campaigns with the figures that qualified them count as evidence.')],
+      ['Experiment Designer', C('api/_shared/marketing-team-server.js', 'An A/B pair per send with the sample each variant needs.')],
+      ['Learning Review Facilitator', F('/brain', 'Daily Sync feeds results back into the next plan.')],
+    ] },
+  ];
+
+  return { DEPARTMENTS, ROSTER, map, CHANNEL_UTM, utmFor, utmUrl, taggable, tagLinks, normCdf, abTest, sampleSize, seoCheck, paths, slug };
 });

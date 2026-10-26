@@ -1908,7 +1908,7 @@ function benchmarkBrief(entry) {
 function mailStudyBrief(entry) {
   try { return require('./competitor-mail-study.js').briefLines(entry && entry.__mailStudy).join('\n'); } catch (_) { return ''; }
 }
-function copyPrompt(entry, fw = null, brief = null) { return OC.append(copyTask(entry, fw, brief), copyOutputSpec(entry)); }
+function copyPrompt(entry, fw = null, brief = null, team = null) { return OC.append(copyTask(entry, fw, brief, team), copyOutputSpec(entry)); }
 // The messaging lines the writer is briefed with, only for a slot that plans
 // SMS / WhatsApp / push (2026-10-23). Empty for every other slot, so the
 // prompt of a brand that states no such channel is unchanged.
@@ -1917,7 +1917,7 @@ function messagingRule(entry) {
   if (!want.length) return '';
   return `- Messaging (${want.join(', ')}): each is ONE short line to the reader in the brand's own facts, no offer, price or code the facts above do not state. Write no brand-name prefix, no link and no opt-out: the builder adds the sender, the slot's own page and "Reply STOP" itself. SMS in plain GSM characters (no emoji, no curly quotes).\n`;
 }
-function copyTask(entry, fw = null, brief = null) {
+function copyTask(entry, fw = null, brief = null, team = null) {
   const fwLine = fw
     ? `\nCOPY FRAMEWORK: structure the copy with the ${fw.name} framework (${fw.full || fw.name}); the opening beat lands in the subject + hero_headline, the middle beats across intro_paragraph and body_paragraph in order, and the final beat on the cta. Do NOT name the framework in the copy, let the structure do the work.`
     : '';
@@ -1933,7 +1933,7 @@ ${productFactsBrief(entry)}
 ${creativeEvidence.briefFor(entry)}
 ${benchmarkBrief(entry)}
 ${mailStudyBrief(entry)}
-- ${regionalNuance(entry.market)}${fwLine}${briefLine}
+- ${regionalNuance(entry.market)}${fwLine}${briefLine}${team && team.briefing ? `\n\n${team.briefing}` : ''}${team && team.critique ? `\n\nTHE CONTENT QUALITY REVIEWER SENT YOUR LAST DRAFT BACK. Fix exactly these and keep everything else:\n${team.critique}` : ''}
 
 WHO THIS IS FOR:
 ${audienceBrief(entry)}
@@ -3039,7 +3039,41 @@ function emailHtml(entry, copy, creativeUrl) {
 </body></html>`;
 }
 
-async function writeCopyWithLLM(entry, fw = null, brief = null) {
+/**
+ * The SHARED MARKETING CONTEXT every agent of the team reads (marketing-agents.js):
+ * company, customers, offer, brand and goals, plus the evidence, all from the
+ * brand's own record, catalogue, cohort and history. Built once per send; the
+ * same helpers the copy prompt uses, so the team and the writer cannot disagree.
+ */
+function teamContext(entry) {
+  let b = {};
+  try { b = require('./brand-runtime.js').scopedBrand(entry && entry.brand) || {}; } catch (_) { b = (entry && entry.brand) || {}; }
+  const v = b.voice || {};
+  let model = 'commerce';
+  try { model = require('./asset-playbooks.js').businessModel(b); } catch (_) { /* commerce */ }
+  const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean);
+  const off = offerOf(entry);
+  const offerLine = off && (off.code || off.pct || off.label || off.text)
+    ? `${off.label || off.text || ''}${off.code ? ` code ${off.code}` : ''}${off.pct ? ` (${Math.round(+off.pct * 100)}% off)` : ''}`.trim()
+    : 'No offer on record for this send: do not write one.';
+  const parts = {
+    company: [`${b.name || 'The brand'}${b.industry ? `, ${b.industry}` : ''}${b.website ? ` (${String(b.website).replace(/^https?:\/\//, '')})` : ''}.`,
+      b.tagline ? `Tagline: ${b.tagline}` : '', `Business model: ${model.replace('_', ' ')}.`, `Market: ${entry.market}. ${regionalNuance(entry.market)}`].filter(Boolean).join('\n'),
+    customers: [`Cohort: ${(entry.cohort && entry.cohort.name) || 'not named'}${entry.cohort && entry.cohort.size != null ? ` (${entry.cohort.size} profiles)` : ''}.`, audienceBrief(entry)].join('\n'),
+    offer: [offeringBrief(entry), productFactsBrief(entry), `Offer: ${offerLine}`].join('\n'),
+    brand: [`Voice: ${v.tone || '[DATA REQUIRED BEFORE LAUNCH: voice.tone]'}`,
+      Array.isArray(v.preferred) && v.preferred.length ? `Preferred words: ${v.preferred.join(', ')}` : '',
+      Array.isArray(v.banned) && v.banned.length ? `Never say: ${v.banned.join(', ')}` : '',
+      claims.length ? `CLAIMS (the only things the brand may assert as fact, numbered):\n${claims.map((c, i) => `${i + 1}. ${c}`).join('\n')}` : 'CLAIMS: none on record. Assert no claim.',
+      approvedProofBrief(entry)].filter(Boolean).join('\n'),
+    goals: [`Objective: ${entry.objective || 'not set'}.`, entry.festival ? `Moment: ${entry.festival.name}.` : 'No seasonal moment; evergreen.', entry.rationale ? `Why this send was planned: ${entry.rationale}` : ''].filter(Boolean).join('\n'),
+    evidence: creativeEvidence.briefFor(entry),
+  };
+  const text = ['COMPANY', parts.company, '', 'CUSTOMERS', parts.customers, '', 'OFFER', parts.offer, '', 'BRAND', parts.brand, '', 'GOALS', parts.goals, '', 'EVIDENCE', parts.evidence].join('\n');
+  return { text, parts };
+}
+
+async function writeCopyWithLLM(entry, fw = null, brief = null, team = null) {
   const sysLine = fw ? (() => { try { return '\n' + CF.copyFrameworkSystemLine(fw); } catch (_) { return ''; } })() : '';
   // NOTE: do NOT pin preferProvider here. In llm.js a preferProvider SKIPS every
   // other provider, so pinning the strategy analyst's provider left copy
@@ -3063,6 +3097,8 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
   let lastErr;
   let rounds = ROUNDS;
   try { if (await require('./llm.js').keylessOnly()) rounds = ROUNDS.slice(-1); } catch (_) { /* keep both */ }
+  // A reviewer's rewrite is one attempt: the first draft stands if it fails.
+  if (team && team.critique) rounds = ROUNDS.slice(-1).map((r) => Object.assign({}, r, { waitBefore: 0 }));
   for (let i = 0; i < rounds.length; i++) {
     const r = rounds[i];
     if (r.waitBefore) await new Promise((res) => setTimeout(res, r.waitBefore));
@@ -3071,7 +3107,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null) {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
         stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (entry && entry.workspace_id) || null,
-        userMessage: copyPrompt(entry, fw, brief),
+        userMessage: copyPrompt(entry, fw, brief, team),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
         temperature: 0.75,
@@ -3997,6 +4033,7 @@ function brandChangedError(what) {
 }
 
 async function _buildCampaign(entry, config, { id = null, withCreatives = true, noLLM = false } = {}) {
+  const __buildStart = Date.now();
   const __run = _runId(entry);
   traceRun(__run, 'build:start', {
     slot: entry && entry.id, date: entry && entry.date, market: entry && entry.market,
@@ -4081,31 +4118,85 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // meant the copy was always refused; one copy call, no optional brief.
     let keylessOnly = false;
     try { keylessOnly = await require('./llm.js').keylessOnly(); } catch (_) { keylessOnly = false; }
-    const sb = keylessOnly ? null : await strategyBrief(entry);
-    const brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
-    if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
+    // ── THE MARKETING TEAM (marketing-agents.js, 2026-10-26): a shared context,
+    // then maker/reviewer pairs - strategy and messaging side by side, then the
+    // creative briefs - each sent back once when its reviewer finds a defect.
+    // Not on the keyless floor (one answer per 30 s cannot carry a team) and
+    // switched off with MARKETING_TEAM=off; both keep the single strategy call.
+    const teamOn = !keylessOnly && String(process.env.MARKETING_TEAM || '').toLowerCase() !== 'off';
+    const MA = require('./marketing-agents.js');
+    const tctx = teamOn ? teamContext(entry) : null;
+    const teamOpts = teamOn ? {
+      call: callLLMTiered, parseJSON, market: entry.market,
+      brandName: (entry.brand && entry.brand.name) || 'the brand',
+      left: () => (__buildStart + (+process.env.TEAM_PLAN_MS || 45000)) - Date.now(),
+    } : null;
+    const team = teamOn ? await MA.plan(tctx.text, teamOpts).catch(() => null) : null;
+    let brief = null;
+    if (team && team.strategy) {
+      brief = Object.assign(MA.strategyAsBrief(team.strategy), { __provider: 'team' });
+    } else {
+      const sb = keylessOnly ? null : await strategyBrief(entry);
+      brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
+      if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
+    }
+    const teamBriefing = team ? MA.copyBriefing(team) : '';
+    if (team) (team.members || []).forEach((m) => trace.push({ agent: m.role, role: m.department, ok: m.ok, provider: m.provider || null, output: m.kind === 'reviewer' ? { verdict: m.verdict || null, score: m.score, issues: (m.issues || []).map((x) => `${x.field ? x.field + ': ' : ''}${x.problem}`) } : (m.output ? { revision: m.revision } : { error: m.error }) }));
 
-    // ── Agent 2 · Content Writer — two diverging copy frameworks (A/B), written
-    // in parallel (same wall-clock as one call), each following the brief.
+    // ── Campaign Copywriters: two diverging copy frameworks (A/B), written in
+    // parallel, each following the strategy, the messaging and the briefs.
     const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: entry.id || entry.date || '' });
     const otherKeys = Object.keys(CF.COPY_FRAMEWORKS).filter((k) => k !== fwA.key);
     const fwB = CF.frameworkByKey(otherKeys[CF.stableIndex(`${entry.id || entry.date || ''}|b`, otherKeys.length)]) || fwA;
+    const teamCopy = teamBriefing ? { briefing: teamBriefing } : null;
     // Stagger the two copy directions by ~600ms so they don't hit the same
     // provider's per-minute limit in the exact same instant (reduces burst-429s).
     const [pA, pB] = keylessOnly
       ? await Promise.allSettled([writeCopyWithLLM(entry, fwA, brief), Promise.reject(new Error('one copy direction on the keyless provider'))])
       : await Promise.allSettled([
-        writeCopyWithLLM(entry, fwA, brief),
-        (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief); })(),
+        writeCopyWithLLM(entry, fwA, brief, teamCopy),
+        (async () => { await new Promise((r) => setTimeout(r, 600)); return writeCopyWithLLM(entry, fwB, brief, teamCopy); })(),
       ]);
     if (pA.status !== 'fulfilled' && pB.status !== 'fulfilled') {
       throw new Error('copy generation failed for both directions: ' + String((pA.reason && pA.reason.message) || pA.reason));
     }
-    const rawA = pA.status === 'fulfilled' ? pA.value : pB.value;
-    const rawB = pB.status === 'fulfilled' ? pB.value : pA.value;
+    let rawA = pA.status === 'fulfilled' ? pA.value : pB.value;
+    let rawB = pB.status === 'fulfilled' ? pB.value : pA.value;
+    // ── Content Quality Reviewer: each direction against the context and the
+    // briefs (message consistency across mail, landing page and ads); a draft
+    // sent back is rewritten ONCE with the reasons, and the first draft stands
+    // if the rewrite fails. Only while the build has time for it.
+    const teamCopyReview = [];
+    if (teamOn && team && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000)) {
+      const reviewOpts = Object.assign({}, teamOpts, { left: () => (__buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 12000) - Date.now() });
+      const dirs = rawB === rawA ? [['A', rawA, fwA]] : [['A', rawA, fwA], ['B', rawB, fwB]];
+      const outs = await Promise.all(dirs.map(async ([d, raw, fw]) => {
+        const v = await MA.reviewCopy(tctx.text, team, raw.copy, reviewOpts).catch(() => null);
+        if (!v) return { d, raw };
+        teamCopyReview.push(Object.assign({ direction: d }, v.member));
+        if (v.verdict === 'revise' && v.critique && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000) + 15000) {
+          const again = await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique }).catch(() => null);
+          teamCopyReview.push({ direction: d, department: 'Content & Creative', role: 'Campaign Copywriter', kind: 'maker', revision: true, ok: !!again, provider: again ? again.provider : null, error: again ? null : 'the rewrite failed; the first draft stands' });
+          if (again) return { d, raw: again };
+        }
+        return { d, raw };
+      }));
+      outs.forEach((x) => { if (x.d === 'A') rawA = x.raw; else rawB = x.raw; });
+      if (dirs.length === 1) rawB = rawA;
+      teamCopyReview.forEach((m) => trace.push({ agent: m.role, role: `${m.department} (copy ${m.direction})`, ok: m.ok, provider: m.provider || null, output: m.kind === 'reviewer' ? { verdict: m.verdict || null, score: m.score, issues: (m.issues || []).map((x) => `${x.field ? x.field + ': ' : ''}${x.problem}`) } : { revision: true, error: m.error || null } }));
+    }
+    if (team) {
+      campaign.team = {
+        context: tctx.parts,
+        strategy: team.strategy, messaging: team.messaging, briefs: team.brief,
+        verdicts: Object.assign({}, team.verdicts, { copy: teamCopyReview.filter((m) => m.kind === 'reviewer').map((m) => ({ direction: m.direction, verdict: m.verdict || null, score: m.score })) }),
+        members: [].concat(team.members || [], teamCopyReview),
+        ms: Date.now() - __buildStart,
+      };
+    }
     const provider = rawA.provider || rawB.provider;
     const model = rawA.model || rawB.model;
-    trace.push({ agent: 'Content Writer', role: 'Lifecycle Copywriter', ok: true, provider, output: { frameworks: [fwA.key, fwB.key] } });
+    trace.push({ agent: 'Campaign Copywriter', role: 'Content & Creative', ok: true, provider, output: { frameworks: [fwA.key, fwB.key] } });
     // Brand scrub EVERY generated string (no banned phrases, no em/en dashes)
     // before it is baked into the mailer, landing page and ad rows. Persisted +
     // customer-served output must not rely on the prompt alone.
@@ -5311,7 +5402,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }

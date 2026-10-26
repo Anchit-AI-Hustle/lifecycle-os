@@ -4,6 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A send is made by a marketing TEAM: shared context, maker/reviewer pairs, work sent back (2026-10-26)
+The operator, with "The Claude B2B Marketing Department" (a shared marketing context and ten departments of five
+maker/reviewer pairs): "the best and most accurate output can only be achieved when a team of such agents works
+together - check if the implementation is like that", then "yes, so then rectify and correct what you should build".
+It was not: a send was ONE strategy call + ONE copy call writing every asset, then code checks; nothing went back.
+- **`api/_shared/marketing-agents.js`** + `smart-brain-plan.teamContext()`: the SHARED CONTEXT (company, customers,
+  offer, brand with numbered CLAIMS, goals, evidence) is built once from the brand's own record, catalogue, cohort and
+  history, and every agent reads the same text. Pairs: Strategy (Marketing Strategist -> Marketing Priorities Reviewer)
+  and Positioning & Messaging (Messaging Architect -> Objection & Message Consistency Reviewer) side by side, then the
+  Creative Brief Writer -> Brief Reviewer, then the two copy directions -> Content Quality Reviewer (message consistency
+  across mail, landing page, ads). A reviewer answers pass/revise with field, problem, fix; revise = ONE rewrite with
+  the reasons (never a loop; a failed rewrite keeps the first draft). Makers on the premium tier, reviewers on fast;
+  every prompt ends with its output requirement. The code gates after (grounding, proof, brand guard, compliance,
+  contracts, contrast) keep the last word.
+- Bounded by the build: plan pairs by `TEAM_PLAN_MS` (45 s from build start), copy review by `TEAM_REVIEW_BY_MS`
+  (70 s); no time left = the step is skipped and said. Not on the keyless floor (one answer per 30 s) and off with
+  `MARKETING_TEAM=off`: both keep the single strategy call. A maker answering the wrong shape is recorded failed and
+  the single strategist fills in.
+- Recorded as `campaign.team` {context, strategy, messaging, briefs, verdicts, members}; /brain shows "Made by the
+  marketing team" (`teamHTML`). `marketing-team.js` ROSTER = all 50 roles of the picture with what does each here
+  (agent pair, code check, page, skill, or nothing with the reason: B2B roles like lead routing, sales handoff,
+  win-loss); the "Agent team" tab on /marketing-team (`#roster`). Gated by `tests/marketing-agents-team.spec.js`
+  (scripted model per role; no rewrite / no team / copy not briefed mutations each caught).
+
 ## ⭐ Complete themes and templates per brand, per send: mail, static ad, video, landing page (2026-10-26)
 The operator: "why does every brand mailer, video and ad have only one common structure and layout - ensure complete unique
 personalisation in each and every generation for each brand", then "no complete different templates, themes everything".
