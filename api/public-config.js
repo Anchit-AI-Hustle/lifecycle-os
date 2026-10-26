@@ -115,6 +115,16 @@ module.exports = async function handler(req, res) {
     catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'review_router_failed', message: 'Your feedback could not be processed just now. Please try again.' }); }
   }
 
+  // ── A video made in code (2026-10-26) ────────────────────────────────────
+  // The Story video drawn frame by frame in the browser this function already
+  // ships, encoded to H.264 MP4 with WebCodecs: no model, no API key, no ffmpeg
+  // (_shared/code-video.js, docs/code-video-benchmark.md). Mounted here because
+  // this is the function that carries Chromium, and the Hobby cap is 12.
+  if (req.query && req.query.action === 'video-render') {
+    try { return await require('./_shared/code-video.js').handle(req, res); }
+    catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'video_router_failed', message: 'The video could not be rendered just now. Please try again.' }); }
+  }
+
   // ── Credits (wallet, prices, usage, recharge) ────────────────────────────
   if (req.query && req.query.action === 'credits') {
     res.setHeader('Cache-Control', 'no-store');

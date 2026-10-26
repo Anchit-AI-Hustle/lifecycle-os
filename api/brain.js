@@ -1382,7 +1382,7 @@ module.exports = async function handler(req, res) {
         // connection, then the platform's key; ElevenLabs with free generation
         // off; else a code-made sketch, labelled as one (music-compose.js).
         const mc = await require('./_shared/music-compose.js').compose({
-          prompt: b.prompt, seconds: b.seconds, instrumental: b.instrumental !== false,
+          prompt: b.prompt, seconds: b.seconds, instrumental: b.instrumental !== false, take: typeof b.take === 'string' || typeof b.take === 'number' ? String(b.take).slice(0, 64) : '',
           image_url: typeof b.image_url === 'string' ? b.image_url.slice(0, 1000) : '',
         }, { freeGeneration: freeGenerationOn(), owner: await musicOwner(), deadline: Date.now() + (Number(process.env.MUSIC_WAIT_MS) || 100000) });
         if (!mc.ok) return res.status(mc.status || 502).json({ ok: false, error: mc.error, message: mc.message, refusals: mc.refusals || [] });

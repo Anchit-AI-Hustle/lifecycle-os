@@ -231,7 +231,7 @@ test('Gemini: Sign in with Google is offered once the platform has its Google cl
   expect(by.gemini.fields.map((f) => f.key)).toEqual(['api_key', 'project']);
   withGoogleClient(true);
   by = Object.fromEntries(connections.registryView(true).map((p) => [p.id, p]));
-  expect(by.gemini.signin).toMatchObject({ available: true, kind: 'google', client_id: GOOGLE_ID, authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth', scope: 'https://www.googleapis.com/auth/cloud-platform' });
+  expect(by.gemini.signin).toMatchObject({ available: true, kind: 'google', client_id: GOOGLE_ID, authorize_url: 'https://accounts.google.com/o/oauth2/v2/auth', scope: 'https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/generative-language.retriever' });
   expect(JSON.stringify(by.gemini.signin)).not.toContain('google-client-secret');
   withGoogleClient(false);
 });
@@ -328,7 +328,7 @@ test('Gemini: the page sends the person to Google with PKCE and finishes on the 
     const auth = new URL(page.url());
     expect(auth.searchParams.get('client_id')).toBe(GOOGLE_ID);
     expect(auth.searchParams.get('redirect_uri')).toBe(`${base}/ai-models`);
-    expect(auth.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/cloud-platform');
+    expect(auth.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/generative-language.retriever');
     expect(auth.searchParams.get('access_type')).toBe('offline');
     expect(auth.searchParams.get('code_challenge_method')).toBe('S256');
     const st = auth.searchParams.get('state');

@@ -340,6 +340,13 @@ test('Smart Brain plans the track of every send: a sale for an offer, else the p
     const b = await SB.buildCampaign(slot({ depth: 'light', pct: 15, code: 'BAKE15' }), smartConfig({}), { noLLM: true, withCreatives: false });
     expect(b.assets.music.purpose).toBe('sale');
     expect(b.assets.music.prompt).toContain('It promotes this offer: 15% off with code BAKE15.');
+    // The planner stores a discount as a FRACTION (0.15): it is 15% off, never
+    // the "0% off" /brain printed (2026-10-26); and a "0% off" line is no offer.
+    const c = await SB.buildCampaign(slot({ depth: 'light', pct: 0.15 }), smartConfig({}), { noLLM: true, withCreatives: false });
+    expect(c.assets.music.prompt).toContain('It promotes this offer: 15% off.');
+    const d = await SB.buildCampaign(slot({ depth: 'light', pct: 0, headline: '0% off' }), smartConfig({}), { noLLM: true, withCreatives: false });
+    expect(d.assets.music.purpose).toBe('product');
+    expect(d.assets.music.prompt).not.toMatch(/0% off/);
   } finally {
     for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   }
@@ -383,4 +390,50 @@ test('the Story video takes the composed track by message, plays it and records 
   const bytes = fs.readFileSync(file).toString('latin1');
   expect(/A_OPUS|A_VORBIS|hdlr[\s\S]{8}soun/.test(bytes), 'the saved video has no sound').toBe(true);
   expect(/V_VP8|V_VP9|V_AV1|hdlr[\s\S]{8}vide/.test(bytes), 'the saved file has no video').toBe(true);
+});
+
+// "The same song is returned every time" (2026-10-26, Nik Bakers on /brain):
+// the code-made sketch was seeded by the brief alone, played by one fixed band,
+// and held to 15 s. Every press is a take now: the same brief and take is the
+// same track, another take is another track; the brief's genre picks the band;
+// a short length is kept.
+test('the sketch: every press is a new take, the genre picks the band, a short track stays short', async () => {
+  const SY = require(path.join(ROOT, 'music-synth.js'));
+  const h = (o) => require('crypto').createHash('sha256').update(Buffer.from(o.bytes)).digest('hex');
+  const brief = 'A track for a sale, energetic, celebratory, upbeat, about 8 seconds';
+  const one = SY.renderBytes(brief, 8, { compact: true, take: 'a' });
+  expect(h(SY.renderBytes(brief, 8, { compact: true, take: 'a' }))).toBe(h(one));
+  const takes = new Set(['a', 'b', 'c', 'd', 'e'].map((t) => h(SY.renderBytes(brief, 8, { compact: true, take: t }))));
+  expect(takes.size, 'five takes of one brief gave the same track').toBe(5);
+  expect(one.seconds).toBe(8);
+  expect(Buffer.from(one.bytes).readUInt32LE(40)).toBe(8 * 22050 * 2);
+  for (const [word, style] of [['house', 'electronic'], ['acoustic', 'acoustic'], ['lo-fi', 'lofi'], ['cinematic', 'cinematic'], ['rock', 'rock'], ['pop', 'pop']]) {
+    const p = SY.plan('A ' + word + ' track for the brand', 20, { take: 'x' });
+    expect([p.style, p.style_from]).toEqual([style, 'brief']);
+  }
+  // With no genre named, the take picks the band, so takes do not all sound alike.
+  const bands = new Set(['1', '2', '3', '4', '5', '6', '7', '8'].map((t) => SY.plan('A track for the brand', 20, { take: t }).style));
+  expect(bands.size).toBeGreaterThan(2);
+  // Every band makes sound.
+  for (const style of Object.keys(SY.STYLES)) {
+    const o = SY.renderBytes('A ' + SY.STYLES[style].words[0] + ' track', 10, { compact: true, take: 'z' });
+    let peak = 0; const v = Buffer.from(o.bytes);
+    for (let i = 44; i < v.length; i += 2) peak = Math.max(peak, Math.abs(v.readInt16LE(i)));
+    expect(peak, style + ' is silent').toBeGreaterThan(20000);
+  }
+});
+
+test('a Sign in with Google token without Lyria\'s scope is told to sign in again; the sign-in asks for it', async () => {
+  const MC = require(path.join(ROOT, 'api', '_shared', 'music-compose.js'));
+  const body = JSON.stringify({ error: { code: 403, message: 'Request had insufficient authentication scopes.', status: 'PERMISSION_DENIED' } });
+  const f = async () => ({ ok: false, status: 403, text: async () => body });
+  const r = await MC.callLyria({ prompt: 'x', seconds: 10 }, { bearer: 'ya29.token', project: 'p1' }, { fetchImpl: f });
+  expect(r.ok).toBe(false);
+  expect(r.error).toMatch(/Sign in with Google again on AI Models/);
+  const k = await MC.callLyria({ prompt: 'x', seconds: 10 }, { apiKey: 'AIza-key' }, { fetchImpl: f });
+  expect(k.error).not.toMatch(/Sign in with Google/);
+  const S = require(path.join(ROOT, 'api', '_shared', 'ai-account-signin.js'));
+  const scope = S.SIGNIN.gemini.scope;
+  expect(scope).toContain('https://www.googleapis.com/auth/generative-language.retriever');
+  expect(scope).toContain('https://www.googleapis.com/auth/cloud-platform');
 });
