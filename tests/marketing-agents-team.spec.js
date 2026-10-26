@@ -247,6 +247,7 @@ test('a slow model does not carry the team past its deadline: the tier ladder st
     for (const x of xs) expect(x.budgetMs, `${st} carries the time it has left`).toBeLessThanOrEqual(2500);
   }
   expect(byStage('smart-brain-strategy').length, 'the single strategist fills in').toBe(1);
+  expect(byStage('smart-brain-strategy')[0].budgetMs, 'within what is left of the plan window (Codex #370)').toBeLessThanOrEqual(17500);
   expect(Date.now() - t0).toBeLessThan(60000);
 });
 
