@@ -41,13 +41,31 @@ as many frames as it needs, drawn as fast as the machine can.
   photos, each fetched by the server behind `assertPublicUrl` on every
   redirect hop, images only, 8 MB each. Everything else is aborted.
 - Codec: H.264 in MP4 when the browser can encode it (`@sparticuz/chromium`
-  in production can), else VP9 in WebM (the Playwright Chromium here). No AAC
-  encoder exists in either, so the file is silent and says so.
+  in production can), else VP9 in WebM (the Playwright Chromium here).
+- Sound (the operator: "background music with human voiceovers"): a music
+  bed (the track composed on /brain, else music-synth.js as long as the video)
+  and a voiceover of the ad's own words, mixed in the page by an
+  OfflineAudioContext (voice at its scene, music ducked under it, room tone,
+  fades). AAC in the MP4 through `@mediabunny/aac-encoder` (FFmpeg's AAC
+  encoder in WebAssembly, MPL-2.0, ~1 MB: Chromium's WebCodecs has no AAC
+  encoder), Opus in the WebM.
+- Voice (`api/_shared/story-voice.js`): own ElevenLabs, own Gemini TTS, then the
+  platform's keys for a signed-in caller, metered as `audio.tts`. ElevenLabs
+  with stability 0.38 / style 0.3 and `previous_text` / `next_text` per line
+  (its documented continuity fields); Gemini TTS with a voice-note style. There
+  is no keyless human voice: Pollinations' free API lists one text model and
+  answers its old `openai-audio` URL 404 (checked 2026-10-26).
+- Human touch ("Kill the AI Tell"): the photo is held like a phone (slow drift,
+  one half-step reframe at 1.4 s), phone-camera light (a third of a stop under,
+  warm one side and cool the other, a window spill), a fixed grain; the brand's
+  words and buttons stay still and readable.
 - Size and time: the bitrate is chosen so the file fits 4 MB (under Vercel's
   4.5 MB answer); 24 fps; a ladder 1080p → 720p → 540p that projects the total
   after one second of frames and moves down, or answers `too_slow` with a
   sentence, never a cut-off request.
-- `/brain`: each Story video has "MP4 video (made in code, no key)"; a keyless
+- `/brain`: each Story video has "MP4 video with music and voiceover (made in
+  code)", which sends the send's music brief (or its composed track) and says
+  what is heard; a keyless
   `video-generate` answer carries `story_html` and the route to render it.
 
 ## Measured (this container and production's Chromium)
@@ -55,10 +73,13 @@ as many frames as it needs, drawn as fast as the machine can.
 - `@sparticuz/chromium` 153: H.264 encodes; 720p at 30 fps ≈ 75 ms a frame;
   a 19 s story at 720p/24 fps rendered in ≈ 36 s, at 540p ≈ 24 s; ≈ 3.1 MB.
 - Playwright Chromium 141: no H.264 encoder; VP9 WebM, 2.35 MB for 19 s.
+- With sound and the human touch, `@sparticuz/chromium`, a 26.5 s story with
+  three photos: 720p projected 120 s, so 540p, 56 s, 3.4 MB, H.264 + AAC.
+  (The grain blended as "overlay" cost 65 s; laid on plainly, 56 s, the same
+  as none.)
 
 ## Not done, said
 
-- No sound in the file (no AAC encoder in either Chromium; an Opus track in
-  WebM would play in browsers but not in every ad manager).
-- The Story video's in-browser "Save as video" (with the composed music
-  recorded in) stays: that is where a soundtrack is added today.
+- No voice without a key (none exists keyless); the video keeps its music and
+  the reply says how to add one.
+- The Story video's in-browser "Save as video" stays beside it.

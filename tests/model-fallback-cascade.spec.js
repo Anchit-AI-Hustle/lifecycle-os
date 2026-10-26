@@ -565,7 +565,9 @@ test('video: every provider failing says which and why', async () => {
   // ships when every provider fails, and the failure is said beside it.
   expect(out.ok).toBe(true);
   expect(out.provider).toBe('code-motion');
-  expect(out.mp4).toBeNull();
+  // Changed on purpose (2026-10-26): no provider made an MP4, and the story it
+  // carries is rendered to one in code on request (code-video.js).
+  expect(out.mp4).toMatchObject({ method: 'POST', url: '/api/public-config?action=video-render' });
   expect(out.provider_error).toMatch(/veo: HTTP 401/);
   expect(out.provider_error).toMatch(/runway: HTTP 401/);
   expect(out.provider_error).toMatch(/sora: no key/);
