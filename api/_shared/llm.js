@@ -83,7 +83,12 @@ function cloudflareBase() {
 }
 // Optional tail rungs — only active when their env config is present.
 // Ollama exposes an OpenAI-compatible API at ${OLLAMA_BASE_URL}/v1.
-const OLLAMA_BASE    = (process.env.OLLAMA_BASE_URL || '').replace(/\/+$/, '') + (process.env.OLLAMA_BASE_URL ? '/v1' : '');
+// The root, whatever path was pasted (/api/chat, /v1 ...), then the OpenAI-compatible /v1.
+const OLLAMA_BASE    = (function (u) {
+  u = String(u || '').trim().replace(/\/+$/, '');
+  for (let i = 0; i < 3; i++) { const n = u.replace(/\/(?:v1\/chat\/completions|chat\/completions|api\/chat|api\/generate|v1|api)$/i, '').replace(/\/+$/, ''); if (n === u) break; u = n; }
+  return u ? u + '/v1' : '';
+})(process.env.OLLAMA_BASE_URL);
 const SAKANA_BASE    = (process.env.SAKANA_BASE_URL || '').replace(/\/+$/, '') + (process.env.SAKANA_BASE_URL ? '/v1' : '');
 
 // ── Cool-downs ───────────────────────────────────────────────────────────────
@@ -978,7 +983,13 @@ module.exports = async function callLLM(opts) {
   const ownKeyed = new Set((Array.isArray(ov && ov.configured) && ov.configured.length ? ov.configured : Object.keys(ovKeys))
     .map((p) => String(p).toLowerCase()).filter((p) => known(p)));
   if (ownKeyed.size) {
-    order = OWN_KEY_PRIORITY.filter((p) => ownKeyed.has(p));
+    // The priority the person set on AI Models comes first (2026-10-26, the
+    // operator: "check if model usage based on connected accounts are being
+    // used ... as per the priority order"; the fixed quality order used to
+    // replace it, so a chosen order was never honoured). The quality order only
+    // places the connected models the person did not rank.
+    const ranked = ovOrder.filter((p) => ownKeyed.has(p));
+    order = ranked.concat(OWN_KEY_PRIORITY.filter((p) => ownKeyed.has(p) && ranked.indexOf(p) < 0));
     for (const p of ownKeyed) if (order.indexOf(p) < 0) order.push(p);
     if (exclusive && preferredProvider && ownKeyed.has(preferredProvider)) order = [preferredProvider];
     outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);

@@ -157,15 +157,16 @@ const PROVIDERS = [
     ],
   },
   {
-    id: 'ollama', label: 'Ollama (self hosted)', category: 'ai', llm_provider: 'ollama',
+    id: 'ollama', label: 'Ollama (cloud or self hosted)', category: 'ai', llm_provider: 'ollama',
     auth_kind: 'api_key', env_default: 'OLLAMA_BASE_URL',
     key_url: '',
-    blurb: 'Your own Ollama server. The base URL is required; a token is optional.',
+    blurb: 'Ollama Cloud (https://ollama.com with your API key) or your own server. With no model named, the server\'s own model list is used.',
     fields: [
       // `fetched` marks a field the SERVER will make a request to. Those get the
       // SSRF guard at save time; see saveConnection.
       { key: 'base_url', label: 'Base URL', secret: false, required: true, fetched: true, placeholder: 'https://ollama.your-domain.example' },
       { key: 'api_key', label: 'Token (optional)', secret: true, required: false },
+      { key: 'model', label: 'Model (optional)', secret: false, required: false, placeholder: 'gemma4:31b' },
     ],
   },
 
@@ -969,6 +970,76 @@ async function saveRouting(auth, workspaceId, input) {
   return clean;
 }
 
+/* ── Ollama: the address as people paste it, and the server's own models ──── */
+
+// People paste Ollama's root, its OpenAI path (/v1, /v1/chat/completions) or
+// its native one (/api/chat, /api/generate). Production held ".../api/chat" and
+// every call went to ".../api/chat/v1/chat/completions" (404), so every brand
+// using it fell back to template copy. The root is kept; /v1 is the
+// OpenAI-compatible base (docs.ollama.com/api: https://ollama.com/v1 for the
+// cloud, http://localhost:11434/v1 for a server).
+function ollamaRoot(url) {
+  let u = String(url || '').trim().replace(/\/+$/, '');
+  for (let i = 0; i < 3; i++) {
+    const next = u.replace(/\/(?:v1\/chat\/completions|v1\/completions|chat\/completions|api\/chat|api\/generate|api\/tags|v1|api)$/i, '').replace(/\/+$/, '');
+    if (next === u) break;
+    u = next;
+  }
+  return u;
+}
+function ollamaBase(url) { const r = ollamaRoot(url); return r ? r + '/v1' : ''; }
+const OLLAMA_MODEL_RE = /^[a-z0-9][a-z0-9._:\/-]{0,120}$/i;
+
+// No model named on the connection: the models the server itself lists
+// (GET <root>/api/tags, the documented list; for ollama.com the cloud models).
+// A default such as "llama3.3" is often not on the server at all. Largest first,
+// at most three; cached ten minutes per address; never throws.
+const OLLAMA_TAGS = new Map();
+async function ollamaModels(root, key) {
+  if (!root) return [];
+  // The list depends on the account (Ollama Cloud), so the key is part of the
+  // cache key: one workspace's list is never served to another key's calls.
+  const cacheKey = root + '|' + require('crypto').createHash('sha256').update(String(key || '')).digest('hex').slice(0, 16);
+  const hit = OLLAMA_TAGS.get(cacheKey);
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.models;
+  let models = [];
+  try {
+    await brandCore.assertPublicUrl(root);
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const headers = key ? { Authorization: 'Bearer ' + key } : {};
+    let j = null;
+    try {
+      // The timer stays on through the body: a server that sends headers and
+      // then stalls must not hold the generation past the four seconds.
+      const r = await fetch(root + '/api/tags', { headers, signal: ctl.signal });
+      if (r.ok) j = await r.json();
+    } finally { clearTimeout(t); }
+    if (j) {
+      models = (Array.isArray(j && j.models) ? j.models : [])
+        .map((m) => ({ name: String((m && (m.model || m.name)) || '').trim(), size: Number(m && m.size) || 0 }))
+        .filter((m) => OLLAMA_MODEL_RE.test(m.name) && !/embed/i.test(m.name))
+        .sort((a, b) => b.size - a.size)
+        .slice(0, 3)
+        .map((m) => m.name);
+    }
+  } catch (_) { models = []; }
+  OLLAMA_TAGS.set(cacheKey, { at: Date.now(), models });
+  return models;
+}
+
+// The provider's own sentence for a refusal, short and with nothing secret.
+function providerSays(errText) {
+  const raw = String(errText || '');
+  let msg = '';
+  try { const j = JSON.parse(raw); msg = (j.error && (j.error.message || j.error)) || j.message || ''; } catch (_) {
+    const m = raw.match(/"message"\s*:\s*"([^"]{4,200})"/) || raw.match(/"error"\s*:\s*"([^"]{4,200})"/);
+    msg = m ? m[1] : '';
+  }
+  msg = String(typeof msg === 'string' ? msg : '').replace(/\b(sk|gsk|xai|AIza)[-_A-Za-z0-9]{8,}/g, '[key]').replace(/https?:\/\/\S+/g, '').trim().slice(0, 160);
+  return msg ? ` (the provider said: "${msg}")` : '';
+}
+
 /* ── the resolver llm.js consults ─────────────────────────────────────────── */
 
 const RESOLVED = new Map();       // `${user}|${workspace}` -> { at, overrides }
@@ -1007,7 +1078,9 @@ function buildOverrides(routing, connections, secrets) {
       bases.cloudflare = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfg.account_id)}/ai/v1`;
     }
     if (reg.llm_provider === 'ollama' && cfg.base_url) {
-      bases.ollama = String(cfg.base_url).replace(/\/+$/, '') + '/v1';
+      bases.ollama = ollamaBase(cfg.base_url);
+      if (cfg.model && OLLAMA_MODEL_RE.test(String(cfg.model).trim())) connModels.ollama = [String(cfg.model).trim()];
+      else if (Array.isArray(secret.__ollama_models) && secret.__ollama_models.length) connModels.ollama = secret.__ollama_models.slice();
       // Ollama's OpenAI-compatible endpoint accepts any bearer value, so a
       // workspace that gave only a base URL is still usable.
       if (!keys.ollama) keys.ollama = 'ollama';
@@ -1092,6 +1165,15 @@ async function llmOverridesFor(req) {
         const access = await require('./ai-account-signin.js').googleAccessToken(sec.google_refresh_token);
         if (access) secrets.set(r.id, Object.assign({}, sec, { __google_access: access }));
       }
+    }
+
+    for (const r of connections) {
+      const cfg = (r.config && typeof r.config === 'object') ? r.config : {};
+      if (r.provider !== 'ollama' || r.status === 'disabled' || !cfg.base_url) continue;
+      if (cfg.model && OLLAMA_MODEL_RE.test(String(cfg.model).trim())) continue;
+      const sec = secrets.get(r.id) || {};
+      const found = await ollamaModels(ollamaRoot(cfg.base_url), sec.api_key);
+      if (found.length) secrets.set(r.id, Object.assign({}, sec, { __ollama_models: found }));
     }
 
     const overrides = buildOverrides(routing, connections, secrets);
@@ -1287,21 +1369,29 @@ async function checkConnection(auth, workspaceId, providerId) {
     const bases = {};
     const cfg = row.config || {};
     if (reg.llm_provider === 'cloudflare' && cfg.account_id) bases.cloudflare = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cfg.account_id)}/ai/v1`;
-    if (reg.llm_provider === 'ollama' && cfg.base_url) bases.ollama = String(cfg.base_url).replace(/\/+$/, '') + '/v1';
+    if (reg.llm_provider === 'ollama' && cfg.base_url) bases.ollama = ollamaBase(cfg.base_url);
     const key = secrets.api_key || (reg.llm_provider === 'ollama' ? 'ollama' : '');
+    const checkModels = {};
+    if (reg.llm_provider === 'ollama' && cfg.base_url) {
+      const m = (cfg.model && OLLAMA_MODEL_RE.test(String(cfg.model).trim())) ? [String(cfg.model).trim()] : await ollamaModels(ollamaRoot(cfg.base_url), secrets.api_key);
+      if (m.length) checkModels.ollama = m;
+    }
     try {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: require('./output-contract.js').append('ping', require('./output-contract.js').PROBE),
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
-        overrides: { order: [reg.llm_provider], models: {}, keys: { [reg.llm_provider]: key }, bases, fallback: false },
+        overrides: { order: [reg.llm_provider], models: checkModels, keys: { [reg.llm_provider]: key }, bases, fallback: false },
       });
       result = { ok: true, connected: true, note: `Answered on ${r.model}.` };
     } catch (err) {
       const det = (err && err._providerErrors && err._providerErrors[0]) || {};
       const status = det.status;
+      const said = providerSays(det.err);
       result = {
         ok: false, connected: true,
-        note: status === 429 || status === 402 ? 'The key works but the account is rate limited or out of quota.'
+        note: /insufficient authentication scopes/i.test(String(det.err || '')) ? 'Google refused this sign-in for Gemini: it was made before the model access was asked for. Press Sign in with Google again.'
+          : det.kind === 'billing' ? `The account has no credits or has reached its spending limit${said}.`
+          : status === 429 || status === 402 ? 'The key works but the account is rate limited or out of quota.'
           : status === 401 || status === 403 ? 'That key was rejected as unauthorized.'
             : status === 404 ? 'The key works but this account cannot reach the model that was tried.'
               : status === 0 ? 'The provider did not answer in time.'
@@ -1543,6 +1633,7 @@ module.exports = {
   getConnectionAsService, secretsAsService, patchConnectionAsService, saveConnectionAsService,
   // resolution
   buildOverrides, llmOverridesFor, llmOverridesForCurrentRequest,
+  ollamaRoot, ollamaBase, ollamaModels, providerSays,
   mediaKeysFor, mediaKeysForCurrentRequest,
   credentialsFor, credentialsForCurrentRequest,
   // crypto
