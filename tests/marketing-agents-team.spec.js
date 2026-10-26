@@ -108,6 +108,8 @@ test('a send is made by the team: a shared context, maker/reviewer pairs, and co
   // The reviewer sent the copy back: each direction rewritten ONCE, with the reason, and the rewrite shipped.
   const rewrites = byStage('smart-brain-copy').filter((x) => /GENERIC-SUBJECT-PROBLEM/.test(x.userMessage));
   expect(rewrites.length).toBe(2);
+  for (const x of rewrites) expect(x.budgetMs, 'a rewrite is bounded by the time left in the review window (Codex #370)').toBeGreaterThan(5000);
+  for (const x of rewrites) expect(x.budgetMs).toBeLessThanOrEqual(100000);
   expect(byStage('team-review-copy').length, 'no second round').toBe(2);
   expect(c.assets.email.subject).toBe('Seeded Rye Loaf, rewritten');
   // Recorded for /brain: who made what, and every verdict.

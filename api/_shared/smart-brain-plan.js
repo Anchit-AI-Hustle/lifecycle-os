@@ -3120,6 +3120,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null, team = null) {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
         stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (team && team.workspaceId) || (entry && entry.workspace_id) || null,
+        ...(team && team.budgetMs ? { budgetMs: team.budgetMs } : {}),
         userMessage: copyPrompt(entry, fw, brief, team),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
@@ -4198,9 +4199,13 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
         const v = await MA.reviewCopy(tctx.text, team, raw.copy, reviewOpts).catch(() => null);
         if (!v) return { d, raw };
         teamCopyReview.push(Object.assign({ direction: d }, v.member));
-        if (v.verdict === 'revise' && v.critique && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000) + 15000) {
+        // The rewrite has until the review window closes (+30 s), in total across every tier;
+        // with too little left it is skipped and the first draft stands.
+        const rewriteBy = __buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 30000;
+        if (v.verdict === 'revise' && v.critique && rewriteBy - Date.now() > 8000) {
           await rewriteTurn();
-          const again = await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique, workspaceId: teamWorkspace }).catch(() => null);
+          const budgetMs = rewriteBy - Date.now();
+          const again = budgetMs > 5000 ? await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique, workspaceId: teamWorkspace, budgetMs }).catch(() => null) : null;
           teamCopyReview.push({ direction: d, department: 'Content & Creative', role: 'Campaign Copywriter', kind: 'maker', revision: true, ok: !!again, provider: again ? again.provider : null, error: again ? null : 'the rewrite failed; the first draft stands' });
           if (again) return { d, raw: again };
         }
