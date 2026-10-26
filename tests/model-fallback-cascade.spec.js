@@ -308,19 +308,82 @@ test('a workspace order or model list with repeats runs each once', async () => 
 
 /* ── 4. the workspace's own order ────────────────────────────────────────── */
 
-test('a workspace\'s own keys replace the default, in the operator\'s quality order, and a failing one falls to the NEXT', async () => {
-  // Since 2026-10-17 a workspace that connected keys of its own is answered
-  // only by them, in the order Claude, OpenAI, Gemini, Grok, then the rest:
-  // Gemini before Groq, whatever order the workspace listed them in.
+test('a workspace\'s own keys replace the default, in the order the person ranked them, and a failing one falls to the NEXT', async () => {
+  // A workspace that connected keys of its own is answered only by them. Since
+  // 2026-10-26 the order is the one the person set on AI Models (it used to be
+  // replaced by the fixed quality order, so Groq ranked first ran after Gemini).
   keys(KEYS);
-  net = installNet((c) => (c.provider === 'gemini' ? CLASSES['HTTP 429 insufficient_quota'].spec() : undefined));
+  net = installNet((c) => (c.provider === 'groq' ? CLASSES['HTTP 429 insufficient_quota'].spec() : undefined));
   const out = await ask({ overrides: { order: ['groq', 'gemini'], models: {}, keys: { groq: 'ws-groq', gemini: 'ws-gemini' }, bases: {}, fallback: true } });
-  expect(out.provider).toBe('groq');
-  expect(net.calls[0].provider).toBe('gemini');
-  expect(net.calls[0].key).toBe('ws-gemini');
-  expect(net.calls.filter((c) => c.provider === 'groq').every((c) => c.key === 'ws-groq')).toBe(true);
+  expect(out.provider).toBe('gemini');
+  expect(net.calls[0].provider).toBe('groq');
+  expect(net.calls[0].key).toBe('ws-groq');
+  expect(net.calls.filter((c) => c.provider === 'gemini').every((c) => c.key === 'ws-gemini')).toBe(true);
   expect(net.calls.some((c) => c.provider === 'anthropic')).toBe(false);
   expect(out.routing).toBe('workspace');
+});
+
+test('connected models the person did not rank follow the ranked ones, in the quality order', async () => {
+  keys(KEYS);
+  net = installNet((c) => (c.provider !== 'grok' ? CLASSES['HTTP 500'].spec() : undefined));
+  const out = await ask({ overrides: { order: ['grok'], models: {}, keys: { grok: 'ws-grok', gemini: 'ws-gemini', openai: 'ws-openai' }, bases: {}, fallback: true } });
+  expect(out.provider).toBe('grok');
+  expect(net.calls[0].provider).toBe('grok');
+
+  net = installNet((c) => (c.provider === 'grok' ? CLASSES['HTTP 401 bad key'].spec() : undefined));
+  const next = await ask({ overrides: { order: ['grok'], models: {}, keys: { grok: 'ws-grok2', gemini: 'ws-gemini', openai: 'ws-openai' }, bases: {}, fallback: true } });
+  const seq = [...new Set(net.calls.map((c) => c.provider))];
+  expect(seq.slice(0, 2)).toEqual(['grok', 'openai']);
+  expect(next.provider).toBe('openai');
+});
+
+/* ── an Ollama address as people paste it ────────────────────────────────── */
+
+test('an Ollama connection saved as ".../api/chat" is called at "<root>/v1/chat/completions"', async () => {
+  const w = require('../api/_shared/workspace-connections-core.js');
+  for (const u of ['https://ollama.com/api/chat', 'https://ollama.com/', 'https://ollama.com/v1/chat/completions', 'https://ollama.com/api']) {
+    expect(w.ollamaBase(u)).toBe('https://ollama.com/v1');
+  }
+  const ov = w.buildOverrides(null, [{ id: 'c1', provider: 'ollama', status: 'active', config: { base_url: 'https://ollama.com/api/chat' }, secret_fields: ['api_key'] }],
+    new Map([['c1', { api_key: 'ol-key', __ollama_models: ['gemma4:31b'] }]]));
+  expect(ov.bases.ollama).toBe('https://ollama.com/v1');
+  expect(ov.models.ollama).toEqual(['gemma4:31b']);
+  const named = w.buildOverrides(null, [{ id: 'c1', provider: 'ollama', status: 'active', config: { base_url: 'https://ollama.com', model: 'gpt-oss:120b' }, secret_fields: ['api_key'] }],
+    new Map([['c1', { api_key: 'ol-key', __ollama_models: ['gemma4:31b'] }]]));
+  expect(named.models.ollama).toEqual(['gpt-oss:120b']);
+});
+
+test('the server\'s own model list is read from <root>/api/tags, largest first, embeddings left out', async () => {
+  const w = require('../api/_shared/workspace-connections-core.js');
+  const realFetch = global.fetch;
+  const brandCore = require('../api/_shared/brand-workspace-core.js');
+  const realGuard = brandCore.assertPublicUrl;
+  brandCore.assertPublicUrl = async (u) => u;   // the fixture host has no DNS here; the guard itself is tested in workspace-connections
+  const seen = [];
+  global.fetch = async (url, init) => {
+    seen.push({ url: String(url), auth: init && init.headers && init.headers.Authorization });
+    return new Response(JSON.stringify({ models: [
+      { name: 'small:1b', model: 'small:1b', size: 1 }, { name: 'nomic-embed-text', model: 'nomic-embed-text', size: 9 },
+      { name: 'gemma4:31b', model: 'gemma4:31b', size: 31 }, { name: 'mid:8b', model: 'mid:8b', size: 8 }] }), { status: 200 });
+  };
+  try {
+    const out = await w.ollamaModels('https://tags-test.example', 'ol-key');
+    expect(out).toEqual(['gemma4:31b', 'mid:8b', 'small:1b']);
+    expect(seen[0].url).toBe('https://tags-test.example/api/tags');
+    expect(seen[0].auth).toBe('Bearer ol-key');
+    // Another account at the same address is asked again, never given the first one's list.
+    await w.ollamaModels('https://tags-test.example', 'other-key');
+    expect(seen.length).toBe(2);
+    expect(seen[1].auth).toBe('Bearer other-key');
+    // A server that sends headers and then stalls on the body is cut off at four seconds.
+    global.fetch = async (url, init) => ({ ok: true, json: () => new Promise((resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(new Error('aborted')));
+    }) });
+    const t0 = Date.now();
+    const stalled = await w.ollamaModels('https://stall-test.example', 'k');
+    expect(stalled).toEqual([]);
+    expect(Date.now() - t0).toBeLessThan(6000);
+  } finally { global.fetch = realFetch; brandCore.assertPublicUrl = realGuard; }
 });
 
 test('with fallback on, the platform cascade finishes the job after the workspace order is exhausted', async () => {

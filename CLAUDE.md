@@ -4,6 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Connected models run in the order the person ranked them; Ollama Cloud works (2026-10-26)
+The operator: "maybe model usage is still not working as per connected", "check if model usage based on connected
+accounts are being used or not as per the priority order". Production logs: every build fell to template copy. The
+person's own keys were all tried and all refused (Bedrock 403, OpenAI no credits, Gemini sign-in "insufficient
+authentication scopes", Grok spending limit, Groq invalid key: account problems, theirs to fix), and Ollama, the one
+left, was OUR bug: the saved base URL ended in `/api/chat` and calls went to `/api/chat/v1/chat/completions` (404).
+- `llm.js`: with own keys, the order the person set on AI Models (`ov.order`) comes FIRST; `OWN_KEY_PRIORITY` only
+  places connected models they did not rank (it used to replace their order entirely).
+- `workspace-connections-core.js`: `ollamaRoot()`/`ollamaBase()` strip `/api/chat`, `/api/generate`, `/v1/...`,
+  `/api` before adding `/v1` (docs.ollama.com: `https://ollama.com/v1`; env `OLLAMA_BASE_URL` too); a `model` field on
+  the connection, else `ollamaModels()` reads the server's own `<root>/api/tags` (largest first, no embeddings, 3,
+  cached 10 min, behind `assertPublicUrl`). Test on a card quotes the provider's own sentence (`providerSays`, keys
+  redacted) and tells a Gemini sign-in missing the scope to sign in again.
+- Gated in `tests/model-fallback-cascade.spec.js` (ranked order, unranked after it, Ollama URL + tags; the order fix
+  mutation-checked). The old "quality order wins over the workspace order" case changed on purpose.
+
 ## ⭐ A send is made by a marketing TEAM: shared context, maker/reviewer pairs, work sent back (2026-10-26)
 The operator, with "The Claude B2B Marketing Department" (a shared marketing context and ten departments of five
 maker/reviewer pairs): "the best and most accurate output can only be achieved when a team of such agents works
