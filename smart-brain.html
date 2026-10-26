@@ -1473,21 +1473,29 @@ window.sbVideoVariant = function(btn, idx, which){
   const frame = card.querySelector('.advframe'); if(!frame) return;
   const html = which === 'story' ? item.story : item.html; if(!html) return;
   const url = URL.createObjectURL(new Blob([html], { type:'text/html' }));
-  frame.src = url; frame.dataset.variant = which; setTimeout(()=>URL.revokeObjectURL(url), 300000);
+  // A reloaded player starts on its full cut.
+  frame.src = url; frame.dataset.variant = which; frame.dataset.storyCut = 'full'; setTimeout(()=>URL.revokeObjectURL(url), 300000);
   card.querySelectorAll('.advswitch [data-vv]').forEach((b)=>{ const on = b.dataset.vv === which; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.classList.toggle('secondary', !on); });
 };
 // A real video FILE made in code (2026-10-26), with no key and no model: the
 // server draws the Story video frame by frame and encodes it to H.264 MP4
 // (api/_shared/code-video.js on /api/public-config?action=video-render). The
 // short cut is sent when the player shows it.
+// A Story player says which cut it is showing; the frame that sent it keeps it.
+window.addEventListener('message', (e) => {
+  const d = e && e.data;
+  if (!d || d.type !== 'lifecycle-story-cut' || (d.cut !== 'short' && d.cut !== 'full')) return;
+  document.querySelectorAll('iframe.advframe').forEach((f) => { if (f.contentWindow === e.source) f.dataset.storyCut = d.cut; });
+});
 window.sbRenderMp4 = async function(btn, idx){
   const item = (window.__SB_MOTION||[])[idx]; const card = btn && btn.closest('.adcard'); if(!item || !item.story || !card) return;
   let out = card.querySelector('[data-code-mp4-out]');
   if(!out){ out = document.createElement('div'); out.className = 'advnote'; out.setAttribute('data-code-mp4-out',''); btn.closest('.akbar').after(out); }
   const say = (t)=>{ out.textContent = t; };
   const frame = card.querySelector('.advframe');
-  let cut = 'full';
-  try { const cb = frame && frame.contentDocument && frame.contentDocument.getElementById('cut'); if(cb && cb.getAttribute('data-cut') === 'short') cut = 'short'; } catch(_){ /* sandboxed */ }
+  // The cut the reviewer chose in the player: the sandboxed frame tells the
+  // page (lifecycle-story-cut), since its document cannot be read from here.
+  const cut = frame && frame.dataset.storyCut === 'short' ? 'short' : 'full';
   btn.disabled = true; say('Rendering the video on the server, frame by frame, with its music and voiceover. This takes up to a minute and a half.');
   try {
     // The sound: the track composed for this send (when it fits one request),

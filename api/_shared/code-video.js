@@ -174,6 +174,8 @@ async function encodeInPage(o) {
     const a = performance.now();
     S.frame(Math.min(t, total - 0.0001));
     const b = performance.now();
+    // A slower machine, for the time-limit tests only (never set by the route).
+    if (o.minFrameMs) { const wait = o.minFrameMs - (performance.now() - a); if (wait > 0) await new Promise((ok) => setTimeout(ok, wait)); }
     await source.add(t, dt);
     drawMs += b - a; encMs += performance.now() - b;
   }
@@ -315,7 +317,7 @@ async function renderStoryVideo(opts) {
         // No time left to try this size: that is running out of time, said as such.
         if (left < 8000) { tried.push(sz + ' (no time left to start it)'); anySlow = true; break; }
         try {
-          r = await pg.evaluate(encodeInPage, { cut, width: w, height: h, fps, bitrate: bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000, abps), audio: audioArg, audioBps: AUDIO_BPS, latency: o.latency, budgetMs: left - 4000 });
+          r = await pg.evaluate(encodeInPage, { cut, width: w, height: h, fps, bitrate: bitrateFor(seconds, w >= 1080 ? 4000000 : 2500000, abps), audio: audioArg, audioBps: AUDIO_BPS, latency: o.latency, budgetMs: left - 4000, minFrameMs: Number(o.minFrameMs) > 0 ? Number(o.minFrameMs) : 0 });
         } catch (e) {
           // An encoder that fails part-way (it can at one size and not another).
           r = { ok: false, failed: true, error: String((e && e.message) || e).split('\n')[0].slice(0, 160) };

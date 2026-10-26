@@ -392,6 +392,9 @@ function storyPage(all) {
     cutBtn.textContent = toShort ? Math.round(ALL.cuts.full.total) + ' s cut' : Math.round(ALL.cuts.short.total) + ' s cut';
     note.textContent = Math.round(c.total) + ' seconds · ' + c.scenes.length + ' scenes';
     t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0);
+    // The page holding this player in a sandboxed frame cannot read it, so the
+    // chosen cut is told to it (its "MP4" export renders the same cut).
+    try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'lifecycle-story-cut', cut: toShort ? 'short' : 'full' }, '*'); } catch (_) { /* no parent */ }
   };
   document.getElementById('restart').onclick = function () { t0 = performance.now(); paused = false; playBtn.textContent = 'Pause'; trackFrom(0); };
   document.getElementById('save').onclick = function () {
