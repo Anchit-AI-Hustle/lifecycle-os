@@ -4896,6 +4896,12 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
 
   const normType = String(assetType || '').toLowerCase();
 
+  // A regeneration is a new generation (asset-themes.js): a take moves the
+  // asset to another theme and template; an ordinary rebuild stays as it was.
+  // Every own property, the hidden ones too (the mail study, the scene): a
+  // plain copy would drop them and the regenerated mail would lose its study.
+  const regen = Object.defineProperties({}, Object.getOwnPropertyDescriptors(entry));
+  regen.__take = `regen-${Date.now().toString(36)}`;
   if (normType === 'mailer' || normType === 'email') {
     const CF = require('./copy-frameworks.js');
     const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: `${entry.id || entry.date || ''}_${Date.now()}` });
@@ -4908,7 +4914,7 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
       if (rawA && rawA.copy) {
         const copyA = gateProof(scrubCopyDeep(rawA.copy, entry), entry);
         const copyB = rawB && rawB.copy ? gateProof(scrubCopyDeep(rawB.copy, entry), entry) : copyA;
-        applyCopy(campaign, entry, copyA, copyB, fwA, fwB, {}, _runId(entry));
+        applyCopy(campaign, regen, copyA, copyB, fwA, fwB, {}, _runId(entry));
       } else {
         throw new Error('LLM unavailable for single mailer generation');
       }
@@ -4916,12 +4922,12 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
       const tc = require('../../lib/smart-brain/services.js').templateEmailCopy(entry, campaign.assets?.email);
       const pool = slotImagePool(entry, 1200);
       campaign.assets.email = campaign.assets.email || {};
-      campaign.assets.email.variants = emailVariants(entry, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
+      campaign.assets.email.variants = emailVariants(regen, tc.A, tc.B, { key: 'product', name: 'Product-led' }, { key: 'brand', name: 'Brand-led' }, pool[0] || null);
     }
   } else if (normType === 'landing' || normType === 'landing_page') {
     // The same builder as the full build (2026-10-23): it called a function
     // services.js does not export, so "Regenerate landing" always failed.
-    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'hero' });
+    const fresh = await buildCampaign(regen, config, { withCreatives: 'hero' });
     if (fresh && fresh.assets && Array.isArray(fresh.assets.landing_pages) && fresh.assets.landing_pages.length) {
       campaign.assets.landing_pages = fresh.assets.landing_pages;
     }
@@ -4931,7 +4937,7 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
     // A regeneration is a new generation: a take moves every ad to another
     // theme and template (asset-themes.js), so "Regenerate ads" changes the
     // design as well as the words.
-    const fresh = await buildCampaign(Object.assign({}, entry, { __take: `regen-${Date.now().toString(36)}` }), config, { withCreatives: 'lean' });
+    const fresh = await buildCampaign(regen, config, { withCreatives: 'lean' });
     if (fresh && fresh.assets && Array.isArray(fresh.assets.ads) && fresh.assets.ads.length) {
       campaign.assets.ads = fresh.assets.ads;
       if (fresh.platform_ready) campaign.platform_ready = fresh.platform_ready;
