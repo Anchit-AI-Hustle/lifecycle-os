@@ -150,6 +150,20 @@ test('the brief reviewer reads the strategy and message the brief was made from;
   for (const x of byStage('smart-brain-copy')) expect(x.userMessage).not.toContain('see email');
 });
 
+test('the shared context states the offer as the planner meant it: a fraction or a whole percentage (Codex #370)', async () => {
+  test.setTimeout(120000);
+  script = teamScript({ copyVerdict: 'pass' });
+  for (const [pct, said] of [[0.15, '15% off'], [15, '15% off'], [0, null]]) {
+    calls = [];
+    const realFetch = global.fetch;
+    global.fetch = async (u) => { throw new Error('offline in this test: ' + u); };
+    try { await P.previewEntry({ entry: Object.assign(entry(), { offer: { label: 'Weekend rye', pct } }) }); } finally { global.fetch = realFetch; }
+    const m = byStage('team-strategy')[0].userMessage;
+    if (said) expect(m, `pct ${pct}`).toContain(said);
+    expect(m, `pct ${pct}`).not.toMatch(/1500%|0% off/);
+  }
+});
+
 test('a reviewer that passes the copy sends nothing back', async () => {
   test.setTimeout(120000);
   script = teamScript({ copyVerdict: 'pass' });
