@@ -4113,6 +4113,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   attachPlacementCopy(campaign, entry);
   fillLandingUrl(campaign, entry);
   attachUnitWords(campaign, entry);
+  attachStaticCreative(campaign, entry);
   // The review gap is in the checks even when nothing was dropped: the asset
   // shows no proof section, and the reviewer still sees why.
   if (!(Array.isArray(entry.__reviews) && entry.__reviews.length)) {
@@ -4369,6 +4370,57 @@ function attachUnitWords(campaign, entry) {
 // already have, within the headline limit, plus the safe zone; a carousel only
 // when two or more products have their own photo (one card each). Nothing is
 // written here that the copy or the record does not already say.
+// THE STATIC AD AS ITS OWN CREATIVE (2026-10-26, the operator: "no complete
+// different templates, themes everything"). Every static ad of every brand was
+// the same picture with the same dark gradient and button drawn by the
+// console. Each static ad is now composed by scripts/lib/static-ad.js in one
+// of six templates and one of the brand's own themes (asset-themes.js: picked
+// per brand, per send, per ad; the same slot rebuilt is the same design, a
+// regeneration moves it). Its words are the ad's finished copy (units in
+// words, after attachUnitWords), its picture the ad's own photograph.
+function attachStaticCreative(campaign, entry) {
+  const ads = ((campaign && campaign.assets && campaign.assets.ads) || []).filter((ad) => ad && ad.creative_type !== 'video');
+  if (!ads.length) return;
+  let SA, AT, rt;
+  try { SA = require('../../scripts/lib/static-ad.js'); AT = require('./asset-themes.js'); rt = require('./brand-runtime.js'); } catch (_) { return; }
+  let brand = {};
+  try { brand = rt.scopedBrand(entry && entry.brand, { allowTenantZero: true }) || {}; } catch (_) { brand = (entry && entry.brand) || {}; }
+  const pal = rt.paletteOf(brand);
+  const fs = rt.fontStacks(brand);
+  const core = _wsCore();
+  let fontsHref = '';
+  try { fontsHref = core && core.fontsHref ? core.fontsHref(brand) : ''; } catch (_) { fontsHref = ''; }
+  const hp = entry && entry.heroProduct && !entry.heroProduct.placeholder && !/^\[DATA REQUIRED/.test(String(entry.heroProduct.title || '')) ? entry.heroProduct : null;
+  let price = '';
+  try { const n = Number(hp && hp.price); if (Number.isFinite(n) && n > 0) price = require('./brand-locale.js').money(n, brand, entry.market) || ''; } catch (_) { price = ''; }
+  const first = (t) => ((String(t || '').match(/[^.!?]+[.!?]?/) || [''])[0]).replace(/\s+/g, ' ').trim();
+  const clean = (t) => (/DATA REQUIRED/.test(String(t || '')) ? '' : String(t || '').trim());
+  const gaps = [];
+  for (const ad of ads) {
+    try {
+      const ov = ad.overlay || {};
+      const headline = clean(ov.headline || ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || '');
+      const line = clean(first(ad.primary_text || ad.description || (Array.isArray(ad.descriptions) && ad.descriptions[0]) || ad.caption));
+      const name = `ad:${ad.platform || ''}:static:${ad.variant || ''}:${ad.id || ''}`;
+      const p = AT.pick(entry, 'ad', name);
+      const out = SA.renderStaticAd({
+        id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template,
+        brandName: brand.name || '', logo: brand.logo_url || '', market: entry && entry.market,
+        ratio: ad.aspect || '1:1', headline, line: line && line.toLowerCase() !== headline.toLowerCase() ? line : '',
+        price, proof: clean(ov.proof), cta: clean(ov.cta || ad.cta),
+        image: (ad.creative && ad.creative.image) || '',
+        palette: pal, fonts: { head: fs.head, body: fs.body }, fontsHref,
+      });
+      ad.creative = Object.assign({}, ad.creative || {}, {
+        static_html: out.html,
+        design: { theme: out.theme, template: out.template, id: p.id, why: p.why },
+      });
+      gaps.push(...out.data_gaps);
+    } catch (_) { /* the ad keeps its photo and overlay */ }
+  }
+  if (gaps.length) campaign.data_gaps = [...new Set([...(Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []), ...gaps])];
+}
+
 function attachPlacementCopy(campaign, entry) {
   try {
     const specs = require('./asset-specs.js').ADS;
@@ -4729,7 +4781,10 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
   } else if (normType === 'ads' || normType === 'ad') {
     // New copy AND creatives, from the same builder as the full build: this
     // only re-attached pictures, so "Regenerate ads" changed no words.
-    const fresh = await buildCampaign(Object.assign({}, entry), config, { withCreatives: 'lean' });
+    // A regeneration is a new generation: a take moves every ad to another
+    // theme and template (asset-themes.js), so "Regenerate ads" changes the
+    // design as well as the words.
+    const fresh = await buildCampaign(Object.assign({}, entry, { __take: `regen-${Date.now().toString(36)}` }), config, { withCreatives: 'lean' });
     if (fresh && fresh.assets && Array.isArray(fresh.assets.ads) && fresh.assets.ads.length) {
       campaign.assets.ads = fresh.assets.ads;
       if (fresh.platform_ready) campaign.platform_ready = fresh.platform_ready;
@@ -5103,7 +5158,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './asset-themes.js', '../../scripts/lib/static-ad.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
@@ -5323,6 +5378,7 @@ module.exports = {
   __test_generateCreatives: generateCreatives,
   __test_applyCopy: applyCopy,
   __test_attachMotionCreative: attachMotionCreative,
+  __test_attachStaticCreative: attachStaticCreative,
   // The contract check the builder runs on its own output, so a renderer that
   // lives outside this module (the html pipeline stage) can be judged by the
   // SAME summary shape rather than by a second walk that could drift from it.
