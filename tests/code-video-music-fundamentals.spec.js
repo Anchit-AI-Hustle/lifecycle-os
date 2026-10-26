@@ -182,7 +182,10 @@ const fresh = () => { delete require.cache[require.resolve(path.join(ROOT, 'api'
 // (third-eye-music/), so the plan, and the sketch it seeds, is deterministic.
 const LLM_PATH = path.join(ROOT, 'api', '_shared', 'llm.js');
 require(LLM_PATH);
-require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, require.cache[LLM_PATH].exports);
+const realLlmExports = require.cache[LLM_PATH].exports;
+require.cache[LLM_PATH].exports = Object.assign(async () => { throw new Error('no text model in this test'); }, realLlmExports);
+// The stub stays in this file: a later spec in the same worker reads llm.js from require.cache.
+test.afterAll(() => { require.cache[LLM_PATH].exports = realLlmExports; });
 const NO_KEYS = ['HF_API_TOKEN', 'HUGGINGFACE_API_KEY', 'HUGGINGFACEHUB_API_TOKEN', 'GEMINI_API_KEY', 'ELEVENLABS_API_KEY', 'ELEVEN_API_KEY', 'XI_API_KEY', 'REPLICATE_API_TOKEN', 'REPLICATE_API_KEY'];
 async function noKeys(fn) {
   const saved = Object.fromEntries(NO_KEYS.map((k) => [k, process.env[k]]));
