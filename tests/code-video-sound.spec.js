@@ -183,7 +183,29 @@ test.describe('soundFor: the voice and the music', () => {
     });
   });
 
-  test('the words of a refusal: a key, a quota, a scope, a timeout', async () => {
+  test('one line refused stops the others: no provider is left making lines that will be thrown away', async () => {
+  const d = SA.storyDataFrom(STORY());
+  const lines = SV.linesFor(d, 'full');
+  const aborted = [];
+  let n = 0;
+  const f = async (url, init) => {
+    const i = n++;
+    if (i === 1) return new Response(JSON.stringify({ detail: 'nope' }), { status: 401 });
+    // Every other line takes a while; it must be cancelled, not answered.
+    return new Promise((ok, no) => {
+      const t = setTimeout(() => ok(new Response(toneWav(0.5, 1000), { status: 200 })), 5000);
+      init.signal.addEventListener('abort', () => { clearTimeout(t); aborted.push(i); no(new Error('aborted')); });
+    });
+  };
+  const t0 = Date.now();
+  const v = await SV.voiceTrack(lines, [{ src: 'own', kind: 'elevenlabs', key: 'k' }], { fetchImpl: f, deadline: Date.now() + 30000 });
+  expect(v.ok).toBe(false);
+  expect(v.refusals.join(' ')).toMatch(/ElevenLabs refused the key \(401\)/);
+  expect(Date.now() - t0, 'it waited for lines it was going to throw away').toBeLessThan(3000);
+  expect(aborted.sort()).toEqual([0, 2, 3, 4]);
+});
+
+test('the words of a refusal: a key, a quota, a scope, a timeout', async () => {
     expect(SV.reasonOf('ElevenLabs', 401, '{"detail":{"message":"bad key"}}')).toBe('ElevenLabs refused the key (401): bad key');
     expect(SV.reasonOf('Gemini TTS', 429, '{"error":{"message":"Quota exceeded"}}')).toMatch(/no quota left on this key \(429\)/);
     expect(SV.reasonOf('Gemini TTS', 403, '{"error":{"message":"Request had insufficient authentication scopes."}}')).toMatch(/sign in with Google again/);

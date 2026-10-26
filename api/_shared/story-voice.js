@@ -117,8 +117,9 @@ function reasonOf(label, status, raw) {
   return label + ' answered ' + status + (msg ? ': ' + msg : '');
 }
 
-async function post(rq, f, ms) {
-  const r = await f(rq.url, { method: 'POST', headers: rq.headers, body: JSON.stringify(rq.body), signal: AbortSignal.timeout(Math.max(1000, ms)) });
+async function post(rq, f, ms, stop) {
+  const t = AbortSignal.timeout(Math.max(1000, ms));
+  const r = await f(rq.url, { method: 'POST', headers: rq.headers, body: JSON.stringify(rq.body), signal: stop ? AbortSignal.any([t, stop]) : t });
   return r;
 }
 
@@ -126,7 +127,7 @@ async function post(rq, f, ms) {
 async function speakEleven(text, key, o = {}) {
   const f = o.fetchImpl || fetch;
   let r;
-  try { r = await post(elevenRequest(text, key, o), f, o.timeoutMs || 20000); } catch (e) { throw new Error('ElevenLabs did not answer in time'); }
+  try { r = await post(elevenRequest(text, key, o), f, o.timeoutMs || 20000, o.signal); } catch (e) { throw new Error(o.signal && o.signal.aborted ? 'stopped: another line failed' : 'ElevenLabs did not answer in time'); }
   if (!r.ok) throw new Error(reasonOf('ElevenLabs', r.status, await r.text().catch(() => '')));
   const audio = Buffer.from(await r.arrayBuffer());
   if (audio.length < 200) throw new Error('ElevenLabs answered without audio');
@@ -137,7 +138,7 @@ async function speakEleven(text, key, o = {}) {
 async function speakGemini(text, auth, o = {}) {
   const f = o.fetchImpl || fetch;
   let r;
-  try { r = await post(geminiRequest(text, auth), f, o.timeoutMs || 20000); } catch (e) { throw new Error('Gemini TTS did not answer in time'); }
+  try { r = await post(geminiRequest(text, auth), f, o.timeoutMs || 20000, o.signal); } catch (e) { throw new Error(o.signal && o.signal.aborted ? 'stopped: another line failed' : 'Gemini TTS did not answer in time'); }
   const raw = await r.text().catch(() => '');
   if (!r.ok) throw new Error(reasonOf('Gemini TTS', r.status, raw));
   let json = null; try { json = JSON.parse(raw); } catch (_) { throw new Error('Gemini TTS answered with something that was not JSON'); }
@@ -166,11 +167,16 @@ async function voiceTrack(lines, sources, o = {}) {
     const left = deadline - Date.now();
     if (left < 3000) { refusals.push('There was no time left to try ' + LABEL[s.kind] + '.'); break; }
     const who = (s.src === 'own' ? 'Your ' : 'The platform\'s ') + LABEL[s.kind] + ': ';
+    // The lines go out together; the first one refused stops the rest, so a
+    // provider is not left generating (and billing) lines that will be thrown
+    // away (Codex, #366).
+    const stop = new AbortController();
     try {
       const clips = await Promise.all(lines.map((l, i) => {
-        const opt = { fetchImpl: o.fetchImpl, timeoutMs: left - 1000, prev: i ? lines[i - 1].text : '', next: lines[i + 1] ? lines[i + 1].text : '' };
+        const opt = { fetchImpl: o.fetchImpl, timeoutMs: left - 1000, signal: stop.signal, prev: i ? lines[i - 1].text : '', next: lines[i + 1] ? lines[i + 1].text : '' };
         return (s.kind === 'elevenlabs' ? speakEleven(l.text, s.key, opt) : speakGemini(l.text, s.auth, opt))
-          .then((a) => Object.assign({}, l, a));
+          .then((a) => Object.assign({}, l, a))
+          .catch((e) => { stop.abort(); throw e; });
       }));
       return { ok: true, provider: s.kind, model: s.kind === 'elevenlabs' ? ELEVEN_MODEL : GEMINI_TTS, own: s.src === 'own', clips, refusals, chars: lines.reduce((n, l) => n + l.text.length, 0) };
     } catch (e) {
