@@ -2118,10 +2118,91 @@ function landingFormat(entry, copy, variant) {
   return ownPhotoCount(entry) >= 2 ? 'collection' : 'direct-offer';
 }
 
+/**
+ * THE LANDING PAGE'S THEME AND TEMPLATE (asset-themes.js, 2026-10-26; the
+ * operator: "complete different templates, themes everything"). One <style>
+ * after the page's own, so the brand's tokens (:root) never change between
+ * pages and a block the page gates is never removed: the template moves where
+ * things sit (classic, an immersive photograph under a brand panel, a split
+ * hero with alternating sections, an editorial long-read), the theme sets the
+ * type, corners, buttons, cards, dividers, the hero's ground, the header and the
+ * footer. Every colour is a token the page already pairs for AA: the ink on the
+ * surface, the on-primary on the primary, the hero button picked for 3:1
+ * against the ground it sits on. A measured design system keeps its own type,
+ * buttons, header and footer; the template and the card shapes still apply.
+ */
+function lpThemeCss(T, tpl, c) {
+  const css = [];
+  const h = T.heading;
+  const onSurfaceHero = !c.ds && (['open', 'framed', 'cards'].includes(T.ground) || tpl === 'editorial');
+  if (!c.ds) {
+    const hs = (n) => Math.round(n * Math.max(0.85, Math.min(1.5, h.scale)));
+    const type = `font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}`;
+    css.push(`.hero h1{${type}font-size:${hs(34)}px}.sec h2,.feats h2,.details h2,.revs h2,.about h2,.sec-head h2{${type}font-size:${hs(26)}px}`);
+    css.push(`@media(max-width:640px){.hero h1{font-size:${hs(22)}px}.sec h2,.sec-head h2{font-size:${hs(19)}px}}`);
+    const br = T.button === 'pill' ? '999px' : (T.button === 'block' ? '0' : `${Math.min(14, T.radius.button)}px`);
+    css.push(`.btn,.btn.big,.hero .btn,.sticky .btn{border-radius:${br}}`);
+    if (T.button === 'block') css.push(`.endcta .btn,.bb .btn{display:flex;width:100%;max-width:420px;margin-left:auto;margin-right:auto}.hero .btn{min-width:min(100%,320px)}`);
+    if (T.button === 'outline' || T.button === 'link') css.push(`.endcta .btn{background:transparent;color:var(--ink);border:2px solid var(--ink)}`);
+    if (onSurfaceHero) {
+      css.push(`.hero{background:${T.ground === 'cards' ? 'var(--chalk-warm)' : 'var(--chalk)'};color:var(--ink)}.hero .eyebrow,.hero p,.hero .assure{color:var(--ink)}.hero .pills span{background:${T.ground === 'cards' ? 'var(--chalk)' : 'var(--chalk-warm)'};color:var(--ink)}`);
+      css.push(`.hero .btn{background:${c.heroBtn};color:${c.onHeroBtn}}`);
+      if (T.button === 'outline') css.push(`.hero .btn{background:transparent;color:var(--ink);border:2px solid var(--ink)}`);
+      if (T.ground === 'framed') css.push(`.hero{outline:1px solid var(--ink);outline-offset:-14px}`);
+      if (T.ground === 'cards') css.push(`.hero{margin:14px;border-radius:${Math.min(28, T.radius.card)}px}`);
+    } else if (T.button === 'outline') {
+      css.push(`.hero .btn{background:transparent;color:var(--on-moss);border:2px solid var(--on-moss)}`);
+    }
+    if (T.align === 'left') css.push(`.hero{text-align:left}.hero h1,.hero p,.hero .eyebrow{margin-left:0;margin-right:auto}.hero .hero-price{margin-left:0!important}.hero .pills{justify-content:flex-start}.sec-head{text-align:left;margin-left:0}`);
+    if (T.eyebrow === 'rule') css.push(`.hero .eyebrow::after{content:"";display:block;width:48px;height:2px;background:currentColor;margin:10px 0 0}`);
+    if (T.eyebrow === 'spaced') css.push(`.hero .eyebrow{letter-spacing:.38em}`);
+    if (T.header === 'left') css.push(`.bar{text-align:left;padding-left:22px}.bar-logo{margin:0}`);
+    if (T.header === 'band') css.push(`.bar:not(:has(img)){background:var(--moss);color:var(--on-moss);border-bottom:0}`);
+    if (T.footer === 'rule') css.push(`footer{background:var(--chalk);color:var(--ink);border-top:3px solid var(--moss)}`);
+    if (T.footer === 'plain') css.push(`footer{background:var(--chalk);color:var(--ink);border-top:1px solid var(--chalk-warm);text-align:left}`);
+    if (T.footer === 'tint') css.push(`footer{background:var(--chalk-warm);color:var(--ink)}`);
+  }
+  // Cards, pictures, dividers and rhythm: every theme, design system or not.
+  const rc = `${Math.min(28, T.radius.card)}px`, ri = `${Math.min(24, T.radius.image)}px`;
+  const cardSel = '.other,.rgrid figure,.dgrid div,.f-card,.t-step,.reveal,.offers li,.lcard,.buybox,.metrics-card,.guarantee';
+  css.push(`${cardSel}{border-radius:${rc}}.feat img,.buybox img,.lcard img,.hero-media img{border-radius:${ri}}`);
+  if (T.card === 'tint') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{background:var(--chalk-warm);border-color:transparent}`);
+  if (T.card === 'frame') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{border:2px solid var(--ink)}`);
+  if (T.card === 'band') css.push(`.other,.rgrid figure,.dgrid div,.f-card,.t-step,.offers li{border:0;border-top:6px solid var(--moss);background:var(--chalk)}`);
+  if (T.divider === 'hairline') css.push(`.wrap>.sec+.sec{border-top:1px solid var(--chalk-warm)}`);
+  if (T.divider === 'double') css.push(`.wrap>.sec+.sec{border-top:4px double var(--chalk-warm)}`);
+  if (T.divider === 'thick') css.push(`.sec>h2::after{content:"";display:block;width:56px;height:5px;background:var(--moss);margin-top:10px}`);
+  if (T.divider === 'dots') css.push(`.sec>h2::after{content:"";display:block;width:46px;height:8px;margin-top:10px;background:radial-gradient(circle,var(--moss) 3px,transparent 4px) 0 0/16px 8px repeat-x}`);
+  if (T.density === 'airy') css.push(`.sec{padding:42px 0}`);
+  if (T.density === 'compact') css.push(`.sec{padding:18px 0}`);
+  // The template.
+  if (tpl === 'immersive') {
+    css.push(`.hero:has(.hero-grid.has-media){padding:0 0 34px}.hero-grid.has-media{display:flex;flex-direction:column;max-width:none;gap:0}.hero-grid.has-media .hero-media{order:-1;width:100%}`);
+    css.push(`.hero-grid.has-media .hero-media img{width:100%;height:min(74vh,620px);border-radius:0}`);
+    css.push(`.hero-grid.has-media .hero-copy{position:relative;z-index:2;margin:-120px auto 0;max-width:680px;width:calc(100% - 32px);background:var(--moss);color:var(--on-moss);padding:28px 26px;border-radius:${rc};text-align:center}.hero-grid.has-media .hero-copy h1,.hero-grid.has-media .hero-copy p,.hero-grid.has-media .hero-copy .eyebrow{color:var(--on-moss);margin-left:auto;margin-right:auto}`);
+    if (!c.ds) css.push(`.hero:has(.hero-grid.has-media){background:var(--chalk)}.hero-grid.has-media .hero-copy .btn{background:${c.bandBtn};color:${c.onBandBtn}}`);
+    css.push(`@media(max-width:640px){.hero-grid.has-media .hero-media img{height:300px}.hero-grid.has-media .hero-copy{margin-top:-60px;padding:20px 16px}}`);
+  } else if (tpl === 'split') {
+    // A split screen: the photograph fills its half edge to edge, the words sit
+    // in the other half on the hero's own ground.
+    css.push(`@media(min-width:900px){.hero:has(.hero-grid.has-media){padding:0}.hero-grid.has-media,.hero-grid.has-media.hero--media-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr);text-align:left;max-width:none;gap:0;align-items:stretch}.hero-grid.has-media .hero-copy{padding:64px 56px;align-self:center}.hero-grid.has-media .hero-media img{height:100%;min-height:560px;border-radius:0}}`);
+    css.push(`.wrap>.sec:nth-of-type(even){background:var(--chalk-warm);box-shadow:0 0 0 100vmax var(--chalk-warm);clip-path:inset(0 -100vmax)}`);
+  } else if (tpl === 'editorial') {
+    css.push(`.hero-grid,.hero-grid.has-media{display:grid;grid-template-columns:minmax(0,1fr)!important;max-width:820px;text-align:left}.hero-grid .hero-media{order:2!important}.hero h1{max-width:none}`);
+    css.push(`.hero-grid.has-media .hero-media img{height:auto;aspect-ratio:16/9}`);
+    css.push(`.wrap{max-width:780px;counter-reset:lpsec}.wrap>.sec>h2::before{counter-increment:lpsec;content:counter(lpsec,decimal-leading-zero);display:block;font-size:14px;letter-spacing:.2em;margin-bottom:6px;color:var(--ink)}`);
+  }
+  return `<style data-theme="${T.id}" data-template="${tpl}">${css.join('\n')}</style>`;
+}
+
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // This page's own composition (asset-style.js): hero arrangement varies by
   // brand and slot; the brand's palette, type and radii do not.
   const _lpRecipe = require('./asset-style.js').recipe(entry, `landing:${campaignId || ''}`);
+  const _lpLook = require('./asset-themes.js').pick(entry, 'landing', `landing:${campaignId || ''}`);
+  // The split template is always two columns; the editorial one puts the
+  // picture under the words; the classic and immersive ones keep the recipe's.
+  const _lpHero = _lpLook.template === 'split' && _lpRecipe.hero === 'media-top' ? 'media-right' : (_lpLook.template === 'editorial' ? 'media-top' : _lpRecipe.hero);
   const L = copy.landing || {};
   const _o = opts || {};
   // Everything brand-visible derives from the ACTIVE brand on the entry:
@@ -2531,12 +2612,19 @@ ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
 @media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:12px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:12px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
-</style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}</head>
-<body>
+</style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}${(() => {
+  // The hero's button where the hero sits on the surface: the first of the
+  // accent and the primary that stands 3:1 off it, else the ink (a control may
+  // be dark; a section may not).
+  const k = _wsCore(); const cr = (a, b) => (k && k.contrast ? k.contrast(a, b) : 4.5);
+  const heroBtn = [ACC, P].find((x) => cr(x, SURF) >= 3) || INKC;
+  return lpThemeCss(_lpLook.theme, _lpLook.template, { ds: !!_ds.present, heroBtn, onHeroBtn: textOn(heroBtn, SURF, INKC), bandBtn: HERO_BTN, onBandBtn: ON_HERO_BTN });
+})()}</head>
+<body data-template="${esc(_lpLook.template)}" data-theme="${esc(_lpLook.theme.id)}">
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none;display:block">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
-<section class="hero" data-recipe="${esc(_lpRecipe.id)}">
-  <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpRecipe.hero)}">
+<section class="hero" data-recipe="${esc(_lpRecipe.id)}" data-look="${esc(_lpLook.id)}">
+  <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpHero)}">
     <div class="hero-copy">
       ${(() => {
         const hp = entry.heroProduct || {};
@@ -3182,6 +3270,14 @@ function attachMotionCreative(ad, entry, pool) {
       loop: true,
       layout: require('./asset-style.js').recipe(entry, `ad:${ad.platform || ''}:${ad.creative_type || ''}`),
     };
+    // THE LOOK (asset-themes.js, 2026-10-26): each video is drawn in one of the
+    // brand's own themes and one of the video templates, chosen per send and per
+    // platform; the Story and the Transitional variant are chosen apart, so the
+    // two cuts of one ad are not the same design either.
+    const TH = require('./asset-themes.js');
+    const motionLook = TH.pick(entry, 'video', `motion:${ad.platform || ''}`);
+    const storyLook = TH.pick(entry, 'video', `story:${ad.platform || ''}`);
+    spec.look = { theme: motionLook.theme.id, template: motionLook.template };
     // THE STORY VARIANT (2026-10-24, the operator: "proper video ads upto
     // 30 s ... keep this variant too"): beside the transitional creative, a
     // timed story up to 30 seconds - the hook, each product of the send on its
@@ -3212,9 +3308,12 @@ function attachMotionCreative(ad, entry, pool) {
         palette: { primary: ground, on_primary: core && core.textOn ? core.textOn(ground, pal.surface, pal.ink) : pal.surface,
           accent: pal.surface, on_accent: core && core.readableAsText ? core.readableAsText(ground, pal.surface, 4.5) : pal.ink, surface: pal.surface, ink: pal.ink },
         fonts: { head: String(fs.head).replace(/"/g, "'"), body: String(fs.body).replace(/"/g, "'") },
+        look: { theme: storyLook.theme.id, template: storyLook.template },
       };
       story = { html: SA.renderStoryAd(sspec), brief: SA.storyBrief(sspec) };
     } catch (e) { story = { error: String((e && e.message) || e).slice(0, 160) }; }
+    ad.look = { theme: storyLook.theme.id, template: storyLook.template, why: storyLook.why };
+    ad.motion_look = { theme: motionLook.theme.id, template: motionLook.template, why: motionLook.why };
     ad.creative = Object.assign({}, ad.creative, {
       motion_html: motion.renderMotionAd(spec),
       motion_brief: motion.motionBrief(spec),
@@ -5103,7 +5202,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }

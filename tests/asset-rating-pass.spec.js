@@ -136,7 +136,7 @@ test('the mailer never says the same claim in its body and again under "What you
   }
 });
 
-test('cards in a row are the same size in the mailer and on the landing page; the hero eyebrow is centred', async ({ page }) => {
+test('cards in a row are the same size in the mailer and on the landing page; the hero eyebrow lines up with the headline', async ({ page }) => {
   await page.route(/^https?:\/\//, (r) => r.fulfill({ contentType: 'image/svg+xml', body: PHOTO }));
   const visual = C.assets.email.variants.find((v) => /Visual/.test(v.name || v.label || ''));
   await page.setViewportSize({ width: 700, height: 1000 });
@@ -158,13 +158,18 @@ test('cards in a row are the same size in the mailer and on the landing page; th
   expect(new Set(lpCards).size, `landing card picture heights ${lpCards}`).toBe(1);
 
   await page.setContent(N.assets.landing_pages[0].html, { waitUntil: 'load' });
+  // Changed on purpose (2026-10-26, asset-themes.js): a page's theme may set
+  // its hero left-aligned. The defect this guards (an eyebrow sitting at the
+  // left over a centred headline) is still a failure: the eyebrow's words line
+  // up with the headline's, centre to centre when the headline is centred,
+  // left edge to left edge when it is not.
   const off = await page.evaluate(() => {
-    const centre = (el) => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+    const words = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect(); };
     const eb = document.querySelector('.hero .eyebrow'); const h1 = document.querySelector('.hero h1');
-    const range = document.createRange(); range.selectNodeContents(eb); const r = range.getBoundingClientRect();
-    return Math.abs((r.left + r.width / 2) - centre(h1));
+    const r = words(eb), h = words(h1);
+    return getComputedStyle(h1).textAlign === 'center' ? Math.abs((r.left + r.width / 2) - (h.left + h.width / 2)) : Math.abs(r.left - h.left);
   });
-  expect(off, 'the eyebrow text is centred over the headline').toBeLessThan(4);
+  expect(off, 'the eyebrow text lines up with the headline').toBeLessThan(4);
   const card = await page.evaluate(() => { const li = document.querySelector('.offers li'); const s = getComputedStyle(li); return { bg: s.backgroundColor, page: getComputedStyle(document.body).backgroundColor, border: s.borderTopColor }; });
   expect(card.bg === card.page && card.border === card.page, `the offering card stands off the page ${JSON.stringify(card)}`).toBe(false);
 });

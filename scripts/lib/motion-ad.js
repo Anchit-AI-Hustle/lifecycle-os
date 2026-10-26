@@ -211,6 +211,60 @@ function normalizeScenes(spec) {
 }
 
 /**
+ * THE LOOK (2026-10-26, the operator: "complete different templates, themes
+ * everything"). spec.look = { theme, template } from asset-themes.js. The
+ * template moves the words (lower third, a centred title card, a band across
+ * the bottom of the frame, an editorial block top-left, a framed photograph);
+ * the theme sets the type's case, weight and tracking, the corners of the card
+ * and the button, and the button's shape. It is one more <style> after the
+ * page's own, so a creative without a look is the one it always was, and no
+ * colour comes from it: every ground and text colour is still the palette's.
+ */
+const MOTION_TEMPLATES = ['lower', 'title', 'split', 'editorial', 'frame'];
+function lookCss(spec, PAL) {
+  const l = spec && spec.look;
+  if (!l) return '';
+  let T = null;
+  try { T = require('../../api/_shared/asset-themes.js').THEMES[typeof l.theme === 'string' ? l.theme : (l.theme && l.theme.id)] || null; } catch (_) { T = null; }
+  const tpl = MOTION_TEMPLATES.includes(l.template) ? l.template : 'lower';
+  const css = [];
+  if (T) {
+    const h = T.heading;
+    css.push(`.type h2{font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}font-size:clamp(20px, ${(7 * Math.max(0.85, Math.min(1.3, h.scale))).toFixed(2)}vmin, 48px)}`);
+    css.push(`.cta h3{font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}}`);
+    css.push(`.type-card{border-radius:${Math.min(24, T.radius.card)}px}`);
+    const br = T.button === 'pill' ? '999px' : (T.button === 'block' ? '0' : `${Math.min(14, T.radius.button)}px`);
+    css.push(`.cta .btn,.action-pill{border-radius:${br}}`);
+    if (T.button === 'outline') css.push(`.cta .btn{background:transparent;color:var(--chalk);border:2px solid var(--chalk)}`);
+    if (T.button === 'link') css.push(`.cta .btn{background:transparent;color:var(--chalk);padding:6px 0;border-bottom:3px solid var(--chalk);border-radius:0}`);
+    if (T.button === 'block') css.push(`.cta .btn{display:block;width:100%;text-align:center}`);
+    if (T.eyebrow === 'spaced' || T.heading.case === 'upper') css.push(`.mark{letter-spacing:.32em}`);
+    if (T.align === 'left') css.push(`.cta{align-items:flex-start;text-align:left}`);
+  }
+  // Where the words sit. Every card keeps a ground at least as dark as the
+  // page's own (ink at 55%), so white type stays legible over any photograph.
+  if (tpl === 'title') {
+    css.push(`.type{top:50%;bottom:auto;transform:translateY(-50%);text-align:center}`);
+    css.push(`.type-card{background:${alpha(PAL.green, 0.92)};-webkit-backdrop-filter:none;backdrop-filter:none;border:0;padding:22px 20px}`);
+  } else if (tpl === 'split') {
+    css.push(`.type{top:auto;bottom:24%;left:0;right:0}`);
+    css.push(`.type-card{background:var(--green);-webkit-backdrop-filter:none;backdrop-filter:none;border:0;border-radius:0;padding:18px 7%;box-shadow:none}`);
+  } else if (tpl === 'editorial') {
+    css.push(`.type{top:14%;bottom:auto;right:18%}`);
+    css.push(`.type-card{background:${alpha(PAL.ink, 0.62)};border:0;border-left:4px solid var(--chalk);border-radius:0;padding:12px 16px;box-shadow:none}`);
+    css.push(`.type h2{text-align:left}`);
+  } else if (tpl === 'frame') {
+    css.push(`.scene img,.scene .solid{inset:9% 9% 40% 9%;width:82%;height:51%;border-radius:${T ? Math.min(20, T.radius.image) : 12}px;box-shadow:12px 12px 0 ${alpha(PAL.lava, 0.9)}}`);
+    css.push(`.scene{background:var(--green)}`);
+    css.push(`.type{top:auto;bottom:24%}`);
+    css.push(`.type-card{background:${alpha(PAL.ink, 0.55)};border:0}`);
+  } else {
+    css.push(`.type{top:auto;bottom:24%}`);
+  }
+  return `<style data-look="${tpl}${T ? '.' + T.id : ''}">${css.join('\n')}</style>`;
+}
+
+/**
  * Render the self-contained animated HTML creative.
  * spec: { product, scenes: [{image, headline, sub, seconds, alt}],
  *         cta, offer, footnote, loop (default true) }
@@ -418,9 +472,9 @@ function renderMotionAd(spec) {
               iPhones the blur behind the sound pill was simply absent. The
               prefixed form is what the phone in question actually reads. */
            -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
-</style>${(() => { const c = dsCss(spec); return c ? `<style id="ds">${c}</style>` : ''; })()}</head>
+</style>${(() => { const c = dsCss(spec); return c ? `<style id="ds">${c}</style>` : ''; })()}${lookCss(spec, PAL)}</head>
 <body>
-<div class="stage" role="img" aria-label="${esc(spec.product || BRAND_NAME)} advertisement">
+<div class="stage" role="img" data-template="${esc((spec.look && MOTION_TEMPLATES.includes(spec.look.template)) ? spec.look.template : '')}" aria-label="${esc(spec.product || BRAND_NAME)} advertisement">
 ${sceneHtml.join('\n')}
 ${sceneCss.length ? `<style>${sceneCss.join('\n')}</style>` : ''}
   <div class="cta">
@@ -502,8 +556,9 @@ function motionBrief(spec) {
     cta_card: { duration_s: 2.2, headline: spec.ctaHeadline || spec.cta || `${BRAND_NAME} end card`,
                 offer: spec.offer || null, button: spec.cta || 'Shop now',
                 background: `${PAL.green} radial, ${PAL.lava} button, ${PAL.chalk} headline` },
-    safe_areas: 'keep type inside 7% side margins; nothing critical in bottom 18% (UI overlap)'
+    safe_areas: 'keep type inside 7% side margins; nothing critical in bottom 18% (UI overlap)',
+    look: spec.look ? { theme: (typeof spec.look.theme === 'string' ? spec.look.theme : (spec.look.theme && spec.look.theme.id)) || null, template: MOTION_TEMPLATES.includes(spec.look.template) ? spec.look.template : 'lower' } : null
   };
 }
 
-module.exports = { renderMotionAd, motionBrief, PALETTE, AUDIO, audioTrack, paletteOf, fontsOf, brandNameOf };
+module.exports = { renderMotionAd, motionBrief, MOTION_TEMPLATES, PALETTE, AUDIO, audioTrack, paletteOf, fontsOf, brandNameOf };
