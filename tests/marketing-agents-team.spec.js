@@ -28,8 +28,16 @@ let calls = [];
 let script = null;
 let keyless = false;
 require.cache[LLM_PATH].exports = Object.assign(async (o) => { calls.push(o); return script(o); }, realLlm, { keylessOnly: async () => keyless });
-test.afterAll(() => { require.cache[LLM_PATH].exports = realLlm; });
-const P = require(path.join(ROOT, 'api', '_shared', 'smart-brain-plan.js'));
+// smart-brain-plan binds llm.js when it is loaded, and another spec in the same worker may have
+// loaded it already: load a fresh copy bound to the scripted model, and put the shared one back after.
+const PLAN_PATH = path.join(ROOT, 'api', '_shared', 'smart-brain-plan.js');
+const realPlan = require.cache[PLAN_PATH];
+delete require.cache[PLAN_PATH];
+const P = require(PLAN_PATH);
+test.afterAll(() => {
+  require.cache[LLM_PATH].exports = realLlm;
+  if (realPlan) require.cache[PLAN_PATH] = realPlan; else delete require.cache[PLAN_PATH];
+});
 
 const BRAND = { id: 'w-oak-team', name: 'Oak Bakers', industry: 'bakery', website: 'https://oak.example', claims: ['Baked fresh every morning', 'Stone-milled flour'], voice: { tone: 'warm, plain' }, palette: { primary: '#C2410C', accent: '#1F5C99', surface: '#FFFFFF', ink: '#222222' }, regions: [{ code: 'IN', currency: 'INR', home: true }] };
 let n = 0;
