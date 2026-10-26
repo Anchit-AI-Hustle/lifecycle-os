@@ -503,6 +503,8 @@ function sbAdDocHTML(ad){
   let stage;
   if (isVideo && cr.motion_html) {
     stage = `<iframe title="${sbEsc(P)} video creative" style="width:100%;max-width:360px;aspect-ratio:9/16;border:0;border-radius:12px;display:block;margin:0 auto" srcdoc="${sbEsc(sbPortable(cr.motion_html))}"></iframe>`;
+  } else if (!isVideo && cr.static_html) {
+    stage = `<iframe title="${sbEsc(P)} static ad creative" style="width:100%;max-width:${/9:16|4:5/.test(ratio.replace('/', ':')) ? 360 : 560}px;aspect-ratio:${sbEsc(ratio)};border:0;border-radius:12px;display:block;margin:0 auto" srcdoc="${sbEsc(sbPortable(cr.static_html))}"></iframe>`;
   } else if (cr.image) {
     stage = `<div class="frame" style="aspect-ratio:${sbEsc(ratio)}"><img src="${sbEsc(sbAbsUrl(cr.image))}" alt="${sbEsc((ov.headline || ad.headline || P) + ' creative')}">` +
       `<div class="over"><div class="h">${sbEsc(ov.headline || ad.headline || '')}</div><div class="row">${ov.proof ? `<span class="proof">${sbEsc(ov.proof)}</span>` : ''}${cta ? `<span class="cta">${sbEsc(cta)}</span>` : ''}</div></div></div>`;
@@ -1381,6 +1383,19 @@ function renderAd(ad){
   const frame = cr.image
     ? `<img class="adshot" src="${esc(cr.image)}" alt="${esc((ov.headline||ad.headline||platform)+' creative')}" style="aspect-ratio:${esc(ratio)}">`
     : `<div class="adshot adshot-empty" style="aspect-ratio:${esc(ratio)}"><span>No approved photograph for this slot</span></div>`;
+  // The composed creative (2026-10-26): the ad itself in its own template and
+  // theme, shown as the exact document the download hands over.
+  if(cr.static_html){
+    const dz = cr.design || {};
+    return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}" data-ad-design="${esc((dz.theme||'')+'/'+(dz.template||''))}">
+    <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
+    ${gap}
+    <div class="adframe" data-aspect="${esc(ad.aspect||'1:1')}">
+      <iframe class="adstatic" sandbox="" title="${esc(platform)} static ad creative" style="display:block;width:100%;border:0;aspect-ratio:${esc(ratio)}" srcdoc="${esc(cr.static_html)}"></iframe>
+    </div>
+    ${dz.theme ? `<p class="pvnote" data-ad-design-note>Design: ${esc(dz.theme)} theme, ${esc(dz.template)} template.${dz.why ? ' ' + esc(dz.why) : ''}</p>` : ''}
+    ${rows.join('')}</div>`;
+  }
   return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     ${gap}
@@ -1718,8 +1733,11 @@ function renderPreview(payload, e, i, opts){
   const adBar = (name, ad, label) => {
     const idx = window.__SB_EXPORTS.push({ name, label: label || name, html: sbAdDocHTML(ad), ext: 'html' }) - 1;
     const jdx = window.__SB_EXPORTS.push({ name: name + '-copy', label: (label || name) + ' (data)', html: JSON.stringify(ad, null, 2), ext: 'json' }) - 1;
+    const sh = ad && ad.creative_type !== 'video' && ad.creative && ad.creative.static_html;
+    const cdx = sh ? window.__SB_EXPORTS.push({ name: name.replace(/^ad-/, 'creative-'), label: (label || name) + ' (creative)', html: sbPortable(sh), ext: 'html' }) - 1 : -1;
     return `<div class="akbar">
-      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download ad</button>
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${idx})">⬇ Download ad</button>${cdx >= 0 ? `
+      <button type="button" class="btn sm secondary" onclick="sbDownload(${cdx})">⬇ Creative (HTML)</button>` : ''}
       <button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button>
       <button type="button" class="btn sm secondary" onclick="sbRegenerateAsset(${i}, 'ads', this)" title="Regenerate ads & motion video individually">⚡ Regenerate Ads</button>
     </div>`;
@@ -2203,6 +2221,7 @@ window.sbZipAll = function(){
     // ad of one platform never overwrite each other.
     ads.forEach((ad,ai)=>{ const stem=`${base}/ad_${slug(ad.platform)||('ad'+(ai+1))}_${slug(ad.creative_type||ad.variant)||(ai+1)}`;
       files.push({ name:stem+'.html', data:sbAdDocHTML(ad) }); files.push({ name:stem+'.json', data:JSON.stringify(ad,null,2) });
+      if(ad.creative_type!=='video' && ad.creative && ad.creative.static_html) files.push({ name:stem.replace(/\/ad_(?=[^/]*$)/, '/creative_')+'.html', data:sbPortable(ad.creative.static_html) });
       links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1)))+(ad.creative_type?' '+ad.creative_type:''), path:stem+'.html', kind:'ad'}); });
     files.push({ name:`${base}/_slot.json`, data:JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2) });
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'', offer:(e.offer&&e.offer.code)?(Math.round((Number(e.offer.pct)||0)*100)+'% '+e.offer.code):(e.offer&&typeof e.offer==='object'?'No discount':(e.offer||'')), confidence:e.confidence, feasibility:e.feasibility, links });
