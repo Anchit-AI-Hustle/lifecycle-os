@@ -1850,6 +1850,13 @@ function copyOutputSpec(entry) {
  * only them; anything the row does not state is said to be absent, never
  * filled. The offer line says plainly when there is no offer on record.
  */
+/** An offer's discount as a whole percentage: the planner stores a FRACTION (0.15), a whole number is already one; 0 is none. */
+function offerPct(o) {
+  let p = o ? Number(o.pct) : NaN;
+  if (Number.isFinite(p) && p > 0 && p < 1) p *= 100;
+  return Number.isFinite(p) && p > 0 ? Math.round(p) : 0;
+}
+
 function productFactsBrief(entry) {
   const lines = [];
   let row = null;
@@ -1883,9 +1890,9 @@ function productFactsBrief(entry) {
     lines.push('PRODUCT FACTS: none on record for this slot beyond its name; state no price, size, material or feature.');
   }
   const o = entry.offer || {};
-  const hasOffer = !!(o.code || (o.pct && Number(o.pct) > 0) || (o.depth && o.depth !== 'none'));
+  const hasOffer = !!(o.code || offerPct(o) || (o.depth && o.depth !== 'none'));
   lines.push(hasOffer
-    ? `- OFFER on record: ${[o.depth, o.pct ? `${o.pct}%` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
+    ? `- OFFER on record: ${[o.depth, offerPct(o) ? `${offerPct(o)}% off` : '', o.code ? `code ${o.code}` : ''].filter(Boolean).join(', ')}. Use exactly this; add no deadline or stock line it does not state.`
     : '- OFFER: none on record. The reason to buy is the product itself; invent no discount, code, deadline or stock line.');
   // The Parwah mailer (2026-10-17): "pure, locally-sourced nutrition" and "the
   // best care" under a brand whose record says neither. An attribute is a
@@ -3053,10 +3060,7 @@ function teamContext(entry) {
   try { model = require('./asset-playbooks.js').businessModel(b); } catch (_) { /* commerce */ }
   const claims = (Array.isArray(b.claims) ? b.claims : []).filter(Boolean);
   const off = offerOf(entry);
-  // The planner stores a FRACTION (0.15 = 15%); a whole number is already a percentage (as musicOfferText reads it).
-  let offPct = off ? Number(off.pct) : NaN;
-  if (Number.isFinite(offPct) && offPct > 0 && offPct < 1) offPct *= 100;
-  offPct = Number.isFinite(offPct) && offPct > 0 ? Math.round(offPct) : 0;
+  const offPct = offerPct(off);
   const offerLine = off && (off.code || offPct || off.label || off.text)
     ? `${off.label || off.text || ''}${off.code ? ` code ${off.code}` : ''}${offPct ? ` (${offPct}% off)` : ''}`.trim()
     : 'No offer on record for this send: do not write one.';
@@ -3110,7 +3114,7 @@ async function writeCopyWithLLM(entry, fw = null, brief = null, team = null) {
     try {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
-        stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (entry && entry.workspace_id) || null,
+        stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (team && team.workspaceId) || (entry && entry.workspace_id) || null,
         userMessage: copyPrompt(entry, fw, brief, team),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
@@ -4155,7 +4159,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const fwA = CF.pickCopyFramework({ play_key: entry.objective || '', cohort_key: (entry.cohort && (entry.cohort.key || entry.cohort.name)) || '', seed: entry.id || entry.date || '' });
     const otherKeys = Object.keys(CF.COPY_FRAMEWORKS).filter((k) => k !== fwA.key);
     const fwB = CF.frameworkByKey(otherKeys[CF.stableIndex(`${entry.id || entry.date || ''}|b`, otherKeys.length)]) || fwA;
-    const teamCopy = teamBriefing ? { briefing: teamBriefing } : null;
+    const teamCopy = teamBriefing ? { briefing: teamBriefing, workspaceId: teamWorkspace } : null;
     // Stagger the two copy directions by ~600ms so they don't hit the same
     // provider's per-minute limit in the exact same instant (reduces burst-429s).
     const [pA, pB] = keylessOnly
@@ -4177,14 +4181,21 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     if (teamOn && team && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000)) {
       const reviewOpts = Object.assign({}, teamOpts, { left: () => (__buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 12000) - Date.now() });
       const dirs = rawB === rawA ? [['A', rawA, fwA]] : [['A', rawA, fwA], ['B', rawB, fwB]];
+      // Rewrites start at least 600 ms apart, whichever review finishes first: the slot is
+      // reserved before the wait, so two rewrites never burst one provider into a 429.
+      let nextRewrite = 0;
+      const rewriteTurn = async () => {
+        const at = Math.max(Date.now(), nextRewrite);
+        nextRewrite = at + 600;
+        if (at > Date.now()) await new Promise((r) => setTimeout(r, at - Date.now()));
+      };
       const outs = await Promise.all(dirs.map(async ([d, raw, fw]) => {
         const v = await MA.reviewCopy(tctx.text, team, raw.copy, reviewOpts).catch(() => null);
         if (!v) return { d, raw };
         teamCopyReview.push(Object.assign({ direction: d }, v.member));
         if (v.verdict === 'revise' && v.critique && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000) + 15000) {
-          // Staggered like the first drafts, so two rewrites do not burst one provider into a 429.
-          if (d === 'B') await new Promise((r) => setTimeout(r, 600));
-          const again = await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique }).catch(() => null);
+          await rewriteTurn();
+          const again = await writeCopyWithLLM(entry, fw, brief, { briefing: teamBriefing, critique: v.critique, workspaceId: teamWorkspace }).catch(() => null);
           teamCopyReview.push({ direction: d, department: 'Content & Creative', role: 'Campaign Copywriter', kind: 'maker', revision: true, ok: !!again, provider: again ? again.provider : null, error: again ? null : 'the rewrite failed; the first draft stands' });
           if (again) return { d, raw: again };
         }

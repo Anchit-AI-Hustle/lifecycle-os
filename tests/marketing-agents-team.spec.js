@@ -121,7 +121,7 @@ test('a send is made by the team: a shared context, maker/reviewer pairs, and co
 
 test('every team call is routed on the workspace that pays for it (Codex #370)', async () => {
   test.setTimeout(120000);
-  script = teamScript({ copyVerdict: 'pass' });
+  script = teamScript({ copyVerdict: 'revise' });
   const MR_PATH = path.join(ROOT, 'api', '_shared', 'model-router.js');
   require(MR_PATH);
   const realRoute = require.cache[MR_PATH].exports.route;
@@ -136,6 +136,9 @@ test('every team call is routed on the workspace that pays for it (Codex #370)',
   const team = routed.filter((o) => /^team-/.test(String(o.stage)));
   expect(team.length, 'the team ran through the router').toBeGreaterThan(3);
   for (const o of team) expect(o.workspaceId, o.stage).toBe('ws-oak-pays');
+  const copy = routed.filter((o) => o.stage === 'smart-brain-copy');
+  expect(copy.length, 'two drafts and two rewrites').toBe(4);
+  for (const o of copy) expect(o.workspaceId, 'the copywriters and their rewrites too').toBe('ws-oak-pays');
 });
 
 test('the brief reviewer reads the strategy and message the brief was made from; a one-channel brief is not accepted (Codex #370)', async () => {
@@ -189,6 +192,38 @@ test('a team answer with a field of the wrong type is not accepted; two rewrites
   expect(c.assets.email.subject).toBe('Seeded Rye Loaf, rewritten');
   expect(at.length).toBe(2);
   expect(Math.abs(at[1] - at[0]), 'the second rewrite waits its turn').toBeGreaterThanOrEqual(500);
+});
+
+test('a malformed review is not a pass; an incomplete brief is not accepted; the copy reviewer reads the whole draft; the offer is said once, as a percentage (Codex #370)', async () => {
+  test.setTimeout(120000);
+  const base = teamScript({ copyVerdict: 'pass' });
+  // A reviewer that says "revise" with no reasons is recorded failed and nothing is rewritten.
+  script = (o) => o.stage === 'team-review-strategy' ? ok({ verdict: 'revise', score: 4 }) : base(o);
+  let c = await build();
+  const pr = c.team.members.find((m) => m.role === 'Marketing Priorities Reviewer');
+  expect(pr.ok).toBe(false);
+  expect(byStage('team-strategy').length, 'no rewrite on a malformed review').toBe(1);
+  // A brief whose channels carry only a hook is not accepted.
+  calls = [];
+  script = (o) => o.stage === 'team-brief' ? ok({ channel_roles: 'x', email: { hook: 'h' }, landing: { hook: 'h' }, ads: { hook: 'h' } }) : base(o);
+  c = await build();
+  expect(c.team.members.filter((m) => m.role === 'Creative Brief Writer').every((m) => !m.ok)).toBe(true);
+  // A long draft reaches the copy reviewer whole, ads included; the offer is 15% off, never 0.15%.
+  calls = [];
+  script = (o) => {
+    if (o.stage === 'smart-brain-copy') { const j = COPY('Long draft'); j.email.body_paragraph = 'Stone-milled flour. '.repeat(600); j.ads.tiktok.caption = 'ADS-TAIL-MARK'; return ok(j); }
+    return base(o);
+  };
+  const realFetch = global.fetch;
+  global.fetch = async (u) => { throw new Error('offline in this test: ' + u); };
+  try { await P.previewEntry({ entry: Object.assign(entry(), { offer: { label: 'Weekend rye', pct: 0.15 } }) }); } finally { global.fetch = realFetch; }
+  const rc = byStage('team-review-copy');
+  expect(rc.length).toBeGreaterThan(0);
+  for (const x of rc) expect(x.userMessage, 'the reviewer sees the ads at the end of a long draft').toContain('ADS-TAIL-MARK');
+  for (const x of calls.filter((y) => /^team-|smart-brain-copy/.test(String(y.stage)))) {
+    expect(x.userMessage, x.stage).not.toMatch(/0\.15%/);
+  }
+  expect(byStage('smart-brain-copy')[0].userMessage).toContain('15% off');
 });
 
 test('a reviewer that passes the copy sends nothing back', async () => {

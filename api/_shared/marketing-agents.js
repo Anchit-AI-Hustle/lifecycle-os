@@ -150,8 +150,10 @@ function hasCore(key, j) {
   if (key === 'strategy') return !!(j.angle && String(j.angle).trim());
   if (key === 'messaging') return !!(j.key_message && String(j.key_message).trim());
   // Every channel's copywriter reads its own brief: all three, each an object, or the brief is not accepted.
-  const obj = (x) => !!x && typeof x === 'object' && !Array.isArray(x) && Object.keys(x).length > 0;
-  if (key === 'brief') return obj(j.email) && obj(j.landing) && obj(j.ads);
+  // Each channel brief carries every direction its copywriter is given, each said in words.
+  const said = (x) => typeof x === 'string' && x.trim().length > 0;
+  const full = (x, keys) => !!x && typeof x === 'object' && !Array.isArray(x) && keys.every((k) => said(x[k]));
+  if (key === 'brief') return full(j.email, ['hook', 'must_say', 'structure', 'visual']) && full(j.landing, ['hook', 'must_say', 'structure', 'visual']) && full(j.ads, ['hook', 'must_say', 'visual', 'placements']);
   return true;
 }
 
@@ -168,9 +170,10 @@ async function review(key, ctx, work, o, upstream) {
     const verdict = j && (j.verdict === 'pass' || j.verdict === 'revise') ? j.verdict : null;
     if (!verdict) return { verdict: null, member: { department: r.department, role: r.role, kind: 'reviewer', ok: false, provider: res.provider || null, ms: ms() - t0, error: 'its answer carried no verdict' } };
     const issues = Array.isArray(j.issues) ? j.issues.filter((x) => x && (x.problem || x.fix)).slice(0, 5) : [];
+    // A "revise" with no usable reasons is a malformed review, not a pass: recorded failed, nothing rewritten.
+    if (verdict === 'revise' && !issues.length) return { verdict: null, member: { department: r.department, role: r.role, kind: 'reviewer', ok: false, provider: res.provider || null, ms: ms() - t0, error: 'it asked for a revision but gave no reasons' } };
     const critique = issues.map((x, i) => `${i + 1}. ${x.field ? x.field + ': ' : ''}${x.problem || ''}${x.fix ? ' -> ' + x.fix : ''}`).join('\n');
-    const realVerdict = verdict === 'revise' && !issues.length ? 'pass' : verdict;
-    return { verdict: realVerdict, critique, member: { department: r.department, role: r.role, kind: 'reviewer', ok: true, provider: res.provider || null, model: res.model || null, ms: ms() - t0, verdict: realVerdict, score: Number.isFinite(+j.score) ? +j.score : null, issues } };
+    return { verdict, critique, member: { department: r.department, role: r.role, kind: 'reviewer', ok: true, provider: res.provider || null, model: res.model || null, ms: ms() - t0, verdict, score: Number.isFinite(+j.score) ? +j.score : null, issues } };
   } catch (e) {
     return { verdict: null, member: { department: r.department, role: r.role, kind: 'reviewer', ok: false, ms: ms() - t0, error: String((e && e.message) || e).slice(0, 160) } };
   }
@@ -219,7 +222,8 @@ function strategyAsBrief(s) {
 /** Pair 4's reviewer: the copy of every asset, against the context and the briefs. */
 async function reviewCopy(ctx, team, copy, o) {
   const slim = JSON.stringify({ team: { key_message: team && team.messaging && team.messaging.key_message, briefs: team && team.brief }, copy: { email: copy.email, landing: copy.landing, ads: copy.ads } });
-  return review('copy', ctx, slim.slice(0, 9000), o);
+  // The whole draft: a cut would drop the ads, and the reviewer checks every asset against the others.
+  return review('copy', ctx, slim, o);
 }
 
 module.exports = { ROSTER, MAKER, REVIEWER, SPECS, plan, pair, review, reviewCopy, copyBriefing, strategyAsBrief };
