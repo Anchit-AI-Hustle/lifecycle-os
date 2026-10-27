@@ -15,6 +15,7 @@ published is written `[DATA REQUIRED BEFORE LAUNCH: field, product, region]` -
 never filled with a plausible value.
 
 Craft rules — structure, motion law, output contract: `docs/creative-craft-contract.md` (§1 Landing pages).
+Strategy, copy and visual system (intake, structure, layout A-D, type scale, motion, the tagline reveal): `/landing-page-design`.
 
 
 Build an HTML landing page for: `$ARGUMENTS`.

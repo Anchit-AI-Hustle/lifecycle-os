@@ -4,6 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Elaya's landing-page-design skill, as a skill and on every generated landing page (2026-10-27)
+The operator: "There is an Elaya skill on GitHub for landing page designs. Check and recreate that too".
+`github.com/elayadesign/ai-design-skills` (MIT; one skill, `landing-page-design`: intake, page structure, layout
+A-D, conversion copy, SEO, then a visual system: type scale, spacing, radius, motion, states, ship list, a tagline
+reveal). Recreated as `.claude/commands/landing-page-design.md` (credited, `/landing-page` points to it); where it
+disagrees with this repo the repo wins, each place marked **(adapted)**: no invented names/testimonials/numbers (it
+asks for believable invented ones), the brand's own typefaces (not Geist/Manrope/Poppins), no dark grounds (its
+#000/#181818 palette), no grey hero text gradient, no hidden-until-scrolled sections.
+- `api/_shared/lp-craft.js` applies the rules that decide no fact to every `smart-brain-plan.lpHtml` page:
+  `finish()` adds `noindex` (A7), a skip link + one `<main id="main">` (B10), one motion curve
+  `cubic-bezier(0.22,1,0.36,1)` with hover / `scale(.98)` active / focus ring states (B7/B9), `text-wrap`
+  balance/pretty, the hero TEXT COLUMN capped at 680px (capping the h1 alone pulled it off the eyebrow), and
+  `snapTypeScale()` (every px font size to the Tailwind step at or below; `<style id="ds">` and brand-fonts untouched).
+- **B11 tagline reveal**: the brand's OWN tagline (>= 4 words, 24-160 chars; never a claim: a claim has one home) in
+  48px (36 on a phone) after the benefits; each word muted until it crosses a line 40% up the screen, lit in reading
+  order, once (one IntersectionObserver). The muted tone is a COLOUR 3:1 off the ground (AA large text, `mutedTone`),
+  applied only after the script runs; full with no script or reduced motion. With a reveal the hero sub line is not the
+  tagline again. "Learn more" on the page reads "Visit <brand>" (A5). `ASSET_BUILD_VERSION` hashes lp-craft.js.
+- Gated by `tests/landing-page-craft.spec.js` (6 executed, built through the shipped builder and scrolled in
+  Chromium; mutations caught: no script, all words at once, no snap, Learn more, tagline twice, no skip link).
+
 ## ⭐ Connected models run in the order the person ranked them; Ollama Cloud works (2026-10-26)
 The operator: "maybe model usage is still not working as per connected", "check if model usage based on connected
 accounts are being used or not as per the priority order". Production logs: every build fell to template copy. The

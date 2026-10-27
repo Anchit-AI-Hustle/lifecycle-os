@@ -326,7 +326,7 @@ function kit(c, T) {
 </body></html>`;
   };
 
-  return { T, P, X, PADX, V, ALIGN, R, h, eyebrow, button, ctaRow, divider, picture, picPad, grid, featureRows, blocks, stripRow, promiseList, promiseLine, shopBy, header, footer, document, upper };
+  return { T, P, X, PADX, V, ALIGN, R, h, eyebrow, button, secondary, ctaRow, divider, picture, picPad, grid, featureRows, blocks, stripRow, promiseList, promiseLine, shopBy, header, footer, document, upper };
 }
 
 /* ── The visual templates ──────────────────────────────────────────────── */
@@ -369,17 +369,18 @@ const VISUAL = {
       k.ctaRow(`${k.V - 4}px ${k.PADX}px 6px`), k.blocks(false), k.divider(), grid, strip, k.shopBy(),
       closing(c, k, !!(grid || strip)), k.footer()].join('');
   },
-  // A poster: the brand's own ground with a big headline, then the picture
-  // standing on it, then the products as rows.
+  // A poster: the brand's own ground with a big headline and the button, then
+  // the picture standing on it, then the products as rows. The button is in
+  // the band: under a 38px headline and the picture it fell below the first
+  // screen of a small phone.
   poster(c, k) {
     const hp = heroParts(c, k, { onBand: true, size: 38, align: 'center' });
-    const band = `<tr><td align="center" style="background:${k.P.green};padding:${k.V + 14}px ${k.PADX}px ${c.hero_image_url ? k.V + 40 : k.V + 14}px;"><!-- Brand-palette hero block -->${hp.head}${hp.sub}</td></tr>`;
+    const band = `<tr><td align="center" style="background:${k.P.green};padding:${k.V + 14}px ${k.PADX}px ${c.hero_image_url ? k.V + 40 : k.V + 14}px;"><!-- Brand-palette hero block -->${hp.head}${hp.sub}<div style="margin-top:22px;">${k.button(c.cta_text, c.baseUrl, true, 'center')}${k.secondary(true)}</div></td></tr>`;
     const pic = c.hero_image_url
       ? `<tr><td align="center" style="padding:0 ${k.PADX + 10}px;background:#ffffff;"><div style="margin-top:-28px;">${k.picture(c.hero_image_url, c.heroAlt, { hero: true, mode: k.T.image === 'bleed' ? 'rounded' : k.T.image, width: 600 - 2 * (k.PADX + 10) })}</div></td></tr>`
       : (c.hero_prompt ? `<tr><td style="padding:${k.V}px ${k.PADX}px 0;">${c.assetSlot}</td></tr>` : "");
     const rows = c.others.slice(0, 3);
-    return [c.offerBar, k.header(), band, pic, nameCaption(c, k),
-      k.ctaRow(`${k.V}px ${k.PADX}px 4px`, false, 'center'), k.promiseLine(),
+    return [c.offerBar, k.header(), band, pic, nameCaption(c, k), k.promiseLine(),
       rows.length ? k.divider() + k.featureRows(rows, false) : '', k.blocks(false),
       closing(c, k, rows.length > 0), k.footer()].join('');
   },

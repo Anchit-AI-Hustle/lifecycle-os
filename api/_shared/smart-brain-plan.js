@@ -2217,6 +2217,7 @@ function lpThemeCss(T, tpl, c) {
   return `<style data-theme="${T.id}" data-template="${tpl}">${css.join('\n')}</style>`;
 }
 
+const lpCraft = require('./lp-craft.js');
 function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // This page's own composition (asset-style.js): hero arrangement varies by
   // brand and slot; the brand's palette, type and radii do not.
@@ -2298,7 +2299,10 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   }
   // The page's button says what the mail's button says when the page has no
   // line of its own ("See more" sat under a product with a price, 2026-10-24).
-  const cta = esc(L.cta || (copy.email && copy.email.cta) || entry.cta || 'See more');
+  // "Learn more" says nothing about what the reader gets (Elaya's landing page
+  // skill, A5): on the page it is the brand's own site they are sent to.
+  const _ctaRaw = L.cta || (copy.email && copy.email.cta) || entry.cta || 'See more';
+  const cta = esc(/^\s*learn more\s*$/i.test(String(_ctaRaw)) && _b.name ? `Visit ${_b.name}` : _ctaRaw);
   const cur = facts.currency;
   const price = entry.heroProduct?.price;
   // The market's own format ("₹1,450", not "₹1450"), through the one money
@@ -2491,7 +2495,15 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _about = String(_b.description || _bd.description || (_bd.brand_extraction && _bd.brand_extraction.applied && _bd.brand_extraction.applied.description && _bd.brand_extraction.applied.description.value) || '').trim();
   const aboutSec = _about && _about.length > 40 ? `<section class="sec about"><h2>About ${esc(bName)}</h2><p>${esc(_about.slice(0, 600))}</p></section>` : '';
   const _legal = (() => { const le = _b.legal_entity || _bd.legal_entity; if (!le) return ''; if (typeof le === 'string') return /^\[DATA REQUIRED/.test(le) ? '' : le; return [le.name, le.address].filter(Boolean).join(' · '); })();
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  // The tagline reveal (Elaya's landing page skill, B11): the brand's own
+  // tagline in large type further down the page. When it is shown the hero's
+  // sub line is not the tagline again: a line is said once.
+  const _intro = (copy.email || {}).intro_paragraph || '';
+  const _trStatement = lpCraft.taglineStatement(_b);
+  const _trShow = _trStatement && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
+  const _heroSub = L.hero_sub || (_trShow ? _intro : (_b.tagline || _intro)) || '';
+  const tagReveal = lpCraft.taglineSection(_trShow);
+  return lpCraft.finish(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
 <style>
 :root{--moss:${P};--moss-deep:${P};--moss-near:${P};--chalk:${SURF};--chalk-warm:${SURF2};--lava:${ACC};--ink:${INKC};--ink-dim:#4a4a4a;--on-moss:${ON_P};--on-lava:${ON_ACC};--head:${HEADF};--body:${BODYF}}
@@ -2645,6 +2657,7 @@ footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18p
 <body data-template="${esc(_lpLook.template)}" data-theme="${esc(_lpLook.theme.id)}">
 ${_dsLogo ? `<header class="ds-header" data-ds="header"><a href="${esc(shopUrl)}">${_dsLogo}</a></header>` : ''}
 ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : shopUrl; const lg = /^https:\/\//i.test(String(_b.logo_url || '')) && !_dsLogo ? String(_b.logo_url) : ''; return `<a href="${esc(home)}" style="color:inherit;text-decoration:none;display:block">${lg ? `<img class="bar-logo" src="${esc(lg)}" alt="${esc(bName)}">` : esc(bName)}</a>`; })()}</div>
+<main id="main">
 <section class="hero" data-recipe="${esc(_lpRecipe.id)}" data-look="${esc(_lpLook.id)}">
   <div class="hero-grid${creativeUrl ? ' has-media' : ''} hero--${esc(_lpHero)}">
     <div class="hero-copy">
@@ -2658,7 +2671,7 @@ ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_
       })()}
       <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
       <h1 data-ds="h1">${esc(listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName))}</h1>
-      ${(() => { const sub = L.hero_sub || _b.tagline || ((copy.email || {}).intro_paragraph) || ''; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
+      ${(() => { const sub = _heroSub; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
       ${priceLabel && !listicleSec ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
       <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
       ${heroAssure}${listicleSec ? '' : heroPills}
@@ -2674,6 +2687,7 @@ ${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_
     <h2>${esc(cleanWhyTitle)}</h2>
     <ul data-ds="body">${bullets || fallbackBullets}</ul>
   </section>` : ''}
+  ${tagReveal}
   ${_ds.present ? `<section class="sec">
     <div class="reveal" data-ds="card">
       ${_cardImg ? `<img class="ds-card-img" data-ds="card-image" src="${esc(_cardImg)}" alt="${esc(entry.heroProduct?.title || '')}" style="flex-basis:100%">` : ''}
@@ -2700,12 +2714,13 @@ ${proofSection}
   ${_svcAll.indexOf(_guaranteeText) >= 0 && (_hasBuy || _annClaim === _guaranteeText) ? '' : guaranteeBlock}
   <section class="endcta"><a href="${esc(shopUrl)}" class="btn big">${cta}</a></section>
 </div>
+</main>
 <div class="sticky">
   <div class="info"><b>${esc(entry.heroProduct?.title || bName)}</b><span class="sub">${esc(priceLabel)}</span></div>
   <a href="${esc(shopUrl)}" class="btn">${cta}</a>
 </div>
 <footer data-ds="footer" data-campaign="${esc(campaignId)}">${_legal ? `${esc(_legal)}<br>` : ''}© ${esc(String(_b.legal_entity || '').split(',')[0].trim() || bName)}${(() => { const home = /^https?:\/\//i.test(String(_b.website || '')) ? String(_b.website) : ''; return home ? ` · <a href="${esc(home)}" style="color:inherit">${esc(home.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))}</a>` : ''; })()}</footer>
-</body></html>`;
+</body></html>`, { ink: INKC, ground: SURF });
 }
 
 // Build the same mailer taxonomy as the Mailer Studio / Mailer Calendar: two
@@ -5441,7 +5456,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js'];
+  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
