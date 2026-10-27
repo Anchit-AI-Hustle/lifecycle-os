@@ -90,6 +90,7 @@ function respond(spec, signal) {
  * the provider's own success. Every call is recorded with provider/model/key.
  */
 function installNet(script) {
+  if (net) { net.restore(); net = null; }   // never keep a fake as the "real" fetch
   const real = global.fetch;
   const calls = [];
   global.fetch = async (url, init = {}) => {
@@ -330,6 +331,10 @@ test('connected models the person did not rank follow the ranked ones, in the qu
   expect(out.provider).toBe('grok');
   expect(net.calls[0].provider).toBe('grok');
 
+  // The first fake goes before the second is installed: installNet keeps the
+  // fetch it replaces, and a fake kept as "real" outlived this file and refused
+  // every host for the next spec in the worker (the WooCommerce import read 0).
+  net.restore();
   net = installNet((c) => (c.provider === 'grok' ? CLASSES['HTTP 401 bad key'].spec() : undefined));
   const next = await ask({ overrides: { order: ['grok'], models: {}, keys: { grok: 'ws-grok2', gemini: 'ws-gemini', openai: 'ws-openai' }, bases: {}, fallback: true } });
   const seq = [...new Set(net.calls.map((c) => c.provider))];
