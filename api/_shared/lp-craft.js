@@ -134,7 +134,9 @@ function css(c) {
     `.tagline-reveal{padding:64px 0;text-align:center}.tagline-reveal .tr-text{font-family:var(--head);font-size:48px;line-height:1.1;max-width:680px;margin:0 auto;color:var(--ink);text-wrap:balance}`,
     `.tw-on .tagline-reveal .tw{color:${muted};transition:color 500ms ${EASE}}.tw-on .tagline-reveal .tw.lit{color:var(--ink)}`,
     `@media(max-width:640px){.tagline-reveal{padding:48px 0}.tagline-reveal .tr-text{font-size:36px}}`,
-    `@media(prefers-reduced-motion:reduce){.btn,.skip,.tagline-reveal .tw{transition:none}.btn:hover,.btn:active{transform:none}.tagline-reveal .tw{color:var(--ink)}}`,
+    // Selectors as specific as the muted ones: a reader who turns reduced motion on
+    // with the page open gets every word at full colour at once.
+    `@media(prefers-reduced-motion:reduce){.btn,.skip,.tagline-reveal .tw{transition:none}.btn:hover,.btn:active{transform:none}.tagline-reveal .tw,.tw-on .tagline-reveal .tw,.tw-on .tagline-reveal .tw.lit{color:var(--ink);transition:none}}`,
   ].join('\n');
 }
 

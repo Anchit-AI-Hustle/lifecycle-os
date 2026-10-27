@@ -146,6 +146,15 @@ test('with reduced motion or no script every word is full from the start', async
   await noJs.close();
 });
 
+test('reduced motion turned on with the page open shows every word at full colour at once', async ({ page }) => {
+  await open(page, await landing(BRAND));
+  expect(await page.evaluate(() => document.documentElement.classList.contains('tw-on'))).toBe(true);
+  const ink = await page.evaluate(() => getComputedStyle(document.body).color);
+  expect((await wordState(page))[0].color, 'muted before').not.toBe(ink);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(async () => (await wordState(page)).every((w) => w.color === ink), { message: 'every word full once reduced motion is on' }).toBe(true);
+});
+
 test('the keyboard reaches the skip link first and it shows; a focused button has a visible ring', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page, await landing(BRAND));
