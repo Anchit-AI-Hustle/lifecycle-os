@@ -250,7 +250,11 @@ function isProse(d) {
   const lower = words.filter((w) => /^[a-z]/.test(w)).length;
   return /[.!?]$/.test(s) || lower / words.length >= 0.4;
 }
-const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}}</style>';
+// A large headline (30px and up) is capped on a phone: its longest word cannot
+// wrap, and a 36px tracked capital word plus a theme's 40px gutters made the
+// mail 2px wider than a 320px screen. On a screen 360px or narrower a two-across
+// product grid stacks: a tracked capital product name kept each card 140px wide.
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}h1[data-ds="h1"][style*="font-size:3"],h1[data-ds="h1"][style*="font-size:4"]{font-size:min(30px,8.5vw)!important;letter-spacing:0.04em!important}}@media only screen and (max-width:360px){td[data-mail-col]{display:block!important;width:100%!important;box-sizing:border-box!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
   if (!s || !/<body\b/i.test(s)) return s;
