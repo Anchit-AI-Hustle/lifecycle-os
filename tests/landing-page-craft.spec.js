@@ -98,16 +98,19 @@ test('the muted tone is a colour 3:1 off the ground, never the ink itself', () =
 
 const wordState = (page) => page.$$eval('[data-tagline-reveal] .tw', (ws) => ws.map((w) => ({ lit: w.classList.contains('lit'), color: getComputedStyle(w).color })));
 
-test('in Chromium the words start muted below the line and light one by one, in reading order, as the page scrolls', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
+for (const [vw, vh] of [[1280, 800], [390, 844]]) test(`in Chromium at ${vw}x${vh} the words start muted below the line and light one by one, in reading order, as the page scrolls`, async ({ page }) => {
+  await page.setViewportSize({ width: vw, height: vh });
   const html = await landing(BRAND);
   await open(page, html);
   expect(await page.evaluate(() => document.documentElement.classList.contains('tw-on'))).toBe(true);
+  await page.waitForTimeout(200);
   const before = await wordState(page);
   expect(before.length).toBe(TAGLINE.split(' ').length);
-  expect(before.every((w) => !w.lit), 'nothing is lit before it is reached').toBe(true);
+  const below = await page.$$eval('[data-tagline-reveal] .tw', (ws) => ws.map((w) => w.getBoundingClientRect().top > innerHeight * 0.6 + 4));
+  expect(before.filter((w, i) => below[i]).every((w) => !w.lit), 'nothing below the line is lit before it is reached').toBe(true);
+  expect(below[below.length - 1], 'the statement starts below the line').toBe(true);
   const inkRgb = await page.evaluate(() => getComputedStyle(document.body).color);
-  expect(before[0].color).not.toBe(inkRgb);
+  expect(before[before.length - 1].color).not.toBe(inkRgb);
   // Scroll so the statement's first line has crossed the trigger line (60% down the
   // screen) and its last line has not: the first words lit, the last not yet.
   const lines = await page.$eval('[data-tagline-reveal] .tr-text', (p) => { const r = p.getBoundingClientRect(); return { h: r.height, lh: parseFloat(getComputedStyle(p).lineHeight) }; });
@@ -120,7 +123,9 @@ test('in Chromium the words start muted below the line and light one by one, in 
   expect(mid[mid.length - 1].lit, 'the last word has not: words light one at a time, not the block at once').toBe(false);
   const firstUnlit = mid.findIndex((w) => !w.lit);
   expect(mid.slice(firstUnlit).every((w) => !w.lit), 'words light in reading order').toBe(true);
-  await page.$eval('[data-tagline-reveal]', (s) => s.scrollIntoView({ block: 'start' }));
+  // Scrolled on to the end of the page: every word is lit, a short page included
+  // (its last words never reach the line, and are lit when the page ends).
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(async () => (await wordState(page)).every((w) => w.lit), { message: 'every word lit once passed' }).toBe(true);
   await expect.poll(async () => (await wordState(page))[0].color).toBe(inkRgb);
   // Once: scrolling back up does not dim them again.

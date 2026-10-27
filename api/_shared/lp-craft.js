@@ -116,8 +116,12 @@ function taglineSection(statement) {
 }
 
 /* The words light in reading order as each crosses a line 40% up from the
-   bottom of the screen, once. One IntersectionObserver, no scroll listener. */
-const TAGLINE_SCRIPT = '<script data-tagline-reveal-js>(function(){try{var d=document,s=d.querySelector("[data-tagline-reveal]");if(!s)return;var w=s.querySelectorAll(".tw");if(!("IntersectionObserver" in window)||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.documentElement.classList.add("tw-on");var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("lit");io.unobserve(e.target);}});},{rootMargin:"0px 0px -40% 0px",threshold:0});for(var i=0;i<w.length;i++)io.observe(w[i]);}catch(e){}})();</script>';
+   bottom of the screen, once. One IntersectionObserver, no scroll listener.
+   The margin is in px from the screen's height: a percentage in rootMargin is
+   resolved against the root's WIDTH by the spec, which would move the line.
+   A page too short to carry the last words up to the line lights them when
+   its end is on screen ([data-tw-end]), so no word stays muted for good. */
+const TAGLINE_SCRIPT = '<script data-tagline-reveal-js>(function(){try{var d=document,s=d.querySelector("[data-tagline-reveal]");if(!s)return;var w=s.querySelectorAll(".tw");if(!("IntersectionObserver" in window)||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.documentElement.classList.add("tw-on");var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("lit");io.unobserve(e.target);}});},{rootMargin:"0px 0px -"+Math.round(window.innerHeight*0.4)+"px 0px",threshold:0});for(var i=0;i<w.length;i++)io.observe(w[i]);var end=d.querySelector("[data-tw-end]");if(end){var eo=new IntersectionObserver(function(es){if(es[0].isIntersecting){for(var j=0;j<w.length;j++)w[j].classList.add("lit");io.disconnect();eo.disconnect();}});eo.observe(end);}}catch(e){}})();</script>';
 
 /**
  * The CSS the skill's rules add. `c` = { ink, ground } for the muted tone.
@@ -149,7 +153,7 @@ function finish(html, o) {
   h = h.replace(/<\/head>/i, `<style id="lp-craft">${css(o)}</style></head>`);
   // B10: the keyboard's way past the header.
   if (!/class="skip"/.test(h)) h = h.replace(/<body([^>]*)>/i, (m) => `${m}<a class="skip" href="#main">Skip to content</a>`);
-  if (/data-tagline-reveal/.test(h) && !/data-tagline-reveal-js/.test(h)) h = h.replace(/<\/body>/i, TAGLINE_SCRIPT + '</body>');
+  if (/data-tagline-reveal/.test(h) && !/data-tagline-reveal-js/.test(h)) h = h.replace(/<\/body>/i, '<i data-tw-end aria-hidden="true" style="display:block;height:1px"></i>' + TAGLINE_SCRIPT + '</body>');
   return snapTypeScale(h);
 }
 
