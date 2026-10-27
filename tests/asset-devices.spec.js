@@ -65,7 +65,9 @@ const SIZES = [
 
 async function measure(page) {
   return page.evaluate(() => {
-    const vw = innerWidth, vh = innerHeight;
+    // clientWidth, not innerWidth: Chromium widens innerWidth to a page that
+    // overflows, so a page 2px too wide passed on Chromium and failed on WebKit.
+    const vw = document.documentElement.clientWidth, vh = innerHeight;
     const over = [];
     for (const el of document.querySelectorAll('body *')) {
       const r = el.getBoundingClientRect();
