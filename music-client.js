@@ -41,13 +41,19 @@
     // so one brief composed twice is two tracks. A caller may pin a take.
     body = Object.assign({}, body);
     if (body.take == null || body.take === '') body.take = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    var wsId = '';
+    var token = '';
     try {
-      if (!body.workspace_id && window.BrandContext && window.BrandContext.brand) {
-        if (window.BrandContext.brand.id) body.workspace_id = window.BrandContext.brand.id;
-        if (!body.brand && typeof window.BrandContext.brand === 'object') body.brand = window.BrandContext.brand;
+      if (window.BrandContext) {
+        if (window.BrandContext.brand && window.BrandContext.brand.id) wsId = window.BrandContext.brand.id;
+        if (typeof window.BrandContext.token === 'function') token = window.BrandContext.token();
       }
     } catch (_) {}
-    var r = await fetch('/api/brain?action=music-compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (wsId) headers['x-workspace-id'] = wsId;
+    var endpoint = '/api/brain?action=music-compose' + (wsId ? '&workspace_id=' + encodeURIComponent(wsId) : '');
+    var r = await fetch(endpoint, { method: 'POST', headers: headers, body: JSON.stringify(body) });
     var type = r.headers.get('content-type') || '';
     if (r.ok && /audio/.test(type)) return audioOf(r, {});
     if (r.status !== 202) throw await failure(r);
