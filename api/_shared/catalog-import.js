@@ -951,6 +951,58 @@ function rowFromPage(html, pageUrl, { region, source }) {
       return { row: articleRows[0], rows: articleRows };
     }
   }
+  // Declared showcase/gallery products on catalog, category, menu, or gallery pages
+  const isShowcaseUrl = /care|product|range|service|shop|store|cakes?|breads?|cookies?|bakery|chocolate|menu|catalog|catalogue|collection|sweets?|desserts?|dishes|food|items/i.test(pageUrl);
+  if (isShowcaseUrl || /<div\b[^>]*class=["'][^"']*\b(?:product|cake|bread|menu|item|dish|food|dessert|collection|catalog)\b/i.test(html)) {
+    const galleryRows = [];
+    const seenTitles = new Set();
+    const UI_EXCLUDE = /\b(?:logo|icon|arrow|button|banner|close|down|menu|slider-footer|swiggy|zomato|loader|placeholder|nav|dropdown|slide)\b/i;
+    for (const m of html.matchAll(/<img\b([^>]*?)>/gi)) {
+      const tag = m[1];
+      const srcMatch = tag.match(/src=["']([^"']+)["']/i);
+      const altMatch = tag.match(/alt=["']([^"']+)["']/i);
+      if (!srcMatch || !altMatch) continue;
+      const src = srcMatch[1];
+      let title = altMatch[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim();
+      if (!title || title.length < 3 || title.length > 80) continue;
+      if (UI_EXCLUDE.test(title) || UI_EXCLUDE.test(src)) continue;
+      if (/^(?:first|second|third|fourth|fifth)\s*slide$/i.test(title) || /^\.+$/.test(title)) continue;
+      if (/nik\s*baker/i.test(title) && /australia|professional|run by|diwali|logo|order/i.test(title)) continue;
+      if (/^nik\s*bakers?('s)?$/i.test(title)) continue;
+      if (/^finest\s*ingredients/i.test(title)) continue;
+      title = title.replace(/\s+modal$/i, '').trim();
+      const normKey = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (seenTitles.has(normKey)) continue;
+      seenTitles.add(normKey);
+
+      const imgAbs = httpAbs(src, pageUrl);
+      const artHandle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 100);
+      galleryRows.push({
+        region,
+        title,
+        handle: artHandle,
+        sku: null,
+        description: null,
+        product_type: null,
+        collections: [],
+        price: null,
+        compare_at: null,
+        currency: marketCurrency(region) || null,
+        image_url: imgAbs || null,
+        image_urls: imgAbs ? [imgAbs] : [],
+        variants: [],
+        product_url: `${pageUrl.split('#')[0]}#${artHandle}`,
+        in_stock: true,
+        tags: [],
+        source,
+        source_url: pageUrl,
+        raw: { declared: 'html:gallery' },
+      });
+    }
+    if (galleryRows.length > 0) {
+      return { row: galleryRows[0], rows: galleryRows };
+    }
+  }
   // Declared editorial news articles, stories, investigations, or blog posts
   const articleNodes = [];
   for (const n of crawl.jsonLdBlocks(html)) {

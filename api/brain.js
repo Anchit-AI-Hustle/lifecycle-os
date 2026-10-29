@@ -319,7 +319,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
