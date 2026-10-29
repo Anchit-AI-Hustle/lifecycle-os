@@ -254,7 +254,7 @@ function isProse(d) {
 // wrap, and a 36px tracked capital word plus a theme's 40px gutters made the
 // mail 2px wider than a 320px screen. On a screen 360px or narrower a two-across
 // product grid stacks: a tracked capital product name kept each card 140px wide.
-const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:46vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}h1[data-ds="h1"][style*="font-size:3"],h1[data-ds="h1"][style*="font-size:4"]{font-size:min(30px,8.5vw)!important;letter-spacing:0.04em!important}}@media only screen and (max-width:360px){td[data-mail-col]{display:block!important;width:100%!important;box-sizing:border-box!important}}</style>';
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:28vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}table[role="presentation"] td[align="center"][style*="padding:28px 12px"]{padding:12px 8px!important}td[data-mail-top]{padding:12px 20px 6px!important}td[style*="padding:34px 80px 0"]{padding:12px 40px 0!important}td[style*="padding:34px 40px 0"]{padding:16px 20px 0!important}td[style*="padding:24px 40px 0"]{padding:12px 20px 0!important}td[style*="padding:30px 40px 0"]{padding:14px 20px 0!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}h1[data-ds="h1"][style*="font-size:3"],h1[data-ds="h1"][style*="font-size:4"]{font-size:min(30px,8.5vw)!important;letter-spacing:0.04em!important}}@media only screen and (max-width:360px){td[data-mail-col]{display:block!important;width:100%!important;box-sizing:border-box!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
   if (!s || !/<body\b/i.test(s)) return s;
@@ -366,7 +366,7 @@ function logoMark({ brand, store = '', color = '', font = 'Arial,sans-serif', al
 function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', align = 'center', pad = '20px 24px 12px', tagline = '', taglineColor = '' } = {}) {
   const m = logoMark({ brand, store, color, font, align });
   const tag = tagline ? `<div style="font-family:${font};font-size:12px;line-height:1.45;color:${taglineColor || color};margin-top:6px;">${esc(tagline)}</div>` : '';
-  return `<tr><td align="${align}" data-mail-logo="${m.kind}" style="padding:${pad};">${m.html}${tag}</td></tr>`;
+  return `<tr><td align="${align}" data-mail-top="1" data-mail-logo="${m.kind}" style="padding:${pad};">${m.html}${tag}</td></tr>`;
 }
 
 module.exports = {
