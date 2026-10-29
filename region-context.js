@@ -83,7 +83,7 @@
   }
   function name(code) {
     var c = String(code || '').toUpperCase().trim();
-    return NAMES[c] || fullCountryName(c) || c;
+    return NAMES[c] || c;
   }
 
   /* The codes pages and records spell the SAME market with. A brand record
