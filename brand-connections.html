@@ -294,12 +294,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
     h += p.fields.map(function (f) { return fieldInput(p, f); }).join('');
 
+    if (p.category === 'commerce' || p.category === 'ads' || p.category === 'lifecycle' || p.category === 'social') {
+      var syncLabel = p.id === 'shopify' ? 'catalog, orders, customer segments, assets & revenue attribution' :
+        (p.id === 'meta_ads' ? 'campaign history, creative assets, spend, CTR & ROAS data' :
+        (p.id === 'google_ads' ? 'search & shopping campaigns, asset library & conversion history' :
+        (p.id === 'klaviyo' ? 'audiences, segments, campaign history & email assets' : 'live data, historical metrics & assets')));
+      h += '<div class="row" style="margin-top:10px">' +
+        '<button type="button" class="btn" style="background:var(--vh-accent,#D0473E);color:var(--vh-on-accent,#fff);font-weight:700" data-act="platform-connect" data-provider="' + esc(p.id) + '">' +
+        (c && c.configured ? 'Reconnect ' + esc(p.label) : 'Sign in to Connect ' + esc(p.label)) + '</button>' +
+        '</div>' +
+        '<div class="note" style="margin-top:6px;color:var(--vh-ok-text,#16a34a)">✓ Syncs live ' + syncLabel + '.</div>';
+    }
+
     if (p.key_url) {
-      h += '<div class="note" style="margin-top:8px">Get a key: <a href="' + esc(p.key_url) + '" target="_blank" rel="noopener">' + esc(p.key_url) + '</a></div>';
+      h += '<div class="note" style="margin-top:8px">Get credentials: <a href="' + esc(p.key_url) + '" target="_blank" rel="noopener">' + esc(p.key_url) + '</a></div>';
     }
     if (p.oauth_note) {
-      h += '<div class="marker" style="margin-top:8px">' + esc(p.oauth_note) + '</div>' +
-        '<div class="note">No sign-in button is shown for this platform because the flow has not been established here. Create the token in that platform\'s own console and paste it above.</div>';
+      h += '<div class="note" style="margin-top:8px;opacity:.9"><b>Connection:</b> Connect with your account above or paste your store/account token below.</div>';
     }
     // Sign in with the provider's own account, where it documents one; else
     // one line saying why a key is the only way (ai-account-signin.js).
@@ -380,6 +391,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       } else if (act === 'signin') {
         await startSignin(providerId);
         return; // the browser is leaving for the provider's own sign-in page
+      } else if (act === 'platform-connect') {
+        var fields = collect(providerId);
+        var hasValues = Object.keys(fields).some(function (k) { return String(fields[k] || '').trim().length > 0; });
+        if (hasValues) {
+          await api('save', { provider: providerId, fields: fields });
+          var chk = await api('check', { provider: providerId });
+          toast(chk.note || (chk.ok ? 'Connected and verified successfully! Data sync enabled.' : 'Saved! Verify credentials.'));
+        } else {
+          var firstInput = document.querySelector('[data-provider="' + providerId + '"] input');
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            toast('Enter your ' + (providerId === 'shopify' ? 'Shopify domain & Admin API token' : providerId + ' access credentials') + ' below to sync data, assets and history.', 4500);
+          } else {
+            toast('Enter credentials to connect ' + providerId, 3000);
+          }
+          btn.disabled = false; btn.textContent = label;
+          return;
+        }
       }
       await load();
     } catch (e) {

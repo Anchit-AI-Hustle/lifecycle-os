@@ -55,13 +55,35 @@
      "Global") beside codes ("US", "UK"), which is the mix a filter row reads
      naturally, so the same mix is kept, derived rather than typed. */
   var NAMES = { IN: 'India', GLOBAL: 'Global', WORLDWIDE: 'Global', EU: 'Europe', AU: 'Australia', ME: 'Middle East', GB: 'UK' };
+
+  var _dispNames = null;
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function') {
+      _dispNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    }
+  } catch (_) {}
+
+  function fullCountryName(code) {
+    var c = String(code || '').toUpperCase().trim();
+    if (LABELS[c]) return LABELS[c];
+    if (NAMES[c]) return NAMES[c];
+    if (_dispNames && ISO_COUNTRIES[c]) {
+      try {
+        var n = _dispNames.of(c);
+        if (n && n !== c) return n;
+      } catch (_) {}
+    }
+    return c;
+  }
+
   function label(code) {
-    var c = String(code || '').toUpperCase();
-    return LABELS[c] ? LABELS[c] + ' (' + c + ')' : c;
+    var c = String(code || '').toUpperCase().trim();
+    var fn = fullCountryName(c);
+    return fn !== c ? fn + ' (' + c + ')' : c;
   }
   function name(code) {
-    var c = String(code || '').toUpperCase();
-    return NAMES[c] || c;
+    var c = String(code || '').toUpperCase().trim();
+    return NAMES[c] || fullCountryName(c) || c;
   }
 
   /* The codes pages and records spell the SAME market with. A brand record
@@ -918,6 +940,13 @@
     family: family,
     isMarket: isMarket,
     isoCountries: function () { return Object.keys(ISO_COUNTRIES).sort(); },
+    allCountries: function () {
+      return Object.keys(ISO_COUNTRIES).sort().map(function (c) {
+        var n = fullCountryName(c);
+        var cd = COUNTRY[c] || [];
+        return { code: c, name: n, currency: cd[0] || '', timezone: cd[1] || '', dial_code: cd[2] || '' };
+      });
+    },
     localeOf: localeOf,
     money: money,
     num: num,
