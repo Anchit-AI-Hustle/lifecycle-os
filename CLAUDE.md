@@ -4,6 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Music unblocked, global country selector, connector sign-in cards & master spec (2026-10-30)
+The operator: "first take fresh pull from github. song creatrion still not working - ensure changes are pushed to git and deployed on vercel. also ensure all countries selection works everywhere - currently issues - ensure correct countries showing. also for shopify, meta ads etc, signin to connect not there? for data, assets history etc everything".
+- **Music composition unblocked (`api/brain.js`, `music-client.js`)**: `music-compose` and `music-job` were erroneously classified under the `WRITES` regex that blocked demo/evaluating visitors with `409 no_active_brand`. Music composition is an open studio tool that has a procedural code synthesizer (`third-eye-synth`) and free tier generation that composes music for any prompt and brand without requiring pre-configured server workspaces. `music-client.js` now also carries active `workspace_id` and brand context when available.
+- **Universal country selection (`region-context.js`, `onboarding.html`)**: `region-context.js` previously defined only 7 hardcoded `NAMES` (IN, GLOBAL, EU, AU, ME, GB), causing all other countries (US, DE, FR, JP, CA, SG, etc.) to display as raw 2-letter codes. Added `fullCountryName(code)` leveraging `Intl.DisplayNames(['en'], { type: 'region' })` across `label()`, `name()`, and `optionHtml()`. Exposed `window.RegionContext.allCountries()` and added a searchable `<datalist>` to Step 5 of `onboarding.html` so users can select any of the 249 ISO-3166-1 countries with automatic currency derivation.
+- **Platform connections sign-in & sync (`brand-connections.html`)**: Added primary "Sign in to Connect" buttons across Shopify, Meta Ads, Google Ads, TikTok Ads, and Klaviyo with explicit capability declarations for live catalog, order history, customer segments, ad spend, and creative assets. Replaced dead "No sign-in button is shown" notes with actionable connect pathways and direct credential guidance.
+- **Master specification completed (`docs/lifecycle-os-master-spec.md`)**: Full unabridged specification consolidating the truncated brief with explicit, testable Given/When/Then acceptance criteria across brand intelligence, creative production contracts, multi-country scoping, platform connections, and financial integrity.
+- Gated by `tests/third-eye-music.spec.js`, `tests/market-codes.spec.js`, `tests/oauth-adapters.spec.js`.
+
 ## ⭐ Elaya's landing-page-design skill, as a skill and on every generated landing page (2026-10-27)
 The operator: "There is an Elaya skill on GitHub for landing page designs. Check and recreate that too".
 `github.com/elayadesign/ai-design-skills` (MIT; one skill, `landing-page-design`: intake, page structure, layout
