@@ -2928,14 +2928,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       applyRegionsFrom(extraction.fields);
     }
     var hasHome = brand.regions.some(function (r) { return r.home === true; });
+    var dl = document.getElementById('rgnCountryDatalist');
+    if (!dl && window.RegionContext && typeof window.RegionContext.allCountries === 'function') {
+      dl = document.createElement('datalist');
+      dl.id = 'rgnCountryDatalist';
+      dl.innerHTML = window.RegionContext.allCountries().map(function (c) {
+        return '<option value="' + esc(c.code) + '">' + esc(c.name) + ' (' + esc(c.code) + ')</option>';
+      }).join('');
+      document.body.appendChild(dl);
+    }
     box.innerHTML = (brand.regions.length
-      ? '<div class="region-row region-head muted" style="font-size:11px"><span>Code</span><span>Currency</span><span>Store URL</span><span title="Home market: the default every calendar, mailer and ad opens on">Home</span><span></span></div>'
+      ? '<div class="region-row region-head muted" style="font-size:11px"><span>Country</span><span>Currency</span><span>Store URL</span><span title="Home market: the default every calendar, mailer and ad opens on">Home</span><span></span></div>'
       : '<div class="marker">' + esc(marker('regions')) + '</div><p class="muted" style="margin:6px 0 0">No market is set. Read your site on step 1 or add the markets you sell in; nothing is assumed.</p>') +
       brand.regions.map(function (r, i) {
         var site = String(brand.website || '').trim();
         var foreign = storeForeign(r.store_url);
         return '<div class="region-row">' +
-          '<input type="text" data-r="code" data-i="' + i + '" value="' + esc(r.code || '') + '" placeholder="US">' +
+          '<input type="text" data-r="code" data-i="' + i + '" list="rgnCountryDatalist" value="' + esc(r.code || '') + '" placeholder="e.g. US, IN, GB" title="Select or type any country code or name">' +
           '<input type="text" data-r="currency" data-i="' + i + '" value="' + esc(r.currency || '') + '" placeholder="USD">' +
           '<input type="url" data-r="store_url" data-i="' + i + '" value="' + esc(r.store_url || '') + '" placeholder="https://yourbrand.com">' +
           '<label class="region-home" title="Home market (press again to untick)"><input type="radio" name="regionHome" data-home-i="' + i + '"' + (r.home === true ? ' checked' : '') + '></label>' +

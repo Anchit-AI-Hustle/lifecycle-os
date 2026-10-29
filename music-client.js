@@ -41,6 +41,12 @@
     // so one brief composed twice is two tracks. A caller may pin a take.
     body = Object.assign({}, body);
     if (body.take == null || body.take === '') body.take = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    try {
+      if (!body.workspace_id && window.BrandContext && window.BrandContext.brand) {
+        if (window.BrandContext.brand.id) body.workspace_id = window.BrandContext.brand.id;
+        if (!body.brand && typeof window.BrandContext.brand === 'object') body.brand = window.BrandContext.brand;
+      }
+    } catch (_) {}
     var r = await fetch('/api/brain?action=music-compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     var type = r.headers.get('content-type') || '';
     if (r.ok && /audio/.test(type)) return audioOf(r, {});
