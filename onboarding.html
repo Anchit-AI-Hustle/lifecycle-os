@@ -2962,9 +2962,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if ((!brand.regions || !brand.regions.length) && extraction && extraction.fields && extraction.fields.regions && extraction.fields.regions.candidates && extraction.fields.regions.candidates.length) {
       applyRegionsFrom(extraction.fields);
     }
-    if ((!brand.regions || !brand.regions.length) && brand.website) {
-      ensureHomeRegion(brand.website);
-    }
     var hasHome = brand.regions.some(function (r) { return r.home === true; });
     var dl = document.getElementById('rgnCountryDatalist');
     if (!dl && window.RegionContext && typeof window.RegionContext.allCountries === 'function') {
@@ -3083,10 +3080,6 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var btn = $('doImport'), gate = $('impGate');
     if (!btn) return;
     var region = importRegion();
-    if (!region && brand.website) {
-      ensureHomeRegion(brand.website);
-      region = importRegion();
-    }
     // Off with no HOME market (nowhere to file the rows) and off for a visitor
     // with no session (that reason is the control's own needsAccountNote).
     // Re-evaluating the first must never re-enable a control the second
