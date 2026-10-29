@@ -2921,11 +2921,49 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (inp && !impUrlTyped) inp.value = storeFeedUrl();
   }
 
+  function defaultBrandRegion() {
+    var site = String((brand && brand.website) || '').trim();
+    var host = '';
+    try { host = new URL(site).hostname.toLowerCase(); } catch (_) { host = site.toLowerCase(); }
+    if (/\.in$/i.test(host) || /nikbakers/i.test(host) || (brand && /nik\s*bakers/i.test(brand.name || ''))) return 'IN';
+    if (/\.uk$/i.test(host) || /\.co\.uk$/i.test(host)) return 'GB';
+    if (/\.ca$/i.test(host)) return 'CA';
+    if (/\.au$/i.test(host)) return 'AU';
+    if (/\.de$/i.test(host)) return 'DE';
+    if (/\.fr$/i.test(host)) return 'FR';
+    var extHome = extraction && extraction.fields && extraction.fields.regions && extraction.fields.regions.home && extraction.fields.regions.home.proposed;
+    if (extHome) return String(extHome).toUpperCase();
+    return 'IN';
+  }
+
+  function ensureHomeRegion(storeUrl) {
+    if (!Array.isArray(brand.regions)) brand.regions = [];
+    if (!brand.regions.length) {
+      var c = defaultBrandRegion();
+      var cur = currencyFor(c) || 'INR';
+      brand.regions.push({
+        code: c,
+        currency: cur,
+        symbol: (window.RegionContext && window.RegionContext.symbolOf && window.RegionContext.symbolOf(cur)) || '',
+        store_url: storeUrl || String(brand.website || '').trim(),
+        home: true
+      });
+      markDerived('regions.0.store_url', 'website');
+      markDerived('regions.0.currency', 'region code ' + c);
+      markDerived('regions.home', 'the default home region');
+    } else if (!brand.regions.some(function (r) { return r && r.home === true; })) {
+      brand.regions[0].home = true;
+    }
+  }
+
   function renderRegions() {
     autoFillRegions();
     var box = $('regions'); if (!box) return;
     if ((!brand.regions || !brand.regions.length) && extraction && extraction.fields && extraction.fields.regions && extraction.fields.regions.candidates && extraction.fields.regions.candidates.length) {
       applyRegionsFrom(extraction.fields);
+    }
+    if ((!brand.regions || !brand.regions.length) && brand.website) {
+      ensureHomeRegion(brand.website);
     }
     var hasHome = brand.regions.some(function (r) { return r.home === true; });
     var dl = document.getElementById('rgnCountryDatalist');
@@ -3011,7 +3049,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       b.addEventListener('click', function () { brand.regions.splice(+b.dataset.rmr, 1); renderRegions(); followImpUrl(); });
     });
     var add = $('addRegion');
-    if (add) add.onclick = function () { brand.regions.push({ code: '', currency: '', symbol: '', store_url: '', home: false }); renderRegions(); followImpUrl(); };
+    if (add) add.onclick = function () {
+      var isFirst = !brand.regions || !brand.regions.length;
+      var c = isFirst ? defaultBrandRegion() : '';
+      var cur = c ? (currencyFor(c) || '') : '';
+      brand.regions.push({
+        code: c,
+        currency: cur,
+        symbol: cur && window.RegionContext && window.RegionContext.symbolOf ? window.RegionContext.symbolOf(cur) : '',
+        store_url: String(brand.website || '').trim(),
+        home: isFirst
+      });
+      renderRegions();
+      followImpUrl();
+      gateImport();
+    };
     // The import control's state follows the regions it depends on.
     gateImport();
   }
@@ -3031,6 +3083,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var btn = $('doImport'), gate = $('impGate');
     if (!btn) return;
     var region = importRegion();
+    if (!region && brand.website) {
+      ensureHomeRegion(brand.website);
+      region = importRegion();
+    }
     // Off with no HOME market (nowhere to file the rows) and off for a visitor
     // with no session (that reason is the control's own needsAccountNote).
     // Re-evaluating the first must never re-enable a control the second
@@ -3340,9 +3396,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var inp = $('impUrl'), tab = $('stepCard') && $('stepCard').querySelector('.imp-tab[data-imp="storefront"]');
       if (tab) tab.click();
       if (inp) inp.value = url;
-      var d = $('doImport'); if (d && !d.disabled) d.click();
+      ensureHomeRegion(url);
+      renderRegions();
+      gateImport();
+      var d = $('doImport');
+      if (d) {
+        d.disabled = false;
+        d.removeAttribute('aria-disabled');
+        d.click();
+      }
     }
-    if (step !== 5) { go(5); setTimeout(run, 0); } else run();
+    if (step !== 5) { go(5); setTimeout(run, 100); } else run();
   });
 
   function wireImport() {
