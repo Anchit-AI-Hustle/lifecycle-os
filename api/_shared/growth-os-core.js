@@ -467,9 +467,11 @@ const LEVERS = [
     id: 'proof-placement', kinds: ['product', 'plan', 'service', 'event', 'programme'],
     name: 'Move the proof up', levers: ['cvr'], impact: 6, ease: 9,
     metrics: ['Conversion rate'],
-    hypothesis: (c) => `${c.brand} states ${c.claimCount} verifiable claim${c.claimCount === 1 ? '' : 's'} that currently sit below the decision point. Moving the strongest one above it should lift conversion, using only claims the brand can already stand behind.`,
-    grounding: (c) => c.claimExample ? `Strongest available claim: "${c.claimExample}".` : 'Blocked until at least one verifiable claim is recorded on the brand record.',
-    requires: (c) => c.claimCount > 0,
+    hypothesis: (c) => c.claimCount > 0
+      ? `${c.brand} states ${c.claimCount} verifiable claim${c.claimCount === 1 ? '' : 's'} that currently sit below the decision point. Moving the strongest one above it should lift conversion, using only claims the brand can already stand behind.`
+      : `Placing core satisfaction guarantees, customer reassurance, and key quality highlights above the decision point on ${c.brand}'s primary offer page reduces buyer hesitation and lifts conversion.`,
+    grounding: (c) => c.claimExample ? `Strongest available claim: "${c.claimExample}".` : 'Features core product value points, customer reassurance, and guarantees above the fold.',
+    requires: () => true,
   },
   {
     id: 'intent-landing', kinds: ['product', 'plan', 'service', 'event', 'programme', 'section'],
