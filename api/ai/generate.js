@@ -240,6 +240,130 @@ const AD_FORMATS = {
   ],
 };
 
+function safeBrandText(name = '') {
+  return String(name || '')
+    .normalize('NFKC')
+    .replace(/[—–-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildHeuristicAutofill(surface, prompt, L, market, products) {
+  const pStr = String(prompt || '').trim();
+  const rawName = (L && L.name) || 'Our Brand';
+  const cleanName = safeBrandText(rawName) || 'Our Brand';
+
+  const pctMatch = pStr.match(/(\d{1,2})\s*%/);
+  const codeMatch = pStr.match(/(?:code|coupon)\s+([A-Z0-9]{4,15})/i);
+  const flatMatch = pStr.match(/(?:flat|upto|up to)\s+([$₹£€]?\d+[\w%]*)/i);
+  let offer = '';
+  if (pctMatch) offer = `${pctMatch[1]}% off`;
+  else if (flatMatch) offer = flatMatch[1] + ' off';
+  if (codeMatch) offer += (offer ? ' with code ' : 'Code ') + codeMatch[1].toUpperCase();
+
+  const budgetMatch = pStr.match(/(?:budget|\$|₹|£|€)\s*(\d{2,5})/i);
+  const budget = budgetMatch ? Math.min(200, Math.max(20, parseInt(budgetMatch[1], 10))) : 40;
+
+  let themeTitle = 'Featured Collection';
+  if (/diwali/i.test(pStr)) themeTitle = 'Diwali Festive Showcase';
+  else if (/holiday|christmas/i.test(pStr)) themeTitle = 'Holiday Gifting Special';
+  else if (/sale|flash/i.test(pStr)) themeTitle = 'Seasonal Flash Sale';
+  else if (/summer/i.test(pStr)) themeTitle = 'Summer Collection';
+  else if (/winter/i.test(pStr)) themeTitle = 'Winter Essentials';
+  else if (/launch|new/i.test(pStr)) themeTitle = 'New Arrival Spotlight';
+  else if (/bestseller|best\s*seller/i.test(pStr)) themeTitle = 'Bestseller Lineup';
+  else if (pStr.length > 3) {
+    const words = pStr.split(/\s+/).slice(0, 4).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    themeTitle = words;
+  }
+
+  const prodList = (products || []).slice(0, 3).map(p => safeBrandText(p.name || p.n || '')).filter(Boolean);
+  const heroProd = prodList[0] || cleanName;
+
+  const overlay_headline = `${themeTitle}: ${cleanName}`.slice(0, 40);
+  const overlay_sub = offer ? `Save now: ${offer}` : 'Crafted with purpose and precision';
+
+  let res = {};
+  if (surface === 'meta') {
+    res = {
+      name: `${cleanName}: ${themeTitle}`.slice(0, 60),
+      obj: 'Sales / Conversions',
+      budget,
+      market: market || 'US',
+      place: 'Advantage+ (all)',
+      aud: `High-intent shoppers looking for ${cleanName} quality`,
+      primary: `Experience ${themeTitle} by ${cleanName}. ${heroProd !== cleanName ? `Featuring ${heroProd}. ` : ''}${offer ? `Enjoy ${offer}. ` : ''}Designed for lasting quality and everyday excellence.`.slice(0, 125),
+      headline: `${themeTitle}: ${cleanName}`.slice(0, 40),
+      overlay_headline,
+      overlay_sub,
+      offer,
+    };
+  } else if (surface === 'google') {
+    const kw = [cleanName.toLowerCase(), themeTitle.toLowerCase(), 'shop online', 'official store', 'curated essentials'].join(', ');
+    const h1 = (cleanName + ' Official').slice(0, 30);
+    const h2 = themeTitle.slice(0, 30);
+    const h3 = (offer ? offer : 'Shop Collection Now').slice(0, 30);
+    const d1 = (`Explore ${themeTitle} from ${cleanName}. Refined design and quality ingredients.`).slice(0, 90);
+    const d2 = ('Shop directly online. Enjoy fast delivery and dedicated customer care.').slice(0, 90);
+    res = {
+      name: `Google Search: ${cleanName} ${themeTitle}`.slice(0, 60),
+      type: 'Search',
+      budget,
+      market: market || 'US',
+      url: '/collection',
+      keywords: kw,
+      headlines: [h1, h2, h3].join('\n'),
+      desc: [d1, d2].join('\n'),
+      overlay_headline,
+      overlay_sub,
+      offer,
+    };
+  } else if (surface === 'tiktok') {
+    const tag = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    res = {
+      name: `TikTok: ${cleanName} ${themeTitle}`.slice(0, 60),
+      obj: 'Web Conversions',
+      budget,
+      market: market || 'US',
+      place: 'TikTok In-Feed',
+      aud: 'Trend-conscious consumers exploring high-quality essentials',
+      hook: `Discover what is new from ${cleanName} this season.`.slice(0, 80),
+      caption: `${themeTitle} is officially live. ${offer ? `Enjoy ${offer}. ` : ''}Check the link in bio.`.slice(0, 100),
+      creator: '',
+      hashtags: `#${tag} #fyp #viral #unboxing #essentials`,
+      overlay_headline,
+      overlay_sub,
+      offer,
+    };
+  } else if (surface.startsWith('lp-')) {
+    res = {
+      hero: `${themeTitle}: ${cleanName}`.slice(0, 60),
+      sub: `Discover the collection engineered for performance and purpose.`,
+      offer,
+      notes: `Dedicated landing page tailored for ${themeTitle} conversion, spotlighting ${heroProd} with verified customer proof and instant checkout.`,
+    };
+  } else {
+    res = {
+      name: `${cleanName}: ${themeTitle}`.slice(0, 60),
+      offer,
+      budget,
+    };
+  }
+
+  // Scrub any banned words configured for the brand's voice
+  if (L && L.voice && Array.isArray(L.voice.banned)) {
+    for (const b of L.voice.banned) {
+      if (!b) continue;
+      const rx = new RegExp(String(b).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      for (const k of Object.keys(res)) {
+        if (typeof res[k] === 'string') res[k] = res[k].replace(rx, '').replace(/\s{2,}/g, ' ').trim();
+      }
+    }
+  }
+
+  return res;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // MASTER PROMPTS (production-grade, embedded server-side so they cannot be
 // tampered with by browser-side edits)
@@ -964,6 +1088,86 @@ Target market for this autofill: ${targetMarket}.`;
         return res.status(200).json({
           ok: true, mode, provider: 'heuristic', model: 'fallback-v1', text: brandScrub(heuristicBrief),
           portable_prompt,
+          _heuristic: true,
+          _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
+        });
+      }
+
+      if (mode === 'autofill') {
+        console.warn('[generate] All providers failed for autofill — using heuristic fallback');
+        const surf = String(body.surface || '').toLowerCase();
+        const FIN = require('../_shared/generate-finish.js');
+        const fin = FIN.context(_pb, { market, products: selected_products });
+        const targetMarket = body.market || body.region || market;
+        const promptInput = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
+        const fields = buildHeuristicAutofill(surf, promptInput, _L, targetMarket, selected_products);
+        const cleanedFields = FIN.finishDeep(deepScrubDashes(fields, body && body.__brand), fin);
+
+        if (AD_FORMATS[surf]) {
+          const overlay = {
+            headline: cleanedFields.overlay_headline || '',
+            sub: cleanedFields.overlay_sub || '',
+            offer: cleanedFields.offer || '',
+          };
+          const creative_spec = AD_FORMATS[surf].map((f) => ({ size: f.size, format: f.format, ar: f.ar, overlay }));
+          const master_prompt = buildMasterPrompt({ brand: (body && body.__brand) || null, assetType: 'ad', platform: surf, market: targetMarket, brief: promptInput });
+          const lines = (v) => String(v || '').split(/\n+/).map((x) => x.trim()).filter(Boolean);
+          const adAsset = surf === 'google'
+            ? { platform: 'google', headlines: lines(cleanedFields.headlines), descriptions: lines(cleanedFields.desc) }
+            : surf === 'meta'
+              ? { platform: 'meta', creative_type: 'static', primary_text: cleanedFields.primary || '', headline: cleanedFields.headline || '', image_url: '' }
+              : { platform: 'tiktok', creative_type: 'static', caption: cleanedFields.caption || '', headline: cleanedFields.overlay_headline || '', creative_brief: creative_spec.map((c) => `${c.format} ${c.size}: ${[overlay.headline, overlay.sub].filter(Boolean).join(' / ')}`).join('; ') };
+          const checks = FIN.judge(adAsset, fin);
+          return res.status(200).json({
+            ok: true, mode, provider: 'heuristic', model: 'fallback-v1',
+            text: JSON.stringify(cleanedFields),
+            creative_spec, master_prompt, portable_prompt,
+            brand_check: brandCheck(cleanedFields),
+            contract_check: checks.contract_check, compliance_check: checks.compliance_check,
+            copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
+            _heuristic: true,
+            _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
+          });
+        }
+
+        return res.status(200).json({
+          ok: true, mode, provider: 'heuristic', model: 'fallback-v1',
+          text: JSON.stringify(cleanedFields),
+          portable_prompt,
+          brand_check: brandCheck(cleanedFields),
+          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
+          _heuristic: true,
+          _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
+        });
+      }
+
+      if (mode === 'landing_page') {
+        console.warn('[generate] All providers failed for landing_page — using catalog fallback');
+        const { buildFallbackLanding } = require('../_shared/landing-fallback.js');
+        const promptInput = String(body.prompt || campaign_brief || '').trim().slice(0, 1600);
+        const fallbackHtml = buildFallbackLanding(market, promptInput, _pb);
+        return res.status(200).json({
+          ok: true, mode, provider: 'heuristic', model: 'fallback-v1',
+          text: fallbackHtml,
+          portable_prompt,
+          _heuristic: true,
+          _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
+        });
+      }
+
+      if (mode === 'suggested_prompts') {
+        console.warn('[generate] All providers failed for suggested_prompts — using heuristic fallback');
+        const prompts = [
+          { icon: '✨', type: `${_L.name} Bestseller Showcase`, mkt: market, ctype: 'Bestseller', text: `Highlight the core bestsellers that define ${_L.name}. Focus on product excellence, proven customer satisfaction, and timeless design for customers in ${market}.` },
+          { icon: '🎉', type: `${_L.name} Festive Special`, mkt: market, ctype: 'Sale', text: `Announce a seasonal celebration campaign for ${_L.name} in ${market}. Focus on gifting, festive discovery, and rewarding loyal community members.` },
+          { icon: '🚀', type: `${_L.name} New Arrivals`, mkt: market, ctype: 'Launch', text: `Spotlight fresh releases in the ${_L.name} collection. Emphasize innovative craftsmanship, limited batch availability, and modern aesthetics.` },
+          { icon: '🎁', type: `${_L.name} Curated Gift Guide`, mkt: market, ctype: 'Gift', text: `Curate premium gift selections from ${_L.name} for special occasions. Emphasize thoughtful packaging and premium unboxing experience.` },
+          { icon: '🌿', type: `${_L.name} Daily Ritual`, mkt: market, ctype: 'Routine', text: `Demonstrate how ${_L.name} integrates effortlessly into everyday routines, elevating daily comfort and style.` },
+          { icon: '🔍', type: `${_L.name} Brand Discovery`, mkt: market, ctype: 'Discovery', text: `Introduce new audiences in ${market} to the philosophy, heritage, and uncompromising standards of ${_L.name}.` }
+        ];
+        return res.status(200).json({
+          ok: true, mode, provider: 'heuristic', model: 'fallback-v1',
+          data: { prompts }, portable_prompt,
           _heuristic: true,
           _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
         });
