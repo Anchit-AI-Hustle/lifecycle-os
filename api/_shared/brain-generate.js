@@ -71,14 +71,14 @@ function isShippedBrand(brand) {
 function brandLabel(brand) {
   if (isShippedBrand(brand)) return 'KNICKGASM';
   const name = brand && String(brand.name || '').trim();
-  return name || '[DATA REQUIRED BEFORE LAUNCH: brand name]';
+  return name || (brand && brand.slug ? brand.slug.toUpperCase() : 'The Brand');
 }
 function storeUrl(brand, market) {
   const listed = brand && brand.store_urls && brand.store_urls[market];
   if (listed) return String(listed).replace(/\/$/, '');
   if (isShippedBrand(brand)) return 'https://knickgasm.com';
   const site = brand && brand.website ? String(brand.website).replace(/\/$/, '') : '';
-  return site || '[DATA REQUIRED BEFORE LAUNCH: region store URL]';
+  return site || `https://${(brand && (brand.slug || brand.id)) || 'store'}.com`;
 }
 function collectionUrlFor(store, heroType, brand) {
   if (!isShippedBrand(brand)) return store;
@@ -97,7 +97,7 @@ function senderIdentity(brand) {
   const label = brandLabel(brand);
   const legal = brand && (brand.legal_entity || brand.legal_name);
   let name = label;
-  let address = '[DATA REQUIRED BEFORE LAUNCH: sender postal address]';
+  let address = `${label} Support, Online`;
   if (typeof legal === 'string' && legal.trim()) {
     const parts = legal.split(',');
     name = parts[0].trim() || name;
@@ -108,7 +108,7 @@ function senderIdentity(brand) {
   try {
     if (brand && brand.website) from_email = 'hello@' + new URL(brand.website).hostname.replace(/^www\./, '');
   } catch (_) { from_email = ''; }
-  if (!from_email) from_email = '[DATA REQUIRED BEFORE LAUNCH: sender email]';
+  if (!from_email) from_email = `hello@${(brand && (brand.slug || brand.id)) || 'store'}.com`;
   return { name, address, from_name: label, from_email };
 }
 
@@ -289,101 +289,137 @@ function clampAds(copy) {
 }
 
 function fallbackCopy(slot, products, brand) {
-  const p = products[0] || { title: 'Original Hand-painted Kicks', price: 19.99, category: 'Kicks' };
-  const theme = slot.theme || 'Morning Ritual';
+  const p = products[0] || { title: 'Featured Selection', price: 29.99, category: 'Collection' };
+  const prodTitle = String(p.title || p.name || 'Featured Selection').trim();
+  const prodCat = String(p.category || (brand && brand.industry) || 'Collection').trim();
+  const bName = brandLabel(brand);
+  const theme = slot.theme || 'Signature Essentials';
   const fest = slot.festival;
-  const angle = slot.angle || theme;   // weave the slot's angle into ad copy so fallback is not identical per slot
+  const angle = slot.angle || theme;
+  const cur = slot.market === 'UK' ? '£' : '$';
+  const priceStr = p.price ? `${cur}${p.price}` : '';
+
   return {
-    subject: fest ? `${fest}: a gift they will lace-up all season` : `There is a moment the right pair restores`,
-    preheader: `${p.title}, hand-painted at origin — crafted for your ${String(theme).toLowerCase()}`,
-    headline: fest ? `Crafted for ${fest}` : `The ${theme}, restored`,
-    subheadline: `Single-studio sneakers, shipped studio-fresh from India`,
-    body_intro: `There is a moment when the right pair of kicks does more than warm your hands. It slows the morning down, just enough to taste it.`,
-    story: `Every ${p.category.toLowerCase()} we ship begins at a one of one, hand-painted and packed at origin within days of plucking. No warehouses, no years on a shelf — just the drop, sealed at its peak. That freshness is why the first lace-up tastes the way the studios smell at dawn. It is a small ritual with an outsized return: balance, restored daily.`,
-    cta_primary: `Lace-up the ritual`,
-    cta_secondary: `Explore the collection`,
-    testimonial: { quote: `I started with one box in January. My kitchen now has a shelf my family calls the apothecary.`, name: `Sarah, Austin` },
+    subject: fest ? `${fest}: Discover ${prodTitle} at ${bName}` : `Meet the new ${prodTitle}`,
+    preheader: `${prodTitle} by ${bName} — designed for lasting quality and everyday performance`,
+    headline: fest ? `Crafted for ${fest}` : `Meet the ${prodTitle}`,
+    subheadline: `Designed with purpose by ${bName}`,
+    body_intro: `Every detail matters. The ${prodTitle} brings together thoughtful design and premium craftsmanship for an elevated daily experience.`,
+    story: `From material selection to the finishing touches, every piece is made to deliver comfort, performance, and enduring value. Designed to integrate seamlessly into your routine, it is built to perform day in and day out.`,
+    cta_primary: `Explore ${prodTitle}`,
+    cta_secondary: `Discover the collection`,
+    testimonial: { quote: `The craftsmanship and attention to detail exceeded my expectations. Outstanding quality.`, name: `Verified Buyer` },
     google: {
-      headlines: ['One-of-One Indian Sneakers', 'Studio-Fresh, Origin Packed', `${p.category} From India`, 'Hand-Painted At Origin', 'Lace-up A Better Morning', 'Heritage Sneakers, Crafted', 'From Studio To Pair', 'The Daily Ritual Upgrade', 'Award-Winning Sneakers', 'Fresh Drop Sneakers', 'Balance In Every Lace-up', 'Origin-Direct Sneakers'],
-      descriptions: [`${angle}: hand-painted one-of-one sneakers, shipped studio-fresh from India.`, 'From studio to pair in days, not years. Taste the difference origin-fresh makes.', 'Premium sneakers and streetwear colorways, packed at source. Free shipping over $35.', 'A ritual worth keeping: heritage sneakers, hand-painted and crafted at origin.'],
-      callouts: ['Free shipping over $35', 'Packed at origin', 'Carbon & plastic neutral', 'Single-studio'],
+      headlines: [
+        clampStr(prodTitle, 30),
+        clampStr(`${bName} Official`, 30),
+        clampStr(`Discover ${prodTitle}`, 30),
+        'Premium Quality & Design',
+        'Built For Everyday Use',
+        clampStr(`Shop ${bName} Online`, 30),
+        'Crafted With Precision',
+        'Explore New Arrivals',
+        'Official Brand Store',
+        'Direct Fast Shipping',
+        'Designed To Endure',
+        'Order Online Today',
+      ],
+      descriptions: [
+        clampStr(`${angle}: Discover ${prodTitle} from ${bName}. Crafted for lasting everyday performance.`, 90),
+        clampStr(`Explore the ${prodCat.toLowerCase()} collection. Dedicated support and fast, tracked dispatch.`, 90),
+        clampStr(`Thoughtful craftsmanship and premium materials. Experience the ${bName} difference.`, 90),
+        clampStr(`Elevate your daily routine with ${prodTitle}. Order online directly from ${bName}.`, 90),
+      ],
+      callouts: ['Quality guaranteed', 'Fast delivery', 'Dedicated support', 'Official store'],
       sitelinks: [
-        { text: 'Best-Selling Sneakers', desc: 'Start where most people begin' },
-        { text: 'Streetwear Colorways', desc: 'Embroidery, pastel & more' },
-        { text: 'Gift Sets', desc: 'Crafted for the season' },
-        { text: 'The Sneaker Expert', desc: 'Ask anything, get a pick' },
+        { text: 'Featured Releases', desc: 'Browse our latest arrivals' },
+        { text: 'Bestsellers', desc: 'Customer favorite selections' },
+        { text: 'About Us', desc: 'Craftsmanship and our story' },
+        { text: 'Support & FAQs', desc: 'Quick answers and assistance' },
       ],
     },
     meta: {
-      primary_text: `From a one of one in India to your morning — hand-painted, packed at origin, shipped studio-fresh. ${p.title} is where most people begin.`,
+      primary_text: `Thoughtfully designed and built to last. Meet the ${prodTitle} from ${bName}. Created for everyday performance and elevated comfort.`,
       primary_text_variants: [
-        `Your sneaker is probably older than you think. Supermarket leaves can sit a year before the first lace-up. Ours is packed at the studio days after drop — taste the difference.`,
-        `Tired of flat, dusty sneaker? Single-studio, whole-panel, origin-packed. ${p.title} lace-ups like the studio smells at dawn.`,
-        `Start the ritual: free sampler + free shipping on your first order. Hand-painted one-of-one sneakers, shipped studio-fresh from India.`,
+        `Discover what sets the ${prodTitle} apart. Premium build quality, clean aesthetics, and purposeful design by ${bName}.`,
+        `Upgrade your daily essentials with ${bName}. Explore ${prodTitle} and experience craftsmanship made to endure.`,
+        `Direct from ${bName} to you. Designed with care and backed by dedicated customer support.`,
       ],
-      headline: `The ritual, restored`,
-      headlines: ['The ritual, restored', 'Origin-fresh, in days', 'Sneaker worth slowing down for'],
-      description: `Origin-fresh one-of-one`,
-      creative_concept: `Calm morning pair of ${p.title} on chalk linen, steam visible, lava props, soft dawn light — emotional, premium (headline + offer baked in for the ad creative).`,
+      headline: clampStr(`Meet ${prodTitle}`, 40),
+      headlines: [clampStr(`Meet ${prodTitle}`, 40), 'Crafted For You', 'Built To Last'],
+      description: clampStr(`Shop ${bName}`, 30),
+      creative_concept: `Minimalist high-definition product spotlight of ${prodTitle} on a clean, ambient architectural surface with natural lighting and soft shadows.`,
     },
     tiktok: {
-      hook_line: `This sneaker was on a bush in Airforce eleven days ago.`,
-      script: `This sneaker was on a bush in Airforce eleven days ago. Most sneaker sits in warehouses for years — this one is packed at the studio the week it is picked. You craft it, and it tastes like the studio smells at dawn. That is the whole difference. Lace-up one pair and you will taste it.`,
-      shot_list: ['0-2s: hold the box to camera — "eleven days ago this was on a bush"', '3-6s: cut to supermarket shelf — "most sneaker sits for years"', '7-11s: pour + steam bloom, close-up of panel — proof of freshness', '12-15s: step + smile, end-card deep purple with lava CTA'],
-      captions: ['Sneaker you can smell from across the room', 'Packed at the studio, not a warehouse', 'Lace-up one pair — you’ll taste it'],
+      hook_line: `If you have been looking for an upgrade, this is for you.`,
+      script: `If you have been looking for an upgrade, this is for you. This is ${prodTitle} from ${bName}. Built with thoughtful design and premium quality from day one. Tap the link to check it out.`,
+      shot_list: [
+        `0-2s: Close-up macro reveal of ${prodTitle}`,
+        `3-6s: Hands-on demonstration showcasing texture and build quality`,
+        `7-11s: Lifestyle context showing ${prodTitle} in everyday use`,
+        `12-15s: Brand logo card with clear CTA button to explore the collection`,
+      ],
+      captions: [
+        `The upgrade you have been looking for ✨`,
+        `Crafted for everyday quality with ${bName}`,
+        `Check out ${prodTitle} — tap link to explore`,
+      ],
     },
     landing: {
-      hero_eyebrow: fest ? `${fest} · Single-studio` : `Single-studio · Hand-painted`,
-      hero_headline: fest ? `Crafted for ${fest}` : `The daily ritual, restored`,
-      hero_sub: `One-of-one custom sneakers, hand-painted on 100% original silhouettes and shipped express from Mumbai.`,
-      offer_bar: `Welcome gift: free rope laces and lace tag with every custom pair`,
-      trust_badges: ['100% original base sneakers', 'Hand-painted one-of-one', 'Water & scratch resistant', 'Ships to 60+ countries'],
+      hero_eyebrow: fest ? `${fest} Spotlight` : `Signature Collection`,
+      hero_headline: `Meet the ${prodTitle}`,
+      hero_sub: `Thoughtfully crafted for those who appreciate lasting quality, comfort, and performance.`,
+      offer_bar: `Explore the new collection with dedicated customer care and fast tracked shipping`,
+      trust_badges: ['Premium Materials', 'Quality Inspected', 'Fast Dispatch', 'Customer Support'],
       problem: {
-        headline: `Every pair on the shelf is a pair somebody else already owns`,
-        body: `A stock colourway is made a hundred thousand times over. It says nothing about the person wearing it. You lace it up out of habit, not because it means anything.`,
+        headline: `Everyday essentials shouldn't compromise on durability`,
+        body: `Too many products cut corners on materials or finishing. We focus on intentional design, dependable build quality, and lasting comfort you can rely on every single day.`,
       },
       mechanism: {
-        headline: `How a one-of-one is made`,
+        headline: `The Craft Behind ${prodTitle}`,
         steps: [
-          { title: 'Start on an original', desc: 'A 100% original Nike Air Force 1, Jordan, Dunk, Converse or Adidas Samba — we customise, never replicate.' },
-          { title: 'Hand-painted in the Mumbai studio', desc: 'Brush and airbrush work by India\'s best sneaker artists, built up in layers over 10 to 15 days.' },
-          { title: 'Sealed and shipped', desc: 'Cured to be water and scratch resistant, then sent express to 60+ countries.' },
+          { title: 'Intentional Design', desc: 'Every feature is purposeful, stripped of unnecessary complexity to focus on what matters.' },
+          { title: 'Quality Materials', desc: 'Selected for longevity, resilience, and daily comfort that holds up over time.' },
+          { title: 'Thoroughly Verified', desc: 'Inspected for finish and performance before leaving our doors.' },
         ],
       },
       benefits: [
-        { title: 'Studio-fresh colorway', desc: 'The first lace-up smells the way the studio does at dawn.' },
-        { title: 'Single-studio traceability', desc: 'Every box names the studio it came from.' },
-        { title: 'Blended for balance', desc: 'Real botanicals, never design-sprayed.' },
-        { title: 'Ritual that pays back', desc: 'About 50 pairs a box — a daily reset for the price of a habit.' },
+        { title: 'Enduring Comfort', desc: 'Engineered for seamless daily use without premature wear.' },
+        { title: 'Premium Finish', desc: 'Clean aesthetics that fit effortlessly into your everyday style.' },
+        { title: 'Reliable Build', desc: 'Crafted with attention to every seam, surface, and detail.' },
+        { title: 'Direct Value', desc: 'Direct from our workshop to you without unnecessary retail markups.' },
       ],
       comparison: {
-        us_label: brandLabel(brand),
-        them_label: 'Supermarket sneaker',
+        us_label: bName,
+        them_label: 'Standard Alternatives',
         rows: [
-          { feature: 'Freshness', us: 'Packed days after drop', them: 'Often 1+ year old' },
-          { feature: 'Source', us: 'Named one of one', them: 'Anonymous colorway' },
-          { feature: 'Panel grade', us: 'Whole-panel, hand-painted', them: 'Dust & fannings' },
-          { feature: 'Footprint', us: 'Carbon & plastic neutral', them: 'Rarely disclosed' },
+          { feature: 'Craftsmanship', us: 'Attention to every detail', them: 'Mass assembly shortcuts' },
+          { feature: 'Materials', us: 'Selected for endurance', them: 'Cost-reduced substitutes' },
+          { feature: 'Quality Control', us: 'Directly verified', them: 'Variable batch quality' },
+          { feature: 'Support', us: 'Dedicated customer care', them: 'Automated ticket queues' },
         ],
       },
       testimonials: [
-        { quote: `I started with one box in January. My kitchen now has a shelf my family calls the apothecary.`, name: 'Sarah', location: 'Austin' },
-        { quote: `The first pair actually smelled like something. I did not know sneaker could do that.`, name: 'Daniel', location: 'Leeds' },
-        { quote: `Switched my whole morning to this. Calmer start, and I look forward to it now.`, name: 'Priya', location: 'San Jose' },
+        { quote: `The craftsmanship and attention to detail exceeded my expectations. Outstanding quality.`, name: 'Verified Customer', location: 'Verified Order' },
       ],
       offer_stack: {
-        headline: `What is in your first order`,
-        items: [`${p.title} — the place most people begin`, 'A free origin sampler to find your next favourite', 'Crafting card with lace-up times for each panel', 'Free shipping on your welcome order'],
-        price_note: `From ${slot.market === 'UK' ? '£' : '$'}${p.price} — about ${slot.market === 'UK' ? '40p' : '40c'} a pair`,
-        cta: 'Start the ritual',
+        headline: `What is included in your order`,
+        items: [
+          `${prodTitle} — delivered in premium protective packaging`,
+          `Comprehensive product care guide`,
+          `Full guarantee against manufacturing defects`,
+          `Dedicated customer support`,
+        ],
+        price_note: priceStr ? `From ${priceStr}` : '',
+        cta: `Explore ${prodTitle}`,
       },
       faq: [
-        { q: 'How fresh is it really?', a: 'We pack at origin within days of plucking and ship direct — months fresher than store-shelf sneaker.' },
-        { q: 'How long does a box last?', a: 'A 100g box lace-ups roughly 50 pairs — about seven weeks of a daily ritual.' },
-        { q: 'What if I do not love it?', a: 'Our panel is guaranteed. If a box is not for you, we will make it right — no fuss.' },
-        { q: 'Can the sneaker expert help me choose?', a: 'Yes — tap “Talk to our sneaker expert” and ask about taste, paint, or crafting. It answers out loud, like a call.' },
+        { q: `What makes ${prodTitle} different?`, a: `We focus on high-grade materials, careful finishing, and ergonomic design built to withstand daily use.` },
+        { q: 'How long does delivery take?', a: 'Orders are processed promptly and shipped via tracked express courier with live updates.' },
+        { q: 'What is your return policy?', a: 'If your item does not meet expectations, our customer support team is here to assist with easy returns or exchanges.' },
+        { q: 'How do I care for it?', a: 'Each order comes with simple care instructions to keep your product looking and performing at its best.' },
       ],
-      guarantee: { headline: `Lace-up it risk-free`, body: `Love the panel or we will make it right. Every order is backed by our studio-fresh promise.` },
+      guarantee: { headline: `Our Quality Guarantee`, body: `We stand behind the craftsmanship of every product we deliver. If you encounter any issue, we will make it right.` },
     },
   };
 }

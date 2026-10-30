@@ -129,19 +129,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .chip:hover{border-color:var(--primary);color:var(--ink)}
   .chip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:600}
 
-  /* min-width keeps the hypothesis column readable: without it the table
-     squeezes nine columns into the viewport and the reasoning becomes a
-     one-word-per-line ribbon. The .scroll wrapper takes the overflow. */
-  /* table-layout:auto, deliberately: theme.css defaults every table to
-     table-layout:fixed, which splits the width equally and leaves a
-     white-space:nowrap cell nowhere to put a value wider than its share -
-     it overflows and paints over the next column. */
-  table{table-layout:auto;width:100%;min-width:940px;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  thead tr{background:var(--vh-panel-2)}
-  th{padding:10px 13px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;
-     text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;position:sticky;top:0;z-index:2;background:var(--vh-panel-2)}
-  td{padding:12px 13px;font-size:13px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}
-  .scroll{overflow-x:auto;border-radius:12px}
+  /* Fixed responsive layout with explicit column allocation to prevent empty gaps */
+  .scroll{overflow:auto;max-height:72vh;border:1px solid var(--line);border-radius:12px;position:relative}
+  table{table-layout:fixed;width:100%;min-width:1020px;border-collapse:collapse;background:var(--card)}
+  thead tr{background:var(--vh-panel-2);position:sticky;top:0;z-index:5}
+  th{padding:12px 14px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:left;
+     text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;position:sticky;top:0;z-index:5;background:var(--vh-panel-2);border-bottom:1px solid var(--line)}
+  td{padding:12px 14px;font-size:13px;border-top:1px solid var(--line);vertical-align:top;line-height:1.55}
+
+  #panel-experiments table th:nth-child(1), #panel-experiments table td:nth-child(1){width:44px;text-align:center}
+  #panel-experiments table th:nth-child(2), #panel-experiments table td:nth-child(2){width:210px}
+  #panel-experiments table th:nth-child(3), #panel-experiments table td:nth-child(3){width:auto}
+  #panel-experiments table th:nth-child(4), #panel-experiments table td:nth-child(4){width:150px}
+  #panel-experiments table th:nth-child(5), #panel-experiments table td:nth-child(5){width:65px;text-align:center}
+  #panel-experiments table th:nth-child(6), #panel-experiments table td:nth-child(6){width:85px;text-align:center}
+  #panel-experiments table th:nth-child(7), #panel-experiments table td:nth-child(7){width:65px;text-align:center}
+  #panel-experiments table th:nth-child(8), #panel-experiments table td:nth-child(8){width:65px;text-align:center}
+  #panel-experiments table th:nth-child(9), #panel-experiments table td:nth-child(9){width:160px}
+
+  tr.exp-row{cursor:pointer;transition:background .12s}
+  tr.exp-row:hover{background:var(--vh-panel-2)}
 
   .score{font-family:var(--head);font-weight:600;font-size:15px}
   .pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:5px;white-space:nowrap}
@@ -149,8 +156,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pill-blocked{background:var(--vh-panel-2);box-shadow:inset 0 0 0 1px var(--vh-err);color:var(--err)}
   .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;margin:2px 3px 0 0;
        background:var(--vh-panel-2);color:var(--vh-primary-text);font-weight:600}
-  .why{color:var(--muted);font-size:12px;line-height:1.55;max-width:400px}
+  .why{color:var(--muted);font-size:12.5px;line-height:1.55}
   .ground{color:var(--muted);font-size:11.5px;line-height:1.5;margin-top:6px;font-style:italic}
+
+  /* Blueprint Drawer */
+  .blueprint-drawer{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:flex;justify-content:flex-end}
+  .blueprint-drawer[hidden]{display:none}
+  .blueprint-backdrop{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px)}
+  .blueprint-panel{position:relative;z-index:1;width:100%;max-width:540px;height:100%;background:var(--card);box-shadow:-4px 0 24px rgba(0,0,0,.2);display:flex;flex-direction:column;overflow-y:auto;padding:28px 24px}
+  .blueprint-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .exp-action-btn{display:inline-block;padding:5px 9px;font-size:11px;font-weight:600;border-radius:5px;text-decoration:none;cursor:pointer;transition:border-color .12s,background .12s;text-align:center}
+  .exp-action-btn-primary{background:var(--primary);color:var(--on-primary);border:1px solid var(--primary)}
+  .exp-action-btn-sec{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .exp-action-btn-sec:hover{border-color:var(--primary)}
 
   .stage{margin-bottom:15px}
   .stage-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap}
@@ -338,6 +356,51 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     </div>
   </section>
 
+  <div id="go-blueprint-drawer" class="blueprint-drawer" hidden>
+    <div class="blueprint-backdrop" data-close-drawer="1"></div>
+    <div class="blueprint-panel">
+      <div class="blueprint-header">
+        <div>
+          <span class="tag" id="bp-lever"></span>
+          <h2 id="bp-title" style="font-size:20px;margin-top:4px"></h2>
+        </div>
+        <button type="button" class="btn" data-close-drawer="1" style="padding:4px 10px;font-size:16px;line-height:1">&times;</button>
+      </div>
+      <div class="blueprint-body">
+        <div class="strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;gap:8px">
+          <div class="metric"><div class="lbl">Impact</div><div class="val" id="bp-impact"></div></div>
+          <div class="metric"><div class="lbl">Confidence</div><div class="val" id="bp-confidence"></div></div>
+          <div class="metric"><div class="lbl">Ease</div><div class="val" id="bp-ease"></div></div>
+          <div class="metric"><div class="lbl">ICE</div><div class="val" id="bp-ice"></div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="phase">Hypothesis & Opportunity</div>
+          <p id="bp-hypothesis" style="font-size:13px;line-height:1.6;margin-top:4px"></p>
+          <div id="bp-grounding" class="ground" style="margin-top:8px"></div>
+        </div>
+        <div class="two" style="margin-bottom:14px">
+          <div class="card">
+            <div class="phase">Control (Baseline)</div>
+            <p id="bp-control" style="font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:4px">Standard offer presentation without modification.</p>
+          </div>
+          <div class="card">
+            <div class="phase">Variant (Test)</div>
+            <p id="bp-variant" style="font-size:12.5px;color:var(--ink);line-height:1.55;margin-top:4px"></p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="phase">Target Metrics & KPIs</div>
+          <div id="bp-metrics" style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <div class="actions" style="margin-top:0">
+          <a href="/brain" class="btn btn-primary">Generate in Smart Brain ↗</a>
+          <a href="/landing-pages" class="btn">Landing Page Builder ↗</a>
+          <a href="/mailer-studio.html" class="btn">Mailer Studio ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -426,6 +489,29 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return (e.levers || []).indexOf(f) !== -1;
   }
 
+  function showBlueprint(expId){
+    if (!DATA || !DATA.experiments) return;
+    var exp = DATA.experiments.find(function(x){ return x.id === expId; });
+    if (!exp) return;
+    el("bp-title").textContent = exp.name || "";
+    el("bp-lever").textContent = (exp.lever_labels || []).join(" · ") || "Growth";
+    el("bp-impact").textContent = exp.impact == null ? "—" : exp.impact;
+    el("bp-confidence").textContent = exp.confidence == null ? "—" : exp.confidence;
+    el("bp-ease").textContent = exp.ease == null ? "—" : exp.ease;
+    el("bp-ice").textContent = exp.ice == null ? "—" : exp.ice;
+    el("bp-hypothesis").textContent = exp.hypothesis || "";
+    el("bp-grounding").textContent = exp.grounding || "";
+    el("bp-variant").textContent = "Test implementation: deploy variant matching the " + ((exp.lever_labels || []).join(", ") || "test") + " lever.";
+    el("bp-metrics").innerHTML = (exp.metrics || []).map(function(m){
+      return '<span class="tag" style="font-size:12px;padding:4px 9px">' + esc(m) + '</span>';
+    }).join("");
+    el("go-blueprint-drawer").hidden = false;
+  }
+  function closeBlueprint(){
+    var d = el("go-blueprint-drawer");
+    if (d) d.hidden = true;
+  }
+
   function renderExperiments(){
     var rows = (DATA.experiments || []).filter(function(e){ return matches(e, expFilter); });
     if (!rows.length){
@@ -433,7 +519,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return;
     }
     el("go-exp-body").innerHTML = rows.map(function(e){
-      return "<tr>"
+      return "<tr class=\"exp-row\" data-exp-id=\"" + esc(e.id) + "\">"
         + '<td class="score">' + esc(e.rank) + "</td>"
         + "<td><b>" + esc(e.name) + "</b><br>"
           + (e.lever_labels || []).map(function(l){ return '<span class="tag">' + esc(l) + "</span>"; }).join("")
@@ -448,6 +534,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         + '<td class="score">' + esc(e.ice) + "</td>"
         + '<td><span class="pill pill-' + esc(e.status) + '">' + esc(e.status) + "</span>"
           + (e.status === "blocked" && e.blocked_reason ? '<div class="ground">' + esc(e.blocked_reason) + "</div>" : "")
+          + '<div class="actions" style="margin-top:8px;gap:5px">'
+          + '<a href="/brain" class="exp-action-btn exp-action-btn-primary" onclick="event.stopPropagation()">Run in Brain ↗</a>'
+          + '<button type="button" class="exp-action-btn exp-action-btn-sec" data-blueprint-id="' + esc(e.id) + '">Blueprint ↗</button>'
+          + '</div>'
         + "</td>"
         + "</tr>";
     }).join("");
@@ -791,6 +881,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return;
     }
 
+    var bpBtn = t.closest("[data-blueprint-id]");
+    if (bpBtn){
+      showBlueprint(bpBtn.getAttribute("data-blueprint-id"));
+      return;
+    }
+
+    var closeBtn = t.closest("[data-close-drawer]");
+    if (closeBtn){
+      closeBlueprint();
+      return;
+    }
+
+    var expRow = t.closest(".exp-row");
+    if (expRow && !t.closest("a") && !t.closest("button")){
+      showBlueprint(expRow.getAttribute("data-exp-id"));
+      return;
+    }
+
     var check = t.closest("[data-check]");
     if (check){
       var key = check.getAttribute("data-check");
@@ -802,6 +910,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var row = check.closest(".item");
       if (row) row.classList.toggle("done", next);
     }
+  });
+
+  document.addEventListener("keyup", function(e){
+    if (e.key === "Escape") closeBlueprint();
   });
 
   // ── load ──────────────────────────────────────────────────────────────────
