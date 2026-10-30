@@ -215,11 +215,11 @@ function renderStaticAd(spec) {
 <div style="flex:1 1 auto;min-height:0;min-width:0;border-radius:${theme.radius.image}px;overflow:hidden;${fr}">${photo(theme, img, alt)}</div>
 <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:${align === 'center' ? 'center' : 'space-between'};gap:3cqw;flex-wrap:wrap">${P ? `<div data-ad-text data-ad-price style="font-family:var(--head);font-weight:700;font-size:${4.4 * k}cqw;color:${C.onGround}">${esc(P)}</div>` : ''}${button(theme, C, 'ground', cta, ls)}</div></div>`;
   } else if (template === 'type') {
-    const corner = img ? `<div style="position:absolute;right:${pd}cqw;bottom:${pd}cqw;width:${wide ? 26 : 34}cqw;height:${wide ? 26 : 34}cqw;border-radius:${theme.image === 'rounded' ? '50%' : theme.radius.image + 'px'};overflow:hidden;border:0.8cqw solid ${C.surface}">${photo(Object.assign({}, theme, { image: 'square' }), img, alt)}</div>` : '';
+    const corner = img ? `<div style="position:absolute;right:${pd}cqw;bottom:${pd}cqw;width:${wide ? 30 : 42}cqw;height:${wide ? 30 : 42}cqw;border-radius:${theme.image === 'rounded' ? '50%' : theme.radius.image + 'px'};overflow:hidden;border:0.8cqw solid ${C.surface};box-shadow:0 8px 24px rgba(0,0,0,0.2)">${photo(Object.assign({}, theme, { image: 'square' }), img, alt)}</div>` : '';
     inner = `<div data-ad-panel style="position:absolute;inset:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:column;justify-content:space-between;gap:3cqw">
 ${logoRow(C.onGround, true)}
-<div data-ad-copy style="text-align:${align};${img ? `max-width:${100 - 2 * pd - (wide ? 26 : 34) - 4}cqw;` : ''}">${eyebrow(theme, proof, C.onGround, 'ground', 2.8 * sk)}${headline(theme, H, C.onGround, hs * (img ? 1.05 : 1.35))}${divider(theme, C.onGround)}${wide ? '' : lineEl(L, C.onGround, ls)}</div>
-<div style="text-align:${align};${img ? `padding-right:${wide ? 30 : 38}cqw;` : ''}">${priceEl(P, C.onGround, 5 * k)}<div style="margin-top:3cqw">${button(theme, C, 'ground', cta, ls)}</div></div></div>${corner}`;
+<div data-ad-copy style="text-align:${align};${img ? `max-width:${100 - 2 * pd - (wide ? 30 : 42) - 3}cqw;` : ''}">${eyebrow(theme, proof, C.onGround, 'ground', 2.8 * sk)}${headline(theme, H, C.onGround, hs * (img ? 1.05 : 1.35))}${divider(theme, C.onGround)}${wide ? '' : lineEl(L, C.onGround, ls)}</div>
+<div style="text-align:${align};${img ? `padding-right:${wide ? 32 : 44}cqw;` : ''}">${priceEl(P, C.onGround, 5 * k)}<div style="margin-top:3cqw">${button(theme, C, 'ground', cta, ls)}</div></div></div>${corner}`;
   } else if (template === 'sticker') {
     const st = P || cta;
     inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:${C.surface}">
