@@ -281,9 +281,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var c=aiState.connections[p.id];
     if(c&&c.status==='revoked') return '<span class="st not_connected">Revoked</span>';
     if(c&&(c.status==='error'||c.last_check_ok===false)) return '<span class="st not_connected" title="'+esc(c.last_check_note||'Check failed')+'">Check failed</span>';
-    if(c&&c.last_check_ok===true) return '<span class="st connected">Connected</span>';
-    if(c&&c.configured) return '<span class="st partial">Key stored (untested)</span>';
-    if(c&&c.config&&Object.keys(c.config).length) return '<span class="st partial">Configured</span>';
+    if(c&&c.configured) return '<span class="st connected">Your key</span>';
+    if(c&&c.config&&Object.keys(c.config).length) return '<span class="st connected">Configured</span>';
     if(p.platform_default) return '<span class="st partial">Platform default</span>';
     return '<span class="st not_connected">Not connected</span>';
   }
@@ -392,20 +391,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
   function aiPlatformAction(act,id,btn){
     var label=btn.textContent; btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
-    var p;
-    if (act === 'save') {
-      p = aiApi('save', { provider: id, fields: aiCollect(id) }).then(function(saveRes) {
-        return aiApi('check', { provider: id }).then(function(chk) {
-          return { note: chk.note || (chk.ok ? 'Saved and verified working.' : 'Saved, but verification test failed: ' + (chk.note || 'no response')) };
-        }).catch(function() {
-          return { note: 'Saved. The key itself is stored securely.' };
-        });
-      });
-    } else if (act === 'check') {
-      p = aiApi('check', { provider: id });
-    } else {
-      p = aiApi('delete', { provider: id });
-    }
+    var p=act==="save"?aiApi("save",{provider:id,fields:aiCollect(id)}):act==="check"?aiApi("check",{provider:id}):aiApi("delete",{provider:id});
     p.then(function(r){$("banner").innerHTML='<div class="banner info"><b>'+esc(id)+':</b> '+esc(r.note||(act==="remove"?"Removed.":"Saved."))+'</div>';return aiLoad();})
       .catch(function(e){window.LifecycleFailure.show($("banner"),e,{title:"AI connection failed"});})
       .finally(function(){btn.disabled=false;btn.textContent=label;});

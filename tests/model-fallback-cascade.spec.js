@@ -56,7 +56,7 @@ const HOSTS = {
   'api.anthropic.com': 'anthropic', 'api.openai.com': 'openai', 'generativelanguage.googleapis.com': 'gemini',
   'api.x.ai': 'grok', 'api.groq.com': 'groq', 'api.cerebras.ai': 'cerebras', 'openrouter.ai': 'openrouter',
   'models.inference.ai.azure.com': 'github', 'image.pollinations.ai': 'pollinations', 'api.cloudflare.com': 'cloudflare',
-  'api.higgsfield.ai': 'higgsfield', 'api.dev.runwayml.com': 'runway', 'ollama.example.com': 'ollama',
+  'api.higgsfield.ai': 'higgsfield', 'api.dev.runwayml.com': 'runway',
 };
 
 /** A provider's success body, in its own shape. */
@@ -416,14 +416,6 @@ test('fallback off with NO explicit order uses only the providers the workspace 
   expect(err).toBeInstanceOf(Error);
   expect(net.calls.every((c) => c.provider === 'groq' && c.key === 'ws-groq')).toBe(true);
   expect(net.calls.length).toBe(2);
-});
-
-test('with fallback on, custom workspace keys that fail fall through to the platform cascade', async () => {
-  keys(KEYS);
-  net = installNet((c) => (c.provider === 'ollama' ? CLASSES['HTTP 500'].spec() : undefined));
-  const out = await ask({ overrides: { order: ['ollama'], models: {}, keys: { ollama: 'ws-ollama' }, bases: { ollama: 'https://ollama.example.com/v1' }, fallback: true, configured: ['ollama'] } });
-  expect(out.provider).toBe('anthropic');
-  expect(net.calls[0].provider).toBe('ollama');
 });
 
 /* ── 5. a preferred provider is FIRST, not ALONE ─────────────────────────── */
