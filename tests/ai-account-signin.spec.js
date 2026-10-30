@@ -322,6 +322,8 @@ test('Gemini: the page sends the person to Google with PKCE and finishes on the 
     await page.goto(`${base}/ai-models`);
     const btn = page.locator('.conn[data-provider="gemini"] [data-act="signin"]');
     await expect(btn).toBeVisible({ timeout: 30000 });
+    // The project id is optional, so it sits under More options (2026-10-31).
+    await page.locator('.conn[data-provider="gemini"] details.more > summary').first().click();
     await page.fill('.conn[data-provider="gemini"] [data-field="project"]', 'acme-ai');
     await btn.click();
     await page.waitForURL(/accounts\.google\.com/, { timeout: 30000 });
@@ -340,6 +342,64 @@ test('Gemini: the page sends the person to Google with PKCE and finishes on the 
     expect(require('crypto').createHash('sha256').update(posts[0].code_verifier).digest('base64url')).toBe(auth.searchParams.get('code_challenge'));
   } finally {
     withGoogleClient(false);
+    await new Promise((r) => server.close(r));
+  }
+});
+
+// One box for any AI key (2026-10-31, the operator: "ai model linking account must be easier and less
+// complicated"). A pasted key is told by its provider's own prefix, saved to THAT card, tested, and the
+// card then shows "Key stored" with its fields behind Change key; optional fields sit under More options.
+test('one box takes any AI key: the provider is recognised by its prefix, saved, tested and shown as stored', async ({ page }) => {
+  test.setTimeout(150000);
+  const saves = []; const checks = [];
+  const stored = {};
+  const server = http.createServer((req, res) => {
+    const u = new URL(req.url || '/', 'http://127.0.0.1');
+    const send = (status, type, body) => { res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', Connection: 'close' }); res.end(body); };
+    if (u.pathname === '/auth.js') return send(200, 'text/javascript', 'window.LifecycleAuth={session:{access_token:"session-token"}};window.LifecycleStatus={decide:async function(){return null;}};window.LifecycleFailure={sentence:function(e){return e.message;},html:function(e){return e.message;},show:function(){}};');
+    if (u.pathname === '/api/public-config' && u.searchParams.get('action') === 'connections') {
+      const op = u.searchParams.get('op');
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        const b = body ? JSON.parse(body) : {};
+        if (op === 'save') { saves.push(b); stored[b.provider] = String(b.fields.api_key).slice(-4); return send(200, 'application/json', JSON.stringify({ ok: true })); }
+        if (op === 'check') { checks.push(b.provider); return send(200, 'application/json', JSON.stringify({ ok: true, note: 'Answered.' })); }
+        const reg = connections.registryView(true).filter((p) => p.category === 'ai' || p.category === 'media');
+        const conns = Object.keys(stored).map((k) => ({ provider: k, configured: true, secret_fields: ['api_key'], secret_hint: stored[k], config: {} }));
+        return send(200, 'application/json', JSON.stringify({ ok: true, workspace_id: 'ws-a', connections: conns, routing: { entries: [], use_platform_fallback: true }, providers: reg, secrets_storage: { encrypted: true, store: true } }));
+      });
+      return undefined;
+    }
+    if (u.pathname === '/connections') return send(200, 'text/html; charset=utf-8', fs.readFileSync(path.join(ROOT, 'brand-connections.html')));
+    const f = path.join(ROOT, u.pathname.replace(/^\//, ''));
+    if (fs.existsSync(f) && fs.statSync(f).isFile()) return send(200, f.endsWith('.js') ? 'text/javascript' : f.endsWith('.css') ? 'text/css' : 'text/html', fs.readFileSync(f));
+    return send(404, 'text/plain', 'nf');
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort('failed'));
+    await page.goto(`${base}/connections`);
+    await expect(page.locator('#quickKey')).toBeVisible({ timeout: 30000 });
+    // Optional fields are tucked away; the doubled "(optional) (optional)" label is gone.
+    await expect(page.locator('.conn[data-provider="bedrock"] [data-field="aws_session_token"]')).toBeHidden();
+    expect(await page.locator('.conn[data-provider="bedrock"]').textContent()).not.toMatch(/optional\)\s*\(optional/i);
+    for (const [key, id] of [['sk-ant-api03-abcdefghijklmnop1111', 'anthropic'], ['AIzaSyA' + 'b'.repeat(32), 'gemini'], ['gsk_' + 'c'.repeat(40) + '2222', 'groq']]) {
+      await page.fill('#quickKey', key);
+      await page.click('#quickSave');
+      await expect(page.locator('#quickNote')).toContainText('is connected and answered the test', { timeout: 30000 });
+      expect(saves[saves.length - 1]).toEqual({ provider: id, fields: { api_key: key } });
+      await expect(page.locator(`.conn[data-provider="${id}"] [data-key-stored]`)).toContainText('Key stored, ending ' + key.slice(-4));
+      await expect(page.locator(`.conn[data-provider="${id}"] [data-field="api_key"]`)).toBeHidden();
+    }
+    expect(checks).toEqual(['anthropic', 'gemini', 'groq']);
+    // A key with no recognisable prefix is never guessed onto a card.
+    await page.fill('#quickKey', 'AKIAEXAMPLEKEY000000');
+    await page.click('#quickSave');
+    await expect(page.locator('#quickNote')).toContainText('does not match a provider');
+    expect(saves).toHaveLength(3);
+  } finally {
     await new Promise((r) => server.close(r));
   }
 });
