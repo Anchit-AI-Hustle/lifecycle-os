@@ -104,6 +104,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
   @media(max-width:860px){.grid{grid-template-columns:1fr}h1{font-size:27px}}
   .conn{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;display:flex;flex-direction:column;gap:9px}
+  .conn details.more>summary{cursor:pointer;font-weight:600;color:var(--vh-accent-text,var(--vh-ink));padding:4px 0}
+  .conn details.more[open]{display:flex;flex-direction:column;gap:9px}
+  .quick{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;margin:0 0 14px;display:flex;flex-direction:column;gap:9px}
+  .quick .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .quick input{flex:1 1 280px}
   .conn .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
   .conn .nm{font-size:15.5px;font-weight:700}
   .chip{display:inline-block;border-radius:999px;padding:3px 10px;font-size:10.5px;font-weight:700;white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
@@ -288,10 +293,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (f.secret) {
       var isSet = (c.secret_fields || []).indexOf(f.key) >= 0;
       var ph = isSet ? 'Stored, ending ' + (c.secret_hint || '----') + '. Type to replace it.' : (f.placeholder || '');
-      return '<label for="' + id + '">' + esc(f.label) + (f.required ? '' : ' (optional)') + '</label>' +
+      return '<label for="' + id + '">' + esc(f.label) + (f.required || /optional/i.test(f.label) ? '' : ' (optional)') + '</label>' +
         '<input type="password" id="' + id + '" data-field="' + esc(f.key) + '" autocomplete="off" spellcheck="false" placeholder="' + esc(ph) + '">';
     }
-    return '<label for="' + id + '">' + esc(f.label) + (f.required ? '' : ' (optional)') + '</label>' +
+    return '<label for="' + id + '">' + esc(f.label) + (f.required || /optional/i.test(f.label) ? '' : ' (optional)') + '</label>' +
       '<input type="text" id="' + id + '" data-field="' + esc(f.key) + '" spellcheck="false" value="' + esc((c.config || {})[f.key] || '') + '" placeholder="' + esc(f.placeholder || '') + '">';
   }
 
@@ -304,7 +309,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     h += '<div class="hd"><div><div class="nm">' + esc(p.label) + '</div>' +
       '<div class="note">' + esc(p.blurb) + '</div></div>' + statusChip(p) + '</div>';
 
-    h += p.fields.map(function (f) { return fieldInput(p, f); }).join('');
+    // Simpler cards (2026-10-31, "linking must be easier"): what is needed is
+    // shown, anything optional sits under More options, and a key that is
+    // already stored is a one-line status with Change key behind it.
+    var need = p.fields.filter(function (f) { return f.required && !f.hidden; });
+    var extra = p.fields.filter(function (f) { return !f.required && !f.hidden; });
+    var fieldsHtml = need.map(function (f) { return fieldInput(p, f); }).join('') +
+      (extra.length ? '<details class="more"><summary>More options</summary>' + extra.map(function (f) { return fieldInput(p, f); }).join('') + '</details>' : '');
+    var keyCard = p.category === 'ai' || p.category === 'media';
+    if (keyCard && c && c.configured && !c.shared_from) {
+      h += '<div class="note" data-key-stored>Key stored' + (c.secret_hint ? ', ending ' + esc(c.secret_hint) : '') + '.</div>' +
+        '<details class="more" data-change-key><summary>Change key</summary>' + fieldsHtml + '</details>';
+    } else {
+      h += fieldsHtml;
+    }
 
     if (p.category === 'commerce' || p.category === 'ads' || p.category === 'lifecycle' || p.category === 'social') {
       // What a connection is used for, said as what it CAN read, never as a
@@ -365,6 +383,52 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return h;
   }
 
+  /* ── One box for any AI key (2026-10-31) ─────────────────────────────────
+     Paste a key; the provider is told by the key's own published prefix, it is
+     saved to that provider's card and tested, and the card shows the result.
+     A key whose prefix names no provider (or one that needs a second field,
+     like AWS) is not guessed: the person picks the card below. */
+  var KEY_PREFIX = [
+    [/^sk-ant-/, 'anthropic'], [/^sk-or-/, 'openrouter'], [/^sk-[a-f0-9]{32}$/, 'deepseek'],
+    [/^sk-/, 'openai'], [/^AIza[0-9A-Za-z_-]{30,}$/, 'gemini'], [/^xai-/, 'grok'], [/^gsk_/, 'groq'],
+    [/^csk-/, 'cerebras'], [/^sk_[0-9a-f]{20,}$/, 'elevenlabs'], [/^r8_/, 'replicate'],
+  ];
+  function providerForKey(k) {
+    var v = String(k || '').trim();
+    for (var i = 0; i < KEY_PREFIX.length; i++) if (KEY_PREFIX[i][0].test(v)) return KEY_PREFIX[i][1];
+    return '';
+  }
+  function quickBox() {
+    return '<div class="quick" data-quick-key>' +
+      '<div class="nm" style="font-weight:700">Connect a model in one step</div>' +
+      '<div class="note">Paste a key from Claude, ChatGPT, Gemini, Grok, Groq, Cerebras, OpenRouter, DeepSeek, ElevenLabs or Replicate. We recognise which one it is, save it encrypted to your account and test it. Prefer to sign in instead? Use the Sign in button on Gemini or OpenRouter below.</div>' +
+      '<div class="row"><input type="password" id="quickKey" autocomplete="off" spellcheck="false" placeholder="Paste any AI key" aria-label="Paste any AI key">' +
+      '<button type="button" class="btn" id="quickSave">Connect</button></div>' +
+      '<div class="note" id="quickNote" role="status"></div></div>';
+  }
+  async function quickConnect() {
+    var input = $('quickKey'), note = $('quickNote'), btn = $('quickSave');
+    var key = String(input.value || '').trim();
+    if (!key) { note.textContent = 'Paste a key first.'; return; }
+    var id = providerForKey(key);
+    var p = id && state.providers.filter(function (x) { return x.id === id; })[0];
+    if (!p) { note.textContent = 'This key does not match a provider we can recognise. Pick the provider\'s card below and paste it there (AWS Bedrock, Cloudflare and Ollama need more than one field).'; return; }
+    btn.disabled = true; note.textContent = 'Saving to ' + p.label + '…';
+    try {
+      await api('save', { provider: id, fields: { api_key: key } });
+      note.textContent = 'Saved to ' + p.label + '. Testing…';
+      var chk = await api('check', { provider: id });
+      input.value = '';
+      await load();
+      var n2 = $('quickNote');
+      if (n2) n2.textContent = p.label + (chk && chk.ok ? ' is connected and answered the test.' : ' is saved, but the test did not pass: ' + ((chk && chk.note) || 'no reason given') + '.');
+    } catch (e) {
+      note.textContent = window.LifecycleFailure.sentence(e);
+    } finally { var b = $('quickSave'); if (b) b.disabled = false; }
+  }
+  document.addEventListener('click', function (ev) { if (ev.target && ev.target.id === 'quickSave') quickConnect(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target && ev.target.id === 'quickKey') quickConnect(); });
+
   function renderPlatforms() {
     var html = '';
     CAT_ORDER.forEach(function (cat) {
@@ -376,6 +440,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (cat === 'ai' && state.free && state.free.on) {
         html += '<p class="vh-status" role="status" data-free-generation><span class="chip plat">Platform models</span> ' + esc(state.free.note) + '</p>';
       }
+      if (cat === 'ai') html += quickBox();
       html += '<div class="grid">' + list.map(providerCard).join('') + '</div>';
     });
     $('platforms').innerHTML = html || '<p class="muted">No platforms are available to connect.</p>';
