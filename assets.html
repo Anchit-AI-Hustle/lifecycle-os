@@ -185,6 +185,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   let ITEMS = [];               // unified asset list
   const byId = {};              // id → item (for action lookups)
   let usingLocal = false;
+  // Signed out is the ordinary reason the account's assets are not listed.
+  const signedOut = () => { const a = window.LifecycleAuth; return !!(a && a.backend && a.backend.kind === 'signed-out'); };
 
   const sbClient = () => (window.LifecycleAuth && window.LifecycleAuth.client) || null;
   const myEmail  = () => { const u = (window.LifecycleAuth && window.LifecycleAuth.user) || null; return (u && u.email) || ''; };
@@ -499,10 +501,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       const why = q || TYPE !== 'all'
         ? 'No assets match this search or type filter. Clear the filters to see everything.'
         : usingLocal
-          ? 'No assets found. The shared database could not be read, so only this browser\'s assets are listed and there are none here.'
+          ? (signedOut()
+            ? 'Nothing made in this browser yet. You are signed out, so only this browser\'s assets are listed: sign in with Google to see your account\'s.'
+            : 'No assets found. Your account\'s assets could not be read just now, so only this browser\'s are listed and there are none here.')
           : (EARLIER.length && !SHOW_EARLIER)
             ? 'Nothing has been made for the current version of ' + brandName() + ' yet. Press "Show the ' + EARLIER.length + ' from earlier versions" above to see what was made before.'
-          : 'No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages — they show up here to preview, clone and re-prompt.';
+          : 'No assets here yet. Generate some in the Studio, Ad Campaigns or Landing Pages: they show up here to preview, clone and re-prompt.';
       grid.innerHTML = '<div class="empty">' + esc(why) + '</div>';
       return;
     }
@@ -596,7 +600,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   $('#refresh').addEventListener('click', async () => {
     await buildAll(); render();
     toast('Refreshed: ' + ITEMS.length + ' asset' + (ITEMS.length === 1 ? '' : 's')
-      + (usingLocal ? ' (this browser only, the shared database could not be read)' : ''));
+      + (usingLocal ? (signedOut() ? ' (this browser only: you are signed out)' : ' (this browser only: your account\'s assets could not be read)') : ''));
   });
 
   // Shared-source-of-truth freshness (spec §24b): surface the sync engine's
@@ -625,7 +629,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     $('#grid').innerHTML = '<div class="empty">Loading…</div>';
     await buildAll(); render();
     $('#srcline').innerHTML = usingLocal
-      ? 'Some assets are read from <b>this browser only</b> (the shared DB table may be empty or not migrated yet). Clones are always saved locally first.'
+      ? (signedOut()
+        ? 'Listing <b>this browser only</b>: you are signed out. Sign in with Google to see the assets on your account. Clones are always saved here first.'
+        : 'Listing <b>this browser only</b>: your account\'s assets could not be read just now. Clones are always saved here first.')
       : 'Reading from the <b>shared database</b> (+ this browser).' + (myEmail() ? '' : ' Sign in to filter to just your assets.');
     loadSync();
   }
