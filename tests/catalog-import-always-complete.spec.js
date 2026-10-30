@@ -690,11 +690,12 @@ test('onboarding: the markets an import finds are ADDED to the brand\'s regions 
     await pip.click({ force: true });
     await page.fill('#impUrl', 'https://lensworld.example');
     await page.locator('#doImport').click();
-    await expect(page.locator('#impStatus')).toContainText('Markets this store publishes were added to the brand\'s regions: US, AE', { timeout: 10000 });
+    await expect(page.locator('#impStatus')).toContainText('Markets this store publishes were added to the brand\'s regions: US.', { timeout: 10000 });
     const last = saves[saves.length - 1];
     const regs = (last.brand || last).regions;
     expect(regs[0]).toMatchObject({ code: 'IN', home: true, store_url: 'https://lensworld.example' });
-    expect(regs.slice(1).map((r) => [r.code, r.currency, r.store_url, r.home])).toEqual([['US', 'USD', 'https://lensworld.example/en-us', false], ['AE', 'AED', 'https://lensworld.example/en-ae', false]]);
+    expect(regs.slice(1).map((r) => [r.code, r.currency, r.store_url, r.home])).toEqual([['US', 'USD', 'https://lensworld.example/en-us', false]]);
+    await expect(page.locator('#impStatus')).toContainText('not added (no products read there yet): AE');
     expect(regs[1].source).toContain('site read: the site\'s hreflang="en-us"');
     await expect(page.locator('#impCoverage')).toContainText('IN: 567 of 600 · US: 40 of 130');
   } finally { await new Promise((r) => { if (srv.closeAllConnections) srv.closeAllConnections(); srv.close(r); }); }
