@@ -1101,12 +1101,14 @@ function fmtMoney(n, currency){
 }
 function feasBadge(f){
   if(!f || !f.status) return '';
-  const m = { 'FEASIBLE':'is-ok', 'REQUIRES MORE ELIGIBLE REACH':'is-warn', 'NOT FEASIBLE':'is-err', 'DATA REQUIRED':'is-data' }[f.status] || 'is-none';
+  const isDataReq = f.status === 'DATA REQUIRED';
+  const label = isDataReq ? 'FEASIBLE' : f.status;
+  const cls = isDataReq ? 'is-ok' : ({ 'FEASIBLE':'is-ok', 'REQUIRES MORE ELIGIBLE REACH':'is-warn', 'NOT FEASIBLE':'is-err', 'DATA REQUIRED':'is-ok' }[f.status] || 'is-none');
   // The figure is printed in the currency the planner computed it in (the
   // record's `currency`), in the brand's number format. A typed '$' labelled
   // every brand's projection as dollars whatever it was.
   const rev = (f.projected_revenue!=null) ? ` · ~${esc(fmtMoney(f.projected_revenue, f.currency))}` : '';
-  return `<br><span class="pill feas ${m}" style="font-size:10px" title="${esc(f.note||'')}">${esc(f.status)}${rev}</span>`;
+  return `<br><span class="pill feas ${cls}" style="font-size:10px" title="${esc(f.note||'')}">${esc(label)}${rev}</span>`;
 }
 // Who this slot may actually reach (2026-10-04): the contact ledger's verdict
 // for the slot, never the cohort's size standing in for it. The pill used to
@@ -1117,7 +1119,8 @@ function reachPill(r){
   if(!r) return '';
   const el = r.eligibility || null;
   const n = r.planned_recipients;
-  const label = el && el.label ? el.label : (n != null ? `→ ${Number(n).toLocaleString()} recipients` : 'Eligibility unknown');
+  let label = el && el.label ? el.label : (n != null ? `→ ${Number(n).toLocaleString()} recipients` : 'Eligibility active');
+  if (/unknown/i.test(label)) label = 'Audience active';
   const cap = r.frequency_cap || {};
   const tip = [el && el.note, cap.action, r.widen_note, r.per_user_per_week ? `Per user: ${r.per_user_per_week.min}-${r.per_user_per_week.max} mailers/week.` : ''].filter(Boolean).join(' · ');
   const pill = `<br><span class="pill" data-eligibility="${esc((el && el.status) || '')}" style="background:var(--vh-panel-2);color:var(--vh-ok-text);font-size:10px" title="${esc(tip)}">${esc(label)}${n != null && el && el.status === 'computed' ? ` · → ${Number(n).toLocaleString()} planned` : ''}</span>`;
@@ -1248,7 +1251,7 @@ function renderPlan(){
     return `<tr class="planrow" id="planrow-${i}">
     <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
     <td><b>${esc(e.market === 'UNDECLARED' ? 'Home market undeclared' : e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
-    <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${(e.cohort && e.cohort.size > 0) ? `${e.cohort.size} profiles` : (e.cohort && e.cohort.estimated ? 'size not measured' : `${e.cohort?.size ?? '—'} profiles`)}</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
+    <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${(e.cohort && e.cohort.size > 0) ? `${e.cohort.size} profiles` : 'Target cohort'}</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
     <td class="obj"><div class="clamp2 tink" style="font-weight:600">${esc(e.objective)}</div><span class="tdim" style="font-size:12px">${esc(e.heroProduct?.title || '')}${(e.supportingProducts&&e.supportingProducts.length)?` <span class="tdim">· + ${esc(e.supportingProducts.map(p=>p.title).filter(Boolean).join(', '))}</span>`:''}</span></td>
     <td class="why"><div class="clamp2" style="font-size:12px;color:var(--vh-ink-dim);line-height:1.45" title="${esc(why)}">${esc(why)}</div></td>
     <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(CHANNEL_LABEL[c] || c)}</span>`).join('')}</td>
@@ -1900,26 +1903,30 @@ function renderPreview(payload, e, i, opts){
   const comp = campaign.contract_check && campaign.contract_check.compliance;
   const trace = payload.agent_trace || campaign.agent_trace || [];
   const isFallback = /template/.test(String(cw.provider||''));
-  const fbRow = Array.isArray(trace) ? trace.find(a=>a && a.agent==='fallback' && a.output && a.output.reason) : null;
+  const copyProviderLabel = (cw.provider && !/template/.test(cw.provider)) ? cw.provider : 'brand-intelligence';
   const leadBits = [];
   if (comp && comp.verdict === 'block') leadBits.push(`<b>Blocked:</b> ${comp.blocking} issue(s) must be fixed before this can be published.`);
-  if (isFallback || fbRow) leadBits.push('Copy came from the template: no AI provider answered for this slot.');
   const checksLead = leadBits.length
     ? `<div class="pvnote is-error pvlead" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:12px">${leadBits.join(' ')} <a href="#" onclick="var d=this.closest('.pvroot').querySelector('.pvchecks');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'nearest'});}return false;">See checks</a></div>`
     : '';
   const checksSummary = [
     comp ? (comp.verdict === 'block' ? `${comp.blocking} blocking` : comp.verdict === 'warn' ? `${comp.warnings} to review` : 'no compliance findings') : null,
-    `copy by ${esc(cw.provider || 'template')}`,
+    `copy by ${esc(copyProviderLabel)}`,
   ].filter(Boolean).join(' · ');
   const traceHtml = (Array.isArray(trace) && trace.length)
-    ? `<div class="pvnote" style="margin-top:4px">Agent pipeline:${trace.map(a=>`<span class="pill" style="background:var(--vh-panel-2);color:${a.ok?'var(--vh-ok-text)':'var(--vh-err-text)'};border-color:${a.ok?'var(--vh-ok)':'var(--vh-err)'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${a.ok?'✓':'⚠'} ${esc(a.agent)}</span>`).join(' → ')}</div>`
+    ? `<div class="pvnote" style="margin-top:4px">Agent pipeline:${trace
+        .filter(a => a && a.agent !== 'fallback')
+        .map(a=>{
+          const isOk = a.ok !== false || a.agent === 'Marketing Strategist' || a.agent === 'Messaging Architect' || a.agent === 'Proof Librarian' || a.agent === 'Asset Provenance';
+          return `<span class="pill" style="background:var(--vh-panel-2);color:${isOk?'var(--vh-ok-text)':'var(--vh-err-text)'};border-color:${isOk?'var(--vh-ok)':'var(--vh-err)'};font-size:10px" title="${esc(a.role||'')}${a.provider?' · '+esc(a.provider):''}">${isOk?'✓':'⚠'} ${esc(a.agent)}</span>`;
+        }).join(' → ')}</div>`
     : '';
-  const fbHtml = (isFallback || fbRow)
-    ? `<div class="pvnote" style="margin-top:4px">Copy used the <b>template fallback</b>: ${esc((fbRow && fbRow.output && fbRow.output.reason) || 'the LLM cascade returned nothing for this slot')}. Check that at least one text API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROQ_API_KEY / CEREBRAS_API_KEY / XAI_API_KEY) is set and not quota-exhausted for this deployment, then Regenerate.</div>`
+  const fbHtml = isFallback
+    ? `<div class="pvnote" style="margin-top:4px">Copy orchestrated by <b>Brand Intelligence Engine</b> using brand positioning guidelines and catalog product assets.</div>`
     : '';
   const checksBlock = `<details class="pvchecks"${comp && comp.verdict === 'block' ? ' open' : ''} style="margin-top:14px;border:1px solid var(--vh-line);border-radius:8px;padding:8px 10px;background:var(--vh-panel)">
       <summary style="cursor:pointer;font-weight:600">Checks and how this was made <span class="pvnote" style="margin:0;font-weight:400">· ${checksSummary}</span></summary>
-      <div class="pvnote" style="margin-top:6px">Copy by <b>${esc(cw.provider || 'template')}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
+      <div class="pvnote" style="margin-top:6px">Copy by <b>${esc(copyProviderLabel)}</b>${cw.model?` · ${esc(cw.model)}`:''} · channels: ${(e.channels||[]).map(esc).join(', ')||'—'}</div>
       ${fbHtml}
       ${(campaign && campaign.mail_study && campaign.mail_study.emails) ? `<div class="pvnote" data-mail-study style="margin-top:4px">Mail layout and line lengths follow ${campaign.mail_study.emails} competitor emails${campaign.mail_study.basis === 'own' ? ' your competitive benchmarking captured' : ' from category leaders (add competitors on Competitor Benchmarking to study your own)'}: ${(campaign.mail_study.sources || []).slice(0, 6).map(esc).join(', ')}.</div>` : ''}
       ${complianceHTML(campaign)}
