@@ -267,8 +267,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   function statusChip(p) {
     var c = state.connections[p.id];
-    if (c && c.configured) return '<span class="chip on"' + (c.shared_from ? ' data-shared-from="' + esc(c.shared_from.workspace_id || '') + '"' : '') + '>Connected</span>';
-    if (c && !c.configured && Object.keys(c.config || {}).length) return '<span class="chip on">Settings saved</span>';
+    if (c && c.status === 'revoked') return '<span class="chip off">Revoked</span>';
+    if (c && (c.status === 'error' || c.last_check_ok === false)) {
+      return '<span class="chip off" title="' + esc(c.last_check_note || 'Connection check failed') + '">Check failed</span>';
+    }
+    if (c && c.last_check_ok === true) {
+      return '<span class="chip on"' + (c.shared_from ? ' data-shared-from="' + esc(c.shared_from.workspace_id || '') + '"' : '') + '>Connected</span>';
+    }
+    if (c && c.configured) {
+      return '<span class="chip off">Key stored (untested)</span>';
+    }
+    if (c && !c.configured && Object.keys(c.config || {}).length) return '<span class="chip off">Settings saved</span>';
     if (p.platform_default) return '<span class="chip plat">Platform default in use</span>';
     return '<span class="chip off">Not connected</span>';
   }
@@ -381,7 +390,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       if (act === 'save') {
         await api('save', { provider: providerId, fields: collect(providerId) });
-        toast('Saved. The key itself is never sent back to this page.');
+        try {
+          var chk = await api('check', { provider: providerId });
+          toast(chk && chk.ok ? 'Saved and verified: connection is working.' : (chk && chk.note ? chk.note : 'Saved, but connection check failed.'));
+        } catch (_) {
+          toast('Saved. The key itself is never sent back to this page.');
+        }
       } else if (act === 'check') {
         var r = await api('check', { provider: providerId });
         toast(r.note || (r.ok ? 'Connection answered.' : 'Connection did not answer.'));

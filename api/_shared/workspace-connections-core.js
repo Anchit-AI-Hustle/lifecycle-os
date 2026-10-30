@@ -1388,7 +1388,7 @@ async function checkConnection(auth, workspaceId, providerId) {
       const status = det.status;
       const said = providerSays(det.err);
       result = {
-        ok: false, connected: true,
+        ok: false, connected: false,
         note: /insufficient authentication scopes/i.test(String(det.err || '')) ? 'Google refused this sign-in for Gemini: it was made before the model access was asked for. Press Sign in with Google again.'
           : det.kind === 'billing' ? `The account has no credits or has reached its spending limit${said}.`
           : status === 429 || status === 402 ? 'The key works but the account is rate limited or out of quota.'
@@ -1411,9 +1411,9 @@ async function checkConnection(auth, workspaceId, providerId) {
       const out = await require('./video-core.js').polloBalance(secrets.api_key);
       result = out.ok
         ? { ok: true, connected: true, note: `Pollo answered: ${out.available} credits available.` }
-        : { ok: false, connected: true, note: out.status === 401 || out.status === 403 ? 'That key was rejected as unauthorized.' : `Pollo did not accept the check (${out.status || 'no answer'}).` };
+        : { ok: false, connected: false, note: out.status === 401 || out.status === 403 ? 'That key was rejected as unauthorized.' : `Pollo did not accept the check (${out.status || 'no answer'}).` };
     } catch (_) {
-      result = { ok: false, connected: true, note: 'Pollo did not answer in time.' };
+      result = { ok: false, connected: false, note: 'Pollo did not answer in time.' };
     }
   } else if (reg.id === 'higgsfield' && secrets.api_key && secrets.api_secret) {
     // One call that spends nothing: Higgsfield prices a Seedance request.
@@ -1421,9 +1421,9 @@ async function checkConnection(auth, workspaceId, providerId) {
       const out = await require('./video-core.js').higgsfieldEstimate(String(secrets.api_key), String(secrets.api_secret));
       result = out.ok
         ? { ok: true, connected: true, note: `Higgsfield accepted the key${out.usd ? ` (a 5 second Seedance clip prices at $${out.usd})` : ''}.` }
-        : { ok: false, connected: true, note: out.status === 401 ? 'That key id and secret were rejected.' : `Higgsfield did not accept the check: ${out.error}.` };
+        : { ok: false, connected: false, note: out.status === 401 ? 'That key id and secret were rejected.' : `Higgsfield did not accept the check: ${out.error}.` };
     } catch (_) {
-      result = { ok: false, connected: true, note: 'Higgsfield did not answer in time.' };
+      result = { ok: false, connected: false, note: 'Higgsfield did not answer in time.' };
     }
   } else if (['elevenlabs', 'replicate'].includes(reg.id) && secrets.api_key) {
     // One read per service that spends nothing: who the key belongs to.
@@ -1433,9 +1433,9 @@ async function checkConnection(auth, workspaceId, providerId) {
     try {
       const r = await fetch(ask[0], { headers: ask[1], signal: AbortSignal.timeout(8000) });
       result = r.ok ? { ok: true, connected: true, note: `${reg.label.replace(/ \(music\)$/, '')} accepted the key.` }
-        : { ok: false, connected: true, note: r.status === 401 || r.status === 403 ? 'That key was rejected as unauthorized.' : `The check was refused (${r.status}).` };
+        : { ok: false, connected: false, note: r.status === 401 || r.status === 403 ? 'That key was rejected as unauthorized.' : `The check was refused (${r.status}).` };
     } catch (_) {
-      result = { ok: false, connected: true, note: 'The service did not answer in time.' };
+      result = { ok: false, connected: false, note: 'The service did not answer in time.' };
     }
   } else if (reg.id === 'klaviyo') {
     // The one non-AI platform this repo has a real client for. Ask it for its
