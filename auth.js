@@ -4361,7 +4361,7 @@
   function css() {
     if (document.getElementById('vh-gap-css')) return;
     var st = document.createElement('style'); st.id = 'vh-gap-css';
-    st.textContent = '.vh-gap{display:inline;border:1px dashed currentColor;border-radius:6px;padding:0 5px;font-size:.92em;opacity:1;white-space:normal;cursor:help}';
+    st.textContent = '.vh-gap{display:inline;border:1px dashed currentColor;border-radius:6px;padding:0 5px;white-space:normal;cursor:help}';
     (document.head || document.documentElement).appendChild(st);
   }
   var queued = false;
