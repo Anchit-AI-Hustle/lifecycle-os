@@ -252,7 +252,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .presets{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
   .preset{flex:0 0 168px;scroll-snap-align:start;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;
     background:var(--surface);text-align:left;transition:border-color .12s,transform .12s;font:inherit;min-height:0;
-    position:relative;overflow:hidden}
+    position:relative;overflow:hidden;
+    /* A <button> centres its content vertically: in a row stretched by its
+       tallest card, every other card's content sank to the bottom. */
+    display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
   .preset:hover{border-color:var(--vh-line-hot);transform:translateY(-1px)}
   .preset[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary) inset}
   .preset .pname{font-weight:700;font-size:13px;margin:0 0 1px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1876,14 +1879,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      has to be one that WORKS, and never "sign in" to a person who is. */
   function extractNote(s) {
     var rs = (s && s.read_site) || {};
-    var at = function (h) { return h ? ' (' + h + ')' : ''; };
     var lead, body;
     if (rs.state === 'backend-answers') {
       // No token, and a session could be checked: signing in with Google is
       // the remedy.
       lead = 'Needs your sign-in.';
-      body = 'Sign in with Google (the Sign in with Google chip in the menu) and it reads your site'
-        + ': while the workspace database' + at(rs.host) + ' answers, the server reads a site for a signed-in person.';
+      body = 'Sign in with Google from the menu and it reads your site for you: the reading runs on your account.';
     } else {
       // supabase-js did not load, so this page cannot tell whether the server
       // would read the site; the standing bar names what blocked it.
@@ -3206,14 +3207,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      from, through the ordinary save. A row already on the record - typed or
      read - is never changed. */
   function famCode(c) { c = String(c || '').toUpperCase().replace(/[^A-Z]/g, ''); return ({ GB: 'UK', GBR: 'UK', IND: 'IN', INDIA: 'IN', USA: 'US' })[c] || c; }
+  var marketsSkipped = [];
   async function applyMarkets(ms) {
     if (!Array.isArray(ms) || !ms.length || !brand || !Array.isArray(brand.regions)) return [];
     var have = {};
     brand.regions.forEach(function (r) { have[famCode(r && r.code)] = 1; });
     var added = [];
+    marketsSkipped = [];
     ms.forEach(function (m) {
       var code = String(m && m.code || '').toUpperCase();
       if (!code || have[famCode(code)]) return;
+      // A market is a STORE: an alternate page with no product read or
+      // declared (a news edition, a language version, a store not read yet)
+      // is named, never added - Times of India gained UK and US this way.
+      if (!((m.found || 0) > 0 || (m.declared || 0) > 0)) { marketsSkipped.push(code); return; }
       have[famCode(code)] = 1;
       brand.regions.push({ code: code, currency: m.currency || '', store_url: m.store_url || '', source: 'site read: ' + (m.source || 'the store'), home: false });
       added.push(code);
@@ -3232,6 +3239,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var ms = (r && r.markets) || (r && r.coverage && r.coverage.markets) || null;
     if (ms) applyMarkets(ms).then(function (added) {
       if (added.length && status) status.textContent += ' Markets this store publishes were added to the brand\'s regions: ' + added.join(', ') + '.';
+      if (marketsSkipped.length && status) status.textContent += ' Also published by the site, not added (no products read there yet): ' + marketsSkipped.join(', ') + '. Add one in brand setup if it is a market you sell in.';
     });
     catalogCount = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
     catalogExcluded = typeof r.excluded === 'number' ? { count: r.excluded, domains: r.excluded_domains || [] } : null;

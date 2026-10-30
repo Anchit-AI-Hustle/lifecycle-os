@@ -35,7 +35,7 @@ const NO_BACKEND = { ok: true };
 const LIVE = { supabase: { url: 'https://live.supabase.co', anonKey: 'anon' } };
 const PAUSED = { supabase: { url: 'https://paused-project.supabase.co', anonKey: 'anon' } };
 
-async function open(page, { config, reachable, session }) {
+async function open(page, { config, reachable, session, at }) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e.message || e)));
   await page.addInitScript(({ session }) => {
@@ -72,7 +72,9 @@ async function open(page, { config, reachable, session }) {
     if (u.searchParams.get('action') === 'auth') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, mode: 'device', reason: 'no_database_url' }) });
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(config) });
   });
-  await page.goto('http://app.example.test/', { waitUntil: 'domcontentloaded' });
+  // A feature page: since 2026-10-29 the home page is the explainer a shared
+  // link lands on, exempt from the gate (it offers its own way in).
+  await page.goto('http://app.example.test' + (at || '/smart-brain.html'), { waitUntil: 'domcontentloaded' });
   return errors;
 }
 
@@ -111,3 +113,19 @@ for (const [label, config, reachable, expectOAuth, says] of [
     expect(errors).toEqual([]);
   });
 }
+
+// The home page is the explainer a shared link lands on: a visitor with no brand
+// reads what the platform is and gets its own way in, never the gate over it
+// (found 2026-10-29: LinkedIn visitors met "Sign in to continue" on /).
+test('the home page is never behind the gate; a feature page still is', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const errors = await open(page, { config: LIVE, reachable: true, at: '/' });
+  await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 });
+  await page.waitForFunction(() => window.BrandContext && window.BrandContext.loaded, null, { timeout: 15_000 });
+  await page.waitForTimeout(500);
+  await expect(page.locator('#lc-brand-gate')).toHaveCount(0);
+  await expect(page.locator('#brandline')).toContainText(/Choose or create one/);
+  await page.goto('http://app.example.test/smart-brain.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#lc-brand-gate')).toBeVisible({ timeout: 15_000 });
+  expect(errors).toEqual([]);
+});

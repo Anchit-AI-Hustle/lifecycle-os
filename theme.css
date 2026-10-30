@@ -402,6 +402,14 @@ table:has(th) th:first-child, table:has(th) td:first-child { text-align: left; }
   white-space: normal;
 }
 .vh-status[hidden] { display: none; }
+/* The sign-in a signed-out refusal offers in place (tokens only). */
+.vh-status .vh-status-signin {
+  display: inline-block; margin: 6px 0 0; padding: 7px 14px;
+  border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--vh-accent); color: var(--brand-on-accent);
+  font: inherit; font-weight: 700;
+}
+.vh-status .vh-status-signin:focus-visible { outline: 3px solid var(--brand-focus); outline-offset: 2px; }
 
 /* ============================================================================
    GLOBAL 3D DEPTH LAYER (2026-07-16)
