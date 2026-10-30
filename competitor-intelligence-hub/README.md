@@ -90,12 +90,12 @@ npm run dev                  # http://localhost:3000 → /dashboard
 > The code normalizes `\n` → real newlines automatically.
 
 ### 4. Gmail App Password (for the monitored inbox)
-1. Sign in to **ojhapraneet@gmail.com**.
+1. Sign in to **the capture inbox (GMAIL_IMAP_USER)**.
 2. **Google Account → Security → 2-Step Verification** → turn it **ON**.
 3. Go to <https://myaccount.google.com/apppasswords>.
 4. App = **Other (custom name)** → name it `Vercel Email Hub` → **Generate**.
 5. Copy the 16-character password into `GMAIL_IMAP_PASSWORD` (remove spaces).
-   Set `GMAIL_IMAP_USER=ojhapraneet@gmail.com`.
+   Set `GMAIL_IMAP_USER` to that inbox address.
    IMAP is enabled by default on Gmail; no extra toggle needed.
 
 ### 5. Screenshot provider (HCTI — recommended)

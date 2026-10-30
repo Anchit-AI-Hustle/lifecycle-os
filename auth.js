@@ -342,7 +342,10 @@
     function codeOf(e) {
       if (!e) return '';
       var p = (e && typeof e === 'object' && e.payload && typeof e.payload === 'object') ? e.payload : (e && typeof e === 'object' ? e : {});
-      return String((typeof e === 'object' && e.code) || p.error || p.code || (typeof e === 'string' ? e : '') || '').trim();
+      // A page that throws new Error(j.error) carries the server's code only as
+      // the message ("sign_in_required"): a bare code there is the code.
+      var m = (e && typeof e === 'object' && typeof e.message === 'string' && /^[a-z][a-z0-9_]{2,60}$/.test(e.message.trim())) ? e.message.trim() : '';
+      return String((typeof e === 'object' && e.code) || p.error || p.code || m || (typeof e === 'string' ? e : '') || '').trim();
     }
     function cap(s) { s = String(s || '').trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
@@ -358,7 +361,7 @@
       if (kind === 'signed-out') {
         state = 'signed-out';
         lead = 'Sign in to run this.';
-        body = subject + ' runs on your account, so it needs you signed in; nothing was sent. '
+        body = subject + ' runs on your account, so it needs you to sign in with Google; nothing was sent. '
           + 'Everything else on this page works now.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -392,7 +395,9 @@
       // state of this sign-in, said as a status, never a red frame.
       if (code === 'device_account') return true;
       if (PHONE_ONLY[code]) return true;
-      if (ORDINARY[code]) return !!refusal('This');
+      // The SERVER said sign in: that is an answer, whatever the boot has
+      // decided yet (publishing's registry loads before it has).
+      if (ORDINARY[code]) return true;
       return false;
     }
 
@@ -428,6 +433,7 @@
           'Sign-in is with Google now; a mobile-number sign-in is not accepted. ' + SIGN_IN + ', then try again.');
       }
       var r = refusal(o.title ? subjectOf(o.title) : 'This action');
+      if (!r && ORDINARY[code]) return statusHtml('Sign in to see this.', (o.title ? subjectOf(o.title) : 'This') + ' runs on your account, so it needs you to sign in with Google. Everything else on this page works now.', true);
       if (!r) return statusHtml('', (e && e.message) || 'This did not run.');
       return statusHtml(r.lead, r.body, r.state === 'signed-out');
     }
@@ -4314,4 +4320,61 @@
     if (bad) { e.preventDefault(); e.stopImmediatePropagation(); try { bad.focus(); } catch (_) {} }
   }, true);
   window.LifecycleFieldCheck = { problem: problem, check: function (el) { var m = problem(el); say(el, m); return !m; } };
+})();
+
+/* ── A gap reads as a gap, not as raw text (2026-10-30, the launch audit) ──
+   Pages print the spec's marker "[DATA REQUIRED BEFORE LAUNCH: field, brand]"
+   where the brand has not given a fact. In the app's own chrome that bracketed
+   line read as a bug to a first-time visitor. The text is kept exactly (tests,
+   copy and export read it); each marker is wrapped in a quiet dashed chip with
+   a hint. Never inside a generated asset (iframes are separate documents),
+   code, a form field or an editable region. */
+(function () {
+  if (typeof document === 'undefined' || !window.MutationObserver) return;
+  var RE = /\[DATA REQUIRED BEFORE LAUNCH:[^\]]{0,240}\]/;
+  var SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|CODE|PRE|NOSCRIPT|TITLE)$/;
+  function skip(el) {
+    for (var n = el; n && n.nodeType === 1; n = n.parentNode) {
+      if (SKIP.test(n.nodeName) || n.isContentEditable || (n.classList && n.classList.contains('vh-gap'))) return true;
+      if (n.hasAttribute && (n.hasAttribute('data-no-gap-chip') || n.hasAttribute('data-raw'))) return true;
+    }
+    return false;
+  }
+  function wrapIn(root) {
+    if (!root || !document.body) return;
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), hits = [], t;
+    while ((t = w.nextNode())) if (RE.test(t.nodeValue) && t.parentNode && !skip(t.parentNode)) hits.push(t);
+    hits.forEach(function (node) {
+      var s = node.nodeValue, frag = document.createDocumentFragment(), m, re = new RegExp(RE.source, 'g'), last = 0;
+      while ((m = re.exec(s))) {
+        if (m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+        var chip = document.createElement('span');
+        chip.className = 'vh-gap'; chip.title = 'Not on the brand record yet. Add it in brand setup and this fills in.';
+        chip.textContent = m[0];
+        frag.appendChild(chip);
+        last = m.index + m[0].length;
+      }
+      if (last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  function css() {
+    if (document.getElementById('vh-gap-css')) return;
+    var st = document.createElement('style'); st.id = 'vh-gap-css';
+    st.textContent = '.vh-gap{display:inline;border:1px dashed currentColor;border-radius:6px;padding:0 5px;white-space:normal;cursor:help}';
+    (document.head || document.documentElement).appendChild(st);
+  }
+  var queued = false;
+  function schedule() { if (queued) return; queued = true; setTimeout(function () { queued = false; wrapIn(document.body); }, 120); }
+  function start() {
+    css(); wrapIn(document.body);
+    new MutationObserver(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        var tg = list[i].target;
+        if (tg && tg.nodeType === 1 && tg.classList && tg.classList.contains('vh-gap')) continue;
+        schedule(); return;
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
