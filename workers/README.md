@@ -5,7 +5,7 @@ Vercel 12-function Hobby budget. They run on your machine / CI.
 
 ## auto-subscribe.js — subscribe the capture inbox to competitor newsletters
 
-Subscribes `owner@example.com` (the capture inbox) to each competitor brand's
+Subscribes `the capture inbox (GMAIL_IMAP_USER)` (the capture inbox) to each competitor brand's
 newsletter so their lifecycle mail (welcome → promo → abandoned-cart → win-back)
 lands in the inbox the IMAP sync already reads into the Brands Google Sheet.
 
@@ -69,7 +69,7 @@ form detection, then drop `DRY_RUN`.
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | — | SA email, shared on the sheet (required) |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | — | SA private key (required) |
 | `GOOGLE_BRANDS_TAB` | `Competitors` | brands tab name |
-| `SUBSCRIBE_EMAIL` | `owner@example.com` | the capture inbox |
+| `SUBSCRIBE_EMAIL` | (none: set it) | the capture inbox |
 | `MAX` | `0` (all) | cap number of brands |
 | `HEADFUL` | off | show the browser |
 | `DRY_RUN` | off | fill but don't submit; no write-back |
