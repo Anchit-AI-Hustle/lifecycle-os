@@ -361,7 +361,7 @@
       if (kind === 'signed-out') {
         state = 'signed-out';
         lead = 'Sign in to run this.';
-        body = subject + ' runs on your account, so it needs you signed in; nothing was sent. '
+        body = subject + ' runs on your account, so it needs you to sign in with Google; nothing was sent. '
           + 'Everything else on this page works now.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
@@ -433,7 +433,7 @@
           'Sign-in is with Google now; a mobile-number sign-in is not accepted. ' + SIGN_IN + ', then try again.');
       }
       var r = refusal(o.title ? subjectOf(o.title) : 'This action');
-      if (!r && ORDINARY[code]) return statusHtml('Sign in to see this.', (o.title ? subjectOf(o.title) : 'This') + ' runs on your account, so it needs you signed in. Everything else on this page works now.', true);
+      if (!r && ORDINARY[code]) return statusHtml('Sign in to see this.', (o.title ? subjectOf(o.title) : 'This') + ' runs on your account, so it needs you to sign in with Google. Everything else on this page works now.', true);
       if (!r) return statusHtml('', (e && e.message) || 'This did not run.');
       return statusHtml(r.lead, r.body, r.state === 'signed-out');
     }
