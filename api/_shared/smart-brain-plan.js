@@ -4398,7 +4398,15 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
       const fresh = pool.filter((u) => !used.has(u));
       const order = fresh.length ? fresh : pool;
       statics.forEach((ad, i) => {
-        if (!order.length) return;
+        if (!order.length) {
+          const ph = require('./brand-placeholder.js').brandPlaceholderDataUri(
+            ad.aspect === '9:16' ? '1080x1920' : ad.aspect === '1.91:1' ? '1200x628' : '1080x1080',
+            (ad.overlay && ad.overlay.headline) || ad.headline || (entry.brand && entry.brand.name) || 'Featured Creative',
+            entry.brand
+          );
+          ad.creative = Object.assign({ brief: ad.creative_brief || '' }, ad.creative || {}, { image: ph, provider: 'brand-creative' });
+          return;
+        }
         const image = order[i % order.length];
         ad.creative = Object.assign({ brief: ad.creative_brief || '' }, ad.creative || {}, { image, provider: poolSource(entry) || 'catalog' });
       });

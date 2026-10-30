@@ -1020,7 +1020,11 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
           const el = $('[data-form="' + channel + '"][name="' + k + '"]');
           if (el && fields[k] !== undefined) { el.value = String(fields[k]); filled++; }
         });
-        status.textContent = filled ? `Filled ${filled} fields — review and Generate landing page below.` : 'No matching fields returned. Try a more specific prompt.';
+        status.textContent = filled ? `Filled ${filled} fields — generating landing page…` : 'No matching fields returned. Try a more specific prompt.';
+        if (filled) {
+          const createBtn = $('[data-create="' + channel + '"]');
+          if (createBtn) setTimeout(() => { createBtn.click(); }, 100);
+        }
       } catch (err) {
         const fields = clientLandingAutofill(channel, prompt);
         let filled = 0;
@@ -1028,7 +1032,11 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
           const el = $('[data-form="' + channel + '"][name="' + k + '"]');
           if (el && fields[k] !== undefined) { el.value = String(fields[k]); filled++; }
         });
-        status.textContent = filled ? `Filled ${filled} fields — review and Generate landing page below.` : 'Form pre-filled — review and generate below.';
+        status.textContent = filled ? `Filled ${filled} fields — generating landing page…` : 'Form pre-filled — review and generate below.';
+        if (filled) {
+          const createBtn = $('[data-create="' + channel + '"]');
+          if (createBtn) setTimeout(() => { createBtn.click(); }, 100);
+        }
       } finally {
         btn.disabled = false; btn.textContent = orig;
       }
