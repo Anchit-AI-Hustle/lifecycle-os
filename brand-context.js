@@ -39,8 +39,11 @@
      in a redirect loop (the onboarding wizard itself, auth, legal pages). */
   /* The ONLY surfaces reachable without an active brand: the wizard, the brand
      editor, sign-in, legal pages, and the About view that explains what this
-     platform is. Everything else is gated - see enforceGate(). */
-  var EXEMPT = /^\/(onboarding|setup|start|brand|about|login|privacy|terms|access-issues|access)(\.html)?\/?$/i;
+     platform is. Everything else is gated - see enforceGate(). The home page
+     (/, /index) is the explainer a visitor lands on from a shared link: it
+     shows no brand data and offers its own "Set up or choose a brand", so the
+     gate over it only hid what the platform is (found 2026-10-29). */
+  var EXEMPT = /^\/(index|onboarding|setup|start|brand|about|login|privacy|terms|access-issues|access)?(\.html)?\/?$/i;
 
   /* Names the shipped app hardcodes into visible copy. When a different brand
      is active these are re-labelled in text nodes. URLs are never touched. */

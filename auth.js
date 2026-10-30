@@ -357,9 +357,9 @@
       var state = '', lead = '', body = '', code = 'sign_in_required', status = 401;
       if (kind === 'signed-out') {
         state = 'signed-out';
-        lead = 'Not run: you are signed out.';
-        body = subject + ' runs on the server for an account it can verify, so it did not run and nothing was sent. '
-          + SIGN_IN + ', then try again; everything else on this page keeps working.';
+        lead = 'Sign in to run this.';
+        body = subject + ' runs on your account, so it needs you signed in; nothing was sent. '
+          + 'Everything else on this page works now.';
       } else if (kind === 'unreachable') {
         state = 'unreachable';
         lead = 'Not run: the workspace database is unreachable.';
@@ -396,10 +396,19 @@
       return false;
     }
 
-    function statusHtml(lead, body) {
+    function statusHtml(lead, body, signIn) {
       return '<div class="vh-status" role="status" data-status="1">'
-        + (lead ? '<b>' + esc(lead) + '</b> ' : '') + esc(body) + '</div>';
+        + (lead ? '<b>' + esc(lead) + '</b> ' : '') + esc(body)
+        // Signed out: the way in is right here, not only in the menu.
+        + (signIn ? ' <button type="button" class="vh-status-signin" data-lc-signin>Sign in with Google</button>' : '')
+        + '</div>';
     }
+    document.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest && ev.target.closest('[data-lc-signin]');
+      if (!b) return;
+      var a = window.LifecycleAuth;
+      if (a && typeof a.openSignIn === 'function') a.openSignIn();
+    });
     /** A title like "Usage could not be loaded" / "Failed to generate the plan" → its subject. */
     function subjectOf(title) {
       var t = String(title || '').replace(/\s+could not be\b.*$/i, '').replace(/\s+did not\b.*$/i, '').replace(/^failed to\s+/i, '').trim();
@@ -409,7 +418,7 @@
     function htmlFor(e, opts) {
       var o = opts || {};
       var code = codeOf(e);
-      if (typeof e === 'object' && e.ordinary === true && e.lead) return statusHtml(e.lead, e.body);
+      if (typeof e === 'object' && e.ordinary === true && e.lead) return statusHtml(e.lead, e.body, e.state === 'signed-out');
       if (code === 'device_account') {
         var dm = (e && typeof e === 'object' && (e.message || (e.payload && e.payload.message))) || '';
         return statusHtml('Kept on this device.', dm);
@@ -420,7 +429,7 @@
       }
       var r = refusal(o.title ? subjectOf(o.title) : 'This action');
       if (!r) return statusHtml('', (e && e.message) || 'This did not run.');
-      return statusHtml(r.lead, r.body);
+      return statusHtml(r.lead, r.body, r.state === 'signed-out');
     }
     function rowHtml(html, opts) {
       return '<tr class="vh-status-tr"><td colspan="' + (Number((opts || {}).colspan) || 99) + '">' + html + '</td></tr>';
@@ -2520,6 +2529,7 @@
         #lifecycle-nav .lnav-signin-note[data-kind="expired"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
         /* A phone sign-in ended on boot (2026-10-10): an ordinary state, the accent edge. */
         #lifecycle-nav .lnav-signin-note[data-kind="phone-ended"] { box-shadow: inset 3px 0 0 var(--vh-accent); }
+        #lifecycle-nav .lnav-signin-with { white-space: pre; } /* a flex item drops a leading space: "Sign inwith Google" */
         html.lnav-collapsed #lifecycle-nav .lnav-signin-with { display: none; }
 
         @media (max-width: 960px) {
@@ -3299,10 +3309,9 @@
         + 'library, so it cannot run until it loads. Retry on a different network or allow '
         + '<code>cdn.jsdelivr.net</code>, then reload.';
     } else if (kind === 'signed-out') {
-      html = '<b>You are signed out.</b> Every page is open and usable, and this one is showing only '
-        + 'what this browser holds. <b>Sign in with Google</b> (the Sign in with Google '
-        + 'chip in the menu) to keep your brands and work under your name - so an empty panel here means '
-        + '"not signed in", not "no data".';
+      html = '<b>You are signed out.</b> Every page works. <b>Sign in with Google</b> from the menu to keep '
+        + 'your brands and work on your account; until then they stay in this browser, and an empty panel '
+        + 'means "not signed in", not "no data".';
     } else if (kind === 'provider-off' && host) {
       html = '<b>Google is not enabled on this Supabase project</b> (<code>' + host
         + '</code>). Sign in with Google cannot start because the Auth server refuses it with '
