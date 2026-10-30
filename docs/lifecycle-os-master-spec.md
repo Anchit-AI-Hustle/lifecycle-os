@@ -185,19 +185,22 @@ The production flow follows a rigorous multi-stage pipeline:
      - *Google Ads*: Search & Shopping campaigns, asset library, conversion metrics.
      - *TikTok Ads*: Performance metrics, video assets, audience analytics.
      - *Klaviyo*: Audiences, lists, segments, flow histories, and email assets.
-2. **Transparent OAuth & Direct Token Pathways**:
-   - When OAuth app credentials (`SHOPIFY_CLIENT_ID`, `META_APP_ID`, etc.) are configured, the user initiates standard OAuth authorization flows.
-   - When OAuth credentials are not set on the deployment, the UI displays an actionable guidance panel and provides direct token/credential configuration fields, allowing immediate connectivity without blocking operations.
+2. **Sign in where the platform documents it, a token where it does not** (corrected 2026-10-30):
+   - Meta, Google Ads, TikTok, Pinterest, YouTube and Klaviyo: the card's "Sign in with <platform>" runs `oauth-core.js` (`op=oauth-start` -> the platform's own consent page -> `op=oauth-callback`, token stored AES-256-GCM in `workspace_connection_secrets`). It needs the platform app registered on the deployment: `META_APP_ID`/`META_APP_SECRET`, `GOOGLE_ADS_CLIENT_ID`/`_SECRET`, `TIKTOK_CLIENT_KEY`/`_SECRET`, `PINTEREST_APP_ID`/`_SECRET`, `YOUTUBE_OAUTH_CLIENT_ID`/`_SECRET`, `KLAVIYO_OAUTH_CLIENT_ID`/`_SECRET`, plus `CONNECTION_SECRET_KEY`. Without one, the server says which is missing and the card's token fields stay usable.
+   - Shopify: no OAuth app exists here (an embedded Shopify app needs Partner approval); the card takes the store domain + Admin API token. The public storefront read (`catalog-import.js`) needs neither.
+   - A card states what a connection CAN read; it never claims a sync is running.
 
 ---
 
 ## 8. Billing, Credits & Operational Accounting
 
-The platform maintains four strictly segregated accounting concepts:
-1. **User Money / Payment Ledger**: Real currency transactions (INR, USD), recorded in integer minor units (paise/cents). Managed via Razorpay / Stripe adapters.
-2. **Credit Wallet & Ledger**: Internal platform usage units. Immutable, append-only entries (`purchase`, `reservation`, `settlement`, `release`, `refund`).
-3. **Feature Price Catalog**: Defined in `api/_shared/credit-catalog.js`. Publicly visible credit pricing per feature.
-4. **Provider Cost & Operational Telemetry**: Wholesale API costs incurred with external providers (OpenAI, ElevenLabs, Replicate, Kling), monitored internally for margin analysis.
+Four things that are never added together or substituted for each other:
+1. **Money** (`credit_orders`): what a person paid, in the currency's minor unit, Razorpay only (INR). No Stripe adapter exists.
+2. **Credits** (`credit_wallets`, `credit_ledger`): append-only rows `grant | purchase | hold | settle | release | gift | comp`; the balance-moving SQL functions are service-role only.
+3. **Price** (`api/_shared/credit-catalog.js`): credits per feature; a feature missing from it throws, it never runs free.
+4. **Consumption and provider cost** (`credit_ledger.meta.usage`): which provider and model answered, own key or platform key, tokens as the provider reported them (null when not reported, never estimated). The charge is the platform's share of the work (`credits-core.platformBill`): own keys only = 0 credits, recorded.
+
+---
 
 ---
 
@@ -246,3 +249,42 @@ The platform maintains four strictly segregated accounting concepts:
    - Push committed code to remote repository branch `main`.
    - Trigger production deployment via `vercel --prod`.
    - Verify health endpoints and public asset availability on production URL.
+
+---
+
+## 11. Status against the code (2026-10-30)
+
+Each criterion above, as the repository stands. "Gated" names the test that executes it.
+
+| ID | Status | Where |
+|---|---|---|
+| A1 | Built (refused before any fetch; code is the guard's own, not `invalid_origin`) | `assertPublicUrl`; `tests/rendered-read-security.spec.js` |
+| A2 | Built | `brand-render.js`, `catalog-import.js`; `rendered-brand-read`, `catalog-import-complete` |
+| A3 | Built (source URL + signal; no numeric confidence score) | `field_origins`, `brand_extraction.applied` |
+| A4 | Built (typed values never overwritten) | `brand_workspace_save()`; `brand-guide-upload` |
+| B1 | Built | `asset-contracts.js` `email.mailer`; `generation-quality` |
+| B2 | Built (contract + placements) | `asset-specs.ADS`; `live-keyless-and-placements` |
+| B3 | Built | `music-client.js` take; `music-create-track` |
+| B4 | Built | `brain.js` music-compose outside `WRITES`; `third-eye-music` |
+| C1, C2 | Built | `region-context.js`; `market-codes` |
+| C3 | Built | `RegionContext.selection`; `region-selection-every-feature` |
+| C4 (new) | Built: a market the import finds is added only when products were read or declared there | `onboarding.html applyMarkets`; `catalog-import-always-complete` |
+| D1, D2 | Built (capabilities stated, no sync claim) | `brand-connections.html` |
+| D3 | Built | same |
+| D4 (new) | Built: Sign in with <platform> runs the platform's own OAuth where one is registered | `oauth-core.js`; `oauth-handshake-executed` |
+| E1 | Built | `credits.meter()`; `credits-meter-executed` |
+| E2 | Partly: a payment is idempotent (Razorpay order/payment compare-and-set); a retried GENERATION is a new hold and a new charge (no client idempotency key). GAP | `razorpay-credits-executed` |
+| E3 | Built | `credit_orders` minor units; `razorpay-credits-executed` |
+
+## 12. Model and key architecture (the Fastlane pattern, as built)
+
+- A person's own model keys follow them to every brand they own (`effectiveConnections`), are tried FIRST in the order they ranked on AI Models, and cost no credits.
+- Then the platform's keys in `llm.js` quality order; then the keyless floor (one answer per 30 s), labelled.
+- Every answer records provider, model, own/platform and reported tokens; `/credits` shows it per provider.
+- Media (video, music, voice): own Pollo / Higgsfield / ElevenLabs / Replicate / Gemini first, then the platform's (if the operator set them), then code (Story video file, music sketch), labelled as such.
+- A key is never returned to a browser (last four characters only), never logged, never in a platform env var on a person's behalf.
+
+## 13. The "3D/4D/5D" landing page prompt: what was taken and what was not
+
+The prompt asks for a Next.js 15 + React Three Fiber app with a `#171717` ground and a hard-coded tea brand's palette. Not taken, each for a standing rule: this deployment is static HTML on Vercel Hobby with a 12-function cap (no Next.js build); a dark-neutral section ground BLOCKS activation (`validatePalette`); every colour and font comes from the ACTIVE brand's record, never a literal; a page must work with reduced motion and on a phone. Taken, inside those rules: the brand's own photos, one motion curve with hover and press states, the tagline reveal (`lp-craft.js`), and the existing token-drawn 3D storefront (`storefront-3d.html`) for brands with a catalogue.
+

@@ -114,6 +114,9 @@
       // Tenant zero's material is decided above (by the server, not the slug);
       // a slug that merely SAYS it is the shipped one is not let through here.
       if (owner && owner === slug && owner !== SHIPPED_SLUG) return;
+      // Navigation INTO gated material (a contents list) is removed, not
+      // replaced: its marker is already on the material itself.
+      if (el.hasAttribute('data-shipped-hide')) { el.setAttribute('data-shipped-gated', '1'); el.style.display = 'none'; return; }
       var what = el.getAttribute('data-shipped-label') || 'this material';
       var action = el.getAttribute('data-shipped-action') || '';
       el.setAttribute('data-shipped-gated', '1');

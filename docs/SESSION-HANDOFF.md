@@ -47,9 +47,9 @@ serverless functions (`api/*.js`, CommonJS). Deployed on Vercel Hobby.
   `aws-1-ap-south-1` (not `aws-0`; direct is IPv6-only).
 - Service worker `sw.js` = `lifecycle-os-v15`; `auth.js` cache-busted via `?v=YYYYMMDD`.
 - **Standing rule:** auto-commit + push after every change. The signed-in app user must never
-  affect `owner@example.com` usage for competitor-mail fetching.
+  affect `the capture inbox (GMAIL_IMAP_USER)` usage for competitor-mail fetching.
 
 ## Open / possible next items (none in progress)
 - Unified cross-feature dashboard with filters (per-feature dashboards already exist).
 - Playwright subscribe-simulation / journey worker + auto-subscribe job.
-- Per-brand subscribe-links list (anchored at signup, no 60-cap) for `owner@example.com`.
+- Per-brand subscribe-links list (anchored at signup, no 60-cap) for `the capture inbox (GMAIL_IMAP_USER)`.

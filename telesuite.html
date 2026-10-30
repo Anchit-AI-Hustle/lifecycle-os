@@ -1252,7 +1252,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       var r = await fetch('/api/brain?action=telesuite&op=registry', { cache: 'no-store' });
       REG = await r.json();
-      if (!REG || !REG.subfeatures) throw new Error('Could not load the TeleSuite registry.');
+      if (!REG || !REG.subfeatures) {
+        // Keep the server's own answer (a sign_in_required is a status, not a fault).
+        var err = new Error((REG && REG.message) || 'Could not load the TeleSuite registry.');
+        err.payload = REG || {}; if (REG && REG.error) err.code = REG.error;
+        throw err;
+      }
     } catch (e) {
       window.LifecycleFailure.show($('main'), e, { title: 'TeleSuite could not start' });
       return;

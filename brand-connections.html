@@ -295,6 +295,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       '<input type="text" id="' + id + '" data-field="' + esc(f.key) + '" spellcheck="false" value="' + esc((c.config || {})[f.key] || '') + '" placeholder="' + esc(f.placeholder || '') + '">';
   }
 
+  // Connections id -> the OAuth provider oauth-core.js signs in to.
+  var OAUTH_FOR = { meta_ads: 'meta', google_ads: 'google_ads', tiktok_ads: 'tiktok', tiktok: 'tiktok', pinterest: 'pinterest', youtube: 'youtube', klaviyo: 'klaviyo' };
   function providerCard(p) {
     var c = state.connections[p.id];
     var h = '<div class="conn" data-provider="' + esc(p.id) + '">';
@@ -304,15 +306,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     h += p.fields.map(function (f) { return fieldInput(p, f); }).join('');
 
     if (p.category === 'commerce' || p.category === 'ads' || p.category === 'lifecycle' || p.category === 'social') {
-      var syncLabel = p.id === 'shopify' ? 'catalog, orders, customer segments, assets & revenue attribution' :
-        (p.id === 'meta_ads' ? 'campaign history, creative assets, spend, CTR & ROAS data' :
-        (p.id === 'google_ads' ? 'search & shopping campaigns, asset library & conversion history' :
-        (p.id === 'klaviyo' ? 'audiences, segments, campaign history & email assets' : 'live data, historical metrics & assets')));
+      // What a connection is used for, said as what it CAN read, never as a
+      // sync already running.
+      var syncLabel = p.id === 'shopify' ? 'products, orders and customers' :
+        (p.id === 'meta_ads' ? 'campaigns, creatives, spend and results' :
+        (p.id === 'google_ads' ? 'campaigns, assets and conversions' :
+        (p.id === 'klaviyo' ? 'lists, segments and campaign history' : 'account data and history')));
+      var viaOauth = !!OAUTH_FOR[p.id];
       h += '<div class="row" style="margin-top:10px">' +
-        '<button type="button" class="btn" style="background:var(--vh-accent,#D0473E);color:var(--vh-on-accent,#fff);font-weight:700" data-act="platform-connect" data-provider="' + esc(p.id) + '">' +
-        (c && c.configured ? 'Reconnect ' + esc(p.label) : 'Sign in to Connect ' + esc(p.label)) + '</button>' +
+        '<button type="button" class="btn" style="background:var(--vh-accent);color:var(--brand-on-accent);font-weight:700" data-act="platform-connect" data-provider="' + esc(p.id) + '">' +
+        (c && c.configured ? 'Reconnect ' : (viaOauth ? 'Sign in with ' : 'Connect ')) + esc(p.label) + '</button>' +
         '</div>' +
-        '<div class="note" style="margin-top:6px;color:var(--vh-ok-text,#16a34a)">✓ Syncs live ' + syncLabel + '.</div>';
+        '<div class="note" style="margin-top:6px">' + (viaOauth
+          ? 'Opens ' + esc(p.label) + '\'s own sign-in; once you allow it, this brand can read ' + syncLabel + '.'
+          : 'Paste the store address and access token below; once checked, this brand can read ' + syncLabel + '.') + '</div>';
     }
 
     if (p.key_url) {
@@ -406,6 +413,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         await startSignin(providerId);
         return; // the browser is leaving for the provider's own sign-in page
       } else if (act === 'platform-connect') {
+        // A platform with a documented OAuth sign-in goes to ITS sign-in page
+        // (oauth-core.js, the same flow /publishing uses); the token is stored
+        // encrypted against this brand. If the deployment has no app
+        // registered for it, the server says so and the fields below remain.
+        if (OAUTH_FOR[providerId] && !Object.keys(collect(providerId)).some(function (k) { return String(collect(providerId)[k] || '').trim(); })) {
+          try {
+            var st = await api('oauth-start', { provider: OAUTH_FOR[providerId], return_to: '/connections' });
+            if (st && st.url) { window.location.href = st.url; return; }
+          } catch (oe) {
+            toast(window.LifecycleFailure.sentence(oe) + ' You can paste credentials below instead.', 6500);
+            btn.disabled = false; btn.textContent = label;
+            return;
+          }
+        }
         var fields = collect(providerId);
         var hasValues = Object.keys(fields).some(function (k) { return String(fields[k] || '').trim().length > 0; });
         if (hasValues) {
@@ -487,7 +508,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { peek = JSON.parse(sessionStorage.getItem(SIGNIN_KEY) || 'null'); } catch (e) { peek = null; }
     // Google comes back to the bare page address with code (or error) and state.
     if (!provider && peek && peek.redirect_uri && (qs.get('code') || qs.get('error')) && qs.get('state')) provider = peek.provider;
-    if (!provider) return;
+    if (!provider) {
+      // Back from a platform's own sign-in (oauth-core.js lands here with
+      // ?oauth=connected|denied|error&provider=...): say how it went once.
+      var oa = qs.get('oauth');
+      if (!oa) return;
+      var who = qs.get('provider') || 'the platform';
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+      await load();
+      var line0 = $('banner');
+      var text = oa === 'connected' ? 'Connected to ' + who + '. Its token is stored encrypted for this brand.'
+        : oa === 'denied' ? 'The sign-in at ' + who + ' was declined, so nothing was connected.'
+        : 'The sign-in did not finish (' + (qs.get('reason') || 'no reason given').replace(/_/g, ' ') + '), so nothing was connected. Try again, or paste credentials instead.';
+      if (line0) line0.innerHTML = '<p class="vh-status" role="status" data-oauth-result="' + esc(oa) + '">' + esc(text) + '</p>';
+      return;
+    }
     var code = qs.get('code') || '';
     var returned = qs.get('state');
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
@@ -785,7 +820,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       });
     }
     var bootQs = new URLSearchParams(location.search);
-    if (bootQs.get('ai_signin') || (bootQs.get('state') && (bootQs.get('code') || bootQs.get('error')))) finishSignin().then(function () {}, function () {});
+    if (bootQs.get('ai_signin') || bootQs.get('oauth') || (bootQs.get('state') && (bootQs.get('code') || bootQs.get('error')))) finishSignin().then(function () {}, function () {});
     else load();
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
   }

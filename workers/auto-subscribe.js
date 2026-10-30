@@ -72,7 +72,7 @@ const { chromium, devices } = require('@playwright/test');
 const core = require('../api/_shared/competitor-core');
 
 // ── Config (all via env, with safe defaults) ──────────────────────────────────
-const SUBSCRIBE_EMAIL = process.env.SUBSCRIBE_EMAIL || 'owner@example.com';
+const SUBSCRIBE_EMAIL = process.env.SUBSCRIBE_EMAIL || '';
 const MAX = Number(process.env.MAX) || 0;                 // 0 = no cap
 const HEADFUL = !!process.env.HEADFUL;
 const DRY_RUN = !!process.env.DRY_RUN;
@@ -253,6 +253,7 @@ async function writeBack(brand, result) {
 
 // ── Orchestrator ──────────────────────────────────────────────────────────────
 (async function main() {
+  if (!SUBSCRIBE_EMAIL) { console.error("Set SUBSCRIBE_EMAIL to the capture inbox address."); process.exit(1); }
   preflight();
   console.log('▶ auto-subscribe worker (direct-to-sheet)');
   console.log(`   sheet:  ${process.env.GOOGLE_SHEET_ID}  ·  tab: ${process.env.GOOGLE_BRANDS_TAB || 'Competitors'}`);
