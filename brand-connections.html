@@ -296,7 +296,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   // Connections id -> the OAuth provider oauth-core.js signs in to.
-  var OAUTH_FOR = { meta_ads: 'meta', google_ads: 'google_ads', tiktok_ads: 'tiktok', tiktok: 'tiktok', pinterest: 'pinterest', youtube: 'youtube', klaviyo: 'klaviyo' };
+  // TikTok Ads is not here: its Business API sign-in is a different app and flow (not built), so that card takes its token.
+  var OAUTH_FOR = { meta_ads: 'meta', google_ads: 'google_ads', tiktok: 'tiktok', pinterest: 'pinterest', youtube: 'youtube', klaviyo: 'klaviyo' };
   function providerCard(p) {
     var c = state.connections[p.id];
     var h = '<div class="conn" data-provider="' + esc(p.id) + '">';
