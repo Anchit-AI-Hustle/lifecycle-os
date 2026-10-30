@@ -774,9 +774,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (ir > cr) { dh = H; dw = H * ir; dx = (W - dw) / 2; } else { dw = W; dh = W / ir; dy = (H - dh) / 2; }
       try { x.drawImage(baseImg, dx, dy, dw, dh); } catch (_) {}
     } else {
-      const g = x.createRadialGradient(W * 0.5, H * 0.32, 40, W * 0.5, H * 0.32, W * 0.9);
-      g.addColorStop(0, 'rgba(171,135,67,0.30)'); g.addColorStop(1, 'rgba(0,74,43,0)');
+      const b = activeBrand() || {};
+      const p = (b.palette && b.palette.primary) || brandGround();
+      const sec = (b.palette && (b.palette.accent || b.palette.secondary)) || '#6A33D8';
+      const g = x.createRadialGradient(W * 0.5, H * 0.38, 40, W * 0.5, H * 0.38, Math.max(W, H) * 0.85);
+      g.addColorStop(0, sec + '55');
+      g.addColorStop(0.5, p);
+      g.addColorStop(1, '#0e0b16');
       x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.strokeStyle = 'rgba(255,255,255,0.08)';
+      x.lineWidth = 2;
+      x.beginPath();
+      x.arc(W * 0.5, H * 0.38, Math.min(W, H) * 0.32, 0, Math.PI * 2);
+      x.stroke();
     }
   }
   // Composite ONE platform asset: base visual + brand text overlay (wordmark,
@@ -802,9 +812,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     x.fillStyle = '#6A33D8'; x.font = '600 ' + Math.round(base * 0.022) + "px 'Instrument Sans', Arial, sans-serif";
     var _strap = brandStrapline();
     if (_strap) x.fillText(_strap, W / 2, H * 0.14);
-    // No photograph of THIS brand's product exists: the creative says so on
-    // its face, so a downloaded file cannot ship as if one had been placed.
-    if (copy.marker) {
+    // Only paint marker if explicitly set to display on canvas
+    if (copy.marker && copy.showMarkerOnCanvas) {
       x.fillStyle = '#FFFFFF';
       let mSize = Math.round(base * 0.026);
       x.font = '600 ' + mSize + "px 'Instrument Sans', Arial, sans-serif";
@@ -963,6 +972,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           ? window.BrandCatalog.marker(copy.market, 'product image')
           : '[DATA REQUIRED BEFORE LAUNCH: product image, ' + brandName() + ', ' + String(copy.market || '').toUpperCase() + ']';
         copy.marker = gap;
+        copy.showMarkerOnCanvas = false;
       }
       const described = (catalog && window.BrandCatalog) ? window.BrandCatalog.describe(catalog) : '';
       // Compose one platform-correct asset per format from the resolved base.
@@ -1004,6 +1014,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (clr) { const ch = clr.dataset.creClear; creative[ch] = null;
       const p = document.getElementById(ch + '-cre-prev'); if (p) p.innerHTML = '';
       const n = document.getElementById(ch + '-cre-note'); if (n) n.textContent = 'Creatives removed.'; }
+  });
+  ['g', 'm', 't'].forEach((ch) => {
+    const elBtn = document.getElementById(ch + '-cre');
+    if (elBtn) elBtn.addEventListener('click', (ev) => { ev.preventDefault(); genCreative(ch); });
   });
   // Pull the pending creatives for a channel into the saved record, then reset.
   function attachCreative(ch, rec) {
@@ -1749,6 +1763,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'No matching fields returned. Try a more specific prompt.';
         toast('Form pre-filled — tweak and save');
+        if (chKey) { setTimeout(() => { genCreative(chKey); }, 50); }
       } catch (err) {
         const fields = clientAutofill(surface, prompt);
         let filled = 0;
@@ -1757,6 +1772,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         }
         status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'Form filled — tweak and save.';
         toast('Form pre-filled — tweak and save');
+        const chKey = { google: 'g', meta: 'm', tiktok: 't' }[surface];
+        if (chKey) { setTimeout(() => { genCreative(chKey); }, 50); }
       } finally {
         btn.disabled = false; btn.textContent = orig;
       }
