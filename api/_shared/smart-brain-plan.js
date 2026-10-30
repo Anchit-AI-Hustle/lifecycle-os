@@ -1843,7 +1843,7 @@ function copyOutputSpec(entry) {
       ads: { type: 'object', of: {
         meta: { type: 'object', of: { primary_text: { type: 'string', max: L('ad.meta.static', 'primary_text') }, headline: { type: 'string', max: L('ad.meta.static', 'headline') }, description: { type: 'string', max: L('ad.meta.static', 'description') }, image_brief: img } },
         google: { type: 'object', of: { headlines: { type: 'array', count: [3, 15], items: { type: 'string', max: L('ad.google.rsa', 'headlines') } }, descriptions: { type: 'array', count: [2, 4], items: { type: 'string', max: L('ad.google.rsa', 'descriptions') } }, image_brief: img } },
-        tiktok: { type: 'object', of: { script: { type: 'string', note: 'the spoken and shown beats, hook in the first second' }, caption: { type: 'string', max: L('ad.tiktok.video', 'caption') }, image_brief: img } } } },
+        tiktok: { type: 'object', of: { hook: { type: 'string', note: 'the opening 0-2s scroll-stopping visual and spoken hook line' }, script: { type: 'string', note: 'the spoken and shown beats, hook in the first second' }, caption: { type: 'string', max: L('ad.tiktok.video', 'caption') }, image_brief: img } } } },
       // SMS / WhatsApp / push, in the SAME call, only for a slot that plans
       // them (2026-10-23): a brand that states no such channel is briefed
       // exactly as before.
@@ -3540,10 +3540,10 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     // BOTH variants take real LLM copy now: A from copyA, B from copyB (the two
     // framework directions). No static template strings repeated across slots.
     const copy = isB ? copyB : copyA;
-    if (ad.platform === 'meta' && copy.ads.meta) Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
-    // The preview draws overlay.headline; it stayed the template's while the ad
-    // carried the model's, so the reviewed creative and the copy disagreed.
-    if (ad.platform === 'meta' && ad.overlay && ad.headline) ad.overlay.headline = ad.headline;
+    if (ad.platform === 'meta' && copy.ads.meta) {
+      Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
+      if (ad.overlay && ad.headline) ad.overlay.headline = ad.headline;
+    }
     // The model's lines first, then the template's own lines (the brand's
     // names, tagline, claims and action) up to Google's 15 / 4: a model that
     // wrote 3 headlines left Google no choice to make, and the template path
@@ -3564,12 +3564,29 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
       };
       const mh = (copy.ads.google.headlines || []).filter(Boolean);
       const md = (copy.ads.google.descriptions || []).filter(Boolean);
+      const bestHeadlines = mh.length ? fit(mh.concat(ad.headlines || []), 'headlines', 15) : ad.headlines;
+      const bestDescriptions = md.length ? fit(md.concat(ad.descriptions || []), 'descriptions', 4) : ad.descriptions;
+      const topHeadline = (mh[0] && mh[0].trim()) || (bestHeadlines && bestHeadlines[0]) || ad.headline;
       Object.assign(ad, {
-        headlines: mh.length ? fit(mh.concat(ad.headlines || []), 'headlines', 15) : ad.headlines,
-        descriptions: md.length ? fit(md.concat(ad.descriptions || []), 'descriptions', 4) : ad.descriptions,
+        headlines: bestHeadlines,
+        descriptions: bestDescriptions,
+        headline: topHeadline,
       });
+      if (ad.overlay && topHeadline) ad.overlay.headline = topHeadline;
     }
-    if (ad.platform === 'tiktok' && copy.ads.tiktok) Object.assign(ad, { script: copy.ads.tiktok.script || ad.script, caption: copy.ads.tiktok.caption || ad.caption });
+    if (ad.platform === 'tiktok' && copy.ads.tiktok) {
+      const hookText = copy.ads.tiktok.hook || (copy.ads.tiktok.script && (copy.ads.tiktok.script.match(/^[^.!?]+[.!?]/) || [''])[0].replace(/^0-2s\s*(?:hook\s*(?:line)?[:\-]?\s*)?/i, '')) || ad.hook;
+      const cleanHook = String(hookText || '').trim();
+      Object.assign(ad, {
+        script: copy.ads.tiktok.script || ad.script,
+        caption: copy.ads.tiktok.caption || ad.caption,
+        hook: cleanHook || ad.hook,
+      });
+      if (ad.overlay) {
+        if (cleanHook) ad.overlay.hook = cleanHook;
+        if (copy.ads.tiktok.caption) ad.overlay.headline = copy.ads.tiktok.caption;
+      }
+    }
     // Per-AD creative (see generateCreatives): the static and the video of one
     // platform are two different ads and no longer share one photo, and youtube
     // and pinterest are no longer unkeyed and imageless. `<platform>` is still
@@ -4691,7 +4708,7 @@ function attachStaticCreative(campaign, entry) {
   for (const ad of ads) {
     try {
       const ov = ad.overlay || {};
-      const headline = clean(ov.headline || ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || '');
+      const headline = clean(ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || ov.headline || '');
       const line = clean(first(ad.primary_text || ad.description || (Array.isArray(ad.descriptions) && ad.descriptions[0]) || ad.caption));
       const name = `ad:${ad.platform || ''}:static:${ad.variant || ''}:${ad.id || ''}`;
       const p = AT.pick(entry, 'ad', name);
