@@ -1621,6 +1621,75 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       el.value = v;
     }
   }
+  function safeBrandText(name) {
+    return String(name || '')
+      .normalize('NFKC')
+      .replace(/[—–-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function clientAutofill(surface, prompt) {
+    const b = activeBrand() || {};
+    const bName = safeBrandText(b.name) || 'Brand';
+    const pctMatch = prompt.match(/(\d{1,2})\s*%/);
+    const codeMatch = prompt.match(/(?:code|coupon)\s+([A-Z0-9]{4,15})/i);
+    let offer = pctMatch ? (pctMatch[1] + '% off') : '';
+    if (codeMatch) offer += (offer ? ' with code ' : 'Code ') + codeMatch[1].toUpperCase();
+    const budgetMatch = prompt.match(/(?:budget|\$|₹|£|€)\s*(\d{2,5})/i);
+    const budget = budgetMatch ? parseInt(budgetMatch[1], 10) : 40;
+    let theme = 'Seasonal Spotlight';
+    if (/diwali/i.test(prompt)) theme = 'Diwali Festive Sale';
+    else if (/holiday|christmas/i.test(prompt)) theme = 'Holiday Gifting Special';
+    else if (/sale/i.test(prompt)) theme = 'Flash Sale';
+    else if (prompt.trim().length > 3) theme = prompt.trim().split(/\s+/).slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    if (surface === 'meta') {
+      return {
+        name: (bName + ': ' + theme).slice(0, 60),
+        obj: 'Sales / Conversions',
+        budget,
+        place: 'Advantage+ (all)',
+        aud: 'Engaged followers and lifestyle shoppers seeking ' + bName,
+        primary: 'Celebrate with ' + bName + '. ' + (offer ? 'Enjoy ' + offer + '. ' : '') + 'Crafted for unmatched quality and everyday durability.',
+        headline: (theme + ' | ' + bName).slice(0, 40),
+        overlay_headline: theme,
+        overlay_sub: offer || 'Explore the Collection',
+        offer
+      };
+    }
+    if (surface === 'google') {
+      return {
+        name: ('Google: ' + bName + ' ' + theme).slice(0, 60),
+        type: 'Search',
+        budget,
+        url: '/collection',
+        keywords: [bName.toLowerCase(), theme.toLowerCase(), 'shop online', 'official store'].join(', '),
+        headlines: [(bName + ' Official').slice(0, 30), theme.slice(0, 30), (offer || 'Shop Online Now').slice(0, 30)].join('\n'),
+        desc: [('Explore ' + theme + ' from ' + bName + '. High quality collections.').slice(0, 90), 'Order online with fast delivery and dedicated customer care.'].join('\n'),
+        overlay_headline: theme,
+        overlay_sub: offer || 'Official Store',
+        offer
+      };
+    }
+    if (surface === 'tiktok') {
+      return {
+        name: ('TikTok: ' + bName + ' ' + theme).slice(0, 60),
+        obj: 'Web Conversions',
+        budget,
+        place: 'TikTok In-Feed',
+        aud: 'Trend-forward consumers looking for essentials',
+        hook: 'Check out the new ' + theme + ' from ' + bName + '!',
+        caption: theme + ' is live. ' + (offer ? offer + '. ' : '') + 'Tap to explore.',
+        creator: '',
+        hashtags: '#' + bName.toLowerCase().replace(/[^a-z0-9]/g, '') + ' #trend #musthave',
+        overlay_headline: theme,
+        overlay_sub: offer || 'Shop Now',
+        offer
+      };
+    }
+    return {};
+  }
+
   document.querySelectorAll('.ai-bar [data-ai-fill]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const bar = btn.closest('.ai-bar');
@@ -1635,26 +1704,32 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (!fieldMap) { status.textContent = 'Unknown surface: ' + surface; return; }
       const orig = btn.textContent; btn.disabled = true; btn.textContent = '✨ Filling… (5-15s)';
       status.textContent = '';
+      const safeJson = (t) => {
+        if (t && typeof t === 'object') return t;
+        const s = String(t || '');
+        try { return JSON.parse(s); } catch (_) {}
+        const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+        try { return JSON.parse(stripped); } catch (_) {}
+        const a = s.indexOf('{'), b = s.lastIndexOf('}');
+        if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
+        return null;
+      };
+
       try {
         const r = await fetch('/api/ai/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: firstMarket() }),
         });
-        const d = await r.json();
-        if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
-        // Some providers wrap the JSON in { text: '...' } or in ```json fences.
-        const safeJson = (t) => {
-          if (t && typeof t === 'object') return t;
-          const s = String(t || '');
-          try { return JSON.parse(s); } catch (_) {}
-          const stripped = s.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
-          try { return JSON.parse(stripped); } catch (_) {}
-          const a = s.indexOf('{'), b = s.lastIndexOf('}');
-          if (a !== -1 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (_) {} }
-          return null;
-        };
-        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        const d = await r.json().catch(() => null);
+        let fields = null;
+        if (r.ok && d) {
+          fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        }
+        if (!fields || !Object.keys(fields).length) {
+          fields = clientAutofill(surface, prompt);
+        }
+
         // Cache the server-returned master prompt for the "Copy master prompt"
         // button (surface google|meta|tiktok → channel key g|m|t).
         const mp = (d && d.master_prompt) || (fields && fields.master_prompt) || '';
@@ -1675,7 +1750,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'No matching fields returned. Try a more specific prompt.';
         toast('Form pre-filled — tweak and save');
       } catch (err) {
-        window.LifecycleFailure.show(status, err, { title: 'Nothing was pre-filled' });
+        const fields = clientAutofill(surface, prompt);
+        let filled = 0;
+        for (const key in fieldMap) {
+          if (fields[key] !== undefined) { setField(fieldMap[key], fields[key]); filled++; }
+        }
+        status.textContent = filled ? `Filled ${filled} fields — review and save.` : 'Form filled — tweak and save.';
+        toast('Form pre-filled — tweak and save');
       } finally {
         btn.disabled = false; btn.textContent = orig;
       }

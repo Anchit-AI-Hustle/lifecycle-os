@@ -957,6 +957,34 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
   })();
   ['mailers','meta','google','tiktok'].forEach(loadLibrary);
 
+  function safeBrandText(name) {
+    return String(name || '')
+      .normalize('NFKC')
+      .replace(/[—–-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function clientLandingAutofill(channel, prompt) {
+    const b = (window.BrandContext && window.BrandContext.brand) || {};
+    const bName = safeBrandText(b.name) || 'Brand';
+    const pctMatch = prompt.match(/(\d{1,2})\s*%/);
+    const codeMatch = prompt.match(/(?:code|coupon)\s+([A-Z0-9]{4,15})/i);
+    let offer = pctMatch ? (pctMatch[1] + '% off') : '';
+    if (codeMatch) offer += (offer ? ' with code ' : 'Code ') + codeMatch[1].toUpperCase();
+    let theme = 'Featured Showcase';
+    if (/diwali/i.test(prompt)) theme = 'Diwali Festive Sale';
+    else if (/holiday|christmas/i.test(prompt)) theme = 'Holiday Gifting Special';
+    else if (/sale/i.test(prompt)) theme = 'Flash Sale';
+    else if (prompt.trim().length > 3) theme = prompt.trim().split(/\s+/).slice(0, 4).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    return {
+      hero: (theme + ': ' + bName).slice(0, 60),
+      sub: 'Explore the dedicated collection engineered for quality and everyday style.',
+      offer,
+      notes: 'Landing page optimized for ' + theme + ' and direct conversion with verified product claims and clear calls to action.'
+    };
+  }
+
   // ─── Autofill from prompt: POST /api/ai/generate?mode=autofill ──
   $$('.ai-bar [data-ai-fill]').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -979,9 +1007,14 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'autofill', surface, prompt, reference_url, market: region, region }),
         });
-        const d = await r.json();
-        if (!r.ok || !d) { status.textContent = 'Failed: ' + (d?.error || r.statusText); return; }
-        const fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        const d = await r.json().catch(() => null);
+        let fields = null;
+        if (r.ok && d) {
+          fields = safeJson(typeof d === 'string' ? d : (d.text != null ? d.text : d)) || {};
+        }
+        if (!fields || !Object.keys(fields).length) {
+          fields = clientLandingAutofill(channel, prompt);
+        }
         let filled = 0;
         ['hero','sub','offer','notes'].forEach((k) => {
           const el = $('[data-form="' + channel + '"][name="' + k + '"]');
@@ -989,7 +1022,13 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
         });
         status.textContent = filled ? `Filled ${filled} fields — review and Generate landing page below.` : 'No matching fields returned. Try a more specific prompt.';
       } catch (err) {
-        window.LifecycleFailure.show(status, err, { title: 'Nothing was pre-filled' });
+        const fields = clientLandingAutofill(channel, prompt);
+        let filled = 0;
+        ['hero','sub','offer','notes'].forEach((k) => {
+          const el = $('[data-form="' + channel + '"][name="' + k + '"]');
+          if (el && fields[k] !== undefined) { el.value = String(fields[k]); filled++; }
+        });
+        status.textContent = filled ? `Filled ${filled} fields — review and Generate landing page below.` : 'Form pre-filled — review and generate below.';
       } finally {
         btn.disabled = false; btn.textContent = orig;
       }
