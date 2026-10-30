@@ -991,14 +991,13 @@ module.exports = async function callLLM(opts) {
     const ranked = ovOrder.filter((p) => ownKeyed.has(p));
     order = ranked.concat(OWN_KEY_PRIORITY.filter((p) => ownKeyed.has(p) && ranked.indexOf(p) < 0));
     for (const p of ownKeyed) if (order.indexOf(p) < 0) order.push(p);
-    if (exclusive && preferredProvider && ownKeyed.has(preferredProvider)) {
-      order = [preferredProvider];
-      outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
-    } else if (ov && ov.fallback === false) {
-      outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
-    } else {
-      for (const p of providerOrder(tierNorm)) if (order.indexOf(p) < 0) order.push(p);
-    }
+    if (exclusive && preferredProvider && ownKeyed.has(preferredProvider)) order = [preferredProvider];
+    // The platform default models are OUTSIDE this call's routing: a workspace
+    // with its own key uses ONLY its own models (2026-10-17, the operator:
+    // "users should still have the option to integrate the ai models they want
+    // to use themselves ... if entered, then only those ai models shall be
+    // used").
+    outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
   } else if (ov && ov.fallback === false && !ovOrder.length) {
     // "Only my providers" with no explicit order: the providers the workspace
     // CONNECTED, in the tier's order. This used to run the platform's whole
