@@ -76,4 +76,15 @@ test.describe('connection Test', () => {
     expect(none.note).not.toMatch(/no status/);
     expect(none.fix).toMatch(/Test again/);
   });
+
+  test('a shortened key copied from the provider\'s keys list is refused at Save, with why', async () => {
+    const { maskedKeyProblem } = require(CORE);
+    const groq = { category: 'ai', label: 'Groq' };
+    for (const v of ['gsk_****mhHY', 'gsk_...mhHY', 'gsk_\u2022\u2022\u2022mhHY', 'gsk_\u2026mhHY', 'gsk_abc mhHY']) {
+      expect(maskedKeyProblem(v, groq), v).toContain('shortened copy Groq shows');
+    }
+    expect(maskedKeyProblem('gsk_' + 'a1B2'.repeat(12), groq)).toBe('');
+    expect(maskedKeyProblem('sk-ant-api03-' + 'x'.repeat(80), { category: 'ai', label: 'Claude' })).toBe('');
+    expect(maskedKeyProblem('a b', { category: 'commerce', label: 'Shopify' })).toBe('');
+  });
 });
