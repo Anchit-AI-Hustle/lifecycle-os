@@ -459,7 +459,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   async function onPlatformAction(act, providerId, btn) {
     var label = btn.textContent;
-    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    btn.disabled = true; btn.textContent = String(label).trim() + '…'; // the label stays: a bare spinner read as an empty box
     try {
       if (act === 'save') {
         await api('save', { provider: providerId, fields: collect(providerId) });
