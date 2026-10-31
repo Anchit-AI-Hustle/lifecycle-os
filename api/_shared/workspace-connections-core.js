@@ -1364,7 +1364,8 @@ async function checkConnection(auth, workspaceId, providerId) {
       ok: false, connected: false,
       note: 'The stored secret could not be read. It was encrypted under a different CONNECTION_SECRET_KEY than this deployment now holds, so it has to be entered again.',
     };
-  } else if (reg.category === 'ai' && (secrets.api_key || (reg.llm_provider === 'ollama' && (row.config || {}).base_url))) {
+  } else if (reg.category === 'ai' && (secrets.api_key || (reg.llm_provider === 'ollama' && (row.config || {}).base_url)
+      || (reg.llm_provider === 'bedrock' && secrets.aws_access_key_id && secrets.aws_secret_access_key))) {
     const callLLM = require('./llm.js');
     const bases = {};
     const cfg = row.config || {};
@@ -1372,6 +1373,14 @@ async function checkConnection(auth, workspaceId, providerId) {
     if (reg.llm_provider === 'ollama' && cfg.base_url) bases.ollama = ollamaBase(cfg.base_url);
     const key = secrets.api_key || (reg.llm_provider === 'ollama' ? 'ollama' : '');
     const checkModels = {};
+    // Bedrock is an AWS key pair, not one api_key: the test passes exactly what
+    // a generation would (buildOverrides), or it never reached AWS at all.
+    const checkKeys = { [reg.llm_provider]: key };
+    if (reg.llm_provider === 'bedrock') {
+      if (!secrets.api_key) delete checkKeys.bedrock;
+      for (const k of ['aws_access_key_id', 'aws_secret_access_key', 'aws_session_token']) if (secrets[k]) checkKeys[k] = secrets[k];
+      if (cfg.aws_region || secrets.aws_region) checkKeys.aws_region = cfg.aws_region || secrets.aws_region;
+    }
     if (reg.llm_provider === 'ollama' && cfg.base_url) {
       const m = (cfg.model && OLLAMA_MODEL_RE.test(String(cfg.model).trim())) ? [String(cfg.model).trim()] : await ollamaModels(ollamaRoot(cfg.base_url), secrets.api_key);
       if (m.length) checkModels.ollama = m;
@@ -1380,7 +1389,7 @@ async function checkConnection(auth, workspaceId, providerId) {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: require('./output-contract.js').append('ping', require('./output-contract.js').PROBE),
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
-        overrides: { order: [reg.llm_provider], models: checkModels, keys: { [reg.llm_provider]: key }, bases, fallback: false },
+        overrides: { order: [reg.llm_provider], models: checkModels, keys: checkKeys, bases, fallback: false },
       });
       result = { ok: true, connected: true, note: `Answered on ${r.model}.` };
     } catch (err) {
@@ -1395,7 +1404,7 @@ async function checkConnection(auth, workspaceId, providerId) {
           : status === 401 || status === 403 ? 'That key was rejected as unauthorized.'
             : status === 404 ? 'The key works but this account cannot reach the model that was tried.'
               : status === 0 ? 'The provider did not answer in time.'
-                : `The call failed (${status || 'no status'}).`,
+                : `The call failed (${status || 'no status'})${said || (det.err ? ': ' + String(det.err).replace(/\b(sk|key|Bearer)[-_ ][A-Za-z0-9_-]{8,}/g, '[key]').slice(0, 200) : '')}.`,
       };
     }
   } else if (reg.category === 'ai') {
