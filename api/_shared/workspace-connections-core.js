@@ -616,6 +616,21 @@ async function secretsByConnectionId(ids) {
 }
 
 /**
+ * A key copied from a provider's KEY LIST is the shortened copy it shows there
+ * ("gsk_...mhHY", "sk-****abcd"), not the key: the full key is shown once, when
+ * it is made. Such a copy is refused at Save with that sentence, instead of being
+ * stored and refused by the provider as "Invalid API Key".
+ */
+function maskedKeyProblem(value, reg) {
+  const v = String(value || '');
+  if (!reg || reg.category !== 'ai') return '';
+  if (/[*\u2022\u2026]|\.\.\./.test(v) || /\s/.test(v)) {
+    return `That looks like the shortened copy ${reg.label} shows in its keys list, not the key itself. The full key is shown only once, when you create it: make a new key, copy it from that window, and paste it here.`;
+  }
+  return '';
+}
+
+/**
  * Save a connection. Secret fields are separated from settings by the REGISTRY,
  * not by the caller, so a client cannot smuggle a key into the readable config
  * column by renaming it.
@@ -654,6 +669,8 @@ async function saveConnection(auth, input) {
       // the key. Clearing a secret is `delete`, not an empty save.
       if (!value) continue;
       if (value.length > MAX_SECRET_CHARS) { const e = new Error(`${f.label} is longer than ${MAX_SECRET_CHARS} characters.`); e.status = 400; throw e; }
+      const masked = maskedKeyProblem(value, reg);
+      if (masked) { const e = new Error(masked); e.status = 400; e.code = 'key_masked'; throw e; }
       secrets[f.key] = value;
     } else if (f.fetched) {
       // A base URL supplied here is a destination the SERVERLESS RUNTIME will
@@ -1080,7 +1097,7 @@ function checkFailure(reg, err) {
   }
   if (status === 429) return out(`${name} is rate limiting this key right now${said}.`, 'Wait a minute and press Test again.');
   if (status === 401 || status === 403 || det.kind === 'auth') {
-    return out(`${name} refused this key${said}.`, `Make a new key on your ${name} account and paste it here.`, pages.keys);
+    return out(`${name} refused this key${said}.`, `Make a new key on your ${name} account and copy it from the window that shows it once, at creation (the keys list shows only a shortened copy), then paste it here.`, pages.keys);
   }
   if (status === 404) return out(`The key works, but this account cannot reach the model that was tried${said}.`, `Enable the model on your ${name} account, or name one it has in the Model field.`, pages.billing);
   if (status === 0 || /timeout|timed out|abort/i.test(raw)) return out(`${name} did not answer in time.`, 'Press Test again; if it keeps happening, the service is busy.');
@@ -1436,7 +1453,7 @@ async function checkConnection(auth, workspaceId, providerId) {
     try {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: require('./output-contract.js').append('ping', require('./output-contract.js').PROBE),
-        maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
+        maxTokens: 16, temperature: 0, timeoutMs: 25000, budgetMs: 30000, stage: 'connection-check',
         // fresh: a Test always makes the real call (never skipped as "cooling down").
         overrides: { order: [reg.llm_provider], models: checkModels, keys: checkKeys, bases, fallback: false, fresh: true },
       });
@@ -1670,6 +1687,7 @@ async function handle(req, res) {
 }
 
 module.exports = {
+  maskedKeyProblem,
   handle,
   PROVIDERS, BY_ID, BY_LLM, registryView, knownModels, freeGenerationView, checkFailure, FIX_PAGES,
   // storage
