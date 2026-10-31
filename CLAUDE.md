@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A Test always reaches the provider; a catalogue holds products, not pictures (2026-10-31)
+The operator: "still some issue in model and key connection - ensure simplest mode ... perfect and easy usage", then
+"check for issues in brand setup for catalog - compare completely with usefastlane.ai" (Fastlane: one link -> product,
+palette, tone, ad history; no catalogue screen; you approve). Production logs + `last_check_note`, read via the Mac's CLI:
+- **A new key was never sent**: after a key failed, llm.js paused that provider 10 min (keyed by key; Bedrock by its access
+  key id, so a new SECRET stayed paused), and Test obeyed the pause: "The call failed (no status)." `overrides.fresh`
+  (connection Test only) skips every cool-down and slow-demotion; a key that answers clears its key-wide pause and the
+  answering model's (`clearCool`, never another model at its daily cap). `checkFailure()` says what happened with the
+  provider's own words, what to do and `FIX_PAGES[provider]` (keys / billing); stored as `last_check_note` (+ fix).
+  /ai-models: each card says Working / Not working + "Fix it on <provider>"; one Test per card at a time (`runCheck`);
+  the quick box ignores a second Enter/click. Gated by `tests/connection-test-fresh.spec.js` (mutation-checked).
+- **Banner headlines became products**: `rowFromPage`'s image-alt fallback (a page with no product data) filed a bakery's
+  slide headlines, "Bread 1", "Good food strip desktop", logos, each with a made-up `#anchor`, and carried hard-coded
+  "nik baker" filters. Now general rules: no slide/carousel picture, no sentence (>5 words or | : ! ?), no layout word, no
+  numbered picture, no site name; layout suffixes ("... home", "... m") are stripped, desktop/phone copies count once; no
+  brand is named. Gated by `tests/catalog-gallery-rows.spec.js` over that page's own <img> tags.
+- **"Pages declare no product" was a geo-redirect**: Lenskart's /en-sa/ and /en-ae/ product URLs answer, from India, with
+  the India home page. A market with its own folder whose product URL lands outside it is now a geo-redirect (stopped after
+  5, "sent to the IN store"). Gated in `catalog-import-always-complete` (fixture `geoHome`).
+- **Coverage is one line first**: products per market by country name and why a market has none (sent away / pages state no
+  product data / not read yet); the full report folds under "How it was read" (/connections and onboarding).
+
 ## ⭐ What only the owner can do has an agent: /finish-setup (2026-10-31)
 `.claude/commands/finish-setup.md`, run in a Claude session on the owner's own Mac: (1) the refused model keys, one
 row per card with what the refusal means and the page to fix it, proven by Test on /ai-models; (2) the OAuth apps
