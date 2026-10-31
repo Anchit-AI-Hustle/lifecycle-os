@@ -532,6 +532,23 @@ test('EVERY regional store the brand publishes is read, each product filed under
   } finally { w.restore(); }
 });
 
+test('a regional store whose product URLs bounce to the ROOT home page is said to send this server away, never "pages declare no product"', async () => {
+  test.setTimeout(150_000);
+  st.stores['lensworld.example'].geoHome = true;
+  const w = world({ website: 'https://lensworld.example', regions: [{ code: 'IN', home: true }] });
+  try {
+    const out = await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'storefront', url: 'https://lensworld.example' });
+    const m = Object.fromEntries((out.markets || []).map((x) => [x.code, x]));
+    for (const code of ['AE', 'SA']) {
+      expect(m[code].found, code).toBe(0);
+      expect(m[code].blocked, code).toBe(true);
+      expect(m[code].sent_to, code).toBeTruthy();
+    }
+    expect(w.rows().filter((r) => !r.stale_at && (r.region === 'ae' || r.region === 'sa'))).toHaveLength(0);
+    expect(out.coverage.sentences[0]).toMatch(/AE: 0 of \d[\d,]* \(sent to the/);
+  } finally { st.stores['lensworld.example'].geoHome = false; w.restore(); }
+});
+
 test('a brand with two regional DOMAINS (twinbrand.example, twinbrand.co.uk tied by hreflang) is read on both: US rows in USD from one, UK rows in GBP from the other', async () => {
   test.setTimeout(90_000);
   const d = deviceWorld();

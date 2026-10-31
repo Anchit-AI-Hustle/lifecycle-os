@@ -1040,6 +1040,53 @@ function providerSays(errText) {
   return msg ? ` (the provider said: "${msg}")` : '';
 }
 
+/* ── A failed Test, in words a person can act on (2026-10-31) ─────────────────
+   One sentence of what happened (with the provider's own words when it gave
+   any), then what to do and the page that does it. Production showed
+   "The call failed (no status)." for a key that was never even sent. */
+const FIX_PAGES = {
+  anthropic: { keys: 'https://console.anthropic.com/settings/keys', billing: 'https://console.anthropic.com/settings/billing' },
+  openai: { keys: 'https://platform.openai.com/api-keys', billing: 'https://platform.openai.com/settings/organization/billing' },
+  gemini: { keys: 'https://aistudio.google.com/apikey', billing: 'https://aistudio.google.com/usage' },
+  grok: { keys: 'https://console.x.ai', billing: 'https://console.x.ai' },
+  groq: { keys: 'https://console.groq.com/keys', billing: 'https://console.groq.com/settings/billing' },
+  deepseek: { keys: 'https://platform.deepseek.com/api_keys', billing: 'https://platform.deepseek.com/top_up' },
+  ollama: { keys: 'https://ollama.com/settings/keys', billing: 'https://ollama.com/settings' },
+  bedrock: { keys: 'https://console.aws.amazon.com/iam/home#/users', billing: 'https://console.aws.amazon.com/bedrock/home#/modelaccess' },
+  openrouter: { keys: 'https://openrouter.ai/settings/keys', billing: 'https://openrouter.ai/settings/credits' },
+  cerebras: { keys: 'https://cloud.cerebras.ai', billing: 'https://cloud.cerebras.ai' },
+  cloudflare: { keys: 'https://dash.cloudflare.com/profile/api-tokens', billing: 'https://dash.cloudflare.com' },
+};
+function checkFailure(reg, err) {
+  const name = reg.label;
+  const pages = FIX_PAGES[reg.llm_provider] || {};
+  const det = (err && err._providerErrors && err._providerErrors[0]) || {};
+  const status = det.status;
+  const said = providerSays(det.err);
+  const raw = String(det.err || '');
+  const out = (note, fix, fix_url) => ({ note, fix: fix || '', fix_url: fix_url || '' });
+  if (!det.provider) {
+    const skip = ((err && err._skipped) || []).find((x) => x.provider === reg.llm_provider);
+    return out(`${name} was not called${skip ? ' (' + skip.reason + ')' : ''}.`, 'Press Test again.');
+  }
+  if (/insufficient authentication scopes/i.test(raw)) {
+    return out(`Google refused this sign-in for ${name}: it was made before model access was asked for.`, 'Press Sign in with Google again.');
+  }
+  if (reg.llm_provider === 'bedrock' && (status === 401 || status === 403)) {
+    return out(`AWS refused this key pair${said}.`, 'Check the access key id and secret are a matching, active pair, that the user has AmazonBedrockFullAccess, and that the region is one where you enabled model access.', pages.keys);
+  }
+  if (det.kind === 'billing' || status === 402 || (status === 429 && /quota|billing|credit|limit/i.test(raw))) {
+    return out(`${name} accepted the key, but the account has no credit or quota left${said}.`, `Add credit or raise the limit on your ${name} account, then press Test.`, pages.billing);
+  }
+  if (status === 429) return out(`${name} is rate limiting this key right now${said}.`, 'Wait a minute and press Test again.');
+  if (status === 401 || status === 403 || det.kind === 'auth') {
+    return out(`${name} refused this key${said}.`, `Make a new key on your ${name} account and paste it here.`, pages.keys);
+  }
+  if (status === 404) return out(`The key works, but this account cannot reach the model that was tried${said}.`, `Enable the model on your ${name} account, or name one it has in the Model field.`, pages.billing);
+  if (status === 0 || /timeout|timed out|abort/i.test(raw)) return out(`${name} did not answer in time.`, 'Press Test again; if it keeps happening, the service is busy.');
+  return out(`${name} answered with an error${status ? ' (HTTP ' + status + ')' : ''}${said}.`, 'Press Test again; if it repeats, make a new key.', pages.keys);
+}
+
 /* ── the resolver llm.js consults ─────────────────────────────────────────── */
 
 const RESOLVED = new Map();       // `${user}|${workspace}` -> { at, overrides }
@@ -1318,6 +1365,7 @@ function registryView(signedIn) {
     category: p.category,
     auth_kind: p.auth_kind,
     llm_provider: p.llm_provider || null,
+    fix_pages: (p.category === 'ai' && FIX_PAGES[p.llm_provider]) || null,
     blurb: p.blurb,
     key_url: p.key_url || '',
     fields: p.fields.filter((f) => !f.hidden).map((f) => ({ key: f.key, label: f.label, secret: !!f.secret, required: !!f.required, fetched: !!f.fetched, placeholder: f.placeholder || '' })),
@@ -1389,23 +1437,12 @@ async function checkConnection(auth, workspaceId, providerId) {
       const r = await callLLM({
         systemPrompt: 'Reply with the single word: ok', userMessage: require('./output-contract.js').append('ping', require('./output-contract.js').PROBE),
         maxTokens: 16, temperature: 0, timeoutMs: 8000, stage: 'connection-check',
-        overrides: { order: [reg.llm_provider], models: checkModels, keys: checkKeys, bases, fallback: false },
+        // fresh: a Test always makes the real call (never skipped as "cooling down").
+        overrides: { order: [reg.llm_provider], models: checkModels, keys: checkKeys, bases, fallback: false, fresh: true },
       });
-      result = { ok: true, connected: true, note: `Answered on ${r.model}.` };
+      result = { ok: true, connected: true, note: `Working: ${reg.label} answered on ${r.model}.` };
     } catch (err) {
-      const det = (err && err._providerErrors && err._providerErrors[0]) || {};
-      const status = det.status;
-      const said = providerSays(det.err);
-      result = {
-        ok: false, connected: false,
-        note: /insufficient authentication scopes/i.test(String(det.err || '')) ? 'Google refused this sign-in for Gemini: it was made before the model access was asked for. Press Sign in with Google again.'
-          : det.kind === 'billing' ? `The account has no credits or has reached its spending limit${said}.`
-          : status === 429 || status === 402 ? 'The key works but the account is rate limited or out of quota.'
-          : status === 401 || status === 403 ? 'That key was rejected as unauthorized.'
-            : status === 404 ? 'The key works but this account cannot reach the model that was tried.'
-              : status === 0 ? 'The provider did not answer in time.'
-                : `The call failed (${status || 'no status'})${said || (det.err ? ': ' + String(det.err).replace(/\b(sk|key|Bearer)[-_ ][A-Za-z0-9_-]{8,}/g, '[key]').slice(0, 200) : '')}.`,
-      };
+      result = Object.assign({ ok: false, connected: false }, checkFailure(reg, err));
     }
   } else if (reg.category === 'ai') {
     result = {
@@ -1468,7 +1505,7 @@ async function checkConnection(auth, workspaceId, providerId) {
     `workspace_connections?workspace_id=eq.${encodeURIComponent(checkWs)}&provider=eq.${encodeURIComponent(reg.id)}`,
     {
       method: 'PATCH',
-      body: { last_checked_at: new Date().toISOString(), last_check_ok: !!result.ok, last_check_note: String(result.note || '').slice(0, 300) },
+      body: { last_checked_at: new Date().toISOString(), last_check_ok: !!result.ok, last_check_note: (String(result.note || '') + (result.fix ? ' ' + result.fix : '')).slice(0, 300) },
       prefer: 'return=minimal',
     },
   );
@@ -1634,7 +1671,7 @@ async function handle(req, res) {
 
 module.exports = {
   handle,
-  PROVIDERS, BY_ID, BY_LLM, registryView, knownModels, freeGenerationView,
+  PROVIDERS, BY_ID, BY_LLM, registryView, knownModels, freeGenerationView, checkFailure, FIX_PAGES,
   // storage
   listConnections, effectiveConnections, personalRows, saveConnection, deleteConnection, getRouting, saveRouting, normalizeRouting,
   // service-role storage (OAuth callback + the dispatch queue only — see the

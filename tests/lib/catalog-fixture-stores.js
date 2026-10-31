@@ -535,6 +535,9 @@ Sitemap: https://${host}/sitemap.xml
         if (P === '/extra-sitemap.xml') return { status: 200, type: 'text/xml', body: longHeader + urlset([`https://${host}/stores`]).replace(/^<\?xml[^>]*>\n/, '') };
         // An RSS feed declared as a sitemap: XML, and not a sitemap.
         if (P === '/feeds/catalogue.xml') return { status: 200, type: 'text/xml', body: '<?xml version="1.0"?><rss version="2.0"><channel><title>New in</title></channel></rss>' };
+        // geoHome (2026-10-31, Lenskart SA/AE read from India): a regional
+        // product URL answers with a redirect to the ROOT store's home page.
+        if (this.geoHome && /^\/(?:en-ae|ar-sa)\/.+\.html$/.test(P)) return { status: 302, type: 'text/html', body: '', headers: { location: `https://${host}/` } };
         for (const [pre, list] of [['/en-us', US], ['/en-ae', AE], ['/ar-sa', SA]]) {
           if (P === `${pre}/sitemap.xml`) return { status: 200, type: 'text/xml', body: sitemapIndex([`https://${host}${pre}/products.xml`, `https://${host}${pre}/categories.xml`]) };
           if (P === `${pre}/products.xml`) return { status: 200, type: 'text/xml', body: urlset(list.map((p) => `https://${host}${p.path}`)) };

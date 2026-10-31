@@ -111,6 +111,15 @@ function coolingFor(provider, key, model) {
   }
   return null;
 }
+// Only the key-wide pause and the pause on the model that answered: another
+// model of the same key may still be at its own daily cap.
+function clearCool(provider, keys, model) {
+  for (const key of keys || []) {
+    COOL.delete(coolKey(provider, key, null));
+    if (model) COOL.delete(coolKey(provider, key, model));
+  }
+  SLOW.delete(provider);
+}
 function setCool(provider, key, model, kind, ms) {
   const e = { provider, fingerprint: keyPrint(provider, key), model: model || null, kind, until: Date.now() + ms };
   COOL.set(coolKey(provider, key, model), e);
@@ -524,6 +533,7 @@ module.exports = async function callLLM(opts) {
   // single provider that way); `overrides: null` explicitly asks for the
   // platform default and is honoured as written.
   const ov = (opts.overrides !== undefined) ? opts.overrides : await scopedOverrides();
+  const freshCall = !!(ov && ov.fresh === true);
   const ovKeys  = (ov && ov.keys) || {};
   const ovModels = (ov && ov.models) || {};
   const ovOrder = _dedupe((ov && Array.isArray(ov.order)) ? ov.order.map((p) => String(p || '').toLowerCase().trim()) : []);
@@ -889,6 +899,9 @@ module.exports = async function callLLM(opts) {
   }
 
   function _success(result) {
+    // A key that just answered is not cooling any more, whatever it did before:
+    // generations use it from the next call, not ten minutes later.
+    clearCool(result.provider, result.provider === 'openai' ? openaiKeys : [keyFor[result.provider]], result.model);
     const usage = result.usage || { input_tokens: null, output_tokens: null };
     noteOutcome('ok', { own: ownKey(result.provider), kind: 'text', provider: result.provider, model: result.model,
       input_tokens: usage.input_tokens, output_tokens: usage.output_tokens });
@@ -912,7 +925,7 @@ module.exports = async function callLLM(opts) {
   // Returns the success result, or null when the chain is exhausted.
   async function runChain(providerName, callFn, models) {
     for (const model of models) {
-      if (coolingFor(providerName, keyFor[providerName], model)) continue;
+      if (!freshCall && coolingFor(providerName, keyFor[providerName], model)) continue;
       if (!budgetLeft()) return null;
       const result = await callFn(model);
       if (result.ok) return result;
@@ -941,7 +954,7 @@ module.exports = async function callLLM(opts) {
       let nextModel = false;
       for (let ki = 0; ki < openaiKeys.length; ki++) {
         if (dead.has(ki)) continue;
-        if (coolingFor('openai', openaiKeys[ki], model)) { if (coolingFor('openai', openaiKeys[ki], null)) dead.add(ki); continue; }
+        if (!freshCall && coolingFor('openai', openaiKeys[ki], model)) { if (coolingFor('openai', openaiKeys[ki], null)) dead.add(ki); continue; }
         if (!budgetLeft()) return null;
         const result = await _openai(model, openaiKeys[ki]);
         if (result.ok) return result;
@@ -1042,7 +1055,7 @@ module.exports = async function callLLM(opts) {
   }
   order = _dedupe(order);
   // Providers that timed out or asked to wait moments ago go last, in order.
-  if (order.length > 1) order = order.filter((p) => !isSlow(p)).concat(order.filter(isSlow));
+  if (order.length > 1 && !freshCall) order = order.filter((p) => !isSlow(p)).concat(order.filter(isSlow));
   for (const p of outsideRouting) if (hasKey[p]) _skipped.push({ provider: p, reason: 'outside this call\'s routing' });
 
   for (let i = 0; i < order.length; i++) {
@@ -1059,7 +1072,10 @@ module.exports = async function callLLM(opts) {
     const chosen = ovModels[providerName];
     const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(providerName, tierNorm)).map((m) => String(m || '').trim()));
     const keys = providerName === 'openai' ? openaiKeys : [keyFor[providerName]];
-    const cooling = keys.map((k) => models.map((m) => coolingFor(providerName, k, m)));
+    // A connection Test (overrides.fresh) always makes the real call: a person who
+    // just pasted a new key, or added credit, must hear the provider's answer now,
+    // not "skipped, cooling down" from the key's last failure (2026-10-31).
+    const cooling = keys.map((k) => models.map((m) => (freshCall ? null : coolingFor(providerName, k, m))));
     if (cooling.every((row) => row.every(Boolean))) {
       const e = cooling[0][0];
       _skipped.push({ provider: providerName, reason: coolWords(e), until: new Date(e.until).toISOString(), kind: e.kind });

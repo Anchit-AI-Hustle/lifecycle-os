@@ -371,9 +371,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (c && c.shared_from) {
       h += '<div class="note" style="margin-top:6px" data-shared-note>Connected on your account' + (c.shared_from.name ? ' (saved on ' + esc(c.shared_from.name) + ')' : '') + ', so every brand you own uses it. It stays connected until you remove it.</div>';
     }
-    if (c && c.last_check_note) {
-      h += '<div class="note" style="margin-top:6px"><b>Last check' + (c.last_check_ok ? '' : ' failed') + ':</b> ' + esc(c.last_check_note) + '</div>';
-    }
+    if (c && c.last_check_note) h += checkLine(p, c.last_check_ok, c.last_check_note);
 
     h += '<div class="row">' +
       '<button type="button" class="btn" data-act="save" data-provider="' + esc(p.id) + '">Save</button>' +
@@ -381,6 +379,32 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       (c ? '<button type="button" class="btn danger" data-act="remove" data-provider="' + esc(p.id) + '">' + (c.shared_from ? 'Unlink from my account' : 'Remove') + '</button>' : '') +
       '</div></div>';
     return h;
+  }
+
+  /* ── Is it working? One line per card, and the page that fixes it ────────
+     (2026-10-31) A failed Test names what the provider said and links the one
+     page that fixes it: the key page for a refused key, billing for no credit. */
+  function fixUrl(p, note) {
+    var f = p && p.fix_pages; if (!f) return '';
+    return /credit|quota|limit|enable the model/i.test(String(note || '')) ? (f.billing || f.keys) : (f.keys || '');
+  }
+  function checkLine(p, ok, note) {
+    if (ok) return '<div class="note" style="margin-top:6px" data-check-state="ok"><span class="chip on">Working</span> ' + esc(note) + '</div>';
+    var url = fixUrl(p, note);
+    return '<div class="note" style="margin-top:6px" data-check-state="failed"><span class="chip bad">Not working</span> ' + esc(note) +
+      (url ? ' <a href="' + esc(url) + '" target="_blank" rel="noopener" data-fix-link>Fix it on ' + esc(p.label) + '</a>' : '') + '</div>';
+  }
+  // One Test per card at a time: a second press (or Save's own Test) reuses the
+  // one already running, so a provider never sees two calls at once.
+  var CHECKING = {};
+  function runCheck(id) {
+    if (!CHECKING[id]) CHECKING[id] = api('check', { provider: id }).finally(function () { delete CHECKING[id]; });
+    return CHECKING[id];
+  }
+  function checkSentence(p, chk) {
+    if (!chk) return 'Saved. The test gave no answer; press Test.';
+    if (chk.ok) return chk.note || (p.label + ' is working.');
+    return [chk.note, chk.fix].filter(Boolean).join(' ');
   }
 
   /* ── One box for any AI key (2026-10-31) ─────────────────────────────────
@@ -410,6 +434,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var input = $('quickKey'), note = $('quickNote'), btn = $('quickSave');
     var key = String(input.value || '').trim();
     if (!key) { note.textContent = 'Paste a key first.'; return; }
+    if (btn.disabled) return; // already connecting: Enter and a click must not send it twice
     var id = providerForKey(key);
     var p = id && state.providers.filter(function (x) { return x.id === id; })[0];
     if (!p) { note.textContent = 'This key does not match a provider we can recognise. Pick the provider\'s card below and paste it there (AWS Bedrock, Cloudflare and Ollama need more than one field).'; return; }
@@ -417,11 +442,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       await api('save', { provider: id, fields: { api_key: key } });
       note.textContent = 'Saved to ' + p.label + '. Testing…';
-      var chk = await api('check', { provider: id });
+      var chk = await runCheck(id);
       input.value = '';
       await load();
       var n2 = $('quickNote');
-      if (n2) n2.textContent = p.label + (chk && chk.ok ? ' is connected and answered the test.' : ' is saved, but the test did not pass: ' + ((chk && chk.note) || 'no reason given') + '.');
+      if (n2) n2.innerHTML = chk && chk.ok ? esc(p.label + ' is connected and working.')
+        : esc(p.label + ' is saved, but it is not working yet: ' + checkSentence(p, chk)) +
+          (fixUrl(p, chk && chk.note) ? ' <a href="' + esc(fixUrl(p, chk.note)) + '" target="_blank" rel="noopener" data-fix-link>Fix it on ' + esc(p.label) + '</a>' : '');
     } catch (e) {
       note.textContent = window.LifecycleFailure.sentence(e);
     } finally { var b = $('quickSave'); if (b) b.disabled = false; }
@@ -464,14 +491,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (act === 'save') {
         await api('save', { provider: providerId, fields: collect(providerId) });
         try {
-          var chk = await api('check', { provider: providerId });
-          toast(chk && chk.ok ? 'Saved and verified: connection is working.' : (chk && chk.note ? chk.note : 'Saved, but connection check failed.'));
+          var pp = state.providers.filter(function (x) { return x.id === providerId; })[0] || { label: providerId };
+          var chk = await runCheck(providerId);
+          toast(chk && chk.ok ? 'Saved. ' + pp.label + ' is working.' : 'Saved, but not working yet: ' + checkSentence(pp, chk), 7000);
         } catch (_) {
           toast('Saved. The key itself is never sent back to this page.');
         }
       } else if (act === 'check') {
-        var r = await api('check', { provider: providerId });
-        toast(r.note || (r.ok ? 'Connection answered.' : 'Connection did not answer.'));
+        var pq = state.providers.filter(function (x) { return x.id === providerId; })[0] || { label: providerId };
+        var r = await runCheck(providerId);
+        toast(r && r.ok ? (r.note || pq.label + ' is working.') : checkSentence(pq, r), 7000);
       } else if (act === 'remove') {
         await api('delete', { provider: providerId });
         toast('Removed. The stored secret was deleted with it.');
@@ -757,6 +786,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   function brandApi(op, body, query) {
     return window.BrandContext.api(op, { body: body || null, query: query || '' });
   }
+  /* One plain line first (2026-10-31): products per market by country name,
+     and a market that gave none is said with why in a few words. The full
+     read report stays one click away under "How it was read". */
+  function covSummary(cov) {
+    var nm = function (c) { try { return (window.RegionContext && window.RegionContext.name) ? window.RegionContext.name(c) : c; } catch (_) { return c; } };
+    var ms = Array.isArray(cov.markets) ? cov.markets : [];
+    if (!ms.length) return (cov.found || 0) + ' products read' + (cov.complete ? ', the whole catalogue.' : ' so far.');
+    var got = ms.filter(function (m) { return m.found; }), none = ms.filter(function (m) { return !m.found; });
+    var t = got.map(function (m) { return (m.found || 0).toLocaleString() + ' products in ' + nm(m.code) + (m.declared && m.found < m.declared ? ' (of ' + Number(m.declared).toLocaleString() + ')' : ''); }).join(', ') || 'No products read yet';
+    var why = function (m) { return m.blocked ? 'the store sends this server to another country' : (m.complete ? 'its pages state no product data' : 'not read yet'); };
+    var groups = {};
+    none.forEach(function (m) { (groups[why(m)] = groups[why(m)] || []).push(nm(m.code)); });
+    Object.keys(groups).forEach(function (w) { t += '. ' + groups[w].join(', ') + ': ' + w; });
+    return t + '.';
+  }
   function renderCatalog(cov, resumable, note, continuing) {
     var el = $('catalogCard');
     if (!cov || !Array.isArray(cov.sentences) || !cov.sentences.length) { el.hidden = true; el.innerHTML = ''; return; }
@@ -767,7 +811,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       ? cov.markets.map(function (m) { return m.code + ' ' + (m.found || 0) + (m.declared ? ' of ' + m.declared : ''); }).join(' · ') + ' products read'
       : (cov.found || 0) + (y ? ' of ' + y + (cov.declared.partial ? ' so far' : '') : '') + ' products read';
     el.innerHTML = '<b>' + (cov.complete ? 'Product catalogue: read completely' : (continuing ? 'Product catalogue: ' + esc(prog) + ', continuing by itself' : 'Product catalogue: read in part')) + '</b>' +
-      '<ul style="margin:6px 0 4px;padding-left:18px">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      '<p class="note" data-cov-summary>' + esc(covSummary(cov)) + '</p>' +
+      '<details data-cov-details><summary>How it was read</summary>' + '<ul style="margin:6px 0 4px;padding-left:18px">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' + '</details>' +
       (note ? '<p class="note">' + esc(note) + '</p>' : '') +
       (resumable && !continuing ? '<button type="button" class="btn" id="catalogContinue">Continue import</button>' : '') +
       '<p class="note" id="catalogStatus"></p>';

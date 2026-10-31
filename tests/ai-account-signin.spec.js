@@ -388,7 +388,7 @@ test('one box takes any AI key: the provider is recognised by its prefix, saved,
     for (const [key, id] of [['sk-ant-api03-abcdefghijklmnop1111', 'anthropic'], ['AIzaSyA' + 'b'.repeat(32), 'gemini'], ['gsk_' + 'c'.repeat(40) + '2222', 'groq']]) {
       await page.fill('#quickKey', key);
       await page.click('#quickSave');
-      await expect(page.locator('#quickNote')).toContainText('is connected and answered the test', { timeout: 30000 });
+      await expect(page.locator('#quickNote')).toContainText('is connected and working', { timeout: 30000 });
       expect(saves[saves.length - 1]).toEqual({ provider: id, fields: { api_key: key } });
       await expect(page.locator(`.conn[data-provider="${id}"] [data-key-stored]`)).toContainText('Key stored, ending ' + key.slice(-4));
       await expect(page.locator(`.conn[data-provider="${id}"] [data-field="api_key"]`)).toBeHidden();
