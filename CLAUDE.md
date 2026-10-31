@@ -4,6 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ What only the owner can do has an agent: /finish-setup (2026-10-31)
+`.claude/commands/finish-setup.md`, run in a Claude session on the owner's own Mac: (1) the refused model keys, one
+row per card with what the refusal means and the page to fix it, proven by Test on /ai-models; (2) the OAuth apps
+for Meta, Google Ads, YouTube, TikTok, Pinterest, Klaviyo with the exact env names `oauth-core` reads and the
+redirect URI, moved to Vercel by `pbpaste | vercel env add ... --sensitive` so no secret enters a chat; (3)
+`scripts/history-rewrite.sh` (git-filter-repo on a fresh mirror, dry run by default, `--push` needs typed REWRITE).
+Same day, migration `20261031030000`: only a Google account can be created (trigger on auth.users), and The Times
+of India's record keeps only IN.
+
 ## ⭐ When every connected model fails, the platform's models answer (2026-10-31)
 Production: all 8 models on the operator's account were refused by their providers (401/403/402/429) and every build fell to
 template copy, because a workspace with any own key used ONLY its own models; the platform's (incl. the free one) were never
