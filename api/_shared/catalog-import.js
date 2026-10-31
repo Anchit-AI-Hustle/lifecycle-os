@@ -956,7 +956,20 @@ function rowFromPage(html, pageUrl, { region, source }) {
   if (isShowcaseUrl || /<div\b[^>]*class=["'][^"']*\b(?:product|cake|bread|menu|item|dish|food|dessert|collection|catalog)\b/i.test(html)) {
     const galleryRows = [];
     const seenTitles = new Set();
-    const UI_EXCLUDE = /\b(?:logo|icon|arrow|button|banner|close|down|menu|slider-footer|swiggy|zomato|loader|placeholder|nav|dropdown|slide)\b/i;
+    // An image's alt text is a product only when it reads as one (2026-10-31).
+    // Production (a bakery whose site states no product data): every banner
+    // slide headline ("Festive gifting for every heart you want to make happy")
+    // and every decorative picture ("Bread 1", "Carousel top element", "Good
+    // food strip desktop", "Cake your day m") became a product. The rules are
+    // general, never a brand's name: a slide/carousel picture, a sentence, a
+    // label made from the file name, a layout word, or the site's own name is
+    // not a product; a desktop and a phone copy of one picture count once.
+    const UI_EXCLUDE = /\b(?:logo|icon|arrow|button|banner|close|down|menu|slider-footer|swiggy|zomato|loader|placeholder|nav|dropdown|slide|carousel|strip|element|background|bg|divider|separator|pattern|texture|badge|seal|award|map)\b/i;
+    const siteName = String(meta['og:site_name'] || (html.match(/<title[^>]*>([^<|\-–]+)/i) || [])[1] || '').trim().toLowerCase().replace(/&#x27;|'|’/g, '');
+    const fileLabel = (src) => {
+      const base = decodeURIComponent(String(src).split('?')[0].split('/').pop() || '').replace(/\.[a-z0-9]+$/i, '');
+      return base.replace(/[-_]+/g, ' ').trim().toLowerCase();
+    };
     for (const m of html.matchAll(/<img\b([^>]*?)>/gi)) {
       const tag = m[1];
       const srcMatch = tag.match(/src=["']([^"']+)["']/i);
@@ -964,12 +977,19 @@ function rowFromPage(html, pageUrl, { region, source }) {
       if (!srcMatch || !altMatch) continue;
       const src = srcMatch[1];
       let title = altMatch[1].replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim();
-      if (!title || title.length < 3 || title.length > 80) continue;
+      if (!title || title.length < 3 || title.length > 60) continue;
       if (UI_EXCLUDE.test(title) || UI_EXCLUDE.test(src)) continue;
+      if (/\b(?:carousel-item|d-block w-100|swiper-slide|slick-slide|hero)\b/i.test(tag)) continue;   // a slide, not a product
+      if (/[|:!?]/.test(title) || title.split(/\s+/).length > 5) continue;                              // a headline, not a name
+      const label = title.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      if (siteName && label.replace(/\s+/g, '').includes(siteName.replace(/[^a-z0-9]/g, '')) && label.split(' ').length <= 4) continue; // the site's own name
+      // A label written from the file name carries its layout ("Brown bread
+      // home", "Cake your day m"): the layout words go, the name stays. A label
+      // that is only a numbered picture ("Bread 1") is not a product.
+      title = title.replace(/(?:\s+(?:m|d|mob|mobile|desktop|phone|home|homepage|web|nav|img|image|pic|photo))+$/i, '').trim();
+      if (/\s\d+$/.test(title) || (fileLabel(src) === label && /\d/.test(fileLabel(src)))) continue;
+      if (/^(?:about|store|stores|contact|team|gallery|home)\b/i.test(title) || title.length < 3) continue;
       if (/^(?:first|second|third|fourth|fifth)\s*slide$/i.test(title) || /^\.+$/.test(title)) continue;
-      if (/nik\s*baker/i.test(title) && /australia|professional|run by|diwali|logo|order/i.test(title)) continue;
-      if (/^nik\s*bakers?('s)?$/i.test(title)) continue;
-      if (/^finest\s*ingredients/i.test(title)) continue;
       title = title.replace(/\s+modal$/i, '').trim();
       const normKey = title.toLowerCase().replace(/[^a-z0-9]/g, '');
       if (seenTitles.has(normKey)) continue;
@@ -1868,7 +1888,16 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       // real store and currency) when the brand's markets include it, never
       // under this one; counted either way.
       if (r.url && r.url !== ask) {
-        const to = foreignLocale(r.url, st);
+        // A market with its own folder (/en-sa/) whose product URL lands OUTSIDE
+        // it - on the root store's home page - was sent away too (2026-10-31,
+        // Lenskart SA/AE read from India: every product URL answered with the
+        // India home page, and 1,468 pages were reported as "declare no product").
+        const outside = (() => {
+          if (!st.prefix) return null;
+          let p = ''; try { p = new URL(r.url).pathname.replace(/\/+$/, ''); } catch (_) { return null; }
+          return (p === st.prefix || p.startsWith(st.prefix + '/')) ? null : { prefix: '', country: String((sib && sib['']) || '').toUpperCase() };
+        })();
+        const to = foreignLocale(r.url, st) || outside;
         if (to) {
           // STORE CHOICE THE SITE OFFERS (2026-10-11): the page the store sent
           // this server to names, in its own hreflang, the address of THIS
