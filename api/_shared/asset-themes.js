@@ -113,7 +113,7 @@ const THEME_IDS = Object.keys(THEMES);
 const TEMPLATES = {
   mail: ['stack', 'poster', 'split', 'magazine', 'catalogue', 'spotlight'],
   text: ['letter', 'memo', 'numbered'],
-  ad: ['overlay', 'split', 'framed', 'type', 'sticker', 'band'],
+  ad: ['overlay', 'split', 'framed', 'type', 'sticker', 'band', 'offer'],
   video: ['lower', 'title', 'split', 'editorial', 'frame'],
   landing: ['classic', 'immersive', 'split', 'editorial'],
 };
