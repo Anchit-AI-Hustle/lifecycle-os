@@ -3104,6 +3104,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      while a new one runs or after it failed (2026-10-11: "Catalogue read
      completely - Found 54 of 66" from another source stayed beside a new
      failure and contradicted it). */
+  /* One plain line first (2026-10-31): products per market by country name,
+     and a market that gave none is said with why in a few words. The full
+     read report stays one click away under "How it was read". */
+  function covSummary(cov) {
+    var nm = function (c) { try { return (window.RegionContext && window.RegionContext.name) ? window.RegionContext.name(c) : c; } catch (_) { return c; } };
+    var ms = Array.isArray(cov.markets) ? cov.markets : [];
+    if (!ms.length) return (cov.found || 0) + ' products read' + (cov.complete ? ', the whole catalogue.' : ' so far.');
+    var got = ms.filter(function (m) { return m.found; }), none = ms.filter(function (m) { return !m.found; });
+    var t = got.map(function (m) { return (m.found || 0).toLocaleString() + ' products in ' + nm(m.code) + (m.declared && m.found < m.declared ? ' (of ' + Number(m.declared).toLocaleString() + ')' : ''); }).join(', ') || 'No products read yet';
+    var why = function (m) { return m.blocked ? 'the store sends this server to another country' : (m.complete ? 'its pages state no product data' : 'not read yet'); };
+    var groups = {};
+    none.forEach(function (m) { (groups[why(m)] = groups[why(m)] || []).push(nm(m.code)); });
+    Object.keys(groups).forEach(function (w) { t += '. ' + groups[w].join(', ') + ': ' + w; });
+    return t + '.';
+  }
   function renderCoverage(cov, resumable, opts) {
     var box = $('impCoverage');
     if (!box) return;
@@ -3116,7 +3131,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       : (cov.complete ? 'Catalogue read completely' : (cov.empty ? 'Catalogue not read: no product found' : (opts.continuing ? 'Catalogue being read: continuing by itself' : 'Catalogue read in part')));
     box.innerHTML =
       '<p class="imp-cov-head"><b>' + esc(head) + '</b></p>' +
-      '<ul class="imp-cov-list">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' +
+      '<p class="note" data-cov-summary>' + esc(covSummary(cov)) + '</p>' +
+      '<details data-cov-details><summary>How it was read</summary>' + '<ul class="imp-cov-list">' + cov.sentences.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' + '</details>' +
       (resumable && !opts.continuing && !opts.history ? '<button type="button" class="btn" id="impContinue">Continue import</button>' : '');
     var c = $('impContinue');
     if (c) c.addEventListener('click', continueImport);
