@@ -231,10 +231,10 @@ test('a cool-down belongs to ONE key: a workspace key out of credits never stops
   setEnv({ OPENROUTER_API_KEY: 'platform-or', GROQ_API_KEY: 'gq' });
   net = installNet((c) => (c.provider === 'openrouter' && c.key === 'workspace-or'
     ? { status: 402, raw: '{"error":{"message":"Insufficient credits"}}' } : undefined));
-  const ws = { order: ['openrouter'], keys: { openrouter: 'workspace-or' }, fallback: true };
-  // A workspace with its own key uses ONLY its own models (2026-10-17): its
-  // key out of credits fails that workspace's call, and nothing of the
-  // platform's answers for it.
+  // Platform fallback switched OFF on AI Models: the workspace's key out of
+  // credits fails that workspace's call, and nothing of the platform's
+  // answers for it (with the switch on, see the next test, it would).
+  const ws = { order: ['openrouter'], keys: { openrouter: 'workspace-or' }, fallback: false };
   const a = await ask({ overrides: ws }).catch((e) => e);
   expect(a).toBeInstanceOf(Error);
   expect(net.calls.filter((c) => c.key === 'platform-or' || c.provider === 'groq')).toEqual([]);
@@ -253,7 +253,7 @@ test('a cool-down belongs to ONE key: a workspace key out of credits never stops
 // be used with the priority order ... claude, openai, gemini, grok and then so
 // on based on the accuracy and quality".
 
-test('a workspace\'s own keys: only its models, Claude then OpenAI then Gemini then Grok, never the platform\'s or the free model', async () => {
+test('a workspace\'s own keys first: Claude then OpenAI then Gemini then Grok; the platform only after all of them fail, and only with the fallback on', async () => {
   process.env.FREE_GENERATION = 'on';
   setEnv({ ANTHROPIC_API_KEY: 'platform-ak', GROQ_API_KEY: 'platform-gq' });
   net = installNet(() => undefined);
@@ -282,10 +282,23 @@ test('a workspace\'s own keys: only its models, Claude then OpenAI then Gemini t
     down.add(p);
   }
   expect(answer).toEqual(['anthropic', 'openai', 'gemini', 'grok']);
-  // All four down: the call fails; the platform's keys and the free model stay unused.
+  // All four down (2026-10-31, the operator chose "fall back to platform models"):
+  // with the platform fallback ON, the platform's models answer AFTER every own
+  // one failed, recorded as the platform's, never the workspace's own.
+  net.restore();
+  net = installNet((c) => (['anthropic', 'openai', 'gemini', 'grok'].includes(c.provider) && String(c.key || '').startsWith('ws-') ? { status: 500, json: { error: 'down' } } : undefined));
+  const rescued = await scope.run({ headers: {} }, async () => ({ out: await ask({ overrides: ws }), outcome: scope.llmOutcome() }));
+  const keys = net.calls.map((c) => String(c.key || ''));
+  const firstPlatform = keys.findIndex((k) => !k.startsWith('ws-'));
+  expect(firstPlatform).toBeGreaterThan(0);
+  // Every own key was tried, in the operator's order, before any of the platform's.
+  expect([...new Set(keys.slice(0, firstPlatform))]).toEqual(['ws-ak', 'ws-oa', 'ws-gm', 'ws-xai']);
+  expect(String(rescued.out.key || '')).not.toMatch(/^ws-/);
+  expect(rescued.outcome).toMatchObject({ ok: 1, own: 0 });
+  // With the fallback OFF: the call fails; the platform's keys and the free model stay unused.
   net.restore();
   net = installNet((c) => (['anthropic', 'openai', 'gemini', 'grok'].includes(c.provider) ? { status: 500, json: { error: 'down' } } : undefined));
-  const err = await ask({ overrides: ws }).catch((e) => e);
+  const err = await ask({ overrides: Object.assign({}, ws, { fallback: false }) }).catch((e) => e);
   expect(err).toBeInstanceOf(Error);
   expect(net.calls.filter((c) => c.key === 'platform-ak' || c.key === 'platform-gq' || c.provider === 'pollinations')).toEqual([]);
 });

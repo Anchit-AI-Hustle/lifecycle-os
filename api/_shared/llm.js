@@ -997,6 +997,14 @@ module.exports = async function callLLM(opts) {
     // "users should still have the option to integrate the ai models they want
     // to use themselves ... if entered, then only those ai models shall be
     // used").
+    // When every model of the person's own fails, the platform's models (the
+    // free one included) answer AFTER them, unless the person switched the
+    // platform fallback off on AI Models (2026-10-31: every own key was refused
+    // by its provider and builds fell to template copy, with the platform's
+    // free model never tried though the fallback switch was on).
+    if (ov && ov.fallback === true && !exclusive) {
+      for (const p of providerOrder(tierNorm)) if (order.indexOf(p) < 0) order.push(p);
+    }
     outsideRouting = providerOrder(tierNorm).filter((p) => order.indexOf(p) < 0);
   } else if (ov && ov.fallback === false && !ovOrder.length) {
     // "Only my providers" with no explicit order: the providers the workspace

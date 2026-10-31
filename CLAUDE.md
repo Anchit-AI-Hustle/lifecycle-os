@@ -4,6 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ When every connected model fails, the platform's models answer (2026-10-31)
+Production: all 8 models on the operator's account were refused by their providers (401/403/402/429) and every build fell to
+template copy, because a workspace with any own key used ONLY its own models; the platform's (incl. the free one) were never
+tried though "Use platform models as fallback" was on. The operator chose "fall back to platform models": `llm.js` now appends
+the platform order AFTER the own models when `overrides.fallback === true` (the AI Models switch, default on); with it off the
+17 Oct rule stands (own models only). Answers from the platform are recorded as the platform's (`own: 0`), never free.
+Also: Bedrock's Test now passes its AWS key pair and region (it never called AWS: "Connection did not answer"); every failed
+Test names the provider's own reason; the Test/Save button keeps its label while working. Gated in `llm-provider-chain`.
+
 ## ⭐ Music unblocked, global country selector, connector sign-in cards & master spec (2026-10-30)
 The operator: "first take fresh pull from github. song creatrion still not working - ensure changes are pushed to git and deployed on vercel. also ensure all countries selection works everywhere - currently issues - ensure correct countries showing. also for shopify, meta ads etc, signin to connect not there? for data, assets history etc everything".
 - **Music composition unblocked (`api/brain.js`, `music-client.js`)**: `music-compose` and `music-job` were erroneously classified under the `WRITES` regex that blocked demo/evaluating visitors with `409 no_active_brand`. Music composition is an open studio tool that has a procedural code synthesizer (`third-eye-synth`) and free tier generation that composes music for any prompt and brand without requiring pre-configured server workspaces. `music-client.js` now also carries active `workspace_id` and brand context when available.
