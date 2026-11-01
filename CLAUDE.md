@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A static ad can lead with its offer, as Fastlane's do (2026-11-01)
+The operator, with Fastlane's "first 3 statics" for a tea brand (photo, headline on a brand band, $99.99 struck beside
+$34.99, ticked benefits): "for quality comparison and sanity". `scripts/lib/static-ad.js` gains a seventh template,
+`offer`: the photo, the headline on the brand's ground, then a panel with the price (the STORE's compare-at struck
+when it states one) beside up to three of the brand's OWN claims (verbatim, <= 40 chars, a longer one left out, never
+cut), ticked, and the button. No price and no claims = the band template. `attachStaticCreative` passes `compare`
+(from `heroProduct.compare_at`) and `benefits` (the record's claims), and a stated discount puts the A ad on `offer`.
+Not done: Fastlane's generated scene with the real pack placed in it; the standing rule here is real catalogue
+photos only for product creatives, and changing it is the operator's call. Gated by `tests/static-ad-offer.spec.js`.
+
 ## ⭐ A Test always reaches the provider; a catalogue holds products, not pictures (2026-10-31)
 The operator: "still some issue in model and key connection - ensure simplest mode ... perfect and easy usage", then
 "check for issues in brand setup for catalog - compare completely with usefastlane.ai" (Fastlane: one link -> product,
