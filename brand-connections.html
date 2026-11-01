@@ -144,6 +144,25 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     font-size:13px;line-height:1;cursor:pointer}
   .icb:disabled{opacity:.35;cursor:default}
 
+  /* Ad history (2026-11-01): the brand's own ads with the platforms' figures. Stacks on a phone. */
+  #adHistoryCard{margin:0 0 18px}
+  #adHistoryCard h2{margin:0 0 6px}
+  #adHistoryCard .note{font-size:12.5px}
+  .ah-plats{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .ah-plat{border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:12.5px;line-height:1.5;background:var(--surface);flex:1 1 220px;min-width:0}
+  .ah-wrap{overflow-x:auto;margin-top:10px}
+  table.ah{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:auto}
+  table.ah th,table.ah td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.ah th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  table.ah td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.ah .copy{color:var(--muted);overflow-wrap:anywhere}
+  @media(max-width:720px){
+    table.ah thead{display:none}
+    table.ah,table.ah tbody,table.ah tr,table.ah td{display:block;width:100%}
+    table.ah tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;padding:6px 8px}
+    table.ah td{border-bottom:0;padding:4px 0;white-space:normal}
+    table.ah td::before{content:attr(data-label);display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  }
   .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--on-primary);border-top-color:transparent;
     border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -172,6 +191,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <section class="panel on" id="panel-platforms" role="tabpanel" aria-labelledby="tab-platforms">
     <div class="banner info" id="storageNote">Checking how secrets are stored on this deployment.</div>
     <div id="catalogCard" hidden></div>
+    <div id="adHistoryCard" class="card" data-ad-history hidden></div>
     <div id="platforms"><p class="muted">Loading the platforms you can connect.</p></div>
   </section>
 
@@ -869,6 +889,92 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
   }
 
+  /* ── ad history (2026-11-01): the brand's own ads, from its ad accounts ── */
+
+  async function brainApi(op, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    var t = token();
+    if (t) headers.Authorization = 'Bearer ' + t;
+    var ws = workspaceId();
+    var res = await fetch('/api/brain?action=ad-history&op=' + encodeURIComponent(op) + (ws ? '&workspace_id=' + encodeURIComponent(ws) : ''), {
+      method: body ? 'POST' : 'GET', headers: headers, cache: 'no-store',
+      body: body ? JSON.stringify(Object.assign({ workspace_id: ws || undefined }, body)) : undefined
+    });
+    var json = await res.json().catch(function () { return {}; });
+    if (!res.ok) { var e = new Error(json.message || json.error || ('HTTP ' + res.status)); e.payload = json; throw e; }
+    return json;
+  }
+  function fmtN(v, d) { return v == null || !isFinite(Number(v)) ? '' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d == null ? 0 : d }); }
+  function fmtPct(v) { return v == null || !isFinite(Number(v)) ? '' : (Number(v) * 100).toFixed(2) + '%'; }
+  function cell(label, v, cls) {
+    // A figure the platform did not return is left blank and says so, never 0.
+    var empty = v === '' || v == null;
+    return '<td data-label="' + esc(label) + '"' + (cls ? ' class="' + cls + '"' : '') + (empty ? ' data-not-returned' : '') + '>' + (empty ? '<span class="note">not returned</span>' : esc(v)) + '</td>';
+  }
+  function renderAdHistory(st, ads, note) {
+    var el = $('adHistoryCard');
+    el.hidden = false;
+    var plats = (st && st.platforms) || [];
+    var head = '<h2>Ad history</h2><p class="note">This brand\'s own ads, read from its connected ad accounts with the figures each platform returned. They are evidence for new ads: what ran above this brand\'s own median click-through rate, and what ran below it.</p>';
+    var pl = '<div class="ah-plats">' + plats.map(function (p) {
+      var last = p.last_import;
+      var line = !p.built ? p.reason
+        : !p.connected ? 'Not connected on this brand.'
+        : (last ? (last.ok ? 'Last import ' + new Date(last.ran_at).toLocaleString() + (last.note ? '. ' + last.note : '') : 'Last import did not read: ' + (last.note || 'the platform did not answer.')) : 'Not imported yet.');
+      return '<div class="ah-plat" data-ah-platform="' + esc(p.provider) + '"><b>' + esc(p.label) + '</b> · <span data-ah-count>' + (p.ads || 0) + '</span> ads kept<br><span class="note">' + esc(line) + '</span></div>';
+    }).join('') + '</div>';
+    var canImport = plats.some(function (p) { return p.built && p.connected; });
+    var btn = '<div class="row" style="margin-top:0"><button type="button" class="btn" id="adHistoryImport"' + (canImport ? '' : ' disabled title="Connect Meta ads or Google Ads on this brand first"') + '>Import now</button>' +
+      '<span class="note" id="adHistoryStatus">' + esc(note || (canImport ? 'Reads the last 180 days.' : 'Connect Meta ads or Google Ads below to import this brand\'s ads.')) + '</span></div>';
+    var rows = (ads || []).map(function (a) {
+      var m = a.metrics || {};
+      var copy = [a.headline, a.primary_text].filter(Boolean).join(' · ');
+      return '<tr data-ah-ad="' + esc(a.ad_id) + '">' + cell('Ad', a.name || a.ad_id) + cell('Platform', a.provider === 'google_ads' ? 'Google Ads' : (a.provider === 'meta' ? 'Meta' : a.provider)) +
+        cell('Status', a.status || '') + cell('Spend', m.spend == null ? '' : fmtN(m.spend, 2) + (a.currency ? ' ' + a.currency : ''), 'n') + cell('Impressions', fmtN(m.impressions), 'n') +
+        cell('Clicks', fmtN(m.clicks), 'n') + cell('CTR', fmtPct(m.ctr), 'n') + cell('Conversions', fmtN(m.conversions, 2), 'n') +
+        cell('Cost per result', fmtN(m.cost_per_result, 2), 'n') + cell('ROAS', m.roas == null ? '' : fmtN(m.roas, 2) + 'x', 'n') + cell('Copy', copy, 'copy') + '</tr>';
+    }).join('');
+    var table = rows ? '<div class="ah-wrap"><table class="ah"><thead><tr><th>Ad</th><th>Platform</th><th>Status</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Conversions</th><th>Cost per result</th><th>ROAS</th><th>Copy</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      : '<p class="note" data-ah-empty>No ads are kept for this brand yet.</p>';
+    el.innerHTML = head + pl + btn + table;
+    var b = $('adHistoryImport');
+    if (b) b.addEventListener('click', importAdHistory);
+  }
+  function adHistorySentence(text) {
+    var el = $('adHistoryCard');
+    el.hidden = false;
+    el.innerHTML = '<h2>Ad history</h2><p class="note" data-ah-sentence>' + esc(text) + '</p>';
+  }
+  async function loadAdHistory(note) {
+    var b = window.BrandContext && window.BrandContext.brand;
+    if (!b || !b.id) return;
+    var isDevice = window.BrandContext.device && window.BrandContext.device.isDeviceId && window.BrandContext.device.isDeviceId(b.id);
+    if (isDevice) { adHistorySentence('This brand is kept on this device, and ad accounts are connected to a brand workspace on the server, so there is no ad history to import here.'); return; }
+    var stop = window.LifecycleStatus && window.LifecycleStatus.decide ? await window.LifecycleStatus.decide('Reading your ad history') : null;
+    if (stop) { adHistorySentence(stop.message || 'Sign in to read this brand\'s ad history.'); return; }
+    try {
+      var st = await brainApi('status');
+      var list = await brainApi('list');
+      renderAdHistory(st, list.ads || [], note);
+    } catch (e) {
+      var el = $('adHistoryCard'); el.hidden = false;
+      window.LifecycleFailure.show(el, e, { title: 'Ad history could not be read' });
+    }
+  }
+  async function importAdHistory() {
+    var btn = $('adHistoryImport'); var line = $('adHistoryStatus');
+    if (btn) btn.disabled = true;
+    if (line) line.textContent = 'Reading the ad accounts…';
+    try {
+      var r = await brainApi('import', { days: 180 });
+      var said = (r.platforms || []).map(function (p) { return p.label + ': ' + (p.ok ? p.ads + ' ads (' + p.with_metrics + ' with figures)' : (p.note || 'not read')); }).join(' · ');
+      await loadAdHistory(said);
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (line) window.LifecycleFailure.show(line, e, { title: 'The import did not run' });
+    }
+  }
+
   function selectTab(name) {
     Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (t) {
       t.setAttribute('aria-selected', t.getAttribute('data-tab') === name ? 'true' : 'false');
@@ -934,6 +1040,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (bootQs.get('ai_signin') || bootQs.get('oauth') || (bootQs.get('state') && (bootQs.get('code') || bootQs.get('error')))) finishSignin().then(function () {}, function () {});
     else load();
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
+    (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(function () { return loadAdHistory(); }, function () {});
   }
 
   document.addEventListener('DOMContentLoaded', function () { boot(0); });

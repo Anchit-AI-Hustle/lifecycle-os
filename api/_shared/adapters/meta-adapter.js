@@ -118,6 +118,17 @@ const ENDPOINTS = {
     doc: `${GRAPH_DOCS}/adgroup (status enum ACTIVE, PAUSED, DELETED, ARCHIVED; "Other statuses can be used for update")`,
     scopes: ['ads_management'],
   },
+  // The brand's own ad history (2026-11-01, ad-history.js). Read on
+  // developers.facebook.com that day: the ads edge's Reading section ("A list
+  // of Ad nodes", paging per the Graph API guide), the Ad node's fields (id,
+  // name, status, effective_status, created_time, creative, adset_id,
+  // campaign_id) and the AdCreative's (body, title, image_url, thumbnail_url,
+  // video_id, object_story_spec, object_url, call_to_action_type).
+  account_ads_list: {
+    method: 'GET', url: `${GRAPH}/{act_id}/ads`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/ads (Reading: GET /act_{ad_account_id}/ads, "A list of Ad nodes", paging) with ${MKT_DOCS}/reference/adgroup (fields id, name, status, effective_status, created_time, creative) and ${MKT_DOCS}/reference/ad-creative (body, title, image_url, thumbnail_url, video_id, object_story_spec, object_url, call_to_action_type)`,
+    scopes: ['ads_read'],
+  },
   // The paid launch pipeline (2026-10-20, paid-launch-core.js). Each read on
   // developers.facebook.com on that date, the page named per entry.
   account_campaigns_list: {
@@ -678,6 +689,85 @@ class MetaAdapter extends AdPlatformAdapter {
             roas,
           }),
           period: { start: x.date_start || null, stop: x.date_stop || null },
+        };
+      }),
+    };
+  }
+
+  /**
+   * The brand's own ad history (ad-history.js): every ad in the account with
+   * its creative as Meta returned it, and its insights over the window. Paged
+   * with Meta's own `after` cursor up to `maxPages` per edge; a read that did
+   * not fit says so (`complete:false`). A metric Meta did not return is null,
+   * never zero. `conversions` and `cost_per_conversion` arrive as lists of
+   * action values; one is taken only when Meta returned exactly one (the same
+   * rule as purchase_roas), because adding action types would count one
+   * purchase under several names.
+   */
+  async readAdHistory({ ad_account_id, since, until, maxPages = 20 } = {}) {
+    const act = this.actPath(ad_account_id || this.cfg().ad_account_id || this.credentials.account_id || '');
+    if (act === 'act_') return { ok: false, note: this.gap('ad account id', 'Meta ad history') };
+    const all = async (op, extra) => {
+      const rows = [];
+      let after = '';
+      for (let page = 0; page < maxPages; page += 1) {
+        const q = Object.assign({ limit: '100' }, extra, this.authParams());
+        if (after) q.after = after;
+        const r = await this.callEndpoint(op, { params: { act_id: act }, query: q });
+        if (!r.ok) return Object.assign({ ok: false }, r);
+        rows.push(...((r.data && r.data.data) || []));
+        after = r.data && r.data.paging && r.data.paging.cursors && r.data.paging.next ? r.data.paging.cursors.after : '';
+        if (!after) return { ok: true, rows, complete: true };
+      }
+      return { ok: true, rows, complete: false };
+    };
+    const ads = await all('account_ads_list', {
+      fields: 'id,name,status,effective_status,created_time,adset_id,campaign_id,creative{id,title,body,image_url,thumbnail_url,video_id,object_url,call_to_action_type,object_story_spec}',
+    });
+    if (!ads.ok) return ads;
+    const ins = await all('ad_insights', {
+      level: 'ad',
+      fields: 'ad_id,ad_name,spend,impressions,clicks,ctr,conversions,cost_per_conversion,purchase_roas,date_start,date_stop',
+      time_range: JSON.stringify({ since, until }),
+    });
+    const one = (list) => (Array.isArray(list) && list.length === 1 && num(list[0] && list[0].value) != null ? num(list[0].value) : null);
+    const metricsBy = {};
+    for (const x of (ins.ok ? ins.rows : [])) {
+      const ctr = num(x.ctr);
+      metricsBy[String(x.ad_id)] = {
+        spend: num(x.spend), impressions: num(x.impressions), clicks: num(x.clicks),
+        // Meta reports ctr as a percentage; stored as a ratio, as Google's is.
+        ctr: ctr == null ? null : ctr / 100,
+        conversions: one(x.conversions), cost_per_result: one(x.cost_per_conversion), roas: one(x.purchase_roas),
+        period: { start: x.date_start || null, stop: x.date_stop || null },
+      };
+    }
+    return {
+      ok: true,
+      account_id: act,
+      complete: ads.complete && (ins.ok ? ins.complete : false),
+      insights_read: ins.ok ? true : (ins.error || ins.note || 'not read'),
+      ads: ads.rows.map((a) => {
+        const c = a.creative || {};
+        const spec = c.object_story_spec || {};
+        const link = spec.link_data || {};
+        const video = spec.video_data || {};
+        const vcta = video.call_to_action && video.call_to_action.value ? video.call_to_action.value : {};
+        return {
+          ad_id: String(a.id),
+          name: a.name || null,
+          status: a.effective_status || a.status || null,
+          created_at: a.created_time || null,
+          primary_text: c.body || link.message || video.message || null,
+          headline: c.title || link.name || video.title || null,
+          description: link.description || video.link_description || null,
+          image_url: c.image_url || link.picture || video.image_url || c.thumbnail_url || null,
+          video_id: c.video_id || video.video_id || null,
+          // Meta returns a video's id here, not a playable address.
+          video_url: null,
+          landing_url: c.object_url || link.link || vcta.link || null,
+          cta: c.call_to_action_type || (link.call_to_action && link.call_to_action.type) || null,
+          metrics: metricsBy[String(a.id)] || null,
         };
       }),
     };

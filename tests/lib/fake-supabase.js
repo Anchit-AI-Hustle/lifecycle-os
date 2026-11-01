@@ -80,6 +80,7 @@ const UNIQUE = {
   contact_touch_ledger: [['workspace_id', 'source', 'source_ref', 'subject_key']],  // contact_touch_dedupe_idx
   contact_fatigue_rules: [['workspace_id']],                                       // primary key
   brand_catalog_import_queue: [['workspace_id', 'run_id', 'market', 'url']],       // 20261011054000 brand_catalog_import_queue_key
+  brand_ad_history: [['workspace_id', 'provider', 'ad_id']],                       // 20261101120000 brand_ad_history_ad_key
 };
 
 /**
@@ -126,6 +127,7 @@ const WORKSPACE_SCOPED = new Set([
   'contact_touch_ledger', 'contact_fatigue_rules',
   'social_inbound_events', 'social_metric_snapshots', 'social_creative_flags', 'social_gateway_settings',
   'paid_launches', 'paid_account_syncs',
+  'brand_ad_history', 'brand_ad_history_runs',
   'brand_catalog_products', 'brand_catalog_import_queue',
   // is_brand_member policies (20260813120000 / 20260810120000)
   'brand_competitors', 'kb_knowledge',
@@ -254,6 +256,11 @@ function project(row, select) {
 // the tables whose wrong column has reached production. Add a table here when
 // a column mismatch is found; never invent a column.
 const LIVE_COLUMNS = {
+  // 20261101120000_brand_ad_history.sql (written, not yet on the live project):
+  // the columns that migration declares, so a reader asking for another fails here.
+  brand_ad_history: ['id', 'workspace_id', 'provider', 'account_id', 'ad_id', 'name', 'status', 'started_at', 'primary_text', 'headline', 'description',
+    'image_url', 'video_url', 'video_id', 'landing_url', 'cta', 'currency', 'metrics', 'window_start', 'window_end', 'first_seen', 'last_seen', 'imported_at', 'imported_by'],
+  brand_ad_history_runs: ['id', 'workspace_id', 'provider', 'account_id', 'window_start', 'window_end', 'ads', 'with_metrics', 'complete', 'ok', 'note', 'source', 'ran_by', 'ran_at'],
   smart_products: ['id', 'sku', 'title', 'handle', 'category', 'market', 'price', 'tags', 'metadata', 'updated_at', 'workspace_id'],
   // 20260609000001 + the workspace column (2026-10-20: started_at was ordered on and never existed).
   smart_campaigns: ['id', 'name', 'channel', 'market', 'campaign_type', 'subject', 'headline', 'hook', 'sent_at', 'cohort_key', 'hero_sku', 'metadata', 'updated_at', 'workspace_id'],
