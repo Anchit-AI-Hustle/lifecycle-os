@@ -66,6 +66,28 @@ const ENDPOINTS = {
     doc: `${DOCS}/api/v5/ads-create (ad_group_id, creative_type, pin_id)`,
     note: 'The documentation read shows only ACTIVE in an ad\'s status field; PAUSED on an ad was not confirmed, and an ad created ACTIVE spends.',
   },
+  // The paid launch (2026-11-01). The ad group create call is documented
+  // (POST /v5/ad_accounts/{id}/ad_groups, an array of {name, campaign_id,
+  // billable_event, status, targeting_spec.LOCATION, budget_in_micro_currency,
+  // budget_type}); what was NOT confirmed is the budget_type value for a daily
+  // ad-group budget (the pages read show CBO_ADGROUP and a campaign-level
+  // daily_spend_cap) and that status PAUSED is accepted at creation (the
+  // examples create ACTIVE; PAUSED appears in the read status enum).
+  adgroup_create: {
+    method: 'POST', url: `${API}/ad_accounts/{ad_account_id}/ad_groups`, verified: false,
+    doc: `${DOCS}/work-with-ads/create-campaigns-and-ad-groups (ad_groups/create: name, campaign_id, billable_event) and ${DOCS}/api-features/targeting-overview (targeting_spec: at least one of LOCATION or GEO)`,
+    note: 'The budget_type value for a daily ad-group budget and status PAUSED at creation were not confirmed in the pages read.',
+  },
+  adgroup_update: {
+    method: 'PATCH', url: `${API}/ad_accounts/{ad_account_id}/ad_groups`, verified: false,
+    doc: `${DOCS}/api-features/targeting-overview (PATCH Update ad groups)`,
+    note: 'The update body (an array with id and status, or a budget) was not read field by field.',
+  },
+  ad_update: {
+    method: 'PATCH', url: `${API}/ad_accounts/{ad_account_id}/ads`, verified: false,
+    doc: `${DOCS}/api/v5/ads-update`,
+    note: 'Not read.',
+  },
   campaign_update: {
     method: 'PATCH', url: `${API}/ad_accounts/{ad_account_id}/campaigns`, verified: false,
     doc: `${DOCS}/work-with-ads/create-campaigns-and-ad-groups (campaigns/update)`,
@@ -285,6 +307,57 @@ class PinterestAdapter extends SocialPlatformAdapter {
       headers: this.headers(),
       body: [{ id: String(s.external_id), status: 'ACTIVE' }],
     });
+  }
+
+  /* ── the paid launch pipeline (paid-launch-core.js) ─────────────────────── */
+
+  /** The request one launch step would make, as data. Every object PAUSED. */
+  paidRequest(kind, spec) {
+    const s = spec || {};
+    const params = { ad_account_id: String(s.ad_account_id || this.adAccount()) };
+    const headers = this.headers();
+    if (kind === 'campaign') return { op: 'campaign_create', params, headers, body: [{ name: s.name, objective_type: 'CONSIDERATION', status: 'PAUSED' }] };
+    if (kind === 'adgroup') {
+      return { op: 'adgroup_create', params, headers, body: [{
+        name: s.name, campaign_id: s.campaign_id, billable_event: 'CLICKTHROUGH', status: 'PAUSED',
+        budget_in_micro_currency: s.daily_budget_micros, targeting_spec: { LOCATION: s.countries || [] },
+      }] };
+    }
+    if (kind === 'pin') {
+      // is_removable: an ad-only Pin (pins-create), so the ad's Pin is not posted to the board's followers.
+      const body = { board_id: s.board_id, media_source: { source_type: 'image_url', url: s.image_url }, is_removable: true };
+      for (const [k, v] of [['title', s.headline], ['description', s.primary_text], ['link', s.link]]) if (v) body[k] = v;
+      return { op: 'pin_create', headers, body };
+    }
+    if (kind === 'ad') return { op: 'ad_create', params, headers, body: [{ ad_group_id: s.adgroup_id, creative_type: 'REGULAR', pin_id: s.pin_id, name: s.name || undefined, status: 'PAUSED' }] };
+    return null;
+  }
+
+  async createPaidObject(kind, spec) {
+    const rq = this.paidRequest(kind, spec);
+    if (!rq) return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+    const r = await this.callEndpoint(rq.op, rq);
+    if (!r.ok) return r;
+    const item = r.raw && Array.isArray(r.raw.items) ? r.raw.items[0] : null;
+    const id = item ? item.data && item.data.id : r.raw && r.raw.id;
+    if (item && Array.isArray(item.exceptions) && item.exceptions.length) return { ok: false, sent: true, error_class: 'permanent', error: `Pinterest refused the ${kind}: ${JSON.stringify(item.exceptions).slice(0, 300)}` };
+    if (!id) return { ok: false, sent: true, error_class: 'transient', error: `Pinterest accepted the ${kind} call but returned no id.` };
+    return { ok: true, sent: true, external_id: String(id), status: 'paused', op: r.op };
+  }
+
+  async updatePaidObject(kind, id, fields) {
+    const f = fields || {};
+    const op = { campaign: 'campaign_update', adgroup: 'adgroup_update', ad: 'ad_update' }[kind];
+    if (!op) return { ok: false, sent: false, error_class: 'validation', error: `Unknown object "${kind}".` };
+    const row = { id: String(id) };
+    if (f.status) row.status = f.status;
+    if (f.daily_budget_micros != null) row.budget_in_micro_currency = f.daily_budget_micros;
+    return this.callEndpoint(op, { params: { ad_account_id: this.adAccount() }, headers: this.headers(), body: [row] });
+  }
+
+  static launchOps(kinds) {
+    const map = { campaign: ['campaign_create', 'campaign_update'], adgroup: ['adgroup_create', 'adgroup_update'], pin: ['pin_create'], ad: ['ad_create', 'ad_update'] };
+    return [...new Set([].concat(...(kinds || []).map((k) => map[k] || [])))];
   }
 
   /** Pin analytics over the last `days` (at most 90, Pinterest's window). */

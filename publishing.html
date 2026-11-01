@@ -415,7 +415,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       from this brand&rsquo;s own ads with your daily budget split across its ad sets, then create the campaign, each ad set
       with its budget, each creative and each ad &mdash; every one <b>paused</b>. Turning the spend on is a separate press,
       recorded with your account. Nothing is sent until LIVE_CONNECTORS, this brand&rsquo;s live publishing and
-      META_ALLOW_WRITES are all on; with one off, each step shows the exact request it would have made.
+      the platform&rsquo;s own write switch (META_ALLOW_WRITES, GOOGLE_ADS_ALLOW_WRITES, ...) are all on; with one off,
+      each step shows the exact request it would have made. A platform whose calls were not all confirmed in its
+      documentation is planned and every step is withheld, with the reason.
     </p>
     <div id="pl-state" class="muted">Open this tab to load the launch pipeline.</div>
     <div class="grid" id="pl-platforms"></div>
@@ -434,6 +436,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <h3>2. Plan the launch</h3>
       <p class="muted">Built from this brand&rsquo;s own ads: a Smart Brain campaign (one ad set per market), or the briefs you sent here from Winning angles (one ad set per brief, split by its test plan). Every ad is checked against its own copy limits and the compliance gate; a gap blocks the build and says what is missing.</p>
       <div class="grid">
+        <div><label for="pl-provider">Platform</label><select id="pl-provider"><option value="meta">Meta (Facebook + Instagram ads: image and video)</option></select></div>
         <div><label for="pl-source">Built from</label>
           <select id="pl-source"><option value="campaign">A Smart Brain campaign</option><option value="briefs">Winning angles briefs</option></select></div>
         <div><label for="pl-campaign">Smart Brain campaign id</label><input type="text" id="pl-campaign" placeholder="campaign id from /brain"></div>
@@ -442,10 +445,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div><label for="pl-objective">Objective</label><select id="pl-objective"><option value="OUTCOME_TRAFFIC">Traffic: clicks to the brand&rsquo;s page</option></select></div>
         <div><label for="pl-link">Landing page (if the ads do not carry one)</label><input type="url" id="pl-link" placeholder="https://"></div>
         <div><label for="pl-image">Image (if a brief has none)</label><input type="url" id="pl-image" placeholder="https:// a product photo"></div>
-        <div><label for="pl-page">Facebook Page id (if not on the connection)</label><input type="text" id="pl-page"></div>
-        <div><label for="pl-dsa-payor">EU only: who pays for the ads</label><input type="text" id="pl-dsa-payor"></div>
-        <div><label for="pl-dsa-beneficiary">EU only: who the ads are for</label><input type="text" id="pl-dsa-beneficiary"></div>
+        <div data-pl-for="meta"><label for="pl-page">Facebook Page id (if not on the connection)</label><input type="text" id="pl-page"></div>
+        <div data-pl-for="meta"><label for="pl-dsa-payor">EU only: who pays for the ads</label><input type="text" id="pl-dsa-payor"></div>
+        <div data-pl-for="meta"><label for="pl-dsa-beneficiary">EU only: who the ads are for</label><input type="text" id="pl-dsa-beneficiary"></div>
+        <div data-pl-for="google_ads tiktok_ads pinterest"><label for="pl-currency">Account currency (as the account states it)</label><input type="text" id="pl-currency" maxlength="3" placeholder="e.g. INR"></div>
+        <div data-pl-for="google_ads"><label for="pl-geo">Google location ids per market (market:id, comma separated)</label><input type="text" id="pl-geo" placeholder="e.g. IN:2356"></div>
+        <div data-pl-for="google_ads"><label for="pl-eu-political">EU political advertising</label><select id="pl-eu-political"><option value="">Not declared yet</option><option value="none">These ads contain none</option><option value="contains">These ads contain it</option></select></div>
+        <div data-pl-for="pinterest"><label for="pl-board">Pinterest board id (if not on the connection)</label><input type="text" id="pl-board"></div>
       </div>
+      <p class="muted" id="pl-provider-note"></p>
       <p class="muted" id="pl-briefs-note"></p>
       <div class="row"><button class="primary" id="pl-plan">Plan the launch</button></div>
     </div>
@@ -1275,6 +1283,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      device has no ad account and gets the reason, not a failure. */
   var PL = BRAIN + 'paid-launch&op=';
   var PL_CURRENT = null;
+  var PL_PLATFORMS = [];
+  function plProviderShown() {
+    var id = document.getElementById('pl-provider').value || 'meta';
+    document.querySelectorAll('[data-pl-for]').forEach(function (el) { el.style.display = el.getAttribute('data-pl-for').split(' ').indexOf(id) >= 0 ? '' : 'none'; });
+    var p = PL_PLATFORMS.filter(function (x) { return x.id === id; })[0];
+    document.getElementById('pl-provider-note').textContent = p ? (p.built ? (p.scope || '') : p.reason) : '';
+  }
   var PL_DEVICE = false;
   var PL_LIVE_ARMED = 0;
   var PL_BUTTONS = ['pl-load-accounts', 'pl-sync', 'pl-plan', 'pl-run', 'pl-live', 'pl-pause', 'pl-apply-budget', 'pl-list-refresh'];
@@ -1298,11 +1313,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (st.objectives && st.objectives.length) {
       document.getElementById('pl-objective').innerHTML = st.objectives.map(function (o) { return '<option value="' + esc(o.id) + '">' + esc(o.label) + '</option>'; }).join('');
     }
-    document.getElementById('pl-platforms').innerHTML = (st.platforms || []).map(function (p) {
-      var chips = [p.built ? chip('on', 'built') : chip('off', 'not built')];
-      if (p.built) chips.push(p.connected ? chip('on', 'connected') : chip('off', 'not connected'));
-      if (p.switches) chips.push(p.switches.all_on ? chip('on', 'writes on') : chip('warn', 'writes withheld'));
-      var lines = p.built ? ((p.switches && p.switches.off) || []).concat(p.note ? [p.note] : []) : [p.reason];
+    PL_PLATFORMS = st.platforms || [];
+    var sel = document.getElementById('pl-provider');
+    var was = sel.value || 'meta';
+    sel.innerHTML = PL_PLATFORMS.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.label + (p.built ? '' : ' (planned, every step withheld)')) + '</option>'; }).join('');
+    if (PL_PLATFORMS.some(function (p) { return p.id === was; })) sel.value = was;
+    plProviderShown();
+    document.getElementById('pl-platforms').innerHTML = PL_PLATFORMS.map(function (p) {
+      var chips = [p.built ? chip('on', 'built') : chip('warn', 'planned, withheld')];
+      chips.push(p.connected ? chip('on', 'connected') : chip('off', 'not connected'));
+      if (p.built && p.switches) chips.push(p.switches.all_on ? chip('on', 'writes on') : chip('warn', 'writes withheld'));
+      var lines = (p.built ? [] : [p.reason]).concat(p.scope ? [p.scope] : []).concat(p.built ? ((p.switches && p.switches.off) || []) : []).concat(p.note ? [p.note] : []);
       return '<div class="conn"><div class="hd"><span class="nm">' + esc(p.label) + '</span><span>' + chips.join(' ') + '</span></div>'
         + (lines.length ? '<ul class="checklist">' + lines.map(function (n) { return '<li><span class="dot warn"></span><span>' + esc(n) + '</span></li>'; }).join('') + '</ul>' : '')
         + '</div>';
@@ -1320,6 +1341,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     if (!PL_DEVICE) plList();
   }
+
+  document.getElementById('pl-provider').addEventListener('change', plProviderShown);
 
   document.getElementById('pl-load-accounts').addEventListener('click', async function () {
     var b = this; b.disabled = true;
@@ -1357,9 +1380,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var b = this; b.disabled = true;
     var kind = document.getElementById('pl-source').value;
     var val = function (id) { return document.getElementById(id).value.trim(); };
+    var provider = val('pl-provider') || 'meta';
+    var geo = {};
+    val('pl-geo').split(',').forEach(function (pair) { var kv = pair.split(':'); if (kv.length === 2 && kv[0].trim() && kv[1].trim()) geo[kv[0].trim().toUpperCase()] = kv[1].trim(); });
     var body = {
-      provider: 'meta',
-      ad_account_id: val('pl-account') || undefined,
+      provider: provider,
+      ad_account_id: provider === 'meta' ? (val('pl-account') || undefined) : undefined,
+      currency: provider === 'meta' ? undefined : (val('pl-currency').toUpperCase() || undefined),
+      geo_target_constants: provider === 'google_ads' ? geo : undefined,
+      eu_political_advertising: provider === 'google_ads' ? (val('pl-eu-political') || undefined) : undefined,
+      board_id: provider === 'pinterest' ? (val('pl-board') || undefined) : undefined,
       total_daily_budget: Number(val('pl-budget')) || null,
       markets: val('pl-markets').split(',').map(function (x) { return x.trim(); }).filter(Boolean),
       objective: val('pl-objective'),
