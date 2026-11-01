@@ -384,7 +384,7 @@ const NOISE_DOMAINS = [
 ];
 const NOISE_NAME_RE = /\b(google|gmail|security alert|verification|2[-\s]?step|password|sign[-\s]?in|account|receipt|invoice|calendar|via google sheets|html\/?css to image)\b/i;
 // The operator's own identity — never a competitor.
-const SELF_HINTS = ['anchit', 'owner', 'knickgasm'];
+const SELF_HINTS = ['anchit', 'knickgasm'];
 
 function isNoiseSender(address, displayName) {
   const addr = (address || '').toLowerCase();
@@ -986,6 +986,7 @@ async function discoverBrands(opts) {
 }
 
 module.exports = {
+  isNoiseSender,
   getAllEmails, getEmailHtml, getRawHtml, runSync, ensureHeaderRow,
   sortEmailsByReceivedDesc, ingestEmail, fetchMetaAds,
   getBrands, appendBrands, seedBrands, discoverBrands, markBrandSubscribed,

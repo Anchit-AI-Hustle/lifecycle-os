@@ -19,8 +19,12 @@ PATHS=(
   "deploy-copilot.sh"
   "Raw Prompts/"
 )
-# Each line: literal==>replacement (git filter-repo --replace-text format).
-REPLACE=$'owner@example.com==>owner@example.com\nowner==>owner'
+# Text to replace in every commit, one literal==>replacement per line (git filter-repo
+# --replace-text format), given in the environment so the text itself is never committed:
+#   REPLACE_TEXT=$'secret@example.com==>owner@example.com' bash scripts/history-rewrite.sh
+# The 2026-11-01 run already replaced the personal address; leave this empty to remove paths only.
+REPLACE="${REPLACE_TEXT:-}"
+FIND="${REPLACE%%==>*}"
 
 REMOTE="${REMOTE:-$(git config --get remote.origin.url)}"
 command -v git-filter-repo >/dev/null || { echo "Install git-filter-repo first (brew install git-filter-repo)."; exit 1; }
@@ -33,14 +37,17 @@ cd "$WORK/repo.git"
 before_size=$(du -sk . | cut -f1)
 args=()
 for p in "${PATHS[@]}"; do args+=(--path "$p"); done
-printf '%s\n' "$REPLACE" > "$WORK/replace.txt"
+if [ -n "$REPLACE" ]; then
+  printf '%s\n' "$REPLACE" > "$WORK/replace.txt"
+  args+=(--replace-text "$WORK/replace.txt")
+fi
 
-git filter-repo --force --invert-paths "${args[@]}" --replace-text "$WORK/replace.txt"
+git filter-repo --force --invert-paths "${args[@]}"
 
 echo
 echo "Left in history after the rewrite (should be empty):"
 for p in "${PATHS[@]}"; do git log --all --oneline -- "$p" | head -3; done
-git log --all --oneline -S owner | head -3
+[ -n "$REPLACE" ] && git log --all --oneline -S "$FIND" | head -3
 echo "Size: ${before_size} KB -> $(du -sk . | cut -f1) KB"
 
 if [ "${1:-}" = "--push" ]; then

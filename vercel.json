@@ -256,6 +256,11 @@
       "source": "/favicon.ico",
       "destination": "/assets/lifecycle-os-32.png",
       "permanent": true
+    },
+    {
+      "source": "/prd-deck.pdf",
+      "destination": "/prd-deck",
+      "permanent": false
     }
   ],
   "crons": [
@@ -664,10 +669,6 @@
     {
       "source": "/prd-deck",
       "destination": "/docs/prd-deck.html"
-    },
-    {
-      "source": "/prd-deck.pdf",
-      "destination": "/docs/prd-deck.pdf"
     },
     {
       "source": "/c/:theme/:variant",
