@@ -35,7 +35,10 @@
 
 const { AdPlatformAdapter } = require('./base-adapter.js');
 
-const API_VERSION = String(process.env.GOOGLE_ADS_API_VERSION || 'v18').trim();
+// The same default ad-insights-core.js reads, so the Google surface has one
+// version. v24 is listed (beside v25 and v26) in the REST reference read on
+// 2026-11-01.
+const API_VERSION = String(process.env.GOOGLE_ADS_API_VERSION || 'v24').trim();
 const API = `https://googleads.googleapis.com/${API_VERSION}`;
 
 /*
@@ -50,11 +53,54 @@ const API = `https://googleads.googleapis.com/${API_VERSION}`;
  * impressions; flags compare it only with this brand's other Google ads).
  */
 const GADS_COOKBOOK = 'https://developers.google.com/google-ads/api/docs/query/cookbook';
+const GADS_DOCS = 'https://developers.google.com/google-ads/api/docs';
+const GADS_REST = 'https://developers.google.com/google-ads/api/rest';
 const ENDPOINTS = {
   ads_search_stream: {
     method: 'POST', read: true, verified: true, url: `${API}/customers/{customer_id}/googleAds:searchStream`,
     doc: GADS_COOKBOOK,
     note: 'Fields: https://developers.google.com/google-ads/api/fields/v25/ad_group_ad (ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros); DURING LAST_7_DAYS / LAST_30_DAYS from https://developers.google.com/google-ads/api/docs/query/structure.',
+  },
+  // The paid launch pipeline (2026-11-01, paid-launch-core.js). Every create
+  // follows the REST mutate shape (POST /vN/customers/{id}/<service>:mutate,
+  // {"operations":[{"create":{...}}]}, answered with results[].resourceName),
+  // each read on developers.google.com that day, the page named per entry.
+  budget_create: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/campaignBudgets:mutate`,
+    doc: `${GADS_DOCS}/campaigns/create-campaigns (add_campaigns.sh: campaignBudgets:mutate create {name, deliveryMethod STANDARD, amountMicros}) and ${GADS_DOCS}/campaigns/search-campaigns/getting-started (explicitlyShared false)`,
+  },
+  campaign_create: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/campaigns:mutate`,
+    doc: `${GADS_DOCS}/campaigns/search-campaigns/getting-started (create {name, advertisingChannelType SEARCH, status PAUSED, manualCpc {}, campaignBudget, networkSettings, containsEuPoliticalAdvertising})`,
+  },
+  campaign_location_create: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/campaignCriteria:mutate`,
+    doc: `${GADS_DOCS}/targeting/location-targeting (CampaignCriterion {campaign, location.geoTargetConstant}; ids from https://developers.google.com/google-ads/api/reference/data/geotargets) with ${GADS_REST}/common/mutate (operations[].create)`,
+  },
+  adgroup_create: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/adGroups:mutate`,
+    doc: `${GADS_DOCS}/responsive-search-ads/create-responsive-search-ads (AdGroup {name, status, campaign, type SEARCH_STANDARD}; cpcBidMicros optional)`,
+  },
+  adgroupad_create: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/adGroupAds:mutate`,
+    doc: `${GADS_DOCS}/campaigns/search-campaigns/getting-started (adGroupAd create {adGroup, status PAUSED, ad {finalUrls, responsiveSearchAd {headlines[{text}], descriptions[{text}], path1, path2}}})`,
+  },
+  campaign_update: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/campaigns:mutate`,
+    doc: `${GADS_REST}/common/mutate (Update: operations[{updateMask "status", update {resourceName, status}}])`,
+  },
+  adgroup_update: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/adGroups:mutate`,
+    doc: `${GADS_REST}/common/mutate and ${GADS_REST}/examples (every update: updateMask + update.resourceName)`,
+  },
+  adgroupad_update: {
+    method: 'POST', verified: true, url: `${API}/customers/{customer_id}/adGroupAds:mutate`,
+    doc: `${GADS_REST}/common/mutate and ${GADS_REST}/examples (every update: updateMask + update.resourceName)`,
+  },
+  budget_update: {
+    method: 'POST', verified: false, url: `${API}/customers/{customer_id}/campaignBudgets:mutate`,
+    doc: `${GADS_REST}/common/mutate`,
+    note: 'The REST examples read show updateMask only as "name,status"; whether a budget amount is masked as "amountMicros" or "amount_micros" in a REST request was not confirmed, and a wrong mask clears the field (the examples say attributes in the mask but not in the body are cleared).',
   },
 };
 /** The date ranges the reader may ask for: the two the docs show, nothing composed. */
@@ -318,6 +364,77 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
     if (!r.ok) return r;
     const name = r.raw && r.raw.results && r.raw.results[0] && r.raw.results[0].resourceName;
     return { ok: true, sent: true, external_id: name || '', status: 'paused', raw: r.raw };
+  }
+
+  /* ── the paid launch pipeline (paid-launch-core.js) ─────────────────────── */
+
+  /**
+   * The request one launch step makes, as data. Pure. One campaign per ad
+   * group here, because a Google budget belongs to a campaign: each ad group's
+   * share of the daily budget is its own campaign budget. Every object is
+   * created PAUSED; a person turns the spend on.
+   */
+  paidRequest(kind, spec) {
+    const s = spec || {};
+    const cid = String(s.customer_id || this.customerId() || '').replace(/[^0-9]/g, '');
+    const params = { customer_id: cid };
+    const headers = this.headers();
+    const create = (op, obj) => ({ op, params, headers, body: { operations: [{ create: obj }], partialFailure: false } });
+    if (kind === 'budget') {
+      return create('budget_create', { name: s.name, deliveryMethod: 'STANDARD', amountMicros: String(s.daily_budget_micros), explicitlyShared: false });
+    }
+    if (kind === 'campaign') {
+      return create('campaign_create', {
+        name: s.name, advertisingChannelType: 'SEARCH', status: 'PAUSED', manualCpc: {}, campaignBudget: s.budget_resource,
+        networkSettings: { targetGoogleSearch: true, targetSearchNetwork: true, targetContentNetwork: false, targetPartnerSearchNetwork: false },
+        containsEuPoliticalAdvertising: s.contains_eu_political_advertising,
+      });
+    }
+    if (kind === 'location') {
+      return { op: 'campaign_location_create', params, headers, body: {
+        operations: (s.geo_target_constants || []).map((id) => ({ create: { campaign: s.campaign_resource, location: { geoTargetConstant: `geoTargetConstants/${String(id).replace(/[^0-9]/g, '')}` } } })),
+        partialFailure: false,
+      } };
+    }
+    if (kind === 'adgroup') {
+      return create('adgroup_create', { name: s.name, campaign: s.campaign_resource, status: 'PAUSED', type: 'SEARCH_STANDARD' });
+    }
+    if (kind === 'ad') {
+      return create('adgroupad_create', {
+        adGroup: s.adgroup_resource, status: 'PAUSED',
+        ad: { finalUrls: [s.final_url], responsiveSearchAd: { headlines: (s.headlines || []).map((t) => ({ text: t })), descriptions: (s.descriptions || []).map((t) => ({ text: t })) } },
+      });
+    }
+    return null;
+  }
+
+  async createPaidObject(kind, spec) {
+    const rq = this.paidRequest(kind, spec);
+    if (!rq) return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+    const r = await this.callEndpoint(rq.op, rq);
+    if (!r.ok) return r;
+    const names = ((r.raw && r.raw.results) || []).map((x) => x && x.resourceName).filter(Boolean);
+    if (!names.length) return { ok: false, sent: true, error_class: 'transient', error: `Google Ads accepted the ${kind} mutate but returned no resource name.` };
+    return { ok: true, sent: true, external_id: names.join(','), status: 'paused', op: r.op, doc: r.doc };
+  }
+
+  /** Status (ACTIVE / PAUSED, said in Google's words ENABLED / PAUSED) of a launched object. */
+  async updatePaidObject(kind, resourceName, fields) {
+    const f = fields || {};
+    const cid = String(resourceName || '').split('/')[1] || this.customerId();
+    const op = { campaign: 'campaign_update', adgroup: 'adgroup_update', ad: 'adgroupad_update', budget: 'budget_update' }[kind];
+    if (!op) return { ok: false, sent: false, error_class: 'validation', error: `Unknown object "${kind}".` };
+    let update; let mask;
+    if (f.status) { update = { resourceName, status: f.status === 'ACTIVE' ? 'ENABLED' : f.status }; mask = 'status'; }
+    else if (f.daily_budget_micros != null) { update = { resourceName, amountMicros: String(f.daily_budget_micros) }; mask = 'amountMicros'; }
+    else return { ok: false, sent: false, error_class: 'validation', error: 'Nothing to change.' };
+    const r = await this.callEndpoint(op, { params: { customer_id: cid }, headers: this.headers(), body: { operations: [{ updateMask: mask, update }] } });
+    return r.ok ? { ok: true, sent: true, external_id: resourceName, status: String(update.status || 'updated').toLowerCase(), op: r.op } : r;
+  }
+
+  static launchOps(kinds) {
+    const map = { budget: ['budget_create'], campaign: ['campaign_create', 'campaign_update'], location: ['campaign_location_create'], adgroup: ['adgroup_create', 'adgroup_update'], ad: ['adgroupad_create', 'adgroupad_update'] };
+    return [...new Set([].concat(...(kinds || []).map((k) => map[k] || [])))];
   }
 
   async listAdAccounts() {

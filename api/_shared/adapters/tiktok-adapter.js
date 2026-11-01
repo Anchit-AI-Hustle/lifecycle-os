@@ -388,7 +388,23 @@ const BIZ = 'https://business-api.tiktok.com/open_api/v1.3';
 const SDK = 'github.com/tiktok/tiktok-business-api-sdk';
 const UNCONFIRMED = 'TikTok API for Business reference pages could not be read; this path was seen only in TikTok\'s own SDK, and the field values below (notably operation_status "DISABLE") were not confirmed there.';
 
+// The paid launch (2026-11-01). The reference portal business-api.tiktok.com/
+// portal/docs was fetched again that day: it is a script-rendered page and
+// answered with its title only, so no field below could be read in TikTok's
+// reference. TikTok's SDK spec (the yml files beside the SDK) does name
+// operation_status values ENABLE / DISABLE / DELETE (StatusOptType) and
+// budget_mode BUDGET_MODE_DAY; its models default operation_status to ENABLE.
+// That is the SDK, not the reference, so every entry stays unverified.
+const LAUNCH_UNCONFIRMED = 'TikTok API for Business reference pages answer with a script-rendered shell and could not be read; the path and fields come from TikTok\'s SDK only (its models default operation_status to ENABLE, so DISABLE at creation is unconfirmed in the reference), and the budget unit and minimum are unconfirmed.';
+
 const ADS_ENDPOINTS = {
+  campaign_create: { method: 'POST', url: `${BIZ}/campaign/create/`, verified: false, doc: `${SDK} (CampaignCreateBody: advertiser_id, campaign_name, objective_type, budget_mode, budget, operation_status)`, note: LAUNCH_UNCONFIRMED },
+  adgroup_create: { method: 'POST', url: `${BIZ}/adgroup/create/`, verified: false, doc: `${SDK} (AdgroupCreateBody: operation_status, default ENABLE)`, note: LAUNCH_UNCONFIRMED },
+  video_upload: { method: 'POST', url: `${BIZ}/file/video/ad/upload/`, verified: false, doc: `${SDK} (FileApi: video upload by URL)`, note: LAUNCH_UNCONFIRMED },
+  image_upload: { method: 'POST', url: `${BIZ}/file/image/ad/upload/`, verified: false, doc: `${SDK} (FileApi: image upload by URL)`, note: LAUNCH_UNCONFIRMED },
+  campaign_status_update: { method: 'POST', url: `${BIZ}/campaign/status/update/`, verified: false, doc: `${SDK} (campaign/status/update: operation_status StatusOptType)`, note: LAUNCH_UNCONFIRMED },
+  adgroup_status_update: { method: 'POST', url: `${BIZ}/adgroup/status/update/`, verified: false, doc: `${SDK} (adgroup/status/update: operation_status StatusOptType)`, note: LAUNCH_UNCONFIRMED },
+  adgroup_budget_update: { method: 'POST', url: `${BIZ}/adgroup/budget/update/`, verified: false, doc: `${SDK} (ad group budget update)`, note: LAUNCH_UNCONFIRMED },
   ad_create: { method: 'POST', url: `${BIZ}/ad/create/`, verified: false, doc: `${SDK} (AdCreateBody: adgroup_id, advertiser_id, creatives[] with operation_status)`, note: UNCONFIRMED },
   ad_status_update: { method: 'POST', url: `${BIZ}/ad/status/update/`, verified: false, doc: `${SDK} (status update endpoints exist per object)`, note: UNCONFIRMED },
   report_integrated_get: { method: 'GET', url: `${BIZ}/report/integrated/get/`, verified: false, doc: `${SDK} (ReportingApi: GET /open_api/v1.3/report/integrated/get/)`, note: 'The path is in TikTok\'s SDK; the metric names this platform would request were not confirmed in TikTok\'s reference.' },
@@ -498,6 +514,54 @@ class TikTokAdsAdapter extends AdPlatformAdapter {
       headers: this.headers(),
       body: { advertiser_id: s.advertiser_id || this.advertiserId(), ad_ids: [String(s.external_id)], operation_status: 'ENABLE' },
     });
+  }
+
+  /* ── the paid launch pipeline (paid-launch-core.js) ─────────────────────── */
+
+  /** The request one launch step would make, as data. Every object DISABLE. */
+  paidRequest(kind, spec) {
+    const s = spec || {};
+    const adv = String(s.advertiser_id || this.advertiserId());
+    const headers = this.headers();
+    if (kind === 'campaign') return { op: 'campaign_create', headers, body: { advertiser_id: adv, campaign_name: s.name, objective_type: 'TRAFFIC', operation_status: 'DISABLE' } };
+    if (kind === 'adgroup') {
+      return { op: 'adgroup_create', headers, body: {
+        advertiser_id: adv, campaign_id: s.campaign_id, adgroup_name: s.name, budget_mode: 'BUDGET_MODE_DAY', budget: s.daily_budget,
+        location_ids: s.location_ids || [], operation_status: 'DISABLE',
+      } };
+    }
+    if (kind === 'media') {
+      return s.video_url
+        ? { op: 'video_upload', headers, body: { advertiser_id: adv, upload_type: 'UPLOAD_BY_URL', video_url: s.video_url } }
+        : { op: 'image_upload', headers, body: { advertiser_id: adv, upload_type: 'UPLOAD_BY_URL', image_url: s.image_url } };
+    }
+    if (kind === 'ad') {
+      const creative = { ad_name: s.name, ad_text: s.primary_text, landing_page_url: s.link, operation_status: 'DISABLE' };
+      if (s.media_id) creative[s.video_url ? 'video_id' : 'image_ids'] = s.video_url ? s.media_id : [s.media_id];
+      return { op: 'ad_create', headers, body: { advertiser_id: adv, adgroup_id: s.adgroup_id, creatives: [creative] } };
+    }
+    return null;
+  }
+
+  async createPaidObject(kind, spec) {
+    const rq = this.paidRequest(kind, spec);
+    if (!rq) return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+    return this.callEndpoint(rq.op, rq);
+  }
+
+  async updatePaidObject(kind, id, fields) {
+    const f = fields || {};
+    const adv = this.advertiserId();
+    if (f.daily_budget != null) return this.callEndpoint('adgroup_budget_update', { headers: this.headers(), body: { advertiser_id: adv, budget: [{ adgroup_id: String(id), budget: f.daily_budget }] } });
+    const op = { campaign: 'campaign_status_update', adgroup: 'adgroup_status_update', ad: 'ad_status_update' }[kind];
+    const key = { campaign: 'campaign_ids', adgroup: 'adgroup_ids', ad: 'ad_ids' }[kind];
+    if (!op) return { ok: false, sent: false, error_class: 'validation', error: `Unknown object "${kind}".` };
+    return this.callEndpoint(op, { headers: this.headers(), body: { advertiser_id: adv, [key]: [String(id)], operation_status: f.status === 'ACTIVE' ? 'ENABLE' : 'DISABLE' } });
+  }
+
+  static launchOps(kinds) {
+    const map = { campaign: ['campaign_create', 'campaign_status_update'], adgroup: ['adgroup_create', 'adgroup_status_update'], media: ['video_upload', 'image_upload'], ad: ['ad_create', 'ad_status_update'] };
+    return [...new Set([].concat(...(kinds || []).map((k) => map[k] || [])))];
   }
 
   async readAdMetrics(range) {
