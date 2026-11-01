@@ -183,6 +183,68 @@ function competitorFrom(entry) {
 }
 
 /**
+ * The brand's OWN paid ads (2026-11-01, ad-history.js), as evidence.
+ *
+ * The metric is stated, not implied: CLICK-THROUGH RATE, clicks over
+ * impressions as the platform itself reported it. The median is this brand's
+ * own, per platform (a Meta audience and a Google search audience are not one
+ * distribution, and their numbers are not mixed). Three ads with a reported
+ * rate on a platform is the least that makes a median; under that no ad is
+ * called a winner or tiring. A winner prints its figures, every one of them
+ * the platform's own; a figure the platform did not return is not printed.
+ */
+const AD_METRIC = 'click-through rate (clicks / impressions, as the platform reported it)';
+const PROVIDER_LABEL = { meta: 'Meta', google_ads: 'Google Ads', tiktok_ads: 'TikTok', pinterest: 'Pinterest' };
+
+function adFigures(m, currency) {
+  const x = m || {};
+  const n = (v) => (v != null && Number.isFinite(Number(v)) ? Number(v) : null);
+  const bits = [];
+  if (n(x.ctr) != null) bits.push(`${(n(x.ctr) * 100).toFixed(2)}% click-through`);
+  if (n(x.impressions) != null) bits.push(`${n(x.impressions).toLocaleString('en-US')} impressions`);
+  if (n(x.clicks) != null) bits.push(`${n(x.clicks).toLocaleString('en-US')} clicks`);
+  if (n(x.spend) != null) bits.push(`${n(x.spend).toFixed(2)}${currency ? ` ${currency}` : ''} spent`);
+  if (n(x.conversions) != null) bits.push(`${n(x.conversions).toLocaleString('en-US')} conversions`);
+  if (n(x.cost_per_result) != null) bits.push(`${n(x.cost_per_result).toFixed(2)}${currency ? ` ${currency}` : ''} per result`);
+  if (n(x.roas) != null) bits.push(`${n(x.roas).toFixed(2)}x return on ad spend (as reported)`);
+  return bits.join(', ');
+}
+
+function adPattern(a) {
+  const clip = (t, k) => { const v = String(t || '').replace(/\s+/g, ' ').trim(); return v.length > k ? `${v.slice(0, k - 1).trim()}…` : v; };
+  const parts = [];
+  if (a.headline) parts.push(`headline "${clip(a.headline, 60)}"`);
+  if (a.primary_text) parts.push(`opening "${clip(a.primary_text, 110)}"`);
+  return parts.join(', ');
+}
+
+function ownAdsFrom(entry) {
+  const src = entry && (entry.__ownAds || entry.ownAds);
+  if (!src || typeof src !== 'object') return null;      // never imported: say nothing about ads
+  const ads = Array.isArray(src.ads) ? src.ads.filter(Boolean) : [];
+  const byProvider = {};
+  for (const a of ads) (byProvider[a.provider || 'unknown'] = byProvider[a.provider || 'unknown'] || []).push(a);
+  const platforms = Object.keys(byProvider).sort().map((prov) => {
+    const list = byProvider[prov];
+    const rated = list.filter((a) => a.metrics && a.metrics.ctr != null && Number.isFinite(Number(a.metrics.ctr)));
+    const label = PROVIDER_LABEL[prov] || prov;
+    if (rated.length < 3) {
+      return { provider: prov, label, ads: list.length, rated: rated.length, median: null, worked: [], tiring: [],
+        reason: `${rated.length} ${label} ad${rated.length === 1 ? '' : 's'} carry a reported click-through rate, too few for a median, so no ${label} ad is called a winner or tiring.` };
+    }
+    const rates = rated.map((a) => Number(a.metrics.ctr)).sort((x, y) => x - y);
+    const mid = Math.floor(rates.length / 2);
+    const median = rates.length % 2 ? rates[mid] : (rates[mid - 1] + rates[mid]) / 2;
+    const view = (a) => ({ ad_id: a.ad_id, name: a.name || a.ad_id, figures: adFigures(a.metrics, a.currency), pattern: adPattern(a), ctr: Number(a.metrics.ctr) });
+    const worked = rated.filter((a) => Number(a.metrics.ctr) > median).sort((x, y) => Number(y.metrics.ctr) - Number(x.metrics.ctr)).slice(0, 3).map(view);
+    const tiring = rated.filter((a) => Number(a.metrics.ctr) < median).sort((x, y) => Number(x.metrics.ctr) - Number(y.metrics.ctr)).slice(0, 3).map(view);
+    return { provider: prov, label, ads: list.length, rated: rated.length, median, worked, tiring };
+  });
+  return { imported: true, metric: AD_METRIC, total: ads.length, platforms };
+}
+
+/**
+ * The whole pack for one slot./**
  * The whole pack for one slot.
  *
  * Reads only what the planner already stamps onto the entry, so this needs no
@@ -212,12 +274,13 @@ function evidenceFor(entry) {
     .filter(Boolean)
     .slice(0, 3);
   const competitor = competitorFrom(e);
+  const ads = ownAdsFrom(e);
 
   const gaps = [];
   if (!wins.length) {
     gaps.push(`[DATA REQUIRED BEFORE LAUNCH: own campaign performance, ${(e.brand && e.brand.name) || 'this brand'}, ${e.market || 'all markets'}]`);
   }
-  return { wins, fatigue, competitor, gaps };
+  return { wins, fatigue, competitor, ads, gaps };
 }
 
 /**
@@ -251,6 +314,21 @@ function evidenceBrief(pack) {
     lines.push(`TIRING: not measurable yet. ${p.fatigue.reason || ''} No angle is assumed stale.`);
   }
 
+  if (p.ads) {
+    if (!p.ads.total) {
+      lines.push('OWN ADS: the brand\'s ad accounts were read and no ad ran in the import window, so there is no paid history to build on. Do not invent one.');
+    } else {
+      lines.push(`OWN ADS (this brand's own paid ads, measured by ${p.ads.metric}, against this brand's own median per platform):`);
+      for (const pl of p.ads.platforms) {
+        if (pl.median === null) { lines.push(`  ${pl.label}: ${pl.reason}`); continue; }
+        lines.push(`  ${pl.label}: median ${(pl.median * 100).toFixed(2)}% across ${pl.rated} ads with a reported rate.`);
+        for (const w of pl.worked) lines.push(`    WORKED - "${w.name}": ${w.figures}${w.pattern ? `. Copy: ${w.pattern}` : ''}`);
+        for (const t of pl.tiring) lines.push(`    TIRING - "${t.name}": ${t.figures}${t.pattern ? `. Copy: ${t.pattern}` : ''}`);
+      }
+      lines.push('  Build on the PATTERN of the ads above the median, not their wording; do not re-run the angle of an ad below it. Never call an ad a winner without the figures shown here.');
+    }
+  }
+
   if (p.competitor && p.competitor.searched && p.competitor.patterns.length) {
     lines.push('COMPETITORS are repeating these angles (awareness only — do NOT copy, and never present a rival\'s claim as ours):');
     for (const c of p.competitor.patterns) {
@@ -270,5 +348,5 @@ function briefFor(entry) { return evidenceBrief(evidenceFor(entry)); }
 module.exports = {
   evidenceFor, evidenceBrief, briefFor,
   // exported for tests, because each carries a rule worth pinning on its own
-  metricLine, asWin, medianClickRate, fatigueFrom, competitorFrom,
+  metricLine, asWin, medianClickRate, fatigueFrom, competitorFrom, ownAdsFrom, adFigures, AD_METRIC,
 };

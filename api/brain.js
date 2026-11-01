@@ -319,7 +319,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1051,6 +1051,16 @@ module.exports = async function handler(req, res) {
         return await require('./_shared/paid-launch-core.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
       }
 
+      // The brand's OWN paid-ad history (2026-11-01, ad-history.js): its
+      // connected ad accounts' ads with their copy and per-ad metrics, kept
+      // as evidence for the writer. Import is owner/editor; list and status
+      // are members'. A signed-in caller only.
+      case 'ad-history': {
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        return await require('./_shared/ad-history.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
+      }
+
       case 'deliverability-domain': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
@@ -1673,6 +1683,9 @@ Weekly recalibration: ${JSON.stringify(recal)}`;
         // documented flow; a refusal marks it needs_reauth for the hub. Rides
         // this cron because both Hobby crons are taken.
         await step('social_tokens', 'refresh', () => require('./_shared/social-gateway-core.js').refreshDueTokens({ withinDays: 7 }));
+        // The brand's own ad history (2026-11-01): connected ad accounts read
+        // again once a day, least recently imported first. Rides this cron.
+        await step('ad_history', 'refresh', () => require('./_shared/ad-history.js').refreshDue({ maxWorkspaces: 2 }));
         // Snowflake → Supabase daily mirror (historical/deep metrics for the
         // Knickgasm3DConnectorEngine). No-op stub when SNOWFLAKE_* env is unset.
         await step('snowflake_sync', 'refresh', async () => (snowflake ? snowflake.runSync({ source: 'cron' }) : { skipped: true }));

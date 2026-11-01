@@ -133,6 +133,9 @@ const SCOPED_TABLES = new Set([
   // workspace on every query; a launch or account sync read across brands would
   // put one brand's ad account, budgets and spend in front of another.
   'paid_launches', 'paid_account_syncs',
+  // 20261101120000 — the brand's own ad history. ad-history.js names the
+  // workspace on every query; one brand's ads and spend never reach another.
+  'brand_ad_history', 'brand_ad_history_runs',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

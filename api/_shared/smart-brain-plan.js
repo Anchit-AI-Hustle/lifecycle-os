@@ -4045,6 +4045,15 @@ async function buildCampaign(entry, config, opts = {}) {
     try { st = await require('./competitor-mail-study.js').studyFor(entry.brand, { workspaceId: catalogCtx.workspaceId }); } catch (_) { st = null; }
     if (st) Object.defineProperty(entry, '__mailStudy', { value: st, enumerable: false, configurable: true });
   }
+  // THE BRAND'S OWN PAID ADS (2026-11-01, ad-history.js): what its ad
+  // accounts returned, with the platform's own figures, for the evidence
+  // brief. Null when nothing was ever imported; never enumerable, so the
+  // stored slot does not carry it.
+  if (entry && typeof entry === 'object' && !entry.__ownAds && catalogCtx.workspaceId) {
+    let ads = null;
+    try { ads = await require('./ad-history.js').evidenceAds(catalogCtx.workspaceId); } catch (_) { ads = null; }
+    if (ads) Object.defineProperty(entry, '__ownAds', { value: ads, enumerable: false, configurable: true });
+  }
   const built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
   if (built && typeof built === 'object') {
     if (entry && entry.__mailStudy) {

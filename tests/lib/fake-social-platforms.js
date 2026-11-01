@@ -72,6 +72,32 @@ function installPlatforms(db, opts) {
       return { access_token: 'meta-extended-2', expires_in: 5184000 };
     }
     if (!token) return refuse(400, { error: { message: 'An access token is required', code: 190 } });
+    // The brand's own ad history (opts.metaAdHistory, ad-history.js): the ads
+    // edge and level=ad insights, each paged by Meta's own cursor (paging.next
+    // + cursors.after), `pageSize` rows a page. The insights call must state a
+    // time_range, as the Reading section documents it.
+    if (o.metaAdHistory && !o.metaAccount && call.method === 'GET' && p[0] === 'me' && p[1] === 'adaccounts') {
+      return { data: [{ id: o.metaAdHistory.account || 'act_77', name: 'Brand account', account_status: 1, currency: o.metaAdHistory.currency || null }] };
+    }
+    if (o.metaAdHistory && call.method === 'GET' && /^act_/.test(p[0]) && (p[1] === 'ads' || (p[1] === 'insights' && u.searchParams.get('level') === 'ad'))) {
+      const H = o.metaAdHistory;
+      if (o.metaAdHistory.account && p[0] !== o.metaAdHistory.account) return refuse(400, { error: { message: `Unsupported get request. Object with ID '${p[0]}' does not exist`, code: 100 } });
+      const size = H.pageSize || 2;
+      let list;
+      if (p[1] === 'ads') {
+        if (!/creative\{/.test(u.searchParams.get('fields') || '')) throw new Error('meta fake: the ads read did not ask for the creative');
+        list = H.ads || [];
+      } else {
+        const tr = u.searchParams.get('time_range');
+        if (!tr || !JSON.parse(tr).since || !JSON.parse(tr).until) return refuse(400, { error: { message: 'time_range needs since and until', code: 100 } });
+        H.time_ranges = (H.time_ranges || []).concat([JSON.parse(tr)]);
+        list = H.insights || [];
+      }
+      const from = Number(u.searchParams.get('after') || 0);
+      const page = list.slice(from, from + size);
+      const more = from + size < list.length;
+      return { data: page, paging: Object.assign({ cursors: { before: String(from), after: String(from + size) } }, more ? { next: `${url}&after=${from + size}` } : {}) };
+    }
     // A stateful ad account for the paid launch pipeline (opts.metaAccount).
     // It answers the documented shapes and enforces what the Marketing API
     // documentation states: special_ad_categories on a campaign, ACTIVE or
