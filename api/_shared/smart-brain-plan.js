@@ -4746,6 +4746,9 @@ function attachStaticCreative(campaign, entry) {
       ad.creative = Object.assign({}, ad.creative || {}, {
         static_html: out.html,
         design: { theme: out.theme, template: out.template, id: p.id, why: p.why },
+        // What a scene is made from (/brain "Put this pack in a scene"): the
+        // product's name and the ad's own catalogue photo, nothing else.
+        scene_source: hp && hp.title && /^https:\/\//i.test(String((ad.creative && ad.creative.image) || '')) ? { title: hp.title, image: ad.creative.image } : null,
       });
       gaps.push(...out.data_gaps);
     } catch (_) { /* the ad keeps its photo and overlay */ }

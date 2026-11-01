@@ -1419,12 +1419,16 @@ function renderAd(ad){
   // theme, shown as the exact document the download hands over.
   if(cr.static_html){
     const dz = cr.design || {};
+    window.__SB_STATIC = window.__SB_STATIC || [];
+    const sidx = window.__SB_STATIC.push(ad) - 1;
+    const sceneBar = cr.scene_source ? `<div class="akbar"><button type="button" class="btn sm" data-scene onclick="sbMakeScene(this,${sidx})" title="Gemini places this product's own catalogue photo, label unchanged, into a lifestyle scene; needs a Gemini key on AI Models">✨ Put this pack in a scene</button></div><div class="advnote" data-scene-out hidden></div>` : '';
     return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}" data-ad-design="${esc((dz.theme||'')+'/'+(dz.template||''))}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     ${gap}
     <div class="adframe" data-aspect="${esc(ad.aspect||'1:1')}">
       <iframe class="adstatic" sandbox="" title="${esc(platform)} static ad creative" style="display:block;width:100%;border:0;aspect-ratio:${esc(ratio)}" srcdoc="${esc(cr.static_html)}"></iframe>
     </div>
+    ${sceneBar}
     ${dz.theme ? `<p class="pvnote" data-ad-design-note>Design: ${esc(dz.theme)} theme, ${esc(dz.template)} template.${dz.why ? ' ' + esc(dz.why) : ''}</p>` : ''}
     ${rows.join('')}</div>`;
   }
@@ -1617,6 +1621,33 @@ window.sbRenderSeedance = async function(btn, idx){
   } catch(e){ say('Seedance could not be reached: ' + (e && e.message || e)); }
   finally { btn.disabled = false; }
 };
+// A scene with the product's own pack (2026-11-01, Fastlane's statics as the
+// bar): the ad's catalogue photo goes to Gemini as an input image and comes
+// back placed in a lifestyle scene, label unchanged. The ad is recomposed with
+// it (preview and download are the same document). No Gemini key or no photo:
+// said in a sentence, nothing drawn, no pack invented.
+window.sbMakeScene = async function(btn, idx){
+  const ad = (window.__SB_STATIC||[])[idx]; const card = btn && btn.closest('.adcard'); if(!ad || !card) return;
+  const cr = ad.creative || {}; const src = cr.scene_source; const out = card.querySelector('[data-scene-out]');
+  const say = (t)=>{ if(out){ out.hidden = false; out.textContent = t; } };
+  if(!src || !src.image){ say('This ad has no product photo, so no scene can be made from it.'); return; }
+  const ratio = String(ad.aspect||'1:1');
+  const size = ratio === '9:16' ? '1080x1920' : (ratio === '1.91:1' ? '1200x628' : '1080x1080');
+  const line = [ad.headline, ad.primary_text].filter(Boolean).join('. ').slice(0, 300);
+  btn.disabled = true; say('Placing ' + src.title + ' in a scene...');
+  try {
+    const r = await fetch('/api/ai/image', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ mode:'scene', size, prompt: 'A real, everyday moment where someone would use this product, matching this ad: ' + line, product: { title: src.title, image_url: src.image } })});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || !j.ok || !j.image_data_url){ say(j.message || j.error || ('No scene was made (HTTP '+r.status+').')); return; }
+    const amp = (u)=>u.replace(/&/g,'&amp;');
+    let html = cr.static_html;
+    html = html.split(amp(src.image)).join(j.image_data_url).split(src.image).join(j.image_data_url);
+    cr.static_html = html; cr.scene = { provider: j.provider, model: j.model };
+    const fr = card.querySelector('iframe.adstatic'); if(fr) fr.srcdoc = html;
+    say('Scene made by ' + (j.provider||'the image model') + ' from the product\'s own photo. Check the pack and its label before you use it; Download takes this version.');
+  } catch(e){ say('The scene could not be made: ' + (e && e.message || e)); }
+  finally { btn.disabled = false; }
+};
 window.sbDownloadBrief = function(idx){
   const item = (window.__SB_MOTION||[])[idx]; if(!item || !item.brief) return;
   sbSaveBlob(JSON.stringify(item.brief, null, 2), 'application/json', String(item.name||'video-ad')+'-shot-brief.json');
@@ -1744,7 +1775,7 @@ function renderPreview(payload, e, i, opts){
   // so an approved campaign can be taken out of the tool (product rule).
   window.__SB_EXPORTS = [];
   // Reset per preview so the motion registry does not grow across slot views.
-  window.__SB_MOTION = [];
+  window.__SB_MOTION = []; window.__SB_STATIC = [];
   window.__SB_ASSET_STATUS = window.__SB_ASSET_STATUS || {};
   const slotKey = e.id || ('slot-'+i);
   // Per-asset control bar: Download + Copy. (Approve/reject removed — the tool
