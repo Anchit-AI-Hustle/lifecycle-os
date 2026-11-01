@@ -11,8 +11,13 @@ $34.99, ticked benefits): "for quality comparison and sanity". `scripts/lib/stat
 when it states one) beside up to three of the brand's OWN claims (verbatim, <= 40 chars, a longer one left out, never
 cut), ticked, and the button. No price and no claims = the band template. `attachStaticCreative` passes `compare`
 (from `heroProduct.compare_at`) and `benefits` (the record's claims), and a stated discount puts the A ad on `offer`.
-Not done: Fastlane's generated scene with the real pack placed in it; the standing rule here is real catalogue
-photos only for product creatives, and changing it is the operator's call. Gated by `tests/static-ad-offer.spec.js`.
+Gated by `tests/static-ad-offer.spec.js`. Same day, the operator: "fix them all completely": **a scene with the real
+pack**, opt-in per ad (/brain "Put this pack in a scene", `sbMakeScene`): `image.js` `mode:'scene'` reads the ad's own
+catalogue photo (`creative.scene_source`, https, `assertPublicUrl` each hop, PNG/JPEG/WebP, 4 MB) and sends it to Gemini
+as `inlineData` with "keep packaging, label, every printed word"; ONLY Gemini (an input-image model) is asked, no Gemini
+key = 501 sentence, no photo / private address = 422, nothing drawn and no pack invented. The default ad keeps the real
+photo; the scene is labelled "check the pack and its label". Gated by `tests/scene-remix.spec.js`. Also deleted in
+production (Mac CLI): Nik Bakers' 144 banner rows (no price) and the one leftover phone auth user (owned nothing).
 
 ## ⭐ A Test always reaches the provider; a catalogue holds products, not pictures (2026-10-31)
 The operator: "still some issue in model and key connection - ensure simplest mode ... perfect and easy usage", then
