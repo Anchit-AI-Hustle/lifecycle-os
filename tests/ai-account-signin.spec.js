@@ -209,8 +209,10 @@ test('the page starts a PKCE sign-in at OpenRouter and finishes it on return, wi
 });
 
 test('the module names only documented flows', () => {
-  expect(Object.keys(signin.SIGNIN).sort()).toEqual(['gemini', 'openrouter']);
+  // Hugging Face joined 2026-11-01 (tests/huggingface-signin.spec.js), changed on purpose.
+  expect(Object.keys(signin.SIGNIN).sort()).toEqual(['gemini', 'huggingface', 'openrouter']);
   expect(signin.SIGNIN.gemini.source).toBe('https://ai.google.dev/gemini-api/docs/oauth');
+  expect(signin.SIGNIN.huggingface.source).toBe('https://huggingface.co/docs/hub/oauth');
   for (const s of Object.values(signin.SIGNIN)) {
     expect(s.source).toMatch(/^https:\/\//);
     expect(s.authorize_url).toMatch(/^https:\/\//);

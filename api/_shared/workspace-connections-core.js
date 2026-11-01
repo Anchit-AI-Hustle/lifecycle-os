@@ -126,6 +126,31 @@ const PROVIDERS = [
       { key: 'model', label: 'Model', secret: false, required: false, placeholder: 'anthropic/claude-sonnet-5.5' },
     ],
   },
+  // Hugging Face Inference Providers (2026-11-01): one Hugging Face token (or
+  // "Sign in with Hugging Face", ai-account-signin.js) reaches open models on
+  // its partner providers through the OpenAI-compatible router
+  // https://router.huggingface.co/v1/chat/completions (huggingface.co/docs/
+  // inference-providers, read 2026-11-01). The person's own account only: no
+  // platform key exists for it (env_default ''), so it runs only for a
+  // workspace that connected it.
+  {
+    id: 'huggingface', label: 'Hugging Face (Inference Providers)', category: 'ai', llm_provider: 'huggingface',
+    auth_kind: 'api_key', env_default: '',
+    key_url: 'https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained',
+    blurb: 'Open models (gpt-oss, Qwen, DeepSeek, Llama and more) on Hugging Face\'s partner providers, billed to your Hugging Face account.',
+    fields: [
+      { key: 'api_key', label: 'Access token', secret: true, required: true },
+      // The sign-in (never shown, no input for it).
+      { key: 'hf_oauth_access', label: 'Hugging Face sign-in', secret: true, required: false, hidden: true },
+      { key: 'hf_oauth_refresh', label: 'Hugging Face sign-in (renewal)', secret: true, required: false, hidden: true },
+      { key: 'hf_oauth_expires_at', label: 'Hugging Face sign-in (ends)', secret: true, required: false, hidden: true },
+      // A Hub model id, optionally with :provider or :fastest / :cheapest.
+      { key: 'model', label: 'Model', secret: false, required: false, placeholder: 'openai/gpt-oss-120b' },
+    ],
+    // A pasted token and a sign-in replace each other: the one saved last is
+    // the one used, never an older one left beside it.
+    secret_groups: [['api_key'], ['hf_oauth_access', 'hf_oauth_refresh', 'hf_oauth_expires_at']],
+  },
   {
     id: 'deepseek', label: 'DeepSeek', category: 'ai', llm_provider: 'deepseek',
     auth_kind: 'api_key', env_default: 'DEEPSEEK_API_KEY',
@@ -714,6 +739,12 @@ async function saveConnection(auth, input) {
   if (haveSecrets) {
     const prior = existing ? (await secretsByConnectionId([existing.id])).get(existing.id) : null;
     mergedSecrets = Object.assign({}, prior || {}, secrets);
+    // A provider whose credential comes in alternative forms (a pasted token
+    // or a sign-in): saving one drops the other.
+    for (const group of reg.secret_groups || []) {
+      if (!group.some((k) => secrets[k])) continue;
+      for (const other of reg.secret_groups) if (other !== group) for (const k of other) delete mergedSecrets[k];
+    }
     mergedSecretFields = Object.keys(mergedSecrets);
     // The hint is taken from the FIRST secret field the registry declares, so
     // it always describes the same value across saves.
@@ -1053,7 +1084,7 @@ function providerSays(errText) {
     const m = raw.match(/"message"\s*:\s*"([^"]{4,200})"/) || raw.match(/"error"\s*:\s*"([^"]{4,200})"/);
     msg = m ? m[1] : '';
   }
-  msg = String(typeof msg === 'string' ? msg : '').replace(/\b(sk|gsk|xai|AIza)[-_A-Za-z0-9]{8,}/g, '[key]').replace(/https?:\/\/\S+/g, '').trim().slice(0, 160);
+  msg = String(typeof msg === 'string' ? msg : '').replace(/\b(sk|gsk|xai|AIza|hf)[-_A-Za-z0-9]{8,}/g, '[key]').replace(/https?:\/\/\S+/g, '').trim().slice(0, 160);
   return msg ? ` (the provider said: "${msg}")` : '';
 }
 
@@ -1073,6 +1104,9 @@ const FIX_PAGES = {
   openrouter: { keys: 'https://openrouter.ai/settings/keys', billing: 'https://openrouter.ai/settings/credits' },
   cerebras: { keys: 'https://cloud.cerebras.ai', billing: 'https://cloud.cerebras.ai' },
   cloudflare: { keys: 'https://dash.cloudflare.com/profile/api-tokens', billing: 'https://dash.cloudflare.com' },
+  // Tokens page and billing page as huggingface.co/docs/inference-providers
+  // (index, pricing) link them, read 2026-11-01.
+  huggingface: { keys: 'https://huggingface.co/settings/tokens', billing: 'https://huggingface.co/settings/billing' },
 };
 function checkFailure(reg, err) {
   const name = reg.label;
@@ -1126,6 +1160,8 @@ function buildOverrides(routing, connections, secrets) {
     const cfg = (row.config && typeof row.config === 'object') ? row.config : {};
 
     if (secret.api_key) keys[reg.llm_provider] = secret.api_key;
+    // Signed in with Hugging Face: the access token current for this request.
+    if (reg.llm_provider === 'huggingface' && !secret.api_key && secret.__hf_access) keys.huggingface = secret.__hf_access;
     // Signed in with Google: the access token minted for this request (see
     // llmOverridesFor), billed to the person's own project.
     if (reg.llm_provider === 'gemini' && !secret.api_key && secret.__google_access) {
@@ -1185,6 +1221,27 @@ function buildOverrides(routing, connections, secrets) {
 }
 
 /**
+ * A current Hugging Face access token for a signed-in connection row, renewing
+ * it when it has ended and writing the renewed token back (service role, the
+ * row's own workspace; the caller could already read this row) so the next
+ * request starts from it.
+ */
+async function hfAccessFor(row, sec) {
+  return require('./ai-account-signin.js').hfAccessToken(sec, {
+    persist: async (fields) => {
+      if (!row || !row.id || !row.workspace_id) return;
+      const merged = Object.assign({}, sec, fields);
+      for (const k of Object.keys(merged)) if (k.indexOf('__') === 0) delete merged[k];
+      await serviceRest('workspace_connection_secrets?on_conflict=connection_id', {
+        method: 'POST',
+        body: [Object.assign({ connection_id: row.id, workspace_id: row.workspace_id, updated_at: new Date().toISOString() }, encryptSecrets(merged))],
+        prefer: 'resolution=merge-duplicates,return=minimal',
+      });
+    },
+  });
+}
+
+/**
  * Resolve overrides for a request. Never throws: any failure here means the
  * generation runs on the platform default, which is the pre-existing behaviour
  * and always safe.
@@ -1228,6 +1285,13 @@ async function llmOverridesFor(req) {
       if (r.provider === 'gemini' && sec && !sec.api_key && sec.google_refresh_token) {
         const access = await require('./ai-account-signin.js').googleAccessToken(sec.google_refresh_token);
         if (access) secrets.set(r.id, Object.assign({}, sec, { __google_access: access }));
+      }
+      // Signed in with Hugging Face: the access token, renewed when it has
+      // ended (and the renewal kept). A refused renewal leaves Hugging Face
+      // unconnected for this request; the Test says to sign in again.
+      if (r.provider === 'huggingface' && r.status !== 'disabled' && sec && !sec.api_key && sec.hf_oauth_access) {
+        const access = await hfAccessFor(r, sec);
+        if (access) secrets.set(r.id, Object.assign({}, sec, { __hf_access: access }));
       }
     }
 
@@ -1424,7 +1488,17 @@ async function checkConnection(auth, workspaceId, providerId) {
     : {};
 
   let result;
-  if (Array.isArray(row.secret_fields) && row.secret_fields.length && !Object.keys(secrets).length) {
+  // Signed in with Hugging Face: the Test sends the access token a generation
+  // would send (renewed if it has ended); none = the sign-in has to be redone.
+  const hfSignedIn = reg.llm_provider === 'huggingface' && !secrets.api_key && !!secrets.hf_oauth_access;
+  let hfSignInEnded = false;
+  if (hfSignedIn) {
+    const access = await hfAccessFor(Object.assign({ workspace_id: checkWs }, row), secrets);
+    if (access) secrets.api_key = access; else hfSignInEnded = true;
+  }
+  if (hfSignInEnded) {
+    result = { ok: false, connected: false, note: 'Your Hugging Face sign-in has ended and could not be renewed.', fix: 'Press Sign in with Hugging Face again, or paste a token.', fix_url: FIX_PAGES.huggingface.keys };
+  } else if (Array.isArray(row.secret_fields) && row.secret_fields.length && !Object.keys(secrets).length) {
     result = {
       ok: false, connected: false,
       note: 'The stored secret could not be read. It was encrypted under a different CONNECTION_SECRET_KEY than this deployment now holds, so it has to be entered again.',
@@ -1446,6 +1520,8 @@ async function checkConnection(auth, workspaceId, providerId) {
       for (const k of ['aws_access_key_id', 'aws_secret_access_key', 'aws_session_token']) if (secrets[k]) checkKeys[k] = secrets[k];
       if (cfg.aws_region || secrets.aws_region) checkKeys.aws_region = cfg.aws_region || secrets.aws_region;
     }
+    // The model named on the connection is the one a generation asks for.
+    if (cfg.model && typeof cfg.model === 'string' && /^[a-z0-9._-]+\/[a-z0-9._:-]+$/i.test(cfg.model) && reg.llm_provider === 'huggingface') checkModels.huggingface = [cfg.model];
     if (reg.llm_provider === 'ollama' && cfg.base_url) {
       const m = (cfg.model && OLLAMA_MODEL_RE.test(String(cfg.model).trim())) ? [String(cfg.model).trim()] : await ollamaModels(ollamaRoot(cfg.base_url), secrets.api_key);
       if (m.length) checkModels.ollama = m;
@@ -1460,6 +1536,12 @@ async function checkConnection(auth, workspaceId, providerId) {
       result = { ok: true, connected: true, note: `Working: ${reg.label} answered on ${r.model}.` };
     } catch (err) {
       result = Object.assign({ ok: false, connected: false }, checkFailure(reg, err));
+      // A refused sign-in token is fixed by signing in again, not by a new key.
+      const det = (err && err._providerErrors && err._providerErrors[0]) || {};
+      if (hfSignedIn && (det.status === 401 || det.status === 403 || det.kind === 'auth')) {
+        result.note = `Hugging Face refused this sign-in${providerSays(det.err)}.`;
+        result.fix = 'Press Sign in with Hugging Face again.';
+      }
     }
   } else if (reg.category === 'ai') {
     result = {
