@@ -470,6 +470,22 @@ async function run(opts) {
   const angles = rankAngles(report, brand);
   const hooks = await hookBank(angles, brand, report, o.deps);
   const briefs = briefStack(angles, hooks.bank, brand);
+  // The brand's OWN paid ads (2026-11-01, ad-history.js): the control is the
+  // brand as it speaks today, and its own ad that ran above its own median
+  // click-through rate is the evidence beside it, with the platform's figures.
+  // The control's copy is not changed: only the evidence line.
+  let ownAds = null;
+  if (o.deps && Object.prototype.hasOwnProperty.call(o.deps, 'ownAds')) ownAds = o.deps.ownAds;
+  else if (o.workspaceId) { try { ownAds = await require('./ad-history.js').evidenceAds(o.workspaceId); } catch (_) { ownAds = null; } }
+  const own = ownAds ? require('./creative-evidence.js').ownAdsFrom({ ownAds }) : null;
+  const control = briefs.find((x) => x.basis === 'control');
+  if (control && own) {
+    const best = own.platforms.map((pl) => pl.worked[0] && Object.assign({ platform: pl.label, median: pl.median }, pl.worked[0])).filter(Boolean).sort((x, y) => (y.ctr - y.median) - (x.ctr - x.median))[0];
+    control.own_ad_evidence = best
+      ? { platform: best.platform, ad: best.name, figures: best.figures, copy: best.pattern, median_ctr: best.median, metric: own.metric }
+      : { note: own.total ? own.platforms.map((pl) => pl.reason || `${pl.label}: no ad above the median`).join(' ') : 'The ad accounts were read and no ad ran in the window.' };
+    if (best) control.evidence = `${control.evidence} Your own ${best.platform} ad "${best.name}" ran above your own median click-through rate: ${best.figures}.`;
+  }
   const plan = testPlan(briefs, { budget: o.budget, currency: o.currency, brand });
   const gaps = [];
   if (!competitors.length) gaps.push(marker('competitor set', brand));

@@ -59,6 +59,35 @@ has a pure `paidRequest(kind, spec)` (the exact request, shown when withheld) + 
 - Gated in `tests/paid-launch-executed.spec.js` (20) over stateful fakes (`opts.metaAccount` videos,
   `opts.googleAccount`) and `tests/paid-launch-page.spec.js` (platform choice at 1280 + 390); 8 mutations caught.
 
+## ⭐ The brand's own past ads are read and become evidence (2026-11-01)
+Creative evidence briefed the writer with the brand's own EMAIL campaigns and competitor ads; its own paid ads were
+never read. `api/_shared/ad-history.js` on `brain.js ?action=ad-history&op=import|list|status` (signed in; import =
+owner/editor via `assertCanWrite`, POST only; list/status = members; still 12/12), migration
+`20261101120000_brand_ad_history.sql` (`brand_ad_history` unique on workspace+provider+ad_id, `brand_ad_history_runs`;
+members read via `is_brand_member`, service role writes, anon nothing). Daily refresh on the EXISTING cron
+(`step('ad_history')`, `refreshDue`, least recently imported first).
+- **Meta**: new endpoint `account_ads_list` (GET `/act_{id}/ads`, read on developers.facebook.com that day: the edge's
+  Reading section, the Ad node's fields, the AdCreative's fields) + `ad_insights` at level=ad with `time_range`, both
+  paged by Meta's own cursor (`readAdHistory`, 20 pages each, `complete:false` said). Copy as returned (creative
+  body/title, else `object_story_spec.link_data`/`video_data`); a video is its id (no URL is returned). ctr stored as a
+  RATIO (Meta reports a percentage). `conversions` / `cost_per_conversion` / `purchase_roas` taken only when Meta
+  returned exactly ONE action value (summing action types counts one purchase twice). Default window 180 days.
+- **Google Ads**: the verified searchStream reader, LAST_30_DAYS only (the only ranges confirmed), copy not read
+  (null), said in the run's note. **TikTok Ads** (report endpoint unverified) and **Pinterest** (analytics needs ad ids,
+  no verified ads-list) are listed as not read, with why, and never called.
+- Every metric the platform did not return is null, never 0; re-import upserts and keeps `first_seen`; every store
+  query names the workspace checked through RLS first.
+- **Evidence**: `creative-evidence.ownAdsFrom` / the brief's OWN ADS block: the metric is stated (click-through rate,
+  clicks / impressions as the platform reported it), the median is this brand's own PER PLATFORM, fewer than three
+  rated ads on a platform = no median and no winner; WORKED / TIRING print only the platform's own figures and the copy
+  pattern. Never imported = no block at all. Smart Brain's `buildCampaign` stamps `entry.__ownAds` (non-enumerable,
+  `evidenceAds`, cached 10 min); Winning angles' control brief gains `own_ad_evidence` (the brand's own ad furthest
+  above its median, with figures; its copy is unchanged).
+- **/connections**: an "Ad history" card: per platform count, last import, why not; Import now; a table of ads with
+  "not returned" for an absent figure; stacks under 720px; a device brand gets one sentence.
+- Gated by `tests/ad-history-executed.spec.js` (9, over the fake Meta / Google APIs, which throw on undocumented
+  calls; 11 mutations caught) and `tests/ad-history-page.spec.js` (Chromium at 1280 and 390). router-brain has its entry.
+
 ## ⭐ A static ad can lead with its offer, as Fastlane's do (2026-11-01)
 The operator, with Fastlane's "first 3 statics" for a tea brand (photo, headline on a brand band, $99.99 struck beside
 $34.99, ticked benefits): "for quality comparison and sanity". `scripts/lib/static-ad.js` gains a seventh template,

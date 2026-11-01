@@ -82,6 +82,7 @@ const M = {
   ledger: 'api/_shared/contact-ledger.js',
   gateway: 'api/_shared/social-gateway-core.js',
   launch: 'api/_shared/paid-launch-core.js',
+  adhist: 'api/_shared/ad-history.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
   ownerDesk: 'api/_shared/owner-desk-server.js',
 };
@@ -1010,6 +1011,7 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
     S.on(M.universe, 'refreshDueWorkspaces', async () => ({ due: 1, refreshed: 1, added: 0, note: 'n' }));
     S.on(M.snowflake, 'runSync', async () => ({ ok: true, connected: false }));
     S.on(M.gateway, 'refreshDueTokens', async () => ({ ok: true, due: 2, refreshed: 1, needs_reauth: 1, retry: 0 }));
+    S.on(M.adhist, 'refreshDue', async () => ({ due: 1, refreshed: 1 }));
     S.on(CORE, 'logRun', async () => 'run_cron');
     db.rows.smart_calendar = [{ id: 'slot_due' }];
   },
@@ -1042,7 +1044,7 @@ add('cron', { gate: 'cron', browser: 'demo', run: { method: 'GET' },
       } },
     { name: 'phase=plan and phase=refresh run theirs', run: { method: 'GET', query: { phase: 'refresh' } },
       expect: (r) => {
-        expect(Object.keys(r.out.steps).sort()).toEqual(['catalog_refresh', 'competitor_universe', 'snowflake_sync', 'social_tokens']);
+        expect(Object.keys(r.out.steps).sort()).toEqual(['ad_history', 'catalog_refresh', 'competitor_universe', 'snowflake_sync', 'social_tokens']);
         expect(S.hits(M.osb)).toEqual([]);
       } },
     { name: 'an unknown phase is a 400 that names the phases, and runs nothing', run: { method: 'GET', query: { phase: 'everything' } },
@@ -1197,6 +1199,18 @@ add('paid-launch', { gate: 'user', browser: 'refuse', run: { method: 'GET', quer
   },
   cases: [{ name: 'a POST hands the parsed body through for a build step', run: { json: { launch_id: 'l9' }, query: { op: 'run' } },
     expect: (r) => { expect(r.out.op).toBe('run'); const a = last(M.launch, 'handle'); expect(a[2].body).toMatchObject({ launch_id: 'l9' }); } }],
+});
+add('ad-history', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
+  stubs: () => S.on(M.adhist, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
+  expect: (r) => {
+    // The verified caller and the workspace SCOPING resolved are handed over;
+    // the reader never takes a workspace from the request.
+    expect(r.out).toEqual({ ok: true, op: 'status', ws: H.WS, user: H.USER_ID });
+    const a = last(M.adhist, 'handle');
+    expect(a[2].auth).toMatchObject({ ok: true, user_id: H.USER_ID });
+  },
+  cases: [{ name: 'a POST import hands the parsed body through', run: { json: { days: 90 }, query: { op: 'import' } },
+    expect: (r) => { expect(r.out.op).toBe('import'); const a = last(M.adhist, 'handle'); expect(a[2].body).toMatchObject({ days: 90 }); } }],
 });
 add('social-gateway', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
   stubs: () => S.on(M.gateway, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
