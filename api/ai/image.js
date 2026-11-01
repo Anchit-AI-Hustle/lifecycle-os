@@ -27,6 +27,27 @@
 
 const { brandPlaceholderDataUri } = require('../_shared/brand-placeholder.js');
 
+/**
+ * The product's own photo, read for a scene: public https only (the SSRF guard
+ * on every hop), an image type, at most 4 MB. Returned as base64 for Gemini.
+ */
+async function fetchReferenceImage(url) {
+  const { assertPublicUrl } = require('../_shared/brand-workspace-core.js');
+  let u = url;
+  for (let hop = 0; hop < 4; hop++) {
+    await assertPublicUrl(u);
+    const r = await fetch(u, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+    if (r.status >= 300 && r.status < 400 && r.headers.get('location')) { u = new URL(r.headers.get('location'), u).href; continue; }
+    if (!r.ok) throw new Error('the photo answered ' + r.status);
+    const type = String(r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!/^image\/(png|jpe?g|webp)$/.test(type)) throw new Error('not a PNG, JPEG or WebP image (' + (type || 'no type') + ')');
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 4 * 1024 * 1024) throw new Error('larger than 4 MB');
+    return { mimeType: type === 'image/jpg' ? 'image/jpeg' : type, data: buf.toString('base64') };
+  }
+  throw new Error('too many redirects');
+}
+
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const OPENAI_BASE = 'https://api.openai.com/v1';
 
@@ -136,7 +157,30 @@ module.exports = async function handler(req, res) {
       message: `[DATA REQUIRED BEFORE LAUNCH: hero product, ${brandName}] Select the product this image is of; nothing was generated.`,
     });
   }
-  const subjectLine = productTitle
+  // SCENE (2026-11-01, measured against Fastlane's statics): the product's
+  // OWN catalogue photo goes to the image model as an input image and is placed,
+  // packaging unchanged, into a lifestyle scene. Only a provider that takes an
+  // input image may draw it (Gemini's documented text-and-image-to-image);
+  // a text-only model asked for "this pack" invents one, so with no such key
+  // the request is refused in a sentence and nothing is drawn.
+  const isScene = mode === 'scene';
+  let sceneRef = null;
+  if (isScene) {
+    const refUrl = String((product && product.image_url) || '');
+    if (!productTitle || !/^https:\/\//i.test(refUrl)) {
+      return res.status(422).json({ ok: false, error: 'product_photo_required',
+        message: 'A scene is made from the product\'s own catalogue photo, and this ad has none. Nothing was generated.' });
+    }
+    try {
+      sceneRef = await fetchReferenceImage(refUrl);
+    } catch (e) {
+      return res.status(422).json({ ok: false, error: 'product_photo_unreadable',
+        message: 'The product\'s photo could not be read (' + String((e && e.message) || e).slice(0, 120) + '). Nothing was generated.' });
+    }
+  }
+  const subjectLine = isScene
+    ? `SUBJECT: the attached photograph IS the brand's own product "${productTitle}". Place exactly this product, as photographed, into the scene below. Keep its packaging, shape, label, logo, every printed word and its colours exactly as in the photo: do not redraw, retype, translate, restyle or add text on it, and add no other product or brand. Natural light, a real place, people only as the scene asks; no text, logo or price drawn anywhere else in the image.\n\n`
+    : productTitle
     ? `SUBJECT: the brand's own product "${productTitle}"${product.category ? ` (${String(product.category).slice(0, 80)})` : ''}${/^https?:\/\//i.test(String(product.image_url || '')) ? `, exactly as in its catalogue photograph ${String(product.image_url).slice(0, 400)}` : ''}. Show only this product; invent no other object.\n\n`
     : '';
   const preamble = buildPreamble(brand, mode || 'photo', productTitle ? { product: { title: productTitle, category: product.category } } : null);
@@ -244,7 +288,9 @@ module.exports = async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Generate an image based on this description:\n\n' + finalPrompt }] }],
+          contents: [{ parts: sceneRef
+            ? [{ inlineData: { mimeType: sceneRef.mimeType, data: sceneRef.data } }, { text: 'Edit: put the product in this photo into a new scene, as described:\n\n' + finalPrompt }]
+            : [{ text: 'Generate an image based on this description:\n\n' + finalPrompt }] }],
           generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
         })
       }, 90000, readJson);
@@ -457,6 +503,14 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  if (isScene) {
+    rungs.length = 0;
+    if (geminiKey) rungs.push(() => tryGeminiNative(['gemini-2.5-flash-image', 'gemini-3-pro-image-preview']));
+    if (!rungs.length) {
+      return res.status(501).json({ ok: false, error: 'scene_needs_gemini',
+        message: 'A scene with the product\'s own pack needs a model that takes a photo as input: connect Gemini on AI Models. Nothing was generated, so no packaging was invented.' });
+    }
+  }
   const hadKeys = !!(geminiKey || openaiKeys.length > 0);
   for (const rung of rungs) {
     if (left() < 1000) { budgetOut = true; break; }
