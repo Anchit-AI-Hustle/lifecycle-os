@@ -15,6 +15,10 @@
  *   type     a typographic poster: the headline large, the photo small
  *   sticker  the photo with a round price sticker and a bold label strip
  *   band     the photo with a solid band of the brand's ground across it
+ *   offer    the photo, the headline on a band of the brand's ground, then an
+ *            offer panel: the price (the compare-at price struck through when
+ *            the store states one) beside up to three of the brand's own
+ *            claims, ticked (2026-11-01, measured against Fastlane's statics)
  * A theme changes the type (case, weight, tracking, scale, italic), corners,
  * the button's shape, how the photo is framed, the eyebrow and divider, and
  * where the logo sits. It brings no colour: every ground is the brand's
@@ -35,7 +39,7 @@ const THEMES = require('../../api/_shared/asset-themes.js').THEMES;
 const RATIOS = { '1:1': [1, 1], '4:5': [4, 5], '9:16': [9, 16], '1.91:1': [1.91, 1], '16:9': [16, 9] };
 // Type size per ratio, as a share of the ad's width (a wide ad is short).
 const K = { '1:1': 1, '4:5': 1, '9:16': 1.05, '1.91:1': 0.5, '16:9': 0.5 };
-const TEMPLATE_IDS = ['overlay', 'split', 'framed', 'type', 'sticker', 'band'];
+const TEMPLATE_IDS = ['overlay', 'split', 'framed', 'type', 'sticker', 'band', 'offer'];
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -129,7 +133,7 @@ function headline(theme, text, color, size, extra) {
   return `<div data-ad-text data-ad-headline style="font-family:var(--head);font-size:${(size * h.scale).toFixed(2)}cqw;line-height:${h.case === 'upper' ? 1.04 : 1.1};font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}color:${color};margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;${extra || ''}">${esc(text)}</div>`;
 }
 const lineEl = (text, color, size) => (text ? `<div data-ad-text style="font-family:var(--body);font-size:${size}cqw;line-height:1.35;color:${color};margin:2cqw 0 0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden">${esc(text)}</div>` : '');
-const priceEl = (text, color, size) => (text ? `<div data-ad-text data-ad-price style="font-family:var(--head);font-size:${size}cqw;font-weight:700;line-height:1.1;color:${color};margin:2.4cqw 0 0">${esc(text)}</div>` : '');
+const priceEl = (text, color, size, compare) => (text ? `<div data-ad-text data-ad-price style="font-family:var(--head);font-size:${size}cqw;font-weight:700;line-height:1.1;color:${color};margin:2.4cqw 0 0">${compare ? `<s data-ad-compare style="font-weight:600;font-size:0.62em;opacity:1;margin-right:0.4em;text-decoration-thickness:0.12em">${esc(compare)}</s>` : ''}${esc(text)}</div>` : '');
 
 function logoEl(spec, color, size, onDark) {
   const name = words(spec.brandName);
@@ -146,13 +150,14 @@ function photo(theme, src, alt, style) {
 }
 
 /** The template this ad can fill: no photograph means the typographic poster. */
-function fit(template, hasImage) {
+function fit(template, hasImage, hasOffer) {
   if (!hasImage) return 'type';
+  if (template === 'offer' && !hasOffer) return 'band';
   return TEMPLATE_IDS.includes(template) ? template : 'overlay';
 }
 
 /**
- * spec: { brandName, logo, ratio, headline, line, price, proof, cta, image,
+ * spec: { brandName, logo, ratio, headline, line, price, compare, benefits[], proof, cta, image,
  *   palette:{primary,accent,surface,ink}, fonts:{head,body}, fontsHref,
  *   theme (asset-themes theme or id), template, id }
  * Returns { html, template, theme, data_gaps }.
@@ -164,13 +169,16 @@ function renderStaticAd(spec) {
   const [rw, rh] = RATIOS[ratio];
   const k = K[ratio];
   const img = httpsUrl(s.image);
-  const template = fit(s.template, !!img);
+  const P0 = words(s.price);
+  const CMP = P0 && words(s.compare) && words(s.compare) !== P0 ? words(s.compare) : '';
+  const BEN = (Array.isArray(s.benefits) ? s.benefits : []).map(words).filter((b) => b && b.length <= 40).slice(0, 3);
+  const template = fit(s.template, !!img, !!(P0 || BEN.length));
   const C = colours(s.palette);
   const head = cssFont(s.fonts && s.fonts.head, 'system-ui,sans-serif');
   const body = cssFont(s.fonts && s.fonts.body, head);
   const H = words(s.headline);
   const L = words(s.line) && words(s.line).toLowerCase() !== H.toLowerCase() ? words(s.line) : '';
-  const P = words(s.price);
+  const P = P0;
   const proof = words(s.proof);
   const cta = words(s.cta);
   const alt = H || words(s.brandName);
@@ -187,7 +195,7 @@ function renderStaticAd(spec) {
   const block = (on, extra, f) => {
     const fg = on === 'ground' ? C.onGround : C.onSurface;
     const brandFg = on === 'ground' ? C.onGround : C.brandOnSurface;
-    return `<div data-ad-copy style="text-align:${align};${extra || ''}">${eyebrow(theme, proof, brandFg, on, 2.6 * sk)}${headline(theme, H, on === 'ground' ? C.onGround : C.brandOnSurface, hs * (f || 1))}${divider(theme, brandFg)}${wide || f ? '' : lineEl(L, fg, ls)}${priceEl(P, brandFg, 4.6 * k)}<div style="margin-top:3.6cqw">${button(theme, C, on, cta, ls)}</div></div>`;
+    return `<div data-ad-copy style="text-align:${align};${extra || ''}">${eyebrow(theme, proof, brandFg, on, 2.6 * sk)}${headline(theme, H, on === 'ground' ? C.onGround : C.brandOnSurface, hs * (f || 1))}${divider(theme, brandFg)}${wide || f ? '' : lineEl(L, fg, ls)}${priceEl(P, brandFg, 4.6 * k, CMP)}<div style="margin-top:3.6cqw">${button(theme, C, on, cta, ls)}</div></div>`;
   };
   const logoRow = (color, onDark) => {
     const el = logoEl(s, color, 3.6 * sk, onDark);
@@ -219,7 +227,7 @@ function renderStaticAd(spec) {
     inner = `<div data-ad-panel style="position:absolute;inset:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:column;justify-content:space-between;gap:3cqw">
 ${logoRow(C.onGround, true)}
 <div data-ad-copy style="text-align:${align};${img ? `max-width:${100 - 2 * pd - (wide ? 30 : 42) - 3}cqw;` : ''}">${eyebrow(theme, proof, C.onGround, 'ground', 2.8 * sk)}${headline(theme, H, C.onGround, hs * (img ? 1.05 : 1.35))}${divider(theme, C.onGround)}${wide ? '' : lineEl(L, C.onGround, ls)}</div>
-<div style="text-align:${align};${img ? `padding-right:${wide ? 32 : 44}cqw;` : ''}">${priceEl(P, C.onGround, 5 * k)}<div style="margin-top:3cqw">${button(theme, C, 'ground', cta, ls)}</div></div></div>${corner}`;
+<div style="text-align:${align};${img ? `padding-right:${wide ? 32 : 44}cqw;` : ''}">${priceEl(P, C.onGround, 5 * k, CMP)}<div style="margin-top:3cqw">${button(theme, C, 'ground', cta, ls)}</div></div></div>${corner}`;
   } else if (template === 'sticker') {
     const st = P || cta;
     inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:${C.surface}">
@@ -228,6 +236,17 @@ ${logoRow(C.onGround, true)}
 <div style="position:absolute;top:${pd / 1.4}cqw;left:${pd / 1.4}cqw;padding:2cqw 3cqw;background:${C.surface};border-radius:${frameR}px">${logoEl(s, C.brandOnSurface, 3.2 * sk, false)}</div></div>
 <div data-ad-panel style="flex:0 0 auto;background:${C.surface};padding:${pd * 0.8}cqw ${pd}cqw;border-top:${theme.divider === 'thick' ? '1.4cqw' : '0.5cqw'} solid ${C.ground};display:flex;align-items:center;justify-content:space-between;gap:4cqw">
 <div style="min-width:0;text-align:left">${eyebrow(theme, proof, C.brandOnSurface, 'surface', 2.6 * sk)}${headline(theme, H, C.brandOnSurface, hs * 0.8)}</div>${P ? `<div style="flex:0 0 auto">${button(theme, C, 'surface', cta, ls)}</div>` : ''}</div></div>`;
+  } else if (template === 'offer') {
+    // offer: the photo, the headline on the brand's ground, then the offer
+    // panel on the surface - the price (compare-at struck when stated) beside
+    // the brand's own claims, ticked, and the button. Every word is the ad's
+    // or the record's; nothing (gifts, ratings, a deadline) is added here.
+    const bandH = `<div data-ad-panel style="flex:0 0 auto;background:${C.ground};padding:${pd * 0.55}cqw ${pd}cqw">${headline(Object.assign({}, theme, { heading: Object.assign({}, theme.heading, { case: 'upper' }) }), H, C.onGround, hs * (wide ? 0.62 : 0.86))}</div>`;
+    const priceBox = P ? `<div data-ad-pricebox style="flex:0 0 auto;border:0.5cqw solid ${C.brandOnSurface};border-radius:${Math.max(4, frameR)}px;padding:2cqw 3cqw;text-align:center">${CMP ? `<div data-ad-text data-ad-compare style="font-family:var(--head);font-weight:700;font-size:${4.2 * sk}cqw;line-height:1.05;color:${C.onSurface};text-decoration:line-through;text-decoration-thickness:0.14em">${esc(CMP)}</div>` : ''}<div data-ad-text data-ad-price style="font-family:var(--head);font-weight:800;font-size:${(CMP ? 6.4 : 7) * sk}cqw;line-height:1.05;color:${C.brandOnSurface}">${esc(P)}</div></div>` : '';
+    const list = BEN.length ? `<ul data-ad-benefits style="list-style:none;margin:0;padding:0;flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1.2cqw">${BEN.map((b) => `<li data-ad-text style="font-family:var(--head);font-weight:700;font-size:${3.3 * sk}cqw;line-height:1.2;color:${C.brandOnSurface};display:flex;gap:1.4cqw;align-items:baseline"><span aria-hidden="true" style="flex:0 0 auto;color:${C.brandOnSurface}">&#10003;</span><span>${esc(b)}</span></li>`).join('')}</ul>` : '';
+    const panelO = `<div data-ad-panel style="flex:0 0 auto;background:${C.surface};padding:${pd * 0.7}cqw ${pd}cqw;display:flex;flex-direction:column;gap:2.4cqw"><div style="display:flex;align-items:center;gap:4cqw">${priceBox}${list}</div>${cta ? `<div style="text-align:center">${button(theme, C, 'surface', cta, ls)}</div>` : ''}</div>`;
+    const phO = `<div style="flex:1 1 auto;min-height:0;position:relative">${photo(Object.assign({}, theme, { image: 'bleed' }), img, alt)}<div style="position:absolute;top:${pd / 1.4}cqw;left:${pd / 1.4}cqw;padding:2cqw 3cqw;background:${C.surface};border-radius:${frameR}px">${logoEl(s, C.brandOnSurface, 3.2 * sk, false)}</div></div>`;
+    inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:${C.surface}">${phO}${bandH}${panelO}</div>`;
   } else {
     // band: the photo, and a solid band of the brand's ground across it, at
     // the top or the bottom (the seed decides; the logo takes the other end).

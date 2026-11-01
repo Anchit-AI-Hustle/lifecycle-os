@@ -4712,6 +4712,18 @@ function attachStaticCreative(campaign, entry) {
   try { const n = Number(hp && hp.price); if (Number.isFinite(n) && n > 0) price = require('./brand-locale.js').money(n, brand, entry.market) || ''; } catch (_) { price = ''; }
   const first = (t) => ((String(t || '').match(/[^.!?]+[.!?]?/) || [''])[0]).replace(/\s+/g, ' ').trim();
   const clean = (t) => (/DATA REQUIRED/.test(String(t || '')) ? '' : String(t || '').trim());
+  // The offer panel (measured against Fastlane's statics, 2026-11-01): the
+  // compare-at price the STORE states, struck, beside up to three of the
+  // brand's OWN claims, verbatim and short. Nothing is written here.
+  let compare = '';
+  try { const c = Number(hp && hp.compare_at), n = Number(hp && hp.price); if (price && Number.isFinite(c) && c > n) compare = require('./brand-locale.js').money(c, brand, entry.market) || ''; } catch (_) { compare = ''; }
+  const claimText = (c) => String((c && typeof c === 'object') ? (c.text || c.claim || '') : (c || '')).replace(/\s+/g, ' ').trim().replace(/[.]$/, '');
+  const benefits = [];
+  for (const c of [].concat(brand.claims || [], (brand.brand_data && brand.brand_data.claims) || [])) {
+    const t = claimText(c);
+    if (t && t.length <= 40 && !/DATA REQUIRED/.test(t) && !benefits.some((b) => b.toLowerCase() === t.toLowerCase())) benefits.push(t);
+    if (benefits.length >= 3) break;
+  }
   const gaps = [];
   for (const ad of ads) {
     try {
@@ -4720,8 +4732,11 @@ function attachStaticCreative(campaign, entry) {
       const line = clean(first(ad.primary_text || ad.description || (Array.isArray(ad.descriptions) && ad.descriptions[0]) || ad.caption));
       const name = `ad:${ad.platform || ''}:static:${ad.variant || ''}:${ad.id || ''}`;
       const p = AT.pick(entry, 'ad', name);
+      // A stated discount leads with the offer panel on the A ad: the price
+      // struck and the price paid are what that ad sells.
+      if (compare && String(ad.variant || 'A').toUpperCase() === 'A' && p.template !== 'offer') { p.template = 'offer'; p.why = String(p.why || '').replace(/the \w+ template rotates by send\./, '') + 'The store states a compare-at price, so the A ad leads with the offer template.'; }
       const out = SA.renderStaticAd({
-        id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template,
+        id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template, compare, benefits: benefits.filter((b) => b.toLowerCase() !== headline.toLowerCase()),
         brandName: brand.name || '', logo: brand.logo_url || '', market: entry && entry.market,
         ratio: ad.aspect || '1:1', headline, line: line && line.toLowerCase() !== headline.toLowerCase() ? line : '',
         price, proof: clean(ov.proof), cta: clean(ov.cta || ad.cta),
