@@ -88,6 +88,18 @@ function installPlatforms(db, opts) {
         o.metaFail.times -= 1;
         return refuse(400, { error: { message: o.metaFail.message || 'Invalid parameter', code: 100 } });
       }
+      // An uploaded ad video (advideos): Meta fetches file_url itself, and a
+      // creative may use the video only once its status reads ready. Each
+      // status read takes the next state from A.videoStates (default ready).
+      if (call.method === 'GET' && p.length === 1 && A.objects[p[0]] && A.objects[p[0]].kind === 'video') {
+        if (u.searchParams.get('fields') !== 'status') throw new Error(`meta fake: a video read must ask fields=status, asked ${u.searchParams.get('fields')}`);
+        const v = A.objects[p[0]];
+        const states = A.videoStates || ['ready'];
+        A.videoReads = (A.videoReads || 0) + 1;
+        v.fields.video_status = states[Math.min(A.videoReads - 1, states.length - 1)];
+        v.reads += 1;
+        return { status: { video_status: v.fields.video_status, uploading_phase: { status: 'complete' }, processing_phase: { status: v.fields.video_status === 'ready' ? 'complete' : 'in_progress' } } };
+      }
       if (call.method === 'GET' && p[0] === 'me' && p[1] === 'adaccounts') return { data: [{ id: A.id, name: 'Brand account', account_status: 1, currency: A.currency }] };
       if (p[0] === A.id && (p[1] === 'campaigns' || p[1] === 'adsets') && call.method === 'GET') {
         const kind = p[1] === 'campaigns' ? 'campaign' : 'adset';
@@ -111,6 +123,21 @@ function installPlatforms(db, opts) {
           if (!countries.length) return refuse(400, { error: { message: 'targeting is required' } });
           if (countries.some((c) => ['DE', 'FR', 'NL', 'IE', 'ES', 'IT'].includes(c)) && (!b.dsa_payor || !b.dsa_beneficiary)) return refuse(400, { error: { message: 'dsa_payor and dsa_beneficiary are required' } });
           const o2 = { id: id('as'), kind: 'adset', fields: { name: b.name, campaign_id: b.campaign_id, status, effective_status: status, daily_budget: String(b.daily_budget) } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+        if (p[1] === 'advideos') {
+          if (!/^https:\/\//.test(String(b.file_url || ''))) return refuse(400, { error: { message: 'file_url must be a URL Meta can fetch' } });
+          const o2 = { id: id('vid'), kind: 'video', reads: 0, fields: { name: b.name, file_url: b.file_url, video_status: 'processing' } };
+          A.objects[o2.id] = o2; return { id: o2.id };
+        }
+        if (p[1] === 'adcreatives' && b.object_story_spec && b.object_story_spec.video_data) {
+          const s = b.object_story_spec;
+          const v = s.video_data;
+          const vid = A.objects[v.video_id];
+          if (!s.page_id || !vid || vid.kind !== 'video') return refuse(400, { error: { message: 'video_data.video_id must be a video in this account' } });
+          if (vid.fields.video_status !== 'ready') return refuse(400, { error: { message: 'Video not ready for use in an ad', code: 1885252 } });
+          if (!v.image_url || !v.call_to_action || !v.call_to_action.value || !v.call_to_action.value.link) return refuse(400, { error: { message: 'video_data needs image_url and call_to_action.value.link' } });
+          const o2 = { id: id('cr'), kind: 'creative', fields: { name: b.name, video_id: v.video_id } };
           A.objects[o2.id] = o2; return { id: o2.id };
         }
         if (p[1] === 'adcreatives') {
@@ -321,6 +348,61 @@ function installPlatforms(db, opts) {
         // Google returned no cost for this ad: there is no spend, not a spend of 0.
         { adGroupAd: { resourceName: 'customers/111/adGroupAds/7~902', ad: { id: '902' }, status: 'PAUSED' }, metrics: { impressions: '2000', clicks: '10', ctr: 0.005 } },
       ], fieldMask: 'adGroupAd.ad.id,adGroupAd.status,metrics.impressions,metrics.clicks,metrics.ctr,metrics.costMicros', requestId: 'req-1' }];
+    }
+    // A stateful Google Ads account for the paid launch (opts.googleAccount):
+    // the REST mutate shape (operations[].create, or update + updateMask),
+    // resource names back, and what the docs state: a campaign names an
+    // existing budget, a bidding strategy, SEARCH, PAUSED or ENABLED, and its
+    // EU political advertising declaration; a location is a geoTargetConstant;
+    // an RSA has 3-15 headlines of <= 30 and 2-4 descriptions of <= 90.
+    if (o.googleAccount && call.method === 'POST') {
+      const G = o.googleAccount;
+      G.objects = G.objects || {};
+      G.seq = G.seq || 0;
+      const m = u.pathname.match(/^\/v\d+\/customers\/(\d+)\/(campaignBudgets|campaigns|campaignCriteria|adGroups|adGroupAds):mutate$/);
+      if (m) {
+        if (!bearer(call) || !call.headers['developer-token']) return refuse(401, { error: { status: 'UNAUTHENTICATED' } });
+        const [, cid, service] = m;
+        if (cid !== G.customer) return refuse(403, { error: { status: 'PERMISSION_DENIED', message: 'customer not accessible' } });
+        if (o.googleFail && o.googleFail.service === service && o.googleFail.times > 0) { o.googleFail.times -= 1; return refuse(400, { error: { status: 'INVALID_ARGUMENT', message: o.googleFail.message || 'Invalid argument' } }); }
+        const ops = (call.body && call.body.operations) || [];
+        if (!ops.length) return refuse(400, { error: { status: 'INVALID_ARGUMENT', message: 'operations is required' } });
+        const bad = (msg) => refuse(400, { error: { status: 'INVALID_ARGUMENT', message: msg } });
+        const results = [];
+        const kindOf = { campaignBudgets: 'budget', campaigns: 'campaign', campaignCriteria: 'criterion', adGroups: 'adgroup', adGroupAds: 'ad' };
+        for (const op of ops) {
+          if (op.update) {
+            if (service === 'campaignBudgets') throw new Error('google ads fake: an UNVERIFIED budget update was sent');
+            if (!op.updateMask || !G.objects[op.update.resourceName]) return bad('update needs updateMask and an existing resourceName');
+            for (const f of String(op.updateMask).split(',')) G.objects[op.update.resourceName].fields[f] = op.update[f];
+            results.push({ resourceName: op.update.resourceName });
+            continue;
+          }
+          const c = op.create;
+          if (!c) return bad('operations[].create or update is required');
+          if (service === 'campaignBudgets' && (!/^\d+$/.test(String(c.amountMicros)) || Number(c.amountMicros) <= 0 || !c.deliveryMethod)) return bad('amountMicros (a positive whole number of micros) and deliveryMethod are required');
+          if (service === 'campaigns') {
+            if (!G.objects[c.campaignBudget]) return bad('campaignBudget does not exist');
+            if (c.advertisingChannelType !== 'SEARCH' || !c.manualCpc) return bad('a SEARCH campaign with a bidding strategy is required');
+            if (['DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING', 'CONTAINS_EU_POLITICAL_ADVERTISING'].indexOf(c.containsEuPoliticalAdvertising) < 0) return bad('containsEuPoliticalAdvertising is required');
+          }
+          if (service === 'campaignCriteria' && (!G.objects[c.campaign] || !/^geoTargetConstants\/\d+$/.test(String((c.location || {}).geoTargetConstant || '')))) return bad('a location criterion needs an existing campaign and a geoTargetConstant');
+          if (service === 'adGroups' && (!G.objects[c.campaign] || c.type !== 'SEARCH_STANDARD')) return bad('an ad group needs an existing campaign and type SEARCH_STANDARD');
+          if (service === 'adGroupAds') {
+            const rsa = (c.ad && c.ad.responsiveSearchAd) || {};
+            const h = rsa.headlines || []; const d = rsa.descriptions || [];
+            if (!G.objects[c.adGroup]) return bad('adGroup does not exist');
+            if (h.length < 3 || h.length > 15 || h.some((x) => String(x.text).length > 30)) return bad('3 to 15 headlines of at most 30 characters');
+            if (d.length < 2 || d.length > 4 || d.some((x) => String(x.text).length > 90)) return bad('2 to 4 descriptions of at most 90 characters');
+            if (!(c.ad.finalUrls || []).length) return bad('finalUrls is required');
+          }
+          if (c.status && ['PAUSED', 'ENABLED'].indexOf(c.status) < 0) return bad('status must be PAUSED or ENABLED');
+          const rn = `customers/${cid}/${service}/${++G.seq}`;
+          G.objects[rn] = { kind: kindOf[service], fields: Object.assign({}, c) };
+          results.push({ resourceName: rn });
+        }
+        return { results };
+      }
     }
     // The responsive search ad create the adapter has always made. Answered
     // whatever status it carries, as Google would: the TEST decides PAUSED.

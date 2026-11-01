@@ -26,7 +26,7 @@ const registry = require(path.join(ROOT, 'api', '_shared', 'adapters', 'registry
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const AUTH_A = { ok: true, token: 'tok-a', user_id: 'user-a', email: 'a@example.test' };
-const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CONNECTION_SECRET_KEY', 'LIVE_CONNECTORS', 'META_ALLOW_WRITES', 'META_APP_ID', 'META_APP_SECRET']);
+const ENV = envScope(['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'CONNECTION_SECRET_KEY', 'LIVE_CONNECTORS', 'META_ALLOW_WRITES', 'META_APP_ID', 'META_APP_SECRET', 'GOOGLE_ADS_ALLOW_WRITES', 'TIKTOK_ALLOW_WRITES']);
 const IMG = 'https://cdn.brand.example/p/hero.jpg';
 const LINK = 'https://brand.example/p/hero';
 
@@ -56,10 +56,13 @@ function world() {
   process.env.META_APP_SECRET = 'meta-app-secret';
   process.env.LIVE_CONNECTORS = 'on';
   delete process.env.META_ALLOW_WRITES;
+  delete process.env.GOOGLE_ADS_ALLOW_WRITES;
+  process.env.TIKTOK_ALLOW_WRITES = '1';
   const db = new FakeSupabase();
   db.addUser('tok-a', 'user-a', 'a@example.test').addWorkspace('ws-a', 'user-a').setActive('user-a', 'ws-a').syncIdentityTables();
   const account = { id: 'act_77', currency: 'INR' };
-  db.seen = installPlatforms(db, { metaAccount: account });
+  db.gaccount = { customer: '1112223333' };
+  db.seen = installPlatforms(db, { metaAccount: account, googleAccount: db.gaccount });
   db.account = account;
   db.install();
   connections._resolvedCache.clear();
@@ -69,6 +72,17 @@ function world() {
     token_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), refresh_failure_count: 0, revoked_at: null,
   });
   db.insert('workspace_connection_secrets', Object.assign({ connection_id: row.id, workspace_id: 'ws-a' }, connections.encryptSecrets({ access_token: 'meta-secret-token' })));
+  const g = db.insert('workspace_connections', {
+    workspace_id: 'ws-a', provider: 'google_ads', category: 'ads', auth_kind: 'oauth', label: 'google', config: { publishing_enabled: true, customer_id: '1112223333' },
+    secret_fields: ['access_token', 'developer_token'], secret_hint: 'oken', status: 'active', connect_kind: 'oauth', oauth_scopes: ['https://www.googleapis.com/auth/adwords'],
+    token_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), refresh_failure_count: 0, revoked_at: null,
+  });
+  db.insert('workspace_connection_secrets', Object.assign({ connection_id: g.id, workspace_id: 'ws-a' }, connections.encryptSecrets({ access_token: 'ya29.page-token', developer_token: 'dev-page-secret' })));
+  const t = db.insert('workspace_connections', {
+    workspace_id: 'ws-a', provider: 'tiktok_ads', category: 'ads', auth_kind: 'api_key', label: 'tiktok ads', config: { publishing_enabled: true, advertiser_id: 'adv-9' },
+    secret_fields: ['access_token'], secret_hint: 'oken', status: 'active', revoked_at: null,
+  });
+  db.insert('workspace_connection_secrets', Object.assign({ connection_id: t.id, workspace_id: 'ws-a' }, connections.encryptSecrets({ access_token: 'tt-page-secret' })));
   return db;
 }
 
@@ -149,6 +163,49 @@ for (const width of [1280, 390]) {
     await page.locator('#pl-live').click();
     await expect(page.locator('#pl-launch-title')).toContainText('live');
     expect(Object.values(db.account.objects).filter((o) => o.kind !== 'creative').every((o) => o.fields.status === 'ACTIVE')).toBe(true);
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    expect(thrown).toEqual([]);
+  });
+}
+
+for (const width of [1280, 390]) {
+  test(`at ${width}px: the platform choice shows its own fields; Google builds paused behind its switch; TikTok Ads plans and withholds with the reason`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width > 500 ? 900 : 844 });
+    const db = world();
+    const thrown = await open(page, BRIEFS);
+    const cards = page.locator('#pl-platforms');
+    await expect(cards).toContainText('Google Ads');
+    await expect(cards).toContainText('TikTok Ads');
+    await expect(cards).toContainText('not confirmed');
+
+    await page.locator('#pl-provider').selectOption('google_ads');
+    await expect(page.locator('#pl-geo')).toBeVisible();
+    await expect(page.locator('#pl-page')).toBeHidden();
+    await page.locator('#pl-markets').fill('IN');
+    await page.locator('#pl-link').fill(LINK);
+    await page.locator('#pl-currency').fill('INR');
+    await page.locator('#pl-geo').fill('IN:2356');
+    await page.locator('#pl-eu-political').selectOption('none');
+    await page.locator('#pl-plan').click();
+    // Briefs carry one headline each, so the RSA is short of Google's three: said, and blocked.
+    await expect(page.locator('#pl-checks')).toContainText('headline');
+    await expect(page.locator('#pl-sets')).toContainText('750 INR');
+    await expect(page.locator('#pl-run')).toBeDisabled();
+    expect(db.seen.google_ads.length).toBe(0);
+
+    await page.locator('#pl-provider').selectOption('tiktok_ads');
+    await expect(page.locator('#pl-provider-note')).toContainText('not confirmed');
+    await page.locator('#pl-image').fill(IMG);
+    await page.locator('#pl-plan').click();
+    await expect(page.locator('#pl-sets')).toContainText('450 INR');
+    await page.locator('#pl-run').click();
+    const first = page.locator('#pl-steps li').first();
+    await expect(first).toHaveAttribute('data-step-status', 'withheld');
+    await expect(first).toContainText('not confirmed');
+    await expect(first).toContainText('DISABLE');
+    expect(db.seen.tiktok_ads.length).toBe(0);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(1);

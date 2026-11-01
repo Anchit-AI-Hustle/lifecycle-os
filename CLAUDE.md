@@ -4,6 +4,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Hugging Face is the person's own model: paste a token or Sign in with Hugging Face (2026-11-01)
+The "not built yet" from 2026-10-24 is built. A `huggingface` AI connection on /ai-models and /connections
+(`workspace-connections-core` PROVIDERS, `env_default ''`: there is NO platform key and it is in no platform
+order, so it runs only for a workspace that connected it). Read 2026-11-01, cited in code: docs/hub/oauth,
+huggingface.co/.well-known/openid-configuration, docs/inference-providers (index, tasks/chat-completion, pricing).
+- **Paste**: a fine-grained token with "Make calls to Inference Providers" (the card links Hugging Face's own
+  token page; the one box knows `hf_`). **Sign in** (`ai-account-signin.js` SIGNIN.huggingface, kind
+  `huggingface`): `https://huggingface.co/oauth/authorize` with PKCE S256, scope `openid profile inference-api`,
+  back to the bare page address (redirect URIs match exactly); the code is exchanged on the SERVER at
+  `/oauth/token` (`op=ai-signin-exchange`, after the write check), Basic auth when the app has a secret, else
+  the client id in the body (a documented public app). Env the operator sets: `HF_OAUTH_CLIENT_ID`
+  (+ `HF_OAUTH_CLIENT_SECRET`), redirect URIs `/ai-models` and `/connections`; until set the card offers only
+  the token and says why. A granted scope without `inference-api` is refused with a sentence.
+- **Kept encrypted, never returned**: hidden secret fields `hf_oauth_access` / `_refresh` / `_expires_at`.
+  `secret_groups` (new registry key, applied in `saveConnection`): a pasted token and a sign-in replace each
+  other, so the one saved last is used. At call time `hfAccessFor()` renews an ended token with the refresh
+  token, caches it to expiry and WRITES the renewal back (a rotated refresh token is kept); a sign-in that
+  cannot be renewed leaves Hugging Face unconnected for that request and Test says "sign in again".
+- **llm.js** provider `huggingface`: OpenAI-compatible `https://router.huggingface.co/v1/chat/completions`,
+  Bearer = the workspace's token only (never an env var), default model `openai/gpt-oss-120b` (the docs'
+  example; the card's Model field takes any Hub id with `:provider` / `:fastest` / `:cheapest`), usage read
+  from `usage.prompt_tokens/completion_tokens`, in `OWN_KEY_PRIORITY` after OpenRouter for unranked use, the
+  person's ranked order first. Recorded as own (no credits). `FIX_PAGES.huggingface` (tokens, billing);
+  `providerSays` now redacts `hf_` tokens; a refused sign-in Test says to sign in again, not to make a key.
+- **Not confirmed by the docs, so not assumed**: whether an authorization-code grant returns a refresh token,
+  and an access token's lifetime (HF's own JS client comments `refresh_token` out). A refresh token is kept
+  when one comes back and `expires_in` honoured when given; with neither, the token is used until refused.
+- Gated by `tests/huggingface-signin.spec.js` (11 executed over a fake Hugging Face that throws on any
+  undocumented URL; the page in Chromium). `ai-account-signin`'s "documented flows" list changed on purpose.
+  Note: `model-fallback-cascade` fails 4 tests in a container that has ambient `AWS_*` keys (Bedrock becomes
+  configured); it passes with them unset, on this change and before it.
+
+## ⭐ Paid launch on Meta video, Google Ads, TikTok Ads and Pinterest (2026-11-01)
+`paid-launch-core.js` now plans for four platforms (`PLATFORMS`, each with its unit and write switch); `built` is
+COMPUTED from the adapter's endpoint table (`unconfirmedOps()` over `A.launchOps(kinds)`), never typed. Each adapter
+has a pure `paidRequest(kind, spec)` (the exact request, shown when withheld) + `createPaidObject` / `updatePaidObject`.
+- **Meta video**: the ad's own rendered MP4 (`creative.video.url`, https, `assertPublicUrl` at plan) -> POST
+  `/act_{id}/advideos {file_url}` -> GET `/{video}?fields=status` until `video_status` ready (4 reads a run,
+  `PAID_LAUNCH_VIDEO_POLL_MS`); still processing = the run stops `building` and the next run READS again, never
+  uploads twice; error/expired = failed, the next run uploads again. Creative = `object_story_spec.video_data`
+  {video_id, image_url = the ad's own photo, message, title, call_to_action}. No MP4 = the ad is left out, said.
+- **Google Ads (built)**: Search only, ONE campaign per ad group (a budget belongs to a campaign): campaignBudgets ->
+  campaigns (PAUSED, SEARCH, manualCpc, `containsEuPoliticalAdvertising`) -> campaignCriteria (location) -> adGroups
+  (PAUSED) -> adGroupAds (RSA PAUSED, lines over 30/90 dropped never cut). Money in micros, split exactly. A country is
+  a geo target constant id the operator STATES per market (never guessed); the EU political declaration is stated or
+  the plan blocks. Go-live: ads, ad groups, campaigns ENABLED (`updateMask: status`). A budget change is withheld
+  (`budget_update` verified:false: the REST mask spelling for amountMicros was not confirmed). API default v24.
+- **TikTok Ads, Pinterest (planned, every step withheld)**: TikTok's reference portal answered a script shell only;
+  its fields come from the SDK (default ENABLE), so all launch ops are verified:false. Pinterest's ad group (daily
+  budget_type value, PAUSED at creation) and ad (PAUSED) are unconfirmed; because campaign create IS verified, a
+  chain with ANY unconfirmed op is withheld at its FIRST step so no half structure is left. Every step shows its
+  request; nothing reaches the platform (the fakes throw).
+- Gated in `tests/paid-launch-executed.spec.js` (20) over stateful fakes (`opts.metaAccount` videos,
+  `opts.googleAccount`) and `tests/paid-launch-page.spec.js` (platform choice at 1280 + 390); 8 mutations caught.
+
 ## ⭐ A static ad can lead with its offer, as Fastlane's do (2026-11-01)
 The operator, with Fastlane's "first 3 statics" for a tea brand (photo, headline on a brand band, $99.99 struck beside
 $34.99, ticked benefits): "for quality comparison and sanity". `scripts/lib/static-ad.js` gains a seventh template,

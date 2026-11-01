@@ -155,6 +155,17 @@ const ENDPOINTS = {
     doc: `${MKT_DOCS}/reference/ad-campaign-group ("You can update a Campaign by making a POST request to /{campaign_id}"; status ACTIVE, PAUSED, DELETED, ARCHIVED)`,
     scopes: ['ads_management'],
   },
+  // Video ads (2026-11-01). Read on developers.facebook.com that day.
+  advideo_create: {
+    method: 'POST', url: `${GRAPH}/{act_id}/advideos`, verified: true,
+    doc: `${MKT_DOCS}/reference/ad-account/advideos (POST /act_{ad_account_id}/advideos: "When posting to this edge, a Video will be created"; file_url; returns id / video_id)`,
+    scopes: ['ads_management'],
+  },
+  advideo_status: {
+    method: 'GET', url: `${GRAPH}/{video_id}`, verified: true,
+    doc: 'https://developers.facebook.com/documentation/ads-commerce/marketing-api/guides/videoads/fbvideoads (Step 3: GET /<VIDEO_ID>?fields=status; status.video_status ready | processing | expired | error)',
+    scopes: ['ads_read'],
+  },
   adset_update: {
     method: 'POST', url: `${GRAPH}/{adset_id}`, verified: true,
     doc: `${MKT_DOCS}/reference/ad-campaign (Updating: POST /<AD_SET_ID>; "The other statuses can be used for update"; a lower budget "must be at least 10% greater than the amount already spent")`,
@@ -729,23 +740,23 @@ class MetaAdapter extends AdPlatformAdapter {
   }
 
   /**
-   * One step of a launch. Every object is created PAUSED: the pipeline builds
-   * the structure and a person turns on the spend (approveLive). `spec` is the
-   * plan's own row; nothing here invents a field the plan did not state.
+   * The request one step of a launch makes, as data: the endpoint-table op and
+   * what goes in it. Pure, so the pipeline can show the exact request of a step
+   * it withholds without sending anything. Every object is created PAUSED.
    */
-  async createPaidObject(kind, spec) {
+  paidRequest(kind, spec) {
     const s = spec || {};
     const act = this.actPath(s.ad_account_id);
     const q = this.authParams();
-    let r;
     if (kind === 'campaign') {
-      r = await this.callEndpoint('campaign_create', { params: { act_id: act }, query: q, body: {
+      return { op: 'campaign_create', params: { act_id: act }, query: q, body: {
         name: s.name, objective: s.objective, status: 'PAUSED',
         special_ad_categories: Array.isArray(s.special_ad_categories) ? s.special_ad_categories : [],
         // Budgets live on the ad sets, so each keeps the share it was given.
         is_adset_budget_sharing_enabled: false,
-      } });
-    } else if (kind === 'adset') {
+      } };
+    }
+    if (kind === 'adset') {
       const body = {
         name: s.name, campaign_id: s.campaign_id, daily_budget: s.daily_budget_minor,
         billing_event: s.billing_event, optimization_goal: s.optimization_goal,
@@ -755,20 +766,59 @@ class MetaAdapter extends AdPlatformAdapter {
       if (s.end_time) body.end_time = s.end_time;
       if (s.dsa_payor) body.dsa_payor = s.dsa_payor;
       if (s.dsa_beneficiary) body.dsa_beneficiary = s.dsa_beneficiary;
-      r = await this.callEndpoint('adset_create', { params: { act_id: act }, query: q, body });
-    } else if (kind === 'creative') {
+      return { op: 'adset_create', params: { act_id: act }, query: q, body };
+    }
+    if (kind === 'video') {
+      // Meta fetches the file itself from file_url (the ad's own rendered MP4).
+      return { op: 'advideo_create', params: { act_id: act }, query: q, body: { name: s.name, file_url: s.file_url } };
+    }
+    if (kind === 'creative') {
+      if (s.video_id) {
+        // object_story_spec.video_data (ad-creative-video-data reference):
+        // video_id, image_url (the thumbnail), message, title, call_to_action.
+        const video = { video_id: s.video_id, image_url: s.image_url, message: s.primary_text };
+        if (s.headline) video.title = s.headline;
+        if (s.cta_type) video.call_to_action = { type: s.cta_type, value: { link: s.link } };
+        if (s.description && s.cta_type) video.link_description = s.description;
+        return { op: 'adcreative_create', params: { act_id: act }, query: q, body: { name: s.name, object_story_spec: { page_id: s.page_id, video_data: video } } };
+      }
       const link = { message: s.primary_text, link: s.link, name: s.headline || undefined, description: s.description || undefined, picture: s.image_url };
       if (s.cta_type) link.call_to_action = { type: s.cta_type, value: { link: s.link } };
-      r = await this.callEndpoint('adcreative_create', { params: { act_id: act }, query: q, body: { name: s.name, object_story_spec: { page_id: s.page_id, link_data: link } } });
-    } else if (kind === 'ad') {
-      r = await this.callEndpoint('ad_create', { params: { act_id: act }, query: q, body: { name: s.name, adset_id: s.adset_id, creative: { creative_id: s.creative_id }, status: 'PAUSED' } });
-    } else {
-      return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+      return { op: 'adcreative_create', params: { act_id: act }, query: q, body: { name: s.name, object_story_spec: { page_id: s.page_id, link_data: link } } };
     }
+    if (kind === 'ad') {
+      return { op: 'ad_create', params: { act_id: act }, query: q, body: { name: s.name, adset_id: s.adset_id, creative: { creative_id: s.creative_id }, status: 'PAUSED' } };
+    }
+    return null;
+  }
+
+  /** One step of a launch, sent. `spec` is the plan's own row; nothing here invents a field the plan did not state. */
+  async createPaidObject(kind, spec) {
+    const rq = this.paidRequest(kind, spec);
+    if (!rq) return { ok: false, sent: false, error_class: 'validation', error: `Unknown launch step "${kind}".` };
+    const r = await this.callEndpoint(rq.op, rq);
     if (!r.ok) return r;
-    const id = r.raw && r.raw.id;
+    const id = r.raw && (r.raw.id || r.raw.video_id);
     if (!id) return { ok: false, sent: true, error_class: 'transient', error: `Meta accepted the ${kind} call but returned no id.` };
-    return { ok: true, sent: true, external_id: String(id), status: 'paused', op: r.op, doc: r.doc };
+    return { ok: true, sent: true, external_id: String(id), status: kind === 'video' ? 'processing' : 'paused', op: r.op, doc: r.doc };
+  }
+
+  /**
+   * Where Meta is with an uploaded ad video: status.video_status is ready,
+   * processing, expired or error (the video ads guide, Step 3). A status Meta
+   * did not return is not "ready".
+   */
+  async readVideoStatus(videoId) {
+    const r = await this.callEndpoint('advideo_status', { params: { video_id: videoId }, query: Object.assign({ fields: 'status' }, this.authParams()) });
+    if (!r.ok) return Object.assign({ ok: false }, r);
+    const st = r.data && r.data.status;
+    return { ok: true, video_status: st && st.video_status ? String(st.video_status) : null, detail: st || null };
+  }
+
+  /** The endpoint-table ops a launch built of these step kinds would call. */
+  static launchOps(kinds) {
+    const map = { campaign: ['campaign_create', 'campaign_update'], adset: ['adset_create', 'adset_update'], video: ['advideo_create', 'advideo_status'], creative: ['adcreative_create'], ad: ['ad_create', 'ad_activate'] };
+    return [...new Set([].concat(...(kinds || []).map((k) => map[k] || [])))];
   }
 
   /** Change an existing object: status (ACTIVE / PAUSED) or an ad set's daily budget. */
