@@ -71,6 +71,15 @@ const CEREBRAS_BASE  = 'https://api.cerebras.ai/v1';
 // tiers) so a funded OpenRouter key catches burst-overflow instead of dropping to
 // the template. Unfunded (free-tier) it simply 402/404s and the cascade continues.
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
+// Hugging Face Inference Providers (2026-11-01): the OpenAI-compatible router,
+// POST <base>/chat/completions with `Authorization: Bearer <hf token>`, a Hub
+// model id (optionally ":<provider>" / ":fastest" / ":cheapest"), answering the
+// OpenAI shape with usage.prompt_tokens / completion_tokens. Read 2026-11-01:
+// https://huggingface.co/docs/inference-providers/index and
+// https://huggingface.co/docs/inference-providers/tasks/chat-completion.
+// Only a workspace's OWN token (or Sign in with Hugging Face) reaches it: there
+// is no platform key and it is in no platform order.
+const HUGGINGFACE_BASE = 'https://router.huggingface.co/v1';
 // GitHub Models was retired 2026-07-30 (docs.github.com/en/github-models) and
 // timed out on every call in production: it is no longer a rung.
 // Cloudflare Workers AI — FREE daily neuron allowance, OpenAI-compatible endpoint at
@@ -359,6 +368,10 @@ function modelsFor(provider, tier) {
       return _dedupe([env.OLLAMA_TEXT_MODEL || 'llama3.3']);
     case 'sakana':
       return _dedupe([env.SAKANA_TEXT_MODEL || 'sakana-default']);
+    case 'huggingface':
+      // The model Hugging Face's own quick start and chat-completion page use
+      // (read 2026-11-01); the connection's Model field names another.
+      return ['openai/gpt-oss-120b'];
     case 'deepseek':
       // The names DeepSeek's own pricing page lists for the `model` field
       // (api-docs.deepseek.com/quick_start/pricing, read 2026-10-23); it no
@@ -389,7 +402,7 @@ function modelsFor(provider, tier) {
 const PAID_PROVIDERS = new Set(['anthropic', 'bedrock', 'openai', 'grok', 'deepseek']);
 // The order a workspace's OWN models are used in: the operator's four first,
 // then the rest by output quality.
-const OWN_KEY_PRIORITY = ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'deepseek', 'openrouter', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
+const OWN_KEY_PRIORITY = ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'deepseek', 'openrouter', 'huggingface', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
 function providerOrder(tier) {
   const base = providerOrderBase(tier);
   if (!freeGenerationOn()) return base;
@@ -578,6 +591,8 @@ module.exports = async function callLLM(opts) {
   // OpenRouter — accept the canonical name OR the existing mixed-case env var name
   // (`OpenRouter_API_KEY`) already provisioned in this project.
   const openrouterKey = _clean(ovKeys.openrouter) || _clean(process.env.OPENROUTER_API_KEY) || _clean(process.env.OpenRouter_API_KEY);
+  // The workspace's own Hugging Face token only; never an environment key.
+  const huggingfaceKey = _clean(ovKeys.huggingface);
 
   // Base URLs. Cloudflare and Ollama are reached at an address that belongs to
   // the account rather than to the vendor, so for those the base is part of the
@@ -587,7 +602,7 @@ module.exports = async function callLLM(opts) {
     deepseek: (ov && ov.bases && ov.bases.deepseek) || DEEPSEEK_BASE,
     bedrock: (ov && ov.bases && ov.bases.bedrock) || `https://bedrock-runtime.${bedrockRegion}.amazonaws.com`,
     gemini: GEMINI_BASE, grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
-    openrouter: OPENROUTER_BASE,
+    openrouter: OPENROUTER_BASE, huggingface: HUGGINGFACE_BASE,
     cloudflare: cloudflareBase(), ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
   };
   if (ov && ov.bases) for (const k of Object.keys(ov.bases)) if (ov.bases[k]) bases[k] = ov.bases[k];
@@ -610,6 +625,7 @@ module.exports = async function callLLM(opts) {
     groq:      !!groqKey,
     cerebras:  !!cerebrasKey,
     openrouter: !!openrouterKey,
+    huggingface: !!huggingfaceKey,
     cloudflare: cloudflareOn,  // gated on CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
     ollama:    ollamaOn,       // gated on OLLAMA_BASE_URL (auth optional)
     sakana:    sakanaOn,       // gated on SAKANA_BASE_URL + SAKANA_API_KEY
@@ -821,6 +837,7 @@ module.exports = async function callLLM(opts) {
     // balance cannot cover it, so it is asked for less (OPENROUTER_MAX_TOKENS,
     // default 2048): a low balance then answers instead of failing.
     openrouter: _openaiCompatible('openrouter', bases.openrouter, openrouterKey, () => Object.assign(_std(), { max_tokens: Math.min(maxTokens, openrouterCap()) })),
+    huggingface: _openaiCompatible('huggingface', bases.huggingface, huggingfaceKey, _std),
     cloudflare: _openaiCompatible('cloudflare', bases.cloudflare, cloudflareKey, _std),
     ollama: _openaiCompatible('ollama', bases.ollama, ollamaKey, _std),
     sakana: _openaiCompatible('sakana', bases.sakana, sakanaKey, _std),
@@ -864,7 +881,7 @@ module.exports = async function callLLM(opts) {
     bedrock: bedrockApiKey || bedrockAccessKey,
     deepseek: deepseekKey,
     gemini: geminiKey, grok: grokKey, groq: groqKey, cerebras: cerebrasKey,
-    openrouter: openrouterKey, cloudflare: cloudflareKey + '@' + bases.cloudflare, ollama: ollamaKey + '@' + bases.ollama,
+    openrouter: openrouterKey, huggingface: huggingfaceKey, cloudflare: cloudflareKey + '@' + bases.cloudflare, ollama: ollamaKey + '@' + bases.ollama,
     sakana: sakanaKey + '@' + bases.sakana, pollinations: 'keyless',
   };
   const coolWords = (e) => 'cooling down after ' + (KIND_WORDS[e.kind] || e.kind) + (e.model ? ' on ' + e.model : '') + ' until ' + new Date(e.until).toISOString();
@@ -1248,6 +1265,7 @@ module.exports.keylessOnly = async function keylessOnly() {
     || any(k.anthropic, process.env.ANTHROPIC_API_KEY) || any(k.gemini, process.env.GEMINI_API_KEY)
     || any(k.grok, process.env.XAI_API_KEY) || any(k.groq, process.env.GROQ_API_KEY)
     || any(k.cerebras, process.env.CEREBRAS_API_KEY) || any(k.openrouter, process.env.OPENROUTER_API_KEY, process.env.OpenRouter_API_KEY)
+    || any(k.huggingface)
     || (any(k.cloudflare, process.env.CLOUDFLARE_API_TOKEN) && !!cloudflareBase())
     || !!process.env.OLLAMA_BASE_URL || (ov && ov.bases && ov.bases.ollama)
     || (!!process.env.SAKANA_BASE_URL && any(process.env.SAKANA_API_KEY)));

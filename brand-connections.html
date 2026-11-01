@@ -415,7 +415,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var KEY_PREFIX = [
     [/^sk-ant-/, 'anthropic'], [/^sk-or-/, 'openrouter'], [/^sk-[a-f0-9]{32}$/, 'deepseek'],
     [/^sk-/, 'openai'], [/^AIza[0-9A-Za-z_-]{30,}$/, 'gemini'], [/^xai-/, 'grok'], [/^gsk_/, 'groq'],
-    [/^csk-/, 'cerebras'], [/^sk_[0-9a-f]{20,}$/, 'elevenlabs'], [/^r8_/, 'replicate'],
+    [/^csk-/, 'cerebras'], [/^sk_[0-9a-f]{20,}$/, 'elevenlabs'], [/^r8_/, 'replicate'], [/^hf_/, 'huggingface'],
   ];
   function providerForKey(k) {
     var v = String(k || '').trim();
@@ -571,6 +571,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { sessionStorage.setItem(SIGNIN_KEY, JSON.stringify({ provider: providerId, verifier: verifier, state: st, workspace_id: workspaceId() || '', at: Date.now() })); }
     catch (e) { throw new Error('This browser blocks session storage, so a sign-in cannot be finished here. Paste a key instead.'); }
     var u = new URL(p.signin.authorize_url);
+    if (p.signin.kind === 'huggingface') {
+      // Hugging Face matches the return address exactly too (docs/hub/oauth),
+      // so it is the bare page address, recognised on return by this tab.
+      var hBack = location.origin + location.pathname;
+      try { var keptH = JSON.parse(sessionStorage.getItem(SIGNIN_KEY)); keptH.redirect_uri = hBack; sessionStorage.setItem(SIGNIN_KEY, JSON.stringify(keptH)); } catch (e) {}
+      u.searchParams.set('client_id', p.signin.client_id);
+      u.searchParams.set('redirect_uri', hBack);
+      u.searchParams.set('response_type', 'code');
+      u.searchParams.set('scope', p.signin.scope);
+      u.searchParams.set('code_challenge', challenge);
+      u.searchParams.set('code_challenge_method', 'S256');
+      u.searchParams.set('state', st);
+      location.assign(u.toString());
+      return;
+    }
     if (p.signin.kind === 'google') {
       // Google matches the return address exactly, so it carries no query: the
       // sign-in is recognised on return by what this tab kept.
