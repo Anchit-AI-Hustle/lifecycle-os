@@ -171,7 +171,32 @@ function normalizeBrand(brand) {
     if (out === brand) out = { ...brand };
     out.pending_hosting = pend;
   }
-  return coherentForGeneration(out);
+  return withoutTemplateCopies(coherentForGeneration(out));
+}
+
+/* ── ANOTHER TEMPLATE'S OFFERINGS NEVER REACH AN ASSET (2026-11-03) ───────
+   A record made from one starter template (TOI Health & Fitness) that now
+   describes another brand on the same host (The Times of India) could carry
+   that template's offerings copied onto it; every generator reading
+   brand.offerings (mailers, landing pages, ads, video, music, prompts) then
+   built for "Marathon training plan". Dropped here, at the one boundary every
+   generator's brand passes, by template-offerings.js's rule: a copy of a
+   template's offering (same name and source line) whose template is not this
+   brand's own site. An offering the person typed is kept. */
+function withoutTemplateCopies(brand) {
+  if (!brand || typeof brand !== 'object') return brand;
+  const list = Array.isArray(brand.offerings) ? brand.offerings : null;
+  const inData = brand.brand_data && Array.isArray(brand.brand_data.offerings) ? brand.brand_data.offerings : null;
+  if (!(list && list.length) && !(inData && inData.length)) return brand;
+  let TPL;
+  try { TPL = require('./template-offerings.js'); } catch (_) { return brand; }
+  const foreign = TPL.foreignTemplateOfferings(brand);
+  if (!foreign.size) return brand;
+  const keep = (arr) => arr.filter((o) => !TPL.offeringFromOtherTemplate(o, foreign));
+  const out = { ...brand };
+  if (list) out.offerings = keep(list);
+  if (inData) out.brand_data = { ...brand.brand_data, offerings: keep(inData) };
+  return out;
 }
 
 /* ── ANOTHER BRAND'S IDENTITY NEVER REACHES GENERATION (2026-10-11) ───────
@@ -241,6 +266,9 @@ function hostedMarker(kind, brand) {
  * that fails is dropped, not painted. Nothing here is stored.
  */
 function carriedBrand(body, auth) {
+  return withoutTemplateCopies(_carriedBrand(body, auth));
+}
+function _carriedBrand(body, auth) {
   const src = body && typeof body.brand === 'object' && body.brand && !Array.isArray(body.brand) ? body.brand : null;
   if (!src) return null;
   const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n || 200) : '');
@@ -856,6 +884,7 @@ function promptFacts(brand) {
 }
 
 module.exports = {
+  withoutTemplateCopies,
   realFamily, realStack,
   isUaLinkColour,
   coherentForGeneration,

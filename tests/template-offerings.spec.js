@@ -71,6 +71,29 @@ test.describe('template offerings follow the template, not the host', () => {
     expect(TPL.slotTemplateVerdict({ heroProduct: { title: MARATHON } }, stranger)).toBeNull();
   });
 
+  test('a record on the template\'s own website, with no template label, keeps its own offerings', () => {
+    const toi = require('../data/brands/presets/times-of-india.json');
+    const own = { name: toi.name, website: toi.website, brand_data: { offerings: toi.offerings } };
+    expect(TPL.foreignTemplateOfferings(own).has('india')).toBe(false);
+    expect(TPL.slotTemplateVerdict({ heroOffering: { kind: 'section', name: 'India' } }, own)).toBeNull();
+    // ...while the Health & Fitness vertical's programmes stay foreign to it.
+    expect(TPL.slotTemplateVerdict({ heroOffering: { kind: 'programme', name: MARATHON } }, own)).not.toBeNull();
+  });
+
+  test('every generator\'s brand (normalizeBrand, carriedBrand) drops a copied template offering and keeps a typed one', () => {
+    const RT = require('../api/_shared/brand-runtime.js');
+    const copy = HF.offerings.find((o) => o.name === MARATHON);
+    const row = { id: 'ws-toi', name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', palette: {}, typography: {}, voice: {}, regions: [],
+      brand_data: { offerings: [copy, { kind: 'section', name: 'City', url: 'https://timesofindia.indiatimes.com/city' }] } };
+    expect(names(RT.normalizeBrand(row).offerings)).toEqual(['City']);
+    // The device path: carriedBrand reads body.brand (brand-context.js carry()).
+    const carried = RT.carriedBrand({ brand: { name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', offerings: [copy, { kind: 'section', name: 'City' }] } }, { user: { id: 'u1' } });
+    expect(carried).toBeTruthy();
+    expect(names(carried.offerings)).toEqual(['City']);
+    const typed = Object.assign({}, row, { brand_data: { offerings: [{ kind: 'programme', name: MARATHON, cadence: 'weekly' }] } });
+    expect(names(RT.normalizeBrand(typed).offerings)).toEqual([MARATHON]);
+  });
+
   test('scrubForeignProducts clears that slot before it is built', () => {
     const entry = { id: 's2', market: 'IN', objective: 'Nurture', brand: toiRenamed, heroOffering: { kind: 'programme', name: MARATHON }, heroProduct: { title: MARATHON }, supportingProducts: [] };
     const fn = plan.__test_scrubForeignProducts || null;
