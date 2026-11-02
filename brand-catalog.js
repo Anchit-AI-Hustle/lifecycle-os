@@ -235,9 +235,21 @@
     if (!brand || !preset) return false;
     var t = templateOf(brand), ps = String(preset.slug || '').trim().toLowerCase();
     if (!t || !ps || t !== ps) return false;
+    // The record must BE the template (2026-11-03): same host AND path (two
+    // sections of one site are two brands) and the same name. Server twin:
+    // api/_shared/template-offerings.js presetMatches.
     var bh = hostOf(brand.website);
-    return !!(bh && bh === hostOf(preset.website));
+    if (!(bh && bh === hostOf(preset.website))) return false;
+    if (pathOf(brand.website) !== pathOf(preset.website)) return false;
+    var nf = foldName(brand.name);
+    return !!nf && nf === foldName(preset.name);
   }
+  function pathOf(u) {
+    var s = String(u || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[?#]/)[0];
+    var i = s.indexOf('/');
+    return i < 0 ? '' : s.slice(i).replace(/\/+$/, '');
+  }
+  function foldName(n) { return String(n || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, ''); }
   function brandOfferings(brand) {
     if (Array.isArray(brand.offerings) && brand.offerings.length) return Promise.resolve(brand.offerings);
     if (brand.brand_data && Array.isArray(brand.brand_data.offerings) && brand.brand_data.offerings.length) {
