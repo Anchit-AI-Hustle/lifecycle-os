@@ -40,7 +40,8 @@ test.describe('template offerings follow the template, not the host', () => {
     expect(names(plan.__test_resolveBrandOfferings(hfItself))).toContain(MARATHON);
   });
 
-  test('the same name on another section of the host is not the template', () => {
+  test('a rename keeps the template\'s offerings; another section of the host does not', () => {
+    expect(names(TPL.templateOfferings(Object.assign({}, hfItself, { name: 'My Fitness Desk' })))).toContain(MARATHON);
     const otherPath = Object.assign({}, hfItself, { website: 'https://timesofindia.indiatimes.com/city' });
     expect(TPL.templateOfferings(otherPath)).toEqual([]);
   });

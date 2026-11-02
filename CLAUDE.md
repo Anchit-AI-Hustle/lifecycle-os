@@ -8,8 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Production /brain for "The Times of India" built ads for "Marathon training plan (multi-week)", an offering of the TOI
 Health & Fitness TEMPLATE on the same host. A template's offerings were handed to any record whose `brand_data.template`
 named it and whose website shared the host. `api/_shared/template-offerings.js` (server) and the twins in
-`brand-catalog.js` / `brand-demo.js`: the record must BE the template (same slug, same website host AND path, same
-folded name). A copy of another template's offering stored on the record (same name + same source line) is dropped; one
+`brand-catalog.js` / `brand-demo.js`: the record must be the template's brand (same slug, same website host AND path; a rename keeps it). A copy of another template's offering stored on the record (same name + same source line) is dropped; one
 the brand typed itself is kept. A stored slot naming another template's offering (only templates the record names or
 that share its host) gets `slotTemplateVerdict`: preview/approve treat it like a foreign-catalogue slot (rebuilt with the
 `offerings` marker / 409), Daily Sync archives it with the reason. Gated by `tests/template-offerings.spec.js` (planner +
