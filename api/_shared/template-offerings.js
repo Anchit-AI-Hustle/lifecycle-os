@@ -100,6 +100,11 @@ function foreignTemplateOfferings(brand) {
   const host = site(brand.website).host;
   for (const p of presets()) {
     if (presetMatches(brand, p)) continue;
+    // A template on the brand's own exact website (host AND path) describes
+    // this brand, with or without a template label on the record.
+    const ps = site(p.website);
+    const bs = site(brand.website);
+    if (bs.host && ps.host === bs.host && ps.path === bs.path) continue;
     if (!(tpl && p.slug === tpl) && !(host && site(p.website).host === host)) continue;
     for (const o of p.offerings) {
       const k = fold(o && (o.name || o.title));
