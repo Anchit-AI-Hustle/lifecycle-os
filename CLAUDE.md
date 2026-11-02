@@ -4,6 +4,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Ads ranked by cost per result, winning ads spawn variations, ad history read during setup (2026-11-02)
+Three more gaps against usefastlane.ai, plus a quality pass on the Ad history card. Gated by
+`tests/ad-performance-variations.spec.js` (9 executed: the shipped reader over the fake Meta and Google APIs, the
+/connections card at 1280 + 390 and the setup run in Chromium; 16 mutations caught).
+- **Cost per result** (`api/_shared/ad-performance.js`, pure): per ad, the platform's OWN figure (`reported`: Meta's
+  cost_per_conversion, kept only when Meta returned exactly one action value) else spend / results as returned
+  (`computed`); results reported as 0 is "spent with no result reported", never infinity; a missing figure is null with
+  its reason ("results not returned"). Ranked per platform AND currency (never pooled), lower is better, a median and a
+  cheaper / dearer verdict only from 3+ ads that carry it. `winnersFor()` is what everything else reads: cost per result
+  where 3+ ads carry it, else click-through rate above the brand's own median, and it says which (`basis`) and why.
+  Google Ads now selects `metrics.conversions` (listed among ad_group_ad's selectable metrics, read 2026-11-02, already
+  used by ad-insights-core); the fake answers a metric only when the query selects it (`opts.googleAdRows`).
+- **Where it shows**: `op=status` gains `performance` {ranking, winners}; /connections "Ranked by cost per result"
+  (rank, cost, "as reported" / "spend / results", spend, results, against your median; the unrated counted by reason;
+  platforms judged by CTR listed as such); creative-evidence's OWN ADS block names each platform's basis (WORKED = the
+  cheapest results where it can, else CTR, with the reason it is not cost per result); Winning angles' control cites the
+  ad that beat its own median by the most, as a share of that median (`ad-performance.lead`), in the words of its basis.
+- **Variations** (`api/_shared/ad-variations.js` on `brain.js ?action=ad-history&op=variations`, POST, owner/editor via
+  `assertCanWrite`, metered `ads.copy_matrix`: MODEL_FEATURE entries may name an op third, so status/list/import stay
+  free): only of a WINNER (else `409 not_a_winner` with where it stands; an ad whose copy the platform did not return is
+  `409 no_copy`). One llm.js call closed by output-contract `ad-history.variations`; then in code: the source's hook
+  pattern (`ad-angle-lab.hookPattern` of the opening) or the draft is dropped, the platform's limits READ from
+  asset-contracts (Meta 125 / 40) or dropped (a headline over its limit is blanked, never cut), copy-grounding against
+  the record plus the source ad's own copy, no dashes, no repeat of the source. No model = the brand's own lines (the
+  source's own opening with each claim, ad-angle-lab template lines in that pattern), `by: 'brand_lines'`, never padded
+  (the gap says how many). Each carries `variation_of` {ad id, platform, basis, value, median, currency, figures} and a
+  `brief` Paid launch takes; "Launch these, step by step" on the card writes `lifecycle.launch.briefs` like Winning angles.
+- **Setup** (`onboarding.html` `setupAdHistory`, a new `ads` row after the context pack): a connected Meta / Google Ads
+  account is imported and the row says per platform how many ads and the brand's own median (cost per result, else CTR,
+  else too few); none connected = one sentence + a link to Connections; a device brand = one sentence; a refusal is
+  said; it never stops the run. Tests that listed the run's rows changed on purpose: `brand-setup-end-to-end`,
+  `brand-change-current-context` (device: `ads` skipped; account: its 503 is said, the run goes on).
+- **Found by running it, fixed**: the card printed a cost per result with no currency (every other money cell had one);
+  the video rows of "What your ads are made of" were labelled "Opening" on a phone (now "Format"); long ad names and
+  URLs in a cell could widen the table (cells wrap anywhere). In the setup run, a step that THREW (a read missing a
+  field) left its row "running" with its clock going for ever: a running row now says it stopped and why.
+- Gate entries added on purpose: `router-brain` (`ad-history op=variations` metered, describe titles take an optional
+  `title`), `prompt-output-contracts` and `brand-content-invariant` (`ad-history` driven over seeded own ads),
+  `social-gateway-executed` (Google's query and row now carry conversions).
+
 ## ⭐ Four gaps against usefastlane.ai, closed: the designed static ships, per ratio, per angle, and ad history is counted (2026-11-02)
 - **Paid launch sends the designed static** (`api/_shared/static-raster.js` on POST `/api/public-config?action=video-render&op=static-png`
   {workspace_id, campaign_id}, still 12/12): every static ad's `creative.static_html` is drawn in the shipped Chromium

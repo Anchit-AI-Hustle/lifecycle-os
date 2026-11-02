@@ -222,23 +222,16 @@ function ownAdsFrom(entry) {
   const src = entry && (entry.__ownAds || entry.ownAds);
   if (!src || typeof src !== 'object') return null;      // never imported: say nothing about ads
   const ads = Array.isArray(src.ads) ? src.ads.filter(Boolean) : [];
-  const byProvider = {};
-  for (const a of ads) (byProvider[a.provider || 'unknown'] = byProvider[a.provider || 'unknown'] || []).push(a);
-  const platforms = Object.keys(byProvider).sort().map((prov) => {
-    const list = byProvider[prov];
-    const rated = list.filter((a) => a.metrics && a.metrics.ctr != null && Number.isFinite(Number(a.metrics.ctr)));
-    const label = PROVIDER_LABEL[prov] || prov;
-    if (rated.length < 3) {
-      return { provider: prov, label, ads: list.length, rated: rated.length, median: null, worked: [], tiring: [],
-        reason: `${rated.length} ${label} ad${rated.length === 1 ? '' : 's'} carry a reported click-through rate, too few for a median, so no ${label} ad is called a winner or tiring.` };
-    }
-    const rates = rated.map((a) => Number(a.metrics.ctr)).sort((x, y) => x - y);
-    const mid = Math.floor(rates.length / 2);
-    const median = rates.length % 2 ? rates[mid] : (rates[mid - 1] + rates[mid]) / 2;
-    const view = (a) => ({ ad_id: a.ad_id, name: a.name || a.ad_id, figures: adFigures(a.metrics, a.currency), pattern: adPattern(a), ctr: Number(a.metrics.ctr) });
-    const worked = rated.filter((a) => Number(a.metrics.ctr) > median).sort((x, y) => Number(y.metrics.ctr) - Number(x.metrics.ctr)).slice(0, 3).map(view);
-    const tiring = rated.filter((a) => Number(a.metrics.ctr) < median).sort((x, y) => Number(x.metrics.ctr) - Number(y.metrics.ctr)).slice(0, 3).map(view);
-    return { provider: prov, label, ads: list.length, rated: rated.length, median, worked, tiring };
+  // Cost per result where the platform returned enough for 3+ ads, else
+  // click-through rate as before; each platform says which (2026-11-02,
+  // ad-performance.js). Never pooled across platforms or currencies.
+  const perf = require('./ad-performance.js');
+  const platforms = perf.winnersFor(ads).map((w) => {
+    if (!w.basis) return { provider: w.provider, label: w.label, ads: w.ads, rated: w.rated, basis: null, median: null, worked: [], tiring: [], reason: w.reason };
+    const view = (x) => ({ ad_id: x.ad_id, name: x.name || x.ad_id, figures: adFigures(x.ad.metrics, x.ad.currency), pattern: adPattern(x.ad), value: x.value, value_basis: x.value_basis,
+      ctr: w.basis === 'ctr' ? x.value : (x.ad.metrics && x.ad.metrics.ctr != null ? Number(x.ad.metrics.ctr) : null) });
+    return { provider: w.provider, label: w.label, ads: w.ads, rated: w.rated, basis: w.basis, metric: w.metric, currency: w.currency || null, median: w.median,
+      worked: w.winners.map(view), tiring: w.losers.map(view), note: w.note || '', cpr_reason: w.cpr_reason || '' };
   });
   // Hook patterns and video / no video, counted (2026-11-02, ad-patterns.js).
   let patterns = null;
@@ -321,16 +314,20 @@ function evidenceBrief(pack) {
     if (!p.ads.total) {
       lines.push('OWN ADS: the brand\'s ad accounts were read and no ad ran in the import window, so there is no paid history to build on. Do not invent one.');
     } else {
-      lines.push(`OWN ADS (this brand's own paid ads, measured by ${p.ads.metric}, against this brand's own median per platform):`);
+      lines.push(`OWN ADS (this brand's own paid ads, measured by ${p.ads.metric} unless a platform says otherwise, against this brand's own median per platform; cost per result where 3 or more ads carry one):`);
       for (const pl of p.ads.platforms) {
         if (pl.median === null) { lines.push(`  ${pl.label}: ${pl.reason}`); continue; }
-        lines.push(`  ${pl.label}: median ${(pl.median * 100).toFixed(2)}% across ${pl.rated} ads with a reported rate.`);
+        if (pl.basis === 'cost_per_result') {
+          lines.push(`  ${pl.label}: ranked by ${pl.metric}. Median ${pl.median.toFixed(2)}${pl.currency ? ` ${pl.currency}` : ''} per result across ${pl.rated} ads that carry one.${pl.note ? ` ${pl.note}` : ''}`);
+        } else {
+          lines.push(`  ${pl.label}: median ${(pl.median * 100).toFixed(2)}% across ${pl.rated} ads with a reported rate${pl.cpr_reason ? ` (ranked by click-through rate, not cost per result: ${pl.cpr_reason.replace(/\.$/, '')})` : ''}.`);
+        }
         for (const w of pl.worked) lines.push(`    WORKED - "${w.name}": ${w.figures}${w.pattern ? `. Copy: ${w.pattern}` : ''}`);
         for (const t of pl.tiring) lines.push(`    TIRING - "${t.name}": ${t.figures}${t.pattern ? `. Copy: ${t.pattern}` : ''}`);
       }
       const pl2 = p.ads.patterns ? require('./ad-patterns.js').briefLines(p.ads.patterns) : [];
       if (pl2.length) { lines.push('  WHAT THE BRAND\'S OWN ADS ARE MADE OF (counted; a median only where 3 or more ads carry a rate):'); lines.push(...pl2); }
-      lines.push('  Build on the PATTERN of the ads above the median, not their wording; do not re-run the angle of an ad below it. Never call an ad a winner without the figures shown here.');
+      lines.push('  Build on the PATTERN of the WORKED ads (better than this brand\'s own median on their platform), not their wording; do not re-run the angle of a TIRING one. Never call an ad a winner without the figures shown here.');
     }
   }
 

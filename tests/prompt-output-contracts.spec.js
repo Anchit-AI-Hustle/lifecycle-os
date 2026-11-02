@@ -82,6 +82,10 @@ const GENERATORS = [
   { id: 'mailer-assets', path: '/api/brain', q: { action: 'mailer-assets' }, body: () => ({ html: '<!doctype html><html><body><img src="IMAGE_HERO_URL" alt="hero"></body></html>', video: false, gif: false, persist: false }), statuses: [400, 409] },
   { id: 'platform-agents', path: '/api/brain', q: { action: 'platform-agents' }, body: () => ({}) },
   { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), statuses: [409] },
+  // Variations of the brand's own winning ad (2026-11-02, ad-variations.js): three of its
+  // own ads with a click-through rate, the first above its median.
+  { id: 'ad-history', path: '/api/brain', q: { action: 'ad-history', op: 'variations' }, body: () => ({ ad_id: 'oc-ad-1', n: 3 }), minCalls: 1,
+    setup: (w) => [[0.05, 'oc-ad-1'], [0.02, 'oc-ad-2'], [0.01, 'oc-ad-3']].forEach(([ctr, id], i) => w.db.insert('brand_ad_history', { workspace_id: 'ws-' + B.slug, provider: 'meta', account_id: 'act_1', ad_id: id, name: `${B.name} ad ${i + 1}`, primary_text: `${(B.claims || [])[0] || B.name}.`, headline: B.name, image_url: 'https://cdn.example.test/a.jpg', metrics: { ctr, impressions: 1000 }, last_seen: new Date().toISOString() })) },
   { id: 'launch-concepts', path: '/api/brain', q: { action: 'launch-concepts' }, body: () => ({ product: { title: (B.catalogue[0] || {}).title }, customer: 'readers who commute' }), statuses: [409] },
   { id: 'ad-fix', path: '/api/brain', q: { action: 'ad-fix' }, body: () => ({ worst: { ad: 'Old headline' }, why: ['It spent 400 and brought no conversion.'] }), statuses: [409] },
   { id: 'review-mine', path: '/api/brain', q: { action: 'review-mine' }, body: () => ({ reviews: [{ text: 'Great reporting, slow app.', rating: 4 }, { text: 'The app crashes every morning.', rating: 2 }] }), statuses: [409] },
@@ -164,7 +168,7 @@ const DRIVEN_FILES = {
   'api/_shared/calendar-trigger.js': 'trigger-mailer', 'api/_shared/landing-page-core.js': 'landing-page', 'api/_shared/competitor-universe.js': 'modules: discoveryPrompt',
   'api/_shared/ci-enrich.js': 'modules: buildPrompt', 'api/_shared/kb-files.js': 'modules: analyse', 'api/_shared/brand-extract.js': 'modules: observeVoice',
   'api/_shared/brand-suggest.js': 'modules: suggest', 'api/_shared/data-validation-core.js': 'analysis-narrative / modules', 'api/_shared/ingest-guardrail.js': 'modules: phase2',
-  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION', 'api/_shared/ad-angle-lab.js': 'ad-angle-lab', 'api/_shared/owner-desk-server.js': 'launch-concepts, ad-fix, review-mine',
+  'api/_shared/reference-intel.js': 'modules: VISION_INSTRUCTION', 'api/_shared/ad-angle-lab.js': 'ad-angle-lab', 'api/_shared/ad-variations.js': 'ad-history (op=variations)', 'api/_shared/owner-desk-server.js': 'launch-concepts, ad-fix, review-mine',
 };
 const EXEMPT_FILES = {
   'api/_shared/llm.js': 'the provider cascade itself; it builds no prompt',

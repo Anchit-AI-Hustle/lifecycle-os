@@ -200,7 +200,12 @@ function liveAndPlain({ rows, final, say }) {
     expect(running.length, `${step} was never shown working\n${say}`).toBeGreaterThan(0);
     expect(running.some((r) => /\d+ s|just started/.test(r[3])), `${step} showed no live detail while working\n${JSON.stringify(running)}`).toBe(true);
   }
-  expect(final.map((r) => r[0]), say).toEqual(['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'review']);
+  // Ad history is read during setup (2026-11-02): no ad account is connected
+  // to a brand-new account, so the row says so in one sentence and the run goes on.
+  expect(final.map((r) => r[0]), say).toEqual(['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'ads', 'review']);
+  const ads = final.find((r) => r[0] === 'ads');
+  expect(ads[1], say).toBe('skipped');
+  expect(ads[2], say).toMatch(/No Meta or Google Ads account is connected to .+ yet\. Connect one on Connections/);
   for (const [step, , words] of final) {
     expect(words, `${step}: a launch marker shown to the operator`).not.toMatch(/DATA REQUIRED BEFORE LAUNCH/);
     expect(words, `${step}: a unit written for a machine`).not.toMatch(/\(s\)/);

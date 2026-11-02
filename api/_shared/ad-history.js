@@ -16,7 +16,13 @@
  *               platform says what was read and what was not.
  *   op=list     (member) the brand's ads with their metrics.
  *   op=status   (member) per platform: built or not (with why), connected,
- *               the last import and how many ads are kept.
+ *               the last import and how many ads are kept; what the ads are
+ *               made of (ad-patterns.js) and their ranking by cost per result
+ *               with each platform's winners (ad-performance.js).
+ *   op=variations (owner or editor, POST, metered ads.copy_matrix) new
+ *               versions of one of the brand's own WINNING ads, in its hook
+ *               pattern and format, within its platform's limits
+ *               (ad-variations.js).
  *
  * WHICH PLATFORMS, and why only these. Every call goes through an adapter's
  * `callEndpoint`, which refuses an endpoint its table marks unverified.
@@ -50,7 +56,7 @@ const brandCore = require('./brand-workspace-core.js');
 const registry = require('./adapters/registry.js');
 const { liveConnectorsEnabled } = require('./live-connectors.js');
 
-const OPS = ['status', 'import', 'list'];
+const OPS = ['status', 'import', 'list', 'variations'];
 const DEFAULT_DAYS = 180;
 const MAX_DAYS = 1095;          // Meta's insights reach 37 months; kept inside it
 const DAY = 86400000;
@@ -242,7 +248,7 @@ async function listFor(workspaceId, { provider, limit } = {}) {
 
 async function statusFor(workspaceId) {
   const runs = await svc(`brand_ad_history_runs?select=*&workspace_id=eq.${enc(workspaceId)}&order=ran_at.desc&limit=40`);
-  const rows = await svc(`brand_ad_history?select=provider,ad_id,primary_text,headline,image_url,video_url,video_id,metrics&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
+  const rows = await svc(`brand_ad_history?select=provider,ad_id,name,currency,primary_text,headline,image_url,video_url,video_id,metrics&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
   const counts = {};
   for (const r of Array.isArray(rows) ? rows : []) counts[r.provider] = (counts[r.provider] || 0) + 1;
   const out = [];
@@ -255,9 +261,25 @@ async function statusFor(workspaceId) {
     out.push({ provider: p.id, label: p.label, built: p.built, reason: p.reason || '', window_note: p.window_note || '', connected, ads: counts[p.id] || 0, last_import: last });
   }
   // What the brand's own ads are made of, counted per platform (2026-11-02).
+  const clean = (Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }));
   let patterns = null;
-  try { patterns = require('./ad-patterns.js').patternStats((Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }))); } catch (_) { patterns = null; }
-  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out, patterns };
+  try { patterns = require('./ad-patterns.js').patternStats(clean); } catch (_) { patterns = null; }
+  // Ranked by cost per result, per platform and currency, with each
+  // platform's winners on the basis it could judge (2026-11-02).
+  let performance = null;
+  try { performance = performanceOf(clean); } catch (_) { performance = null; }
+  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out, patterns, performance };
+}
+
+/** The ranking and the winners the page shows: figures and ids only, no copy. */
+function performanceOf(ads) {
+  const perf = require('./ad-performance.js');
+  const slim = (x) => ({ ad_id: x.ad_id, name: x.name, value: x.value, value_basis: x.value_basis });
+  return {
+    ranking: perf.rankByCostPerResult(ads),
+    winners: perf.winnersFor(ads).map((w) => ({ provider: w.provider, label: w.label, basis: w.basis, metric: w.metric, currency: w.currency || null, median: w.median, rated: w.rated, ads: w.ads,
+      winners: w.winners.map(slim), losers: w.losers.map(slim), note: w.note || '', reason: w.reason || '', cpr_reason: w.cpr_reason || '' })),
+  };
 }
 
 /**
@@ -315,7 +337,7 @@ async function refreshDue({ maxWorkspaces = 2, olderThanMs = 20 * 3600 * 1000 } 
 
 /* ── router ───────────────────────────────────────────────────────────────── */
 
-async function handle(req, res, { auth, workspaceId, body } = {}) {
+async function handle(req, res, { auth, workspaceId, body, brand } = {}) {
   const q = (req && req.query) || {};
   const b = body && typeof body === 'object' ? body : {};
   const op = String(q.op || b.op || 'status').toLowerCase();
@@ -335,17 +357,28 @@ async function handle(req, res, { auth, workspaceId, body } = {}) {
       resetCache();
       return res.status(200).json(out);
     }
+    if (op === 'variations') {
+      if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Variations are made with a POST.' });
+      await brandCore.assertCanWrite(auth, workspaceId, 'make ad variations');
+      const rows = await listFor(workspaceId, { limit: 500 });
+      const out = await require('./ad-variations.js').variationsFor({
+        ads: rows.map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) })),
+        brand: brand || null, adId: b.ad_id || q.ad_id || null, n: b.n || q.n,
+      });
+      // Which model did the work is the platform's business; whether one did is said.
+      return res.status(200).json(out);
+    }
     const ws = await brandCore.getWorkspace(auth, workspaceId);
     if (!ws) throw err(404, 'workspace_not_found', 'That brand is not one you can see.');
     if (op === 'list') return res.status(200).json({ ok: true, ads: await listFor(workspaceId, { provider: q.provider || b.provider, limit: q.limit || b.limit }) });
     return res.status(200).json(await statusFor(workspaceId));
   } catch (e) {
-    return res.status(e && e.status ? e.status : 500).json({ ok: false, error: (e && e.code) || 'ad_history_failed', message: (e && e.message) || 'The ad history operation failed.' });
+    return res.status(e && e.status ? e.status : 500).json(Object.assign({ ok: false, error: (e && e.code) || 'ad_history_failed', message: (e && e.message) || 'The ad history operation failed.' }, (e && e.extra) || {}));
   }
 }
 
 module.exports = {
-  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache,
+  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache, performanceOf,
   readPlatform, cleanMetrics, windowFor, inWindow,
   OPS, PLATFORMS, DEFAULT_DAYS,
 };
