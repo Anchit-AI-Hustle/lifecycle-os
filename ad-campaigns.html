@@ -1162,12 +1162,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const statics = (d.statics || []).length
       ? `<div class="al-grid">${d.statics.map((st) => `<figure class="al-card" data-angle-static="${alEsc(st.brief)}" style="margin:0"><iframe title="${alEsc(st.hook)}" sandbox="" srcdoc="${alEsc(st.static_html)}" style="width:100%;aspect-ratio:1/1;border:0;display:block"></iframe><figcaption class="note">${alEsc(st.angle_name)} · ${alEsc(st.design && st.design.template)}</figcaption></figure>`).join('')}</div><p class="note">${alEsc(d.statics_note || '')}</p>`
       : `<p class="note">${alEsc(d.statics_note || '')}</p>`;
+    // Remix a competitor's LAYOUT (2026-11-02, layout-remix.js): each image ad
+    // read is shown with a control; its structure is measured on the server and
+    // rebuilt as this brand's own static. Their words, offer, photos and colours
+    // are never taken.
+    const radsList = (rep.ads || []);
+    const remixes = radsList.length
+      ? `<div class="al-grid">${radsList.map((a, i) => `<figure class="al-card" data-remix-card="${i}" style="margin:0"><img src="${alEsc(a.image)}" alt="An ad by ${alEsc(a.competitor)}" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:auto;display:block;border-radius:8px"><figcaption class="note">${alEsc(a.competitor)}${a.days != null ? ` · running ${a.days} days` : ''}</figcaption><div class="btn-row"><button type="button" class="btn btn-ghost" data-remix="${i}">Remix this layout</button></div><div data-remix-out></div></figure>`).join('')}</div><p class="note">A remix takes the ad's structure only (where the photo, the type and any panel sit) and builds it with your own product photo, words and colours.</p>`
+      : `<p class="note">${rep.read ? 'None of the competitor ads read has an image, so there is no layout to remix.' : 'No competitor ads were read, so there is no layout to remix.'}</p>`;
     const tp = d.test_plan || { rows: [] };
     const plan = `<table class="al-table"><thead><tr><th>Brief</th><th>Share</th><th>Daily</th></tr></thead><tbody>${tp.rows.map((r) => `<tr><td>${alEsc(r.angle)}</td><td>${r.share}%</td><td>${r.daily != null ? alEsc(r.daily + (tp.currency ? ' ' + tp.currency : '')) : '<span class="note">set a budget</span>'}</td></tr>`).join('')}</tbody></table>
       <p class="note">${alEsc(tp.budget_note)}</p><p class="note">${alEsc(tp.method)}</p><ul class="al-hooks">${(tp.rules || []).map((r) => `<li>${alEsc(r)}</li>`).join('')}</ul>`;
     out.innerHTML = `
       <div class="card al-sec"><h3>What competitors keep running</h3><p class="note" style="margin:0 0 10px">${alEsc(rep.note)}</p>${gaps}${links ? `<p class="note">${links}</p>` : ''}
         ${rep.read ? `<div class="al-grid">${rows(rep.hooks, 'Hook pattern') ? `<div>${rows(rep.hooks, 'Hook pattern')}</div>` : ''}${rows(rep.formats, 'Format') ? `<div>${rows(rep.formats, 'Format')}</div>` : ''}${rows(rep.personas, 'Audience') ? `<div>${rows(rep.personas, 'Audience')}</div>` : ''}</div>` : ''}</div>
+      <div class="al-sec" id="al-remix"><h3>Remix a competitor's layout (${radsList.length})</h3>${remixes}</div>
       <div class="al-sec"><h3>Ranked angles and hook bank (${(d.hooks && d.hooks.count) || 0} hooks)</h3><div class="al-grid">${angles}</div></div>
       <div class="al-sec"><h3>Briefs</h3><div class="al-grid">${briefs}</div></div>
       <div class="al-sec"><h3>Static ads (${(d.statics || []).length})</h3>${statics}</div>
@@ -1180,6 +1189,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       try { window.sessionStorage.setItem('lifecycle.launch.briefs', JSON.stringify({ at: new Date().toISOString(), market, budget: Number(($('#al-budget') || {}).value) || null, briefs })); } catch (_) {}
       window.location.href = '/publishing?tab=launch';
     }); }
+    out.querySelectorAll('[data-remix]').forEach((btn) => btn.addEventListener('click', async () => {
+      const a = radsList[Number(btn.dataset.remix)]; if (!a) return;
+      const card = btn.closest('[data-remix-card]'); const box = card && card.querySelector('[data-remix-out]'); if (!box) return;
+      const lead = (AL_LAST.briefs || []).find((b) => b.basis !== 'control') || (AL_LAST.briefs || [])[0] || {};
+      const rc = window.RegionContext;
+      const market = (rc && rc.marketsFor ? rc.marketsFor()[0] : '') || '';
+      let ws = ''; try { const b = window.BrandContext && window.BrandContext.activeBrand && window.BrandContext.activeBrand(); ws = (b && b.id) || ''; } catch (_) { ws = ''; }
+      btn.disabled = true; box.innerHTML = `<p class="note">Measuring the layout of ${alEsc(a.competitor)}'s ad and building yours in it...</p>`;
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        try { const t = window.LifecycleAuth && window.LifecycleAuth.apiToken && window.LifecycleAuth.apiToken(); if (t) headers.Authorization = 'Bearer ' + t; } catch (_) {}
+        const r = await fetch('/api/public-config?action=video-render&op=remix-layout', { method: 'POST', headers, body: JSON.stringify({ workspace_id: ws, market, ad: { competitor: a.competitor, ad_id: a.ad_id, image: a.image }, headline: lead.hook && !/^\[DATA REQUIRED/.test(lead.hook) ? lead.hook : '', cta: lead.cta || '' }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) { box.innerHTML = `<p class="vh-status" data-remix-refused>${alEsc(j.message || j.error || ('No remix was made (HTTP ' + r.status + ').'))}</p>`; return; }
+        const st = (j.remix_of && j.remix_of.structure_taken) || {};
+        const ar = ({ '1:1': '1/1', '4:5': '4/5', '9:16': '9/16', '1.91:1': '1.91/1' })[st.ratio] || '1/1';
+        box.innerHTML = `<iframe data-remix-static title="Your ad in ${alEsc(a.competitor)}'s layout" sandbox="" srcdoc="${alEsc(j.static_html)}" style="width:100%;aspect-ratio:${ar};border:0;display:block;margin-top:8px"></iframe>
+          <p class="note" data-remix-why>Structure taken: ${alEsc(st.template)} at ${alEsc(st.ratio)}, the photo at the ${alEsc(st.product_at)}, the type on ${alEsc(st.type_on)}. ${alEsc(j.remix_of.measured)} Not taken: ${alEsc(j.remix_of.not_taken)}.${j.remix_of.note ? ' ' + alEsc(j.remix_of.note) : ''}</p>`;
+      } catch (e) { box.innerHTML = `<p class="vh-status">The layout could not be remixed: ${alEsc((e && e.message) || e)}</p>`; }
+      finally { btn.disabled = false; }
+    }));
     out.querySelectorAll('[data-use-brief]').forEach((btn) => btn.addEventListener('click', () => {
       const b = (AL_LAST.briefs || []).find((x) => x.id === btn.dataset.useBrief); if (!b) return;
       const fill = (sel, v) => { const el = $(sel); if (el && v && !/^\[DATA REQUIRED/.test(v)) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } };

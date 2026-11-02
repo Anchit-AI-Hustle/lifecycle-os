@@ -63,6 +63,10 @@ function normalizeAd(raw, competitor, source) {
     start, end, active,
     dated: !!(r.startDate || r.start_date || r.ad_delivery_start_time || rj.ad_delivery_start_time || rj.startDate),
     link: str(r.link || r.source_link || '', 400),
+    // The ad's own id and first image, for "Remix this layout" (layout-remix.js
+    // measures the image's structure only; its words are never reused).
+    ad_id: str(r.ad_id || r.id || rj.ad_archive_id || '', 120),
+    image: (() => { const u = str((Array.isArray(r.image_urls) && r.image_urls[0]) || r.image || '', 1000); return /^https:\/\//i.test(u) ? u : ''; })(),
     source: source || r.source || 'meta',
     enrichment: (r.enrichment && typeof r.enrichment === 'object') ? r.enrichment : {},
   };
@@ -151,6 +155,10 @@ function patternReport(ads, opts) {
     awareness: tally(pool, (a) => plainValue(a.enrichment.awareness_stage).toLowerCase(), weight),
     personas: tally(pool, (a) => plainValue(a.enrichment.target_persona), weight),
     pains: tally(pool, (a) => plainValue(a.enrichment.pain_point), weight),
+    // The image ads read, longest-running first, at most 12: the ones a layout
+    // can be remixed from. No copy here, only who ran it, for how long, the image.
+    ads: all.filter((a) => a.image).sort((x, y) => (y.days || 0) - (x.days || 0)).slice(0, 12)
+      .map((a) => ({ competitor: a.competitor, ad_id: a.ad_id || null, image: a.image, format: a.format, days: a.days })),
     _pool: pool,
   };
 }

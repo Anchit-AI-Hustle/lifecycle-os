@@ -4,6 +4,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A scene through OpenAI too, a competitor's layout remixed, bulk review on /brain, static ads fitted (2026-11-02)
+Three more gaps against usefastlane.ai and a quality pass on the static ad.
+- **Scene, second rung** (`api/ai/image.js` `tryOpenaiEdit`, `mode:'scene'` only): after Gemini, OpenAI's image EDIT,
+  read 2026-11-02 at developers.openai.com/api/reference/resources/images/methods/edit: POST `/v1/images/edits` JSON
+  `{model, prompt, images:[{image_url: <data URL of the product's own photo>}], size (1024x1024/1536x1024/1024x1536),
+  quality, n:1, output_format:'png'}` (no `input_fidelity`: the page says to omit it for gpt-image-2), answer
+  `data[0].b64_json`. Default model `gpt-image-2` (`OPENAI_IMAGE_EDIT_MODEL`); the page says gpt-image-1 was shut down
+  2026-10-23, so it is not offered. Keys: the workspace's OWN OpenAI key first, then the platform's (`OPENAI_API_KEY`,
+  `_2`, `_3`); a refused key moves to the next. Same guards (https photo, `assertPublicUrl` each hop, PNG/JPEG/WebP,
+  4 MB, the "keep packaging, label, every printed word" line). `noteLlm` records provider, model and whose key
+  (`own`), the answer says `scene_key: own|platform`. No Gemini and no OpenAI key = 501 `scene_needs_input_image_model`
+  naming both; a text-only provider is never asked. Gated in `tests/scene-remix.spec.js` (6 mutations caught).
+- **Remix a competitor's layout** (`api/_shared/layout-remix.js` on POST
+  `/api/public-config?action=video-render&op=remix-layout` {workspace_id, market, ad:{competitor, ad_id, image},
+  headline, cta}; the Chromium function, still 12/12). Only STRUCTURE is taken, MEASURED from the ad's image: fetched by
+  `code-video.fetchImage` (public hosts every hop, images only, capped), decoded on a canvas in the shipped Chromium
+  (the page loads nothing else), cut into a 12-column grid; each cell is ground (one colour >= 90%), text (two colours,
+  or the antialiased line between them) or photo. `measureLayout()` (pure, no model) reads bands, halves, a ring, a
+  small photo on a ground, stacked panels (offer), a corner sticker, a scrim over the photo, and maps to the nearest
+  `static-ad.js` template + side (`seed`) + ratio. The remix is the brand's OWN static: its first catalogue product with
+  its own photo (`ad-angle-lab.heroWithPhoto`), its words (the lead brief's hook, else tagline), its price/compare-at
+  only as the store states them, its claims, its theme (`asset-themes.pick`) and palette. `remix_of` {competitor, ad_id,
+  image, structure_taken{template, ratio, product_at, type_at, type_on, offer_panel, text_density, photo_share},
+  measured, not_taken: "their words, claims, offer, prices, photographs and colours"}. Signed in, a member (brand read
+  through RLS as the caller), the `video` rate limit, writes nothing. No image / unreadable / one flat colour / no
+  product photo (marker) = 422 with a sentence. `ad-angle-lab` reports carry `report.ads` (image ads read, longest
+  running first, <= 12, no copy); /ad-campaigns Winning angles has "Remix a competitor's layout" with a "Remix this
+  layout" control per ad (sandboxed srcdoc frame, what was taken and not taken). Measured over static-ad's own output
+  in another palette: 164 of 168 (8 themes x 3 ratios x 7 templates) come back as themselves; the 4 that do not are a
+  near-opaque scrim read as a band (bold 4:5/9:16, luxe 9:16) and a 9:16 band taller than 42% read as a stacked split.
+  Gated by `tests/layout-remix.spec.js` (8 mutations caught).
+- **Review strip on /brain** (`smart-brain.html` `#reviewstrip`): "Show built assets" loads, one preview at a time
+  (`smart-brain-preview`, reusing `PREVIEW_CACHE`), the built sends in view (at most 24) and shows each send's mailer
+  and variants, statics, videos (poster or a tile) and landing pages as thumbnails (sandboxed frames, no scripts). A
+  send's assets are approved or rejected TOGETHER (the server locks a send): Approve = `generateEntry` ->
+  `smart-brain-approve`, Reject = `smart-brain-reject` with the in-page prompt; "Approve all shown" sends ONE request
+  per send, sequential, progress "n of N", a refusal (brand_changed, catalogue_excluded, anything) shown on that send
+  in the server's own words, the rest go on. Tokens only; the thumbnails scroll inside their row at 390 (the card has
+  `min-width:0`: without it the grid column grew to the thumbnails' width and the page ran 418 px off a phone). Gated by
+  `tests/brain-review-strip.spec.js` (7 mutations caught).
+- **Static ad quality pass** (`scripts/lib/static-ad.js` `fitHeadline` / `headlineLines`): every template x 1:1, 4:5,
+  9:16 (with the Meta safe zone), 1.91:1, all 8 themes, for Brewfold, the 65-character tea company, Pale Oak and
+  Onyxline, drawn in Chromium and measured. Found 25 defects: 19 headlines cut by the 4-line clamp (the long tagline lost half its
+  words; Brewfold's split/bold and type/bold too) and 6 single words wider than their box (poster/bold/playful/luxe
+  type, luxe framed). The headline size is now the theme's, made smaller only as far as its words need (every word
+  fits the box width; the line fits 4 lines at a conservative glyph width, wider for capitals, heavy weights and open
+  tracking; floor 2.6cqw, then the clamp allows up to 6 lines). No contrast, outside-the-frame, on-the-photo-without-a-
+  ground or unstated-price defect was found. Gated by `tests/static-ad-quality.spec.js` (4 mutations caught; a compare-at
+  drawn with no price is held by two layers, so one mutation alone is not seen). static-raster draws the same page, so
+  its PNGs carry the fix.
 ## ⭐ Ads ranked by cost per result, winning ads spawn variations, ad history read during setup (2026-11-02)
 Three more gaps against usefastlane.ai, plus a quality pass on the Ad history card. Gated by
 `tests/ad-performance-variations.spec.js` (9 executed: the shipped reader over the fake Meta and Google APIs, the

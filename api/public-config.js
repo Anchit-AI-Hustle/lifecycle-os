@@ -127,6 +127,12 @@ module.exports = async function handler(req, res) {
       try { return await require('./_shared/static-raster.js').handle(req, res); }
       catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'static_png_router_failed', message: 'The ads could not be drawn just now. Please try again.' }); }
     }
+    // A competitor ad's LAYOUT measured and remade as the brand's own static
+    // (2026-11-02, _shared/layout-remix.js): the image is decoded in the same Chromium.
+    if (req.query.op === 'remix-layout') {
+      try { return await require('./_shared/layout-remix.js').handle(req, res); }
+      catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'remix_router_failed', message: 'The layout could not be remixed just now. Please try again.' }); }
+    }
     try { return await require('./_shared/code-video.js').handle(req, res); }
     catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'video_router_failed', message: 'The video could not be rendered just now. Please try again.' }); }
   }
