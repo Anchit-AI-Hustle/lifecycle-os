@@ -33,8 +33,23 @@ function brandRecord(brand) {
  * Only https URLs, only rows that say which page of the brand's site they came
  * from (a bare off-origin URL may be a hotlinked stock photo), no logos/icons.
  */
+/* A publisher's site pictures are its ARTICLES' photographs (2026-11-03).
+   Production /brain for The Times of India: every ad and the Story video wore
+   news photos of real people (a politician, celebrities) lifted from its home
+   page. They belong to one story, carry a real person's likeness and rights
+   the brand licensed for editorial use only; none of that is an advertising
+   picture. For a news or market-data brand only an image the brand UPLOADED
+   (or one the person marked as a brand or campaign picture) is used; otherwise the generated
+   brand scene, which shows no real person. */
+const EDITORIAL_MODELS = new Set(['news_media', 'market_data']);
+const BRAND_PICTURE_ROLE = /^(campaign|brand)$/i;   // set by the person, never by a site read (it calls article thumbnails 'hero')
+function editorialSite(b) {
+  try { return EDITORIAL_MODELS.has(require('./asset-playbooks.js').businessModel(b)); } catch (_) { return false; }
+}
+
 function ownImages(brand) {
   const b = brandRecord(brand);
+  const editorial = editorialSite(b);
   const bd = (b && b.brand_data) || {};
   const rows = [].concat(Array.isArray(b.imagery) ? b.imagery : [], Array.isArray(bd.imagery) ? bd.imagery : []);
   const seen = new Set();
@@ -46,6 +61,7 @@ function ownImages(brand) {
     if (it.off_origin) continue;
     if (!it.page && !it.found_on && !it.source_url && it.source !== 'upload') continue;
     if (NOT_A_PICTURE.test(`${it.role || ''} ${it.alt || ''} ${url.split('?')[0].split('/').pop()}`)) continue;
+    if (editorial && it.source !== 'upload' && !BRAND_PICTURE_ROLE.test(String(it.role || ''))) continue;
     seen.add(url);
     out.push({ url, page: it.page || it.found_on || it.source_url || '', role: it.role || '', source: 'brand-site' });
   }

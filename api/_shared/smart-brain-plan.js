@@ -371,8 +371,30 @@ function strategyPlay(name) {
   }[name] || 'Lifecycle send for this audience.';
 }
 
-function strategyCta(objective) {
+/* The button follows what the business sells (2026-11-03). Production /brain
+   for The Times of India: every ad's button read "Order again", the second
+   order verb, on a news publisher. A brand that is not commerce gets its own
+   verbs for the same lifecycle jobs (asset-playbooks.businessModel). */
+const MODEL_CTA = {
+  news_media: { education: 'Start reading', activation: 'Read today', retention: 'Keep reading', premium: 'Subscribe', reactivat: 'Catch up', other: 'Read now' },
+  market_data: { education: 'See the research', activation: 'See today\'s view', retention: 'Keep watching', premium: 'Subscribe', reactivat: 'See what changed', other: 'See the research' },
+  subscription: { education: 'Start now', activation: 'Pick up where you left', retention: 'Stay with us', premium: 'Upgrade', reactivat: 'Come back', other: 'Start now' },
+  events: { education: 'See the programme', activation: 'Book your place', retention: 'Save the date', premium: 'Book your place', reactivat: 'See what\'s on', other: 'Book your place' },
+  services: { education: 'See how it works', activation: 'Get in touch', retention: 'Get in touch', premium: 'Get in touch', reactivat: 'Get in touch', other: 'Get in touch' },
+};
+function strategyCta(objective, brand) {
   const o = String(objective || '').toLowerCase();
+  let model = 'commerce';
+  try { model = brand ? require('./asset-playbooks.js').businessModel(brand) : 'commerce'; } catch (_) { model = 'commerce'; }
+  const v = MODEL_CTA[model];
+  if (v) {
+    if (/education/.test(o)) return v.education;
+    if (/second-order|activation/.test(o)) return v.activation;
+    if (/pre-lapse|retention/.test(o)) return v.retention;
+    if (/premium|bundle|expansion/.test(o)) return v.premium;
+    if (/reactivat|last-chance/.test(o)) return v.reactivat;
+    return v.other;
+  }
   if (/education/.test(o)) return 'Learn more';
   if (/second-order|activation/.test(o)) return 'Order again';
   if (/pre-lapse|retention/.test(o)) return 'Stay with us';
@@ -443,7 +465,7 @@ function strategyPlanEntries(brand, startDate, days, ns) {
         heroProduct: hero,
         heroOffering: null,
         channels: plannedChannels(require('../../lib/smart-brain/services.js').BASE_CHANNELS, brand),
-        cta: strategyCta(objective),
+        cta: strategyCta(objective, brand),
         cta_url: null,
         offer,
         why,
@@ -600,7 +622,7 @@ function scrubForeignProducts(entry) {
   entry.theme = entry.objective || entry.theme || '';
   // Everything the slot said ABOUT that product goes too: the CTA named its
   // product type, the rationale and the analysis named the product.
-  entry.cta = strategyCta(entry.objective);
+  entry.cta = strategyCta(entry.objective, entry.brand);
   entry.why = `${verdict.sentence || 'This slot named another brand\'s product.'} Planned for ${name}${where ? ' (' + where + ')' : ''} without a product until its own catalogue is connected.`;
   try {
     entry.analysis = buildEntryAnalysis({
@@ -5726,6 +5748,7 @@ module.exports = {
   __test_slotForOtherRecord: slotForOtherRecord,
   // tests/review-leak-fixes.spec.js: which preset offerings a brand may take.
   __test_resolveBrandOfferings: _resolveBrandOfferings,
+  __test_strategyCta: strategyCta,
   __test_scrubForeignProducts: scrubForeignProducts,
   // Executed by tests/catalog-provenance.spec.js: whose store a slot links to.
   __test_slotLinks: slotLinks,
