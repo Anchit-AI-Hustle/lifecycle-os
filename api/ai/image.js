@@ -409,6 +409,55 @@ module.exports = async function handler(req, res) {
     return null;
   }
 
+  // ── Rung: OpenAI image EDIT, for a scene only (2026-11-02) ──────────────────
+  // POST https://api.openai.com/v1/images/edits, read 2026-11-02 at
+  // developers.openai.com/api/reference/resources/images/methods/edit: a JSON body
+  // {model, prompt, images:[{image_url}], size, quality, n, output_format}; an
+  // image_url may be a base64 data URL; sizes 1024x1024 / 1536x1024 / 1024x1536;
+  // input_fidelity is omitted (the page says to omit it for gpt-image-2); the
+  // answer is data[0].b64_json (no url for GPT image models). The page also says
+  // gpt-image-1 was shut down on 2026-10-23, so it is not offered here.
+  // Keys: the workspace's OWN OpenAI key first, then the platform's; each hit
+  // says whose key drew it.
+  const sceneOpenaiKeys = [];
+  if (isScene) {
+    if (ownImg && ownImg.openai) sceneOpenaiKeys.push({ key: ownImg.openai, own: true });
+    for (const k of [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2, process.env.OPENAI_API_KEY_3].map(_clean).filter(Boolean)) {
+      if (!sceneOpenaiKeys.some((x) => x.key === k)) sceneOpenaiKeys.push({ key: k, own: false });
+    }
+  }
+  async function tryOpenaiEdit() {
+    if (!sceneRef || !sceneOpenaiKeys.length) return null;
+    const model = _clean(process.env.OPENAI_IMAGE_EDIT_MODEL) || 'gpt-image-2';
+    for (const { key, own } of sceneOpenaiKeys) {
+      console.log('[image] Trying OpenAI edit model=' + model + ' (' + (own ? 'own' : 'platform') + ' key ...' + key.slice(-4) + ')');
+      const out = await bounded(OPENAI_BASE + '/images/edits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model,
+          prompt: 'Edit: put the product in this photo into a new scene, as described:\n\n' + finalPrompt,
+          images: [{ image_url: 'data:' + sceneRef.mimeType + ';base64,' + sceneRef.data }],
+          size: (OPENAI_SIZE_MAP[size] || '1024x1024'), quality, n: 1, output_format: 'png',
+        })
+      }, 90000, readJson);
+      if (out.status === -1) return null;
+      if (out.data) {
+        const e = out.data.data && out.data.data[0];
+        if (e && e.b64_json) {
+          console.log('[image] Success · OpenAI edit ' + model);
+          return { provider: 'openai', model, image_data_url: 'data:image/png;base64,' + e.b64_json, own };
+        }
+        out.err = 'no b64_json in response';
+      }
+      const kind = note('openai', model, out.status, kindOf(out.status, out.err), out.err);
+      console.warn('[image] OpenAI edit ' + model + ' → ' + out.status + ' (' + kind + ')', String(out.err || '').substring(0, 200));
+      if (kind === 'timeout') return null;
+      // auth / billing / rate limit / other: the next key (own, then platform)
+    }
+    return null;
+  }
+
   // ── Rung: Pollinations FLUX (free, no auth) ─────────────────────────────────
   async function tryPollinations() {
     const dim = POLLINATIONS_SIZE_MAP[size] || POLLINATIONS_SIZE_MAP['1024x1536'];
@@ -506,9 +555,10 @@ module.exports = async function handler(req, res) {
   if (isScene) {
     rungs.length = 0;
     if (geminiKey) rungs.push(() => tryGeminiNative(['gemini-2.5-flash-image', 'gemini-3-pro-image-preview']));
+    if (sceneOpenaiKeys.length) rungs.push(tryOpenaiEdit);
     if (!rungs.length) {
-      return res.status(501).json({ ok: false, error: 'scene_needs_gemini',
-        message: 'A scene with the product\'s own pack needs a model that takes a photo as input: connect Gemini on AI Models. Nothing was generated, so no packaging was invented.' });
+      return res.status(501).json({ ok: false, error: 'scene_needs_input_image_model',
+        message: 'A scene with the product\'s own pack needs a model that takes a photo as input: connect Gemini or OpenAI on AI Models. Nothing was generated, so no packaging was invented.' });
     }
   }
   const hadKeys = !!(geminiKey || openaiKeys.length > 0);
@@ -518,13 +568,14 @@ module.exports = async function handler(req, res) {
     if (hit) {
       // Whose key drew it: the credit meter waives the charge for a picture the
       // workspace's own key made.
-      try { require('../_shared/request-scope.js').noteLlm('ok', { own: !!ownImg, kind: 'image', provider: hit.provider, model: hit.model, images: 1 }); } catch (_) { /* no scope */ }
+      try { require('../_shared/request-scope.js').noteLlm('ok', { own: typeof hit.own === 'boolean' ? hit.own : !!ownImg, kind: 'image', provider: hit.provider, model: hit.model, images: 1 }); } catch (_) { /* no scope */ }
       const usedFreeFallback = hit.provider === 'pollinations' && hadKeys && !freeFirst;
       return res.status(200).json({
         ok: true, provider: hit.provider, model: hit.model, size, quality,
         image_data_url: hit.image_data_url,
         ...(hit.image_url ? { image_url: hit.image_url } : {}),
         ...(hit.key_index ? { key_index: hit.key_index } : {}),
+        ...(isScene ? { scene_key: (typeof hit.own === 'boolean' ? hit.own : !!ownImg) ? 'own' : 'platform' } : {}),
         ...(attempts.length ? { attempts, fell_back: true } : {}),
         ...(usedFreeFallback ? {
           quota_warning: true,

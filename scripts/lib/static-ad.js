@@ -128,9 +128,42 @@ function divider(theme, color) {
   }
 }
 
-function headline(theme, text, color, size, extra) {
+/**
+ * The headline's size, fitted to its box (2026-11-02, the quality pass): a
+ * long headline at the theme's scale overran its four lines and the clamp hid
+ * its last words ("First flush leaf, picked by hand on estates above two
+ * thousand metres..." lost half its words), and one long word in a heavy
+ * poster theme ran past its panel. The size is the theme's, made smaller only
+ * as far as the words need: every word fits the box's width, and the whole
+ * line fits four lines at a conservative average glyph width (wider for
+ * capitals, heavy weights and open tracking). `box` is the copy's width in cqw.
+ */
+function fitHeadline(theme, text, size, box) {
   const h = theme.heading;
-  return `<div data-ad-text data-ad-headline style="font-family:var(--head);font-size:${(size * h.scale).toFixed(2)}cqw;line-height:${h.case === 'upper' ? 1.04 : 1.1};font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}color:${color};margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;${extra || ''}">${esc(text)}</div>`;
+  let s = size * h.scale;
+  const t = String(text || '');
+  if (!t || !(box > 0)) return s;
+  const track = Math.max(0, parseFloat(h.tracking) || 0);
+  const cw = (h.case === 'upper' ? 0.72 : 0.6) + track + (h.weight >= 800 ? 0.05 : 0);
+  const longest = t.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 0);
+  if (longest) s = Math.min(s, (box * 0.96) / (longest * cw));
+  s = Math.min(s, (box * 4 * 0.84) / (t.length * cw));
+  return Math.max(Math.min(s, size * h.scale), 2.6);
+}
+/** Lines the fitted headline needs: four, or up to six when the size floor binds. */
+function headlineLines(theme, text, size, box) {
+  const h = theme.heading;
+  const t = String(text || '');
+  if (!t || !(box > 0)) return 4;
+  const track = Math.max(0, parseFloat(h.tracking) || 0);
+  const cw = (h.case === 'upper' ? 0.72 : 0.6) + track + (h.weight >= 800 ? 0.05 : 0);
+  const need = Math.ceil((t.length * cw * fitHeadline(theme, text, size, box)) / (box * 0.84));
+  return Math.max(4, Math.min(6, need));
+}
+
+function headline(theme, text, color, size, extra, box) {
+  const h = theme.heading;
+  return `<div data-ad-text data-ad-headline style="font-family:var(--head);font-size:${fitHeadline(theme, text, size, box).toFixed(2)}cqw;line-height:${h.case === 'upper' ? 1.04 : 1.1};font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}color:${color};margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:${headlineLines(theme, text, size, box)};overflow:hidden;${extra || ''}">${esc(text)}</div>`;
 }
 const lineEl = (text, color, size) => (text ? `<div data-ad-text style="font-family:var(--body);font-size:${size}cqw;line-height:1.35;color:${color};margin:2cqw 0 0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden">${esc(text)}</div>` : '');
 const priceEl = (text, color, size, compare) => (text ? `<div data-ad-text data-ad-price style="font-family:var(--head);font-size:${size}cqw;font-weight:700;line-height:1.1;color:${color};margin:2.4cqw 0 0">${compare ? `<s data-ad-compare style="font-weight:600;font-size:0.62em;opacity:1;margin-right:0.4em;text-decoration-thickness:0.12em">${esc(compare)}</s>` : ''}${esc(text)}</div>` : '');
@@ -226,10 +259,10 @@ function renderStaticAd(spec) {
   const sk = wide ? 0.6 : Math.max(0.8, k);
   const hs = 7.2 * k; // headline base size, in cqw
   const ls = 3.4 * sk; // line / button size
-  const block = (on, extra, f) => {
+  const block = (on, extra, f, box) => {
     const fg = on === 'ground' ? C.onGround : C.onSurface;
     const brandFg = on === 'ground' ? C.onGround : C.brandOnSurface;
-    return `<div data-ad-copy style="text-align:${align};${extra || ''}">${eyebrow(theme, proof, brandFg, on, 2.6 * sk)}${headline(theme, H, on === 'ground' ? C.onGround : C.brandOnSurface, hs * (f || 1))}${divider(theme, brandFg)}${wide || f ? '' : lineEl(L, fg, ls)}${priceEl(P, brandFg, 4.6 * k, CMP)}<div style="margin-top:3.6cqw">${button(theme, C, on, cta, ls)}</div></div>`;
+    return `<div data-ad-copy style="text-align:${align};${extra || ''}">${eyebrow(theme, proof, brandFg, on, 2.6 * sk)}${headline(theme, H, on === 'ground' ? C.onGround : C.brandOnSurface, hs * (f || 1), '', box)}${divider(theme, brandFg)}${wide || f ? '' : lineEl(L, fg, ls)}${priceEl(P, brandFg, 4.6 * k, CMP)}<div style="margin-top:3.6cqw">${button(theme, C, on, cta, ls)}</div></div>`;
   };
   const logoRow = (color, onDark) => {
     const el = logoEl(s, color, 3.6 * sk, onDark);
@@ -243,24 +276,24 @@ function renderStaticAd(spec) {
     // enough under every word for AA over any photograph.
     inner = `<div style="position:absolute;inset:0">${photo(Object.assign({}, theme, { image: 'bleed' }), img, alt)}</div>
 <div style="position:absolute;top:${pd / 2}cqw;${logoAt === 'center' ? 'left:50%;transform:translateX(-50%);' : `left:${pd / 2}cqw;`}padding:2cqw 3cqw;background:${rgba(C.ground, C.scrimA)};border-radius:${frameR}px">${logoEl(s, C.onGround, 3.2 * sk, true)}</div>
-<div data-ad-scrim style="position:absolute;left:0;right:0;bottom:0;padding:${pd}cqw;background:${rgba(C.ground, C.scrimA)};${frameR ? `margin:${pd / 2}cqw;border-radius:${frameR}px;` : ''}">${block('ground')}</div>`;
+<div data-ad-scrim style="position:absolute;left:0;right:0;bottom:0;padding:${pd}cqw;background:${rgba(C.ground, C.scrimA)};${frameR ? `margin:${pd / 2}cqw;border-radius:${frameR}px;` : ''}">${block('ground', '', 0, 100 - 2 * pd - (frameR ? pd : 0))}</div>`;
   } else if (template === 'split') {
     const dir = tall ? 'column' : 'row';
     const photoFirst = (s.seed || 0) % 2 === 0;
     const ph = `<div style="flex:${tall ? '0 0 56%' : '1 1 50%'};min-width:0;min-height:0;position:relative">${photo(Object.assign({}, theme, { image: 'bleed' }), img, alt)}</div>`;
-    const panel = `<div data-ad-panel style="flex:1 1 50%;min-width:0;min-height:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:column;justify-content:center;gap:2cqw;overflow:hidden">${logoRow(C.onGround, true)}${block('ground', '', tall ? 0 : 0.7)}</div>`;
+    const panel = `<div data-ad-panel style="flex:1 1 50%;min-width:0;min-height:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:column;justify-content:center;gap:2cqw;overflow:hidden">${logoRow(C.onGround, true)}${block('ground', '', tall ? 0 : 0.7, tall ? 100 - 2 * pd : 50 - 2 * pd)}</div>`;
     inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:${dir}">${photoFirst ? ph + panel : panel + ph}</div>`;
   } else if (template === 'framed') {
     const fr = theme.image === 'framed' ? `padding:1.6cqw;background:${C.surface};box-shadow:0 0 0 0.3cqw ${C.onGround};` : '';
     inner = `<div data-ad-panel style="position:absolute;inset:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:${wide ? 'row' : 'column'};gap:${pd / 1.5}cqw;align-items:stretch">
-<div style="flex:${wide ? '1 1 46%' : '0 0 auto'};display:flex;flex-direction:column;justify-content:center;gap:2cqw;min-width:0">${logoRow(C.onGround, true)}<div data-ad-copy style="text-align:${align}">${eyebrow(theme, proof, C.onGround, 'ground', 2.6 * sk)}${headline(theme, H, C.onGround, hs * 0.9)}</div></div>
+<div style="flex:${wide ? '1 1 46%' : '0 0 auto'};display:flex;flex-direction:column;justify-content:center;gap:2cqw;min-width:0">${logoRow(C.onGround, true)}<div data-ad-copy style="text-align:${align}">${eyebrow(theme, proof, C.onGround, 'ground', 2.6 * sk)}${headline(theme, H, C.onGround, hs * 0.9, '', wide ? (100 - 2 * pd) * 0.44 : 100 - 2 * pd)}</div></div>
 <div style="flex:1 1 auto;min-height:0;min-width:0;border-radius:${theme.radius.image}px;overflow:hidden;${fr}">${photo(theme, img, alt)}</div>
 <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:${align === 'center' ? 'center' : 'space-between'};gap:3cqw;flex-wrap:wrap">${P ? `<div data-ad-text data-ad-price style="font-family:var(--head);font-weight:700;font-size:${4.4 * k}cqw;color:${C.onGround}">${esc(P)}</div>` : ''}${button(theme, C, 'ground', cta, ls)}</div></div>`;
   } else if (template === 'type') {
     const corner = img ? `<div style="position:absolute;right:${pd}cqw;bottom:${pd}cqw;width:${wide ? 30 : 42}cqw;height:${wide ? 30 : 42}cqw;border-radius:${theme.image === 'rounded' ? '50%' : theme.radius.image + 'px'};overflow:hidden;border:0.8cqw solid ${C.surface};box-shadow:0 8px 24px rgba(0,0,0,0.2)">${photo(Object.assign({}, theme, { image: 'square' }), img, alt)}</div>` : '';
     inner = `<div data-ad-panel style="position:absolute;inset:0;background:${C.ground};padding:${pd}cqw;display:flex;flex-direction:column;justify-content:space-between;gap:3cqw">
 ${logoRow(C.onGround, true)}
-<div data-ad-copy style="text-align:${align};${img ? `max-width:${100 - 2 * pd - (wide ? 30 : 42) - 3}cqw;` : ''}">${eyebrow(theme, proof, C.onGround, 'ground', 2.8 * sk)}${headline(theme, H, C.onGround, hs * (img ? 1.05 : 1.35))}${divider(theme, C.onGround)}${wide ? '' : lineEl(L, C.onGround, ls)}</div>
+<div data-ad-copy style="text-align:${align};${img ? `max-width:${100 - 2 * pd - (wide ? 30 : 42) - 3}cqw;` : ''}">${eyebrow(theme, proof, C.onGround, 'ground', 2.8 * sk)}${headline(theme, H, C.onGround, hs * (img ? 1.05 : 1.35), '', img ? 100 - 2 * pd - (wide ? 30 : 42) - 3 : 100 - 2 * pd)}${divider(theme, C.onGround)}${wide ? '' : lineEl(L, C.onGround, ls)}</div>
 <div style="text-align:${align};${img ? `padding-right:${wide ? 32 : 44}cqw;` : ''}">${priceEl(P, C.onGround, 5 * k, CMP)}<div style="margin-top:3cqw">${button(theme, C, 'ground', cta, ls)}</div></div></div>${corner}`;
   } else if (template === 'sticker') {
     const st = P || cta;
@@ -269,13 +302,13 @@ ${logoRow(C.onGround, true)}
 <div data-ad-sticker style="position:absolute;top:${pd}cqw;right:${pd}cqw;width:${24 * sk}cqw;height:${24 * sk}cqw;border-radius:50%;background:${C.btnOnSurface};display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-8deg);padding:2cqw"><span data-ad-text ${P ? 'data-ad-price' : 'data-ad-cta'} style="font-family:var(--head);font-weight:800;font-size:${(P ? 5 : 3.6) * sk}cqw;line-height:1.05;color:${C.btnOnSurfaceText}">${esc(st)}</span></div>
 <div style="position:absolute;top:${pd / 1.4}cqw;left:${pd / 1.4}cqw;padding:2cqw 3cqw;background:${C.surface};border-radius:${frameR}px">${logoEl(s, C.brandOnSurface, 3.2 * sk, false)}</div></div>
 <div data-ad-panel style="flex:0 0 auto;background:${C.surface};padding:${pd * 0.8}cqw ${pd}cqw;border-top:${theme.divider === 'thick' ? '1.4cqw' : '0.5cqw'} solid ${C.ground};display:flex;align-items:center;justify-content:space-between;gap:4cqw">
-<div style="min-width:0;text-align:left">${eyebrow(theme, proof, C.brandOnSurface, 'surface', 2.6 * sk)}${headline(theme, H, C.brandOnSurface, hs * 0.8)}</div>${P ? `<div style="flex:0 0 auto">${button(theme, C, 'surface', cta, ls)}</div>` : ''}</div></div>`;
+<div style="min-width:0;text-align:left">${eyebrow(theme, proof, C.brandOnSurface, 'surface', 2.6 * sk)}${headline(theme, H, C.brandOnSurface, hs * 0.8, '', P ? (100 - 2 * pd) * 0.58 : 100 - 2 * pd)}</div>${P ? `<div style="flex:0 0 auto">${button(theme, C, 'surface', cta, ls)}</div>` : ''}</div></div>`;
   } else if (template === 'offer') {
     // offer: the photo, the headline on the brand's ground, then the offer
     // panel on the surface - the price (compare-at struck when stated) beside
     // the brand's own claims, ticked, and the button. Every word is the ad's
     // or the record's; nothing (gifts, ratings, a deadline) is added here.
-    const bandH = `<div data-ad-panel style="flex:0 0 auto;background:${C.ground};padding:${pd * 0.55}cqw ${pd}cqw">${headline(Object.assign({}, theme, { heading: Object.assign({}, theme.heading, { case: 'upper' }) }), H, C.onGround, hs * (wide ? 0.62 : 0.86))}</div>`;
+    const bandH = `<div data-ad-panel style="flex:0 0 auto;background:${C.ground};padding:${pd * 0.55}cqw ${pd}cqw">${headline(Object.assign({}, theme, { heading: Object.assign({}, theme.heading, { case: 'upper' }) }), H, C.onGround, hs * (wide ? 0.62 : 0.86), '', 100 - 2 * pd)}</div>`;
     const priceBox = P ? `<div data-ad-pricebox style="flex:0 0 auto;border:0.5cqw solid ${C.brandOnSurface};border-radius:${Math.max(4, frameR)}px;padding:2cqw 3cqw;text-align:center">${CMP ? `<div data-ad-text data-ad-compare style="font-family:var(--head);font-weight:700;font-size:${4.2 * sk}cqw;line-height:1.05;color:${C.onSurface};text-decoration:line-through;text-decoration-thickness:0.14em">${esc(CMP)}</div>` : ''}<div data-ad-text data-ad-price style="font-family:var(--head);font-weight:800;font-size:${(CMP ? 6.4 : 7) * sk}cqw;line-height:1.05;color:${C.brandOnSurface}">${esc(P)}</div></div>` : '';
     const list = BEN.length ? `<ul data-ad-benefits style="list-style:none;margin:0;padding:0;flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1.2cqw">${BEN.map((b) => `<li data-ad-text style="font-family:var(--head);font-weight:700;font-size:${3.3 * sk}cqw;line-height:1.2;color:${C.brandOnSurface};display:flex;gap:1.4cqw;align-items:baseline"><span aria-hidden="true" style="flex:0 0 auto;color:${C.brandOnSurface}">&#10003;</span><span>${esc(b)}</span></li>`).join('')}</ul>` : '';
     const panelO = `<div data-ad-panel style="flex:0 0 auto;background:${C.surface};padding:${pd * 0.7}cqw ${pd}cqw;display:flex;flex-direction:column;gap:2.4cqw"><div style="display:flex;align-items:center;gap:4cqw">${priceBox}${list}</div>${cta ? `<div style="text-align:center">${button(theme, C, 'surface', cta, ls)}</div>` : ''}</div>`;
@@ -285,7 +318,7 @@ ${logoRow(C.onGround, true)}
     // band: the photo, and a solid band of the brand's ground across it, at
     // the top or the bottom (the seed decides; the logo takes the other end).
     const top = (s.seed || 0) % 2 === 1;
-    const bandEl = `<div data-ad-panel style="flex:0 0 auto;background:${C.ground};padding:${pd * 0.8}cqw ${pd}cqw;${theme.divider === 'thick' ? `border-${top ? 'bottom' : 'top'}:1.4cqw solid ${C.accentOnGround};` : ''}">${block('ground', `display:block`)}</div>`;
+    const bandEl = `<div data-ad-panel style="flex:0 0 auto;background:${C.ground};padding:${pd * 0.8}cqw ${pd}cqw;${theme.divider === 'thick' ? `border-${top ? 'bottom' : 'top'}:1.4cqw solid ${C.accentOnGround};` : ''}">${block('ground', `display:block`, 0, 100 - 2 * pd)}</div>`;
     const ph = `<div style="flex:1 1 auto;min-height:0;position:relative">${photo(Object.assign({}, theme, { image: 'bleed' }), img, alt)}<div style="position:absolute;${top ? 'bottom' : 'top'}:${pd / 1.4}cqw;${logoAt === 'center' ? 'left:50%;transform:translateX(-50%);' : `left:${pd / 1.4}cqw;`}padding:2cqw 3cqw;background:${C.ground};border-radius:${frameR}px">${logoEl(s, C.onGround, 3.2 * sk, true)}</div></div>`;
     inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:column">${top ? bandEl + ph : ph + bandEl}</div>`;
   }
@@ -310,4 +343,4 @@ ${inner}
   return { html, template, theme: theme.id, data_gaps: gaps };
 }
 
-module.exports = { renderStaticAd, colours, scrimAlpha, safeZoneFor, TEMPLATE_IDS, RATIOS };
+module.exports = { renderStaticAd, colours, scrimAlpha, safeZoneFor, fitHeadline, TEMPLATE_IDS, RATIOS };
