@@ -86,8 +86,10 @@ test.describe('template offerings follow the template, not the host', () => {
     const row = { id: 'ws-toi', name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', palette: {}, typography: {}, voice: {}, regions: [],
       brand_data: { offerings: [copy, { kind: 'section', name: 'City', url: 'https://timesofindia.indiatimes.com/city' }] } };
     expect(names(RT.normalizeBrand(row).offerings)).toEqual(['City']);
-    const carried = RT.carriedBrand({ __brand: { name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', offerings: [copy, { kind: 'section', name: 'City' }] } }, { user: { id: 'u1' } });
-    if (carried) expect(names(carried.offerings)).toEqual(['City']);
+    // The device path: carriedBrand reads body.brand (brand-context.js carry()).
+    const carried = RT.carriedBrand({ brand: { name: 'The Times of India', website: 'https://timesofindia.indiatimes.com', offerings: [copy, { kind: 'section', name: 'City' }] } }, { user: { id: 'u1' } });
+    expect(carried).toBeTruthy();
+    expect(names(carried.offerings)).toEqual(['City']);
     const typed = Object.assign({}, row, { brand_data: { offerings: [{ kind: 'programme', name: MARATHON, cadence: 'weekly' }] } });
     expect(names(RT.normalizeBrand(typed).offerings)).toEqual([MARATHON]);
   });
