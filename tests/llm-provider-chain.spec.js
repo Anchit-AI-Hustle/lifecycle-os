@@ -44,6 +44,7 @@ const HOSTS = {
   'text.pollinations.ai': 'pollinations',
   'api.deepseek.com': 'deepseek',
   'bedrock-runtime.us-east-1.amazonaws.com': 'bedrock',
+  'bedrock-mantle.us-east-1.api.aws': 'bedrock',
 };
 
 function okBody(provider, said) {
@@ -65,7 +66,7 @@ function installNet(script) {
     const key = (h.Authorization || '').replace(/^Bearer\s+/, '') || h['x-api-key'] || u.searchParams.get('key') || '';
     let model = body.model || '';
     if (provider === 'gemini') { const m = u.pathname.match(/models\/([^:/]+):/); model = m ? decodeURIComponent(m[1]) : ''; }
-    if (provider === 'bedrock') { const m = u.pathname.match(/\/model\/([^/]+)\/invoke/); model = m ? decodeURIComponent(m[1]) : ''; }
+    if (provider === 'bedrock' && !body.model) { const m = u.pathname.match(/\/model\/([^/]+)\/invoke/); model = m ? decodeURIComponent(m[1]) : ''; }
     const call = { provider, model, key, body, headers: h };
     calls.push(call);
     const spec = script(call) || { status: 200, json: okBody(provider, 'answer from ' + provider + '/' + model) };
@@ -86,7 +87,7 @@ const ENV = ['FREE_GENERATION', 'OPENAI_API_KEY', 'OPENAI_API_KEY_2', 'OPENAI_AP
   'OPENROUTER_MAX_TOKENS', 'GROQ_TEXT_MODEL', 'GEMINI_TEXT_MODEL', 'ANTHROPIC_TEXT_MODEL', 'OPENAI_TEXT_MODEL', 'CEREBRAS_TEXT_MODEL',
   'CLOUDFLARE_TEXT_MODEL', 'CLOUDFLARE_TEXT_MODEL_FAST', 'CLOUDFLARE_TEXT_MODEL_MAX', 'GROK_TEXT_MODEL', 'GROK_TEXT_MODEL_MAX',
   'GEMINI_TEXT_MODEL_MAX', 'GEMINI_TEXT_MODEL_FAST', 'ANTHROPIC_TEXT_MODEL_MAX', 'ANTHROPIC_TEXT_MODEL_FAST', 'OPENAI_TEXT_MODEL_MAX', 'OPENAI_TEXT_MODEL_FAST', 'LLM_KEYLESS_GAP_MS',
-  'DEEPSEEK_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION', 'BEDROCK_API_KEY', 'USE_BEDROCK_FOR_ANTHROPIC'];
+  'DEEPSEEK_API_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION', 'BEDROCK_API_KEY', 'USE_BEDROCK_FOR_ANTHROPIC', 'BEDROCK_TEXT_MODEL', 'BEDROCK_TEXT_MODEL_MAX', 'BEDROCK_TEXT_MODEL_FAST', 'AWS_BEDROCK_API_KEY'];
 let saved = {};
 let net = null;
 let realNow = Date.now;
@@ -400,7 +401,45 @@ test('aws bedrock ai model is used for claude when bedrock credentials are set',
   const authHeader = net.calls[0].headers.Authorization || net.calls[0].headers.authorization;
   expect(authHeader).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/);
   expect(net.calls[0].headers['x-amz-date']).toBeTruthy();
-  expect(net.calls[0].body.anthropic_version).toBe('bedrock-2023-05-31');
+  // Changed on purpose (2026-11-02): Claude 4.7+ is the Messages API shape on
+  // Claude in Amazon Bedrock, so no InvokeModel anthropic_version in the body.
+  expect(net.calls[0].body.model).toMatch(/^anthropic\.claude-/);
+  expect(net.calls[0].body.anthropic_version).toBeUndefined();
+});
+
+test('a Bedrock API key reaches Claude Opus 5.5 on Claude in Amazon Bedrock, in x-api-key only', async () => {
+  const KEY = 'ABSKQmVkcm9ja0FQSUtleS10ZXN0LWtleS1ub3QtcmVhbA==';
+  setEnv({ BEDROCK_API_KEY: KEY, AWS_REGION: 'us-east-1', BEDROCK_TEXT_MODEL_MAX: 'anthropic.claude-opus-5-5' });
+  net = installNet(() => undefined);
+  const out = await ask({ preferProvider: 'anthropic', tier: 'premium' });
+  expect(out.provider).toBe('bedrock');
+  expect(out.model).toBe('anthropic.claude-opus-5-5');
+  const c = net.calls[0];
+  expect(c.provider).toBe('bedrock');
+  expect(c.model).toBe('anthropic.claude-opus-5-5');
+  expect(c.headers['x-api-key']).toBe(KEY);
+  expect(c.headers.Authorization).toBeUndefined();
+  expect(c.headers['anthropic-version']).toBe('2023-06-01');
+  expect(c.body.temperature).toBeUndefined();
+  // The Anthropic slot ran as Bedrock; the same key is not asked twice.
+  expect(net.calls.filter((x) => x.provider === 'bedrock').length).toBe(1);
+});
+
+test('the Bedrock model map: 4.7+ to anthropic.<id> on the Messages endpoint, an ARN-versioned id stays on InvokeModel', () => {
+  const llm = require('../api/_shared/llm.js');
+  expect(llm.bedrockModelId('claude-opus-5-5')).toBe('anthropic.claude-opus-5-5');
+  expect(llm.bedrockModelId('claude-sonnet-5-5')).toBe('anthropic.claude-sonnet-5-5');
+  expect(llm.bedrockModelId('anthropic.claude-3-5-sonnet-20241022-v2:0')).toBe('anthropic.claude-3-5-sonnet-20241022-v2:0');
+  expect(llm.bedrockIsMantle('anthropic.claude-opus-5-5')).toBe(true);
+  expect(llm.bedrockIsMantle('anthropic.claude-3-5-sonnet-20241022-v2:0')).toBe(false);
+  expect(llm.bedrockIsMantle('us.anthropic.claude-3-7-sonnet-20250219-v1:0')).toBe(false);
+});
+
+test('a refusal from Bedrock never repeats a Bedrock API key', () => {
+  const core = require('../api/_shared/workspace-connections-core.js');
+  const said = core.providerSays(JSON.stringify({ message: 'Bad key ABSKQmVkcm9ja0FQSUtleS10ZXN0LWtleS1ub3QtcmVhbA== was refused' }));
+  expect(said).not.toMatch(/ABSK/);
+  expect(said).toMatch(/\[key\]/);
 });
 
 test('its 402 is a rate limit (a wait), never a bill; FREE_GENERATION=off means no prompt leaves', async () => {

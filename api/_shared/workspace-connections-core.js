@@ -1084,7 +1084,7 @@ function providerSays(errText) {
     const m = raw.match(/"message"\s*:\s*"([^"]{4,200})"/) || raw.match(/"error"\s*:\s*"([^"]{4,200})"/);
     msg = m ? m[1] : '';
   }
-  msg = String(typeof msg === 'string' ? msg : '').replace(/\b(sk|gsk|xai|AIza|hf)[-_A-Za-z0-9]{8,}/g, '[key]').replace(/https?:\/\/\S+/g, '').trim().slice(0, 160);
+  msg = String(typeof msg === 'string' ? msg : '').replace(/\b(sk|gsk|xai|AIza|hf|ABSK)[-_A-Za-z0-9+/=]{8,}/g, '[key]').replace(/https?:\/\/\S+/g, '').trim().slice(0, 160);
   return msg ? ` (the provider said: "${msg}")` : '';
 }
 
