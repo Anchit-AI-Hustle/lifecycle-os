@@ -332,7 +332,12 @@ for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: width > 500 ? 900 : 844 });
     const db = new FakeSupabase();
     db.addUser('tok-p', 'user-p', 'p@example.test').addWorkspace(WS, 'user-p').setActive('user-p', WS).syncIdentityTables();
-    world({ db, ws: WS });
+    // Google too: its winner (903) has no copy, because Google's copy is not read.
+    world({ db, ws: WS, google: true, googleAdRows: [
+      { id: '901', status: 'ENABLED', impressions: '5000', clicks: '100', ctr: 0.02, costMicros: '12500000', conversions: 5 },
+      { id: '902', status: 'ENABLED', impressions: '4000', clicks: '40', ctr: 0.01, costMicros: '30000000', conversions: 3 },
+      { id: '903', status: 'ENABLED', impressions: '3000', clicks: '90', ctr: 0.03, costMicros: '8000000', conversions: 4 },
+    ] });
     installLlm(new Error('every provider is down'));
     const thrown = [];
     page.on('pageerror', (e) => thrown.push(String(e.message || e)));
@@ -369,15 +374,19 @@ for (const width of [1280, 390]) {
     await expect(card).toBeVisible({ timeout: 15000 });
     await page.locator('#adHistoryImport').click();
     const rank = card.locator('[data-ah-ranking]');
-    await expect(rank.locator('tr[data-ah-rank]')).toHaveCount(3, { timeout: 15000 });
+    await expect(rank.locator('tr[data-ah-rank]')).toHaveCount(6, { timeout: 15000 });
     await expect(rank.locator('[data-ah-rank-platform="meta"] [data-ah-median]')).toHaveText('10 INR');
-    await expect(rank.locator('tr[data-ah-rank]').nth(0)).toHaveAttribute('data-ah-rank', 'ad-1');
+    await expect(rank.locator('tr[data-ah-rank]').nth(0)).toHaveAttribute('data-ah-rank', '903');
+    await expect(rank.locator('tr[data-ah-rank]').nth(3)).toHaveAttribute('data-ah-rank', 'ad-1');
     await expect(rank.locator('tr[data-ah-rank="ad-1"] td[data-label="Cost per result"]')).toHaveText('4 INR');
     await expect(rank.locator('tr[data-ah-rank="ad-1"] td[data-label="How"]')).toHaveText('as reported');
     await expect(rank.locator('tr[data-ah-rank="ad-2"] td[data-label="How"]')).toHaveText('spend / results');
     await expect(rank.locator('[data-ah-unrated]')).toContainText('2 of 5 carry no cost per result: 1 spent with no result reported, 1 results not returned.');
     // Only a winner can be varied.
     await expect(rank.locator('[data-ah-vary]')).toHaveCount(1);
+    // Google's cheapest ad is a winner with no copy: no button, the reason instead (review of #413).
+    await expect(rank.locator('tr[data-ah-rank="903"] [data-ah-vary]')).toHaveCount(0);
+    await expect(rank.locator('tr[data-ah-rank="903"] [data-ah-no-copy]')).toContainText('Google Ads did not return this ad\'s copy, so there is nothing to vary.');
     await expect(rank.locator('tr[data-ah-rank="ad-1"] [data-ah-vary]')).toBeVisible();
     // The ads table names the currency beside a cost per result.
     await expect(card.locator('tr[data-ah-ad="ad-1"] td[data-label="Cost per result"]')).toHaveText('4 INR');
@@ -520,4 +529,86 @@ test('a setup step that throws never leaves its row "running": it says it stoppe
   expect(r.steps.filter((s) => s[1] === 'running'), r.say).toEqual([]);
   const stopped = r.steps.filter((s) => s[1] === 'failed' && /This step stopped before it finished/.test(s[2]));
   expect(stopped.length, r.say).toBeGreaterThan(0);
+});
+
+/* ═══ 5. review of #413 (Cursor Bugbot), each executed ═══════════════════ */
+
+test('review 1: the op is read where the meter reads it - a POST with op=variations only in the body runs nothing', async () => {
+  world();
+  await call('import', { body: {} });
+  installLlm({ variants: [{ primary_text: 'Tired of glasses sliding down? Frames that fit every face.', headline: 'Fit' }] });
+  // brain.js meters on the QUERY's op; the body naming variations must not run the model.
+  const hidden = await call('', { body: { op: 'variations', ad_id: 'ad-1' } });
+  expect(hidden.code).toBe(400);
+  expect(hidden.body.error).toBe('op_in_query');
+  const mixed = await call('status', { body: { op: 'variations', ad_id: 'ad-1' } });
+  expect(mixed.code).toBe(400);
+  expect(LLM.calls).toHaveLength(0);
+  // Named in the query (as the pages do), with or without the same op in the body, it runs.
+  const ok = await call('variations', { body: { op: 'variations', ad_id: 'ad-1' } });
+  expect(ok.code, JSON.stringify(ok.body)).toBe(200);
+  expect(LLM.calls).toHaveLength(1);
+});
+
+test('review 2: a winner whose copy the platform did not return says so on status, and is never offered variations', async () => {
+  world({ google: true, googleAdRows: [
+    { id: '901', status: 'ENABLED', impressions: '5000', clicks: '100', ctr: 0.02, costMicros: '12500000', conversions: 5 },
+    { id: '902', status: 'ENABLED', impressions: '4000', clicks: '40', ctr: 0.01, costMicros: '30000000', conversions: 3 },
+    { id: '903', status: 'ENABLED', impressions: '3000', clicks: '90', ctr: 0.03, costMicros: '8000000', conversions: 4 },
+  ] });
+  await call('import', { body: {} });
+  const st = await call('status');
+  const g = st.body.performance.winners.find((w) => w.provider === 'google_ads');
+  expect(g.winners[0]).toMatchObject({ ad_id: '903', has_copy: false, no_copy_reason: 'Google Ads did not return this ad\'s copy, so there is nothing to vary.' });
+  const m = st.body.performance.winners.find((w) => w.provider === 'meta');
+  expect(m.winners[0]).toMatchObject({ ad_id: 'ad-1', has_copy: true, no_copy_reason: '' });
+  const rankedG = st.body.performance.ranking.platforms.find((x) => x.provider === 'google_ads').ranked.find((r) => r.ad_id === '903');
+  expect(rankedG.has_copy).toBe(false);
+  // And the reader agrees: asked anyway, it refuses with the same reason.
+  installLlm({ variants: [] });
+  const r = await call('variations', { body: { ad_id: '903' } });
+  expect(r.code).toBe(409);
+  expect(r.body.error).toBe('no_copy');
+  expect(LLM.calls).toHaveLength(0);
+});
+
+test('review 3: status, variations and the writer\'s evidence judge the SAME rows, so a ranked winner is never refused as "not a winner"', async () => {
+  const { db } = world();
+  const old = new Date(Date.now() - 100 * DAY).toISOString();
+  // Three rated ads seen long ago (the winner among them), then 340 newer ads with no figures.
+  [['w-1', 2], ['w-2', 5], ['w-3', 9]].forEach(([id, cpr]) => db.insert('brand_ad_history', { workspace_id: 'ws-a', provider: 'meta', account_id: 'act_77', ad_id: id, name: id, currency: 'INR', primary_text: 'Frames that fit every face.', headline: 'Fit', image_url: 'https://cdn.brand.example/w.jpg', metrics: { cost_per_result: cpr, ctr: 0.01 }, last_seen: old }));
+  for (let i = 0; i < 340; i++) db.insert('brand_ad_history', { workspace_id: 'ws-a', provider: 'meta', account_id: 'act_77', ad_id: `n-${String(i).padStart(3, '0')}`, name: `n${i}`, currency: 'INR', primary_text: 'Eyewear made for every day.', metrics: { impressions: 10 }, last_seen: new Date(Date.now() - i * 1000).toISOString() });
+  db.insert('brand_ad_history_runs', { workspace_id: 'ws-a', provider: 'meta', ok: true, ads: 343, ran_at: new Date().toISOString() });
+  const st = await call('status');
+  const statusWinner = st.body.performance.winners.find((w) => w.provider === 'meta').winners[0].ad_id;
+  installLlm(new Error('down'));
+  const v = await call('variations', { body: { ad_id: statusWinner } });
+  expect(v.code, JSON.stringify(v.body)).toBe(200);
+  history.resetCache();
+  const ev = evidence.evidenceFor({ __ownAds: await history.evidenceAds('ws-a') });
+  const evWinner = ev.ads.platforms.find((p) => p.provider === 'meta').worked[0];
+  expect([statusWinner, v.body.source.ad_id, evWinner && evWinner.ad_id]).toEqual(['w-1', 'w-1', 'w-1']);
+  // One read: the same order and limit every time.
+  const reads = db.calls.filter((c) => /\/rest\/v1\/brand_ad_history\?select=\*/.test(c.url)).map((c) => decodeURIComponent(c.url.replace(/.*\?/, '')));
+  expect(new Set(reads).size).toBe(1);
+  expect(reads[0]).toMatch(/order=last_seen\.desc,ad_id\.asc&limit=1000/);
+});
+
+test('review 4: a winner ranked on a computed cost per result prints that figure, labelled, in OWN ADS, Winning angles and variation_of', async () => {
+  const ads = [
+    { provider: 'meta', ad_id: 'c1', name: 'C1', currency: 'INR', primary_text: 'Tired of frames that slip? Frames that fit every face.', image_url: 'https://x/1.jpg', metrics: { spend: 10, conversions: 5, ctr: 0.01 } },
+    { provider: 'meta', ad_id: 'c2', name: 'C2', currency: 'INR', primary_text: 'Eyewear made for every day.', image_url: 'https://x/2.jpg', metrics: { spend: 50, conversions: 5, ctr: 0.05 } },
+    { provider: 'meta', ad_id: 'c3', name: 'C3', currency: 'INR', primary_text: 'Free eye test in store.', image_url: 'https://x/3.jpg', metrics: { spend: 90, conversions: 3, ctr: 0.03 } },
+  ];
+  const label = '2.00 INR per result (worked out: spend / results, as the platform reported them)';
+  const brief = evidence.briefFor({ __ownAds: { imported: true, ads } });
+  expect(brief).toContain(`WORKED - "C1": 1.00% click-through, 10.00 INR spent, 5 conversions, ${label}`);
+  const out = await angleLab.run({ brand: BRAND, market: 'IN', competitors: [], deps: { ownAds: { imported: true, ads }, hero: null, ciAds: null, fetchMetaAds: async () => ({ ok: true, ads: [] }), callLLM: async () => { throw new Error('down'); } } });
+  expect(out.briefs.find((b) => b.basis === 'control').evidence).toContain(label);
+  const V = req('api/_shared/ad-variations.js');
+  const r = await V.variationsFor({ ads, brand: BRAND, adId: 'c1', deps: { callLLM: async () => { throw new Error('down'); } } });
+  expect(r.source.figures).toContain(label);
+  for (const x of r.variations) expect(x.variation_of.figures).toContain(label);
+  // A reported figure keeps its plain wording.
+  expect(evidence.adFigures({ cost_per_result: 4 }, 'INR')).toBe('4.00 INR per result');
 });

@@ -205,7 +205,12 @@ function adFigures(m, currency) {
   if (n(x.clicks) != null) bits.push(`${n(x.clicks).toLocaleString('en-US')} clicks`);
   if (n(x.spend) != null) bits.push(`${n(x.spend).toFixed(2)}${currency ? ` ${currency}` : ''} spent`);
   if (n(x.conversions) != null) bits.push(`${n(x.conversions).toLocaleString('en-US')} conversions`);
-  if (n(x.cost_per_result) != null) bits.push(`${n(x.cost_per_result).toFixed(2)}${currency ? ` ${currency}` : ''} per result`);
+  // The cost per result the ranking used (ad-performance.costPerResult): the
+  // platform's own figure as before, or worked out from spend / results and
+  // SAID so (2026-11-02, review of #413: a winner ranked on a computed figure
+  // printed none, so the brief called it cheapest without the number).
+  const cpr = require('./ad-performance.js').costPerResult(x);
+  if (cpr.value != null) bits.push(`${cpr.value.toFixed(2)}${currency ? ` ${currency}` : ''} per result${cpr.basis === 'computed' ? ' (worked out: spend / results, as the platform reported them)' : ''}`);
   if (n(x.roas) != null) bits.push(`${n(x.roas).toFixed(2)}x return on ad spend (as reported)`);
   return bits.join(', ');
 }

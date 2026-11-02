@@ -246,9 +246,22 @@ async function listFor(workspaceId, { provider, limit } = {}) {
   return Array.isArray(rows) ? rows : [];
 }
 
+/**
+ * THE ONE READ every judgement of this brand's ads is made from (2026-11-02,
+ * review of #413): the status ranking and its winners, op=variations and the
+ * writer's evidence. They were three slices (1,000 unordered, the 500 newest,
+ * the 300 newest), so an ad ranked a winner on the card could be refused as
+ * "not a winner". Same rows, same order, same limit, metrics cleaned.
+ */
+const JUDGED_LIMIT = 1000;
+async function judgedRows(workspaceId) {
+  const rows = await svc(`brand_ad_history?select=*&workspace_id=eq.${enc(workspaceId)}&order=last_seen.desc,ad_id.asc&limit=${JUDGED_LIMIT}`);
+  return (Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }));
+}
+
 async function statusFor(workspaceId) {
   const runs = await svc(`brand_ad_history_runs?select=*&workspace_id=eq.${enc(workspaceId)}&order=ran_at.desc&limit=40`);
-  const rows = await svc(`brand_ad_history?select=provider,ad_id,name,currency,primary_text,headline,image_url,video_url,video_id,metrics&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
+  const rows = await judgedRows(workspaceId);
   const counts = {};
   for (const r of Array.isArray(rows) ? rows : []) counts[r.provider] = (counts[r.provider] || 0) + 1;
   const out = [];
@@ -261,7 +274,7 @@ async function statusFor(workspaceId) {
     out.push({ provider: p.id, label: p.label, built: p.built, reason: p.reason || '', window_note: p.window_note || '', connected, ads: counts[p.id] || 0, last_import: last });
   }
   // What the brand's own ads are made of, counted per platform (2026-11-02).
-  const clean = (Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }));
+  const clean = rows;
   let patterns = null;
   try { patterns = require('./ad-patterns.js').patternStats(clean); } catch (_) { patterns = null; }
   // Ranked by cost per result, per platform and currency, with each
@@ -274,11 +287,20 @@ async function statusFor(workspaceId) {
 /** The ranking and the winners the page shows: figures and ids only, no copy. */
 function performanceOf(ads) {
   const perf = require('./ad-performance.js');
-  const slim = (x) => ({ ad_id: x.ad_id, name: x.name, value: x.value, value_basis: x.value_basis });
+  // A winner can be varied only when the platform returned its copy (Google
+  // Ads' is not read), so each says whether it has copy and, if not, why.
+  const opening = require('./ad-patterns.js').opening;
+  const byId = {};
+  for (const a of ads) byId[`${a.provider}|${a.ad_id}`] = a;
+  const copyOf = (prov, id) => !!opening(byId[`${prov}|${id}`] || {});
+  const noCopy = (prov) => `${(PLATFORMS.find((p) => p.id === prov) || {}).label || prov} did not return this ad's copy, so there is nothing to vary.`;
+  const slimFor = (prov) => (x) => ({ ad_id: x.ad_id, name: x.name, value: x.value, value_basis: x.value_basis, has_copy: copyOf(prov, x.ad_id), no_copy_reason: copyOf(prov, x.ad_id) ? '' : noCopy(prov) });
+  const ranking = perf.rankByCostPerResult(ads);
+  for (const g of ranking.platforms) for (const r of g.ranked) { r.has_copy = copyOf(g.provider, r.ad_id); r.no_copy_reason = r.has_copy ? '' : noCopy(g.provider); }
   return {
-    ranking: perf.rankByCostPerResult(ads),
+    ranking,
     winners: perf.winnersFor(ads).map((w) => ({ provider: w.provider, label: w.label, basis: w.basis, metric: w.metric, currency: w.currency || null, median: w.median, rated: w.rated, ads: w.ads,
-      winners: w.winners.map(slim), losers: w.losers.map(slim), note: w.note || '', reason: w.reason || '', cpr_reason: w.cpr_reason || '' })),
+      winners: w.winners.map(slimFor(w.provider)), losers: w.losers.map(slimFor(w.provider)), note: w.note || '', reason: w.reason || '', cpr_reason: w.cpr_reason || '' })),
   };
 }
 
@@ -296,7 +318,7 @@ async function evidenceAds(workspaceId, { ttlMs = 10 * 60 * 1000 } = {}) {
   try {
     const runs = await svc(`brand_ad_history_runs?select=provider,ok,ran_at&workspace_id=eq.${enc(workspaceId)}&ok=eq.true&order=ran_at.desc&limit=1`);
     if (Array.isArray(runs) && runs.length) {
-      const rows = await listFor(workspaceId, { limit: 300 });
+      const rows = await judgedRows(workspaceId);
       value = {
         imported: true,
         ads: rows.map((r) => ({
@@ -340,7 +362,14 @@ async function refreshDue({ maxWorkspaces = 2, olderThanMs = 20 * 3600 * 1000 } 
 async function handle(req, res, { auth, workspaceId, body, brand } = {}) {
   const q = (req && req.query) || {};
   const b = body && typeof body === 'object' ? body : {};
-  const op = String(q.op || b.op || 'status').toLowerCase();
+  // The op is read from the QUERY, where api/brain.js's meter reads it (it
+  // decides before the body is parsed). A body naming another op is refused,
+  // so op=variations can never run unmetered by hiding in the body (2026-11-02,
+  // review of #413).
+  const op = String(q.op || 'status').toLowerCase();
+  if (b.op != null && String(b.op).toLowerCase() !== String(q.op || '').toLowerCase()) {
+    return res.status(400).json({ ok: false, error: 'op_in_query', message: 'Name the operation in the address (?op=...), not only in the body: the body named a different one, so nothing was run.' });
+  }
   if (OPS.indexOf(op) < 0) return res.status(400).json({ ok: false, error: 'unknown_ad_history_operation', available: OPS });
   if (!workspaceId) {
     return res.status(op === 'status' ? 200 : 409).json({
@@ -360,9 +389,9 @@ async function handle(req, res, { auth, workspaceId, body, brand } = {}) {
     if (op === 'variations') {
       if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Variations are made with a POST.' });
       await brandCore.assertCanWrite(auth, workspaceId, 'make ad variations');
-      const rows = await listFor(workspaceId, { limit: 500 });
+      const rows = await judgedRows(workspaceId);
       const out = await require('./ad-variations.js').variationsFor({
-        ads: rows.map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) })),
+        ads: rows,
         brand: brand || null, adId: b.ad_id || q.ad_id || null, n: b.n || q.n,
       });
       // Which model did the work is the platform's business; whether one did is said.
@@ -378,7 +407,7 @@ async function handle(req, res, { auth, workspaceId, body, brand } = {}) {
 }
 
 module.exports = {
-  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache, performanceOf,
+  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache, performanceOf, judgedRows, JUDGED_LIMIT,
   readPlatform, cleanMetrics, windowFor, inWindow,
   OPS, PLATFORMS, DEFAULT_DAYS,
 };
