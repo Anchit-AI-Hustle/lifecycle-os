@@ -264,7 +264,7 @@ function kit(c, T) {
     if (c.offers.length < 2) return '';
     const col = P.greenText;
     return `<tr><td align="${ALIGN}" style="padding:${V}px ${PADX}px 0;">
-        <div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${P.mutedOnSurface};margin:0 0 12px;">Shop by</div>
+        <div style="font-family:${BODY};font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${P.mutedOnSurface};margin:0 0 12px;">${esc(c.browseLabel || 'Shop by')}</div>
         ${c.offers.map((x) => `<a href="${esc(x.url)}" target="_blank" style="display:inline-block;margin:0 6px 8px 0;font-family:${BODY};font-size:13px;font-weight:700;color:${col};border:1.5px solid ${col};border-radius:${R.button}px;padding:9px 18px;text-decoration:none;">${esc(x.name)}</a>`).join('')}
       </td></tr>`;
   };

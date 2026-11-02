@@ -112,6 +112,32 @@ that share its host) gets `slotTemplateVerdict`: preview/approve treat it like a
 `offerings` marker / 409), Daily Sync archives it with the reason. Gated by `tests/template-offerings.spec.js` (planner +
 brand-catalog.js in Chromium over the real preset files; both match rules mutation-checked).
 
+## ⭐ A brand that is not a shop is not written to as one (2026-11-03)
+Production /brain for The Times of India (news, no model answering, so the TEMPLATE path), called "atrocious": "Thank
+you for your first order with The Times of India", a Meta video text cut to "General news coverage from", "General news
+coverage from The Times of India. The Times of India.", every ad headed by the brand's name, the subject "The Times of
+India for you: India News, Latest News, Breaking News", a script with "Explore the collection" / "Made to enjoy every
+day" / "Read today now", a storyboard asking to film "[DATA REQUIRED ...]", and a Story end card with an empty lower half.
+- **Who the send speaks to** is `asset-playbooks.audienceWords(brand)` by business model (customer / reader / member /
+  participant / client: thanks line, "regular <many>", footer "a <brand> <one>", the offerings row label, the
+  activation headline). `services.audienceLine`/`headlineFor`, the template mail footer, `calendar-trigger` footers,
+  `mail-templates` "Shop by" row and `review-recovery` read it. Commerce wording is unchanged.
+- **A site SEO title is not a tagline**: `isSiteTitle()` (| or bullet separators, 3+ short comma/dash segments that
+  repeat a word or are all capitalised search phrases, an "Official Site" segment; a real tricolon is kept).
+  `buildCampaign` builds from a copy of the brand without it and puts the record back; no subject, headline or ad
+  prints it. With no usable tagline a non-commerce subject is "<brand>: <headline>".
+- **Ads (services.js)**: a brand line that already names the brand is not followed by the name again; `_after` takes
+  off only the name it APPENDED (it split on every occurrence and cut the claim); a field never names the brand twice
+  (`_afterOnce`); a non-commerce brand with no product is headed by the send's own line; the script is the opening
+  line, a line the brand states (claim, else its named offerings) and the button, the brand named once, no "now"
+  after a button that says now/today, and no "Made to enjoy every day" for ANY brand (no record made it); the
+  storyboard of a slot with no product shows the brand's world, never a marker.
+- **Story end card** (`scripts/lib/story-ad.js`, left-aligned / editorial): the stack is centred in the 9:16 frame.
+- Gated by `tests/non-commerce-asset-copy.spec.js` (7 executed: TOI + Economic Times presets and one brand per model,
+  `tests/lib/sweep-brands.js` `MODEL_BRANDS` (market data, subscription, events, services) beside the commerce
+  `BRANDS`, x 6 objectives; reader-facing text from `tests/lib/reader-text.js`; the end card measured in Chromium;
+  10 mutations, each caught).
+
 ## ⭐ Four gaps against usefastlane.ai, closed: the designed static ships, per ratio, per angle, and ad history is counted (2026-11-02)
 - **Paid launch sends the designed static** (`api/_shared/static-raster.js` on POST `/api/public-config?action=video-render&op=static-png`
   {workspace_id, campaign_id}, still 12/12): every static ad's `creative.static_html` is drawn in the shipped Chromium

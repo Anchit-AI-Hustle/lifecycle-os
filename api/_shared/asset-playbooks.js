@@ -107,6 +107,47 @@ function businessModel(brand) {
   return 'commerce';
 }
 
+/* WHO a send speaks to, by business model (2026-11-03). Production /brain for
+   The Times of India said "Thank you for your first order with The Times of
+   India", "For our regular customers" and "you are a The Times of India
+   customer" to a READER. Each word here is true by the audience's own
+   definition for that model: a news reader reads, a member joined, a client
+   chose the practice. `browse` labels a row of the brand's offerings. */
+const AUDIENCE = {
+  commerce: { one: 'customer', many: 'customers', thanks: 'Thank you for your first order with', browse: 'Shop by', next: 'Ready for the next one?' },
+  news_media: { one: 'reader', many: 'readers', thanks: 'Thank you for reading', browse: 'Read by section', next: 'What to read next' },
+  market_data: { one: 'reader', many: 'readers', thanks: 'Thank you for reading', browse: 'Read by section', next: 'What to look at next' },
+  subscription: { one: 'member', many: 'members', thanks: 'Thank you for joining', browse: 'See what is included', next: 'Your next step' },
+  events: { one: 'participant', many: 'participants', thanks: 'Thank you for booking with', browse: 'See what is on', next: 'What is on next' },
+  services: { one: 'client', many: 'clients', thanks: 'Thank you for choosing', browse: 'See what we do', next: 'Your next step' },
+};
+function audienceWords(brand) { return AUDIENCE[businessModel(brand)] || AUDIENCE.commerce; }
+
+/* A site's SEO title is not a tagline (2026-11-03). The Times of India's record
+   holds "India News, Latest News, Breaking News", the <title> its site read
+   gave, and it became the subject line ("The Times of India for you: India
+   News, Latest News, Breaking News"), the mail's subline and every ad's text.
+   A title is a list of search phrases: segments split by | or a bullet, or
+   three or more comma / dash segments of a few words that repeat a word
+   ("News" three times) or are all capitalised search phrases, or a segment that names the page ("Official Site").
+   A real tricolon ("Fast, fresh, local") repeats nothing and is kept. */
+function isSiteTitle(t) {
+  const s = String(t || '').trim();
+  if (!s) return false;
+  if (/\s[|\u00b7\u2022]\s|\|/.test(s)) return true;
+  const segs = s.split(/\s*(?:,|\s[-\u2013\u2014]\s)\s*/).map((x) => x.trim()).filter(Boolean);
+  if (segs.some((x) => /^(official (site|website|store)|online (store|shop)|home ?page|home)$/i.test(x))) return true;
+  if (segs.length < 3 || /[.!?]$/.test(s)) return false;
+  if (segs.some((x) => x.split(/\s+/).length > 4)) return false;
+  const seen = new Map();
+  for (const x of segs) for (const w of new Set(x.toLowerCase().split(/\s+/).filter((w) => w.length >= 3))) seen.set(w, (seen.get(w) || 0) + 1);
+  if ([...seen.values()].some((n) => n >= 2)) return true;
+  // Every word capitalised, a multi-word phrase among them: search phrases
+  // ("Business News, Stock Market, Sensex"), not a sentence.
+  const words = segs.join(' ').split(/\s+/);
+  return segs.some((x) => /\s/.test(x)) && words.every((w) => /^[A-Z0-9&]/.test(w));
+}
+
 /**
  * Regulatory financial disclaimer generator.
  * Enforces compliance for market data, trading, and investment content.
@@ -907,6 +948,8 @@ function defaultCta(brand, opts) {
 module.exports = {
   BUSINESS_MODELS,
   businessModel,
+  audienceWords,
+  isSiteTitle,
   defaultCta,
   playbookBrief,
   disclaimerFor,
