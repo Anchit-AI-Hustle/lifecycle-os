@@ -628,3 +628,102 @@ test('pinterest: planned, and the build withholds the FIRST step though campaign
   expect(gap.body.launch.plan.checks.blocking.join(' ')).toMatch(/Pinterest board id/);
   expect(nb.seen.pinterest.length).toBe(0);
 });
+
+/* ── the designed static, not the bare photo (2026-11-02) ─────────────────
+   A Smart Brain static ad is a composed page (static-ad.js). It is drawn to
+   a PNG in Chromium by the shipped static-raster.js, hosted in brand-assets at
+   <workspace>/<sha256>.png, recorded as creative.static_png_url, and THAT is
+   the picture the Meta creative carries. An ad never drawn sends its photo,
+   and the plan says which each one sends. */
+
+const { PNG } = require('pngjs');
+const SA = require(path.join(ROOT, 'scripts', 'lib', 'static-ad.js'));
+const raster = require(path.join(ROOT, 'api', '_shared', 'static-raster.js'));
+
+function photoPng() {
+  // A product photo: a red square with a blue band, 240 x 240.
+  const p = new PNG({ width: 240, height: 240 });
+  for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) {
+    const i = (y * 240 + x) * 4;
+    const band = y > 150 && y < 190;
+    p.data[i] = band ? 20 : 220; p.data[i + 1] = band ? 60 : 30; p.data[i + 2] = band ? 210 : 40; p.data[i + 3] = 255;
+  }
+  return PNG.sync.write(p);
+}
+
+test('static: the designed ad is drawn to a PNG, hosted under the workspace, and that PNG is the picture Meta receives; an undrawn ad sends its photo, said', async () => {
+  test.setTimeout(120_000);
+  const { db, account } = world();
+  live();
+  await call('sync', { body: { provider: 'meta' } });
+  const PHOTO = 'https://img.brand.example/p/hero.png';
+  const page = SA.renderStaticAd({ brandName: 'Frame House', ratio: '1:1', headline: 'Autumn frames', line: 'Frames for autumn light.', price: '₹2,400', cta: 'Shop now', image: PHOTO, palette: { primary: '#1E6B52', accent: '#F2B705', surface: '#FFFFFF', ink: '#1A1A1A' }, theme: 'bold', template: 'band', seed: 2 });
+  db.insert('smart_generated_campaigns', { id: 'camp-s', workspace_id: 'ws-a', payload: {
+    campaign_name: 'Autumn frames', landing_url: LINK,
+    assets: { ads: [
+      { platform: 'meta', creative_type: 'static', primary_text: 'Frames for autumn light.', headline: 'Autumn frames', creative: { image: PHOTO, static_html: page.html } },
+      { platform: 'meta', creative_type: 'static', primary_text: 'Two pairs, one price.', headline: 'Plain photo ad', creative: { image: IMG } },
+    ] },
+  } });
+  const asked = [];
+  const bytes = photoPng();
+  const out = await raster.rasteriseCampaign(AUTH_A, 'ws-a', 'camp-s', {
+    assertUrl: async (u) => { if (!/^https:\/\/img\.brand\.example\//.test(u)) throw new Error('not public'); },
+    fetchImpl: async (u) => { asked.push(u); return new Response(bytes, { status: 200, headers: { 'content-type': 'image/png', 'content-length': String(bytes.length) } }); },
+  });
+  expect(out.failed).toEqual([]);
+  expect(out.made.length).toBe(1);
+  expect(asked).toEqual([PHOTO]);
+  const url = out.made[0].url;
+  expect(url).toMatch(new RegExp(`^${BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/storage/v1/object/public/brand-assets/ws-a/[0-9a-f]{64}\\.png$`));
+  const key = url.split('/object/public/')[1];
+  const stored = db.objects[key];
+  expect(stored.type).toBe('image/png');
+  // The file is the ad, not a blank frame: 1080 square, the photo's red and
+  // the band's blue are in it, and so is the brand's own ground.
+  const png = PNG.sync.read(stored.bytes);
+  expect([png.width, png.height]).toEqual([1080, 1080]);
+  const colours = new Set(); let red = 0; let ground = 0;
+  for (let i = 0; i < png.data.length; i += 4 * 7) {
+    const r = png.data[i], g = png.data[i + 1], b = png.data[i + 2];
+    colours.add((r >> 4) << 8 | (g >> 4) << 4 | (b >> 4));
+    if (r > 200 && g < 50 && b < 60) red++;
+    if (Math.abs(r - 0x1E) < 8 && Math.abs(g - 0x6B) < 8 && Math.abs(b - 0x52) < 8) ground++;
+  }
+  expect(colours.size, 'distinct colours in the drawn ad').toBeGreaterThan(20);
+  expect(red, 'the product photo is in the drawn ad').toBeGreaterThan(1000);
+  expect(ground, 'the brand ground band is in the drawn ad').toBeGreaterThan(500);
+  // A second press draws nothing again: the page has not changed.
+  const again = await raster.rasteriseCampaign(AUTH_A, 'ws-a', 'camp-s', { fetchImpl: async () => { throw new Error('drawn twice'); } });
+  expect(again.made).toEqual([]);
+  expect(again.kept.map((k) => k.url)).toEqual([url]);
+  // A viewer may not draw this brand's ads.
+  await expect(raster.rasteriseCampaign(AUTH_V, 'ws-a', 'camp-s')).rejects.toThrow(/viewer/);
+
+  const planned = await call('plan', { body: planBody({ source: { kind: 'campaign', campaign_id: 'camp-s' } }) });
+  const P = planned.body.launch.plan;
+  expect(P.checks.blocking).toEqual([]);
+  const ads = P.ad_sets[0].ads;
+  expect(ads.map((a) => [a.image_source, a.image_url])).toEqual([['designed_static', url], ['photo', IMG]]);
+  const notes = P.checks.notes.join(' ');
+  expect(notes).toContain('"Autumn frames" sends its designed static');
+  expect(notes).toMatch(/"Plain photo ad" sends the product photo: it has no designed static/);
+  const r = await call('run', { body: { launch_id: planned.body.launch.id } });
+  expect(r.body.ok).toBe(true);
+  const pictures = Object.values(account.objects).filter((o) => o.kind === 'creative').map((o) => o.fields.picture).sort();
+  expect(pictures).toEqual([IMG, url].sort());
+});
+
+test('static: a photograph that cannot be fetched makes no PNG (never a broken picture), and the launch keeps the photo', async () => {
+  test.setTimeout(120_000);
+  const { db } = world();
+  const page = SA.renderStaticAd({ brandName: 'Frame House', ratio: '4:5', headline: 'Autumn frames', cta: 'Shop now', image: 'https://img.brand.example/missing.png', palette: { primary: '#1E6B52', accent: '#F2B705', surface: '#FFFFFF', ink: '#1A1A1A' }, theme: 'soft', template: 'overlay' });
+  db.insert('smart_generated_campaigns', { id: 'camp-m', workspace_id: 'ws-a', payload: { assets: { ads: [{ platform: 'meta', creative_type: 'static', headline: 'Autumn frames', creative: { image: 'https://img.brand.example/missing.png', static_html: page.html } }] } } });
+  const out = await raster.rasteriseCampaign(AUTH_A, 'ws-a', 'camp-m', { assertUrl: async () => {}, fetchImpl: async () => new Response('nope', { status: 404 }) });
+  expect(out.made).toEqual([]);
+  expect(out.failed[0].error).toBe('image_refused');
+  expect(out.failed[0].message).toMatch(/no PNG was made; the launch sends the photo instead/);
+  expect(Object.keys(db.objects || {})).toEqual([]);
+  const row = db.table('smart_generated_campaigns').find((x) => x.id === 'camp-m');
+  expect(row.payload.assets.ads[0].creative.static_png_url).toBeUndefined();
+});

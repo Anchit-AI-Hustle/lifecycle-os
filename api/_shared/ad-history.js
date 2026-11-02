@@ -242,7 +242,7 @@ async function listFor(workspaceId, { provider, limit } = {}) {
 
 async function statusFor(workspaceId) {
   const runs = await svc(`brand_ad_history_runs?select=*&workspace_id=eq.${enc(workspaceId)}&order=ran_at.desc&limit=40`);
-  const rows = await svc(`brand_ad_history?select=provider,ad_id&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
+  const rows = await svc(`brand_ad_history?select=provider,ad_id,primary_text,headline,image_url,video_url,video_id,metrics&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
   const counts = {};
   for (const r of Array.isArray(rows) ? rows : []) counts[r.provider] = (counts[r.provider] || 0) + 1;
   const out = [];
@@ -254,7 +254,10 @@ async function statusFor(workspaceId) {
     }
     out.push({ provider: p.id, label: p.label, built: p.built, reason: p.reason || '', window_note: p.window_note || '', connected, ads: counts[p.id] || 0, last_import: last });
   }
-  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out };
+  // What the brand's own ads are made of, counted per platform (2026-11-02).
+  let patterns = null;
+  try { patterns = require('./ad-patterns.js').patternStats((Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }))); } catch (_) { patterns = null; }
+  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out, patterns };
 }
 
 /**
@@ -277,6 +280,7 @@ async function evidenceAds(workspaceId, { ttlMs = 10 * 60 * 1000 } = {}) {
         ads: rows.map((r) => ({
           provider: r.provider, ad_id: r.ad_id, name: r.name, status: r.status,
           primary_text: r.primary_text, headline: r.headline, metrics: cleanMetrics(r.metrics),
+          image_url: r.image_url || null, has_video: r.video_id || r.video_url ? true : ((r.image_url || r.primary_text || r.headline) ? false : null),
           window: { start: r.window_start, end: r.window_end }, currency: r.currency || null,
         })),
       };

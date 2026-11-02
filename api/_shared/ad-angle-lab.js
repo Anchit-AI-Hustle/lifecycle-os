@@ -459,6 +459,67 @@ async function gatherAds({ brand, workspaceId, market, competitors, deps }) {
   return { ads, sources, links };
 }
 
+// ── 7. Each brief as a static ad (2026-11-02) ───────────────────────────────
+// Fastlane's angle tests ship as finished statics, not as briefs. Each brief
+// here becomes a composed static (scripts/lib/static-ad.js) from ONE product's
+// own catalogue photo and the hook's own words, in a theme and template
+// asset-themes.pick() chooses for this brand; nothing is written for it. No
+// product with its own photo: no statics, and the gap says so (a typographic
+// ad over no product is not what an angle test compares).
+
+const MAX_STATICS = 12;
+
+/** The first product of the brand's own catalogue for `market` that has its own https photo. */
+async function heroWithPhoto(brand, workspaceId, market) {
+  const cat = require('./brand-catalog-server.js');
+  return cat.withCatalog({ brand, workspaceId }, () => {
+    const got = cat.productsFor(String(market || '').toLowerCase() || 'global', { brand, workspaceId });
+    const p = ((got && got.products) || []).find((x) => x && /^https:\/\//i.test(String(x.i || '')));
+    return p ? { title: p.n || p.h || '', image: p.i, price: p.price, compare_at: p.compare_at, url: p.product_url || '' } : null;
+  });
+}
+
+function staticsFor(briefs, bank, brand, hero, opts) {
+  const o = opts || {};
+  if (!hero || !/^https:\/\//i.test(String(hero.image || ''))) {
+    return { statics: [], note: `No static ads were drawn: ${brand.name || 'this brand'}'s catalogue has no product with its own photo${o.market ? ` for ${o.market}` : ''}. [DATA REQUIRED BEFORE LAUNCH: product image, ${brand.name || 'this brand'}${o.market ? ', ' + o.market : ''}]` };
+  }
+  let SA, AT, rt, core;
+  try { SA = require('../../scripts/lib/static-ad.js'); AT = require('./asset-themes.js'); rt = require('./brand-runtime.js'); core = require('./brand-workspace-core.js'); } catch (_) { return { statics: [], note: 'The static ad renderer is not available here.' }; }
+  const pal = rt.paletteOf(brand);
+  const fs = rt.fontStacks(brand);
+  let fontsHref = ''; try { fontsHref = core.fontsHref(brand) || ''; } catch (_) { fontsHref = ''; }
+  const money = (n) => { try { const v = Number(n); return Number.isFinite(v) && v > 0 ? require('./brand-locale.js').money(v, brand, o.market) || '' : ''; } catch (_) { return ''; } };
+  const price = money(hero.price);
+  const compare = price && Number(hero.compare_at) > Number(hero.price) ? money(hero.compare_at) : '';
+  const L = brandLines(brand);
+  const benefits = L.claims.filter((c) => c.length <= 40).slice(0, 3);
+  // One static per (brief, hook): every brief's first hook before any second.
+  const hooksOf = (b) => (b.basis === 'control' ? [b.hook] : (((bank.find((r) => r.angle === b.angle) || {}).hooks) || []))
+    .filter((h) => h && !/^\[DATA REQUIRED/.test(h));
+  const queue = [];
+  const lists = briefs.map((b) => ({ b, hooks: hooksOf(b) }));
+  for (let i = 0; queue.length < MAX_STATICS && lists.some((x) => x.hooks[i]); i++) {
+    for (const x of lists) { if (x.hooks[i] && queue.length < MAX_STATICS) queue.push({ brief: x.b, hook: x.hooks[i], n: i }); }
+  }
+  const entry = { brand, market: o.market || '', date: o.date || '', id: 'ad-angle-lab' };
+  const statics = queue.map((q) => {
+    const p = AT.pick(entry, 'ad', `angle:${q.brief.id}:${q.n}`);
+    const out = SA.renderStaticAd({
+      id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template,
+      brandName: brand.name || '', logo: brand.logo_url || '', market: o.market,
+      ratio: '1:1', headline: q.hook, line: '', price, compare, benefits: benefits.filter((b) => b.toLowerCase() !== q.hook.toLowerCase()),
+      cta: q.brief.cta, image: hero.image, palette: pal, fonts: { head: fs.head, body: fs.body }, fontsHref,
+    });
+    return { brief: q.brief.id, angle_name: q.brief.angle_name, basis: q.brief.basis, hook: q.hook, product: hero.title, image: hero.image, static_html: out.html, design: { theme: out.theme, template: out.template, id: p.id, why: p.why } };
+  });
+  for (const b of briefs) {
+    const first = statics.find((x) => x.brief === b.id);
+    if (first) b.creative = { static_html: first.static_html, design: first.design, image: hero.image, product: hero.title };
+  }
+  return { statics, note: `${statics.length} static ad${statics.length === 1 ? '' : 's'} drawn from "${hero.title}"'s own photo (the first product in the catalogue with one), each headed by one hook of the bank${queue.length >= MAX_STATICS ? `, at most ${MAX_STATICS}` : ''}.` };
+}
+
 async function run(opts) {
   const o = opts || {};
   const brand = o.brand || {};
@@ -487,12 +548,17 @@ async function run(opts) {
     if (best) control.evidence = `${control.evidence} Your own ${best.platform} ad "${best.name}" ran above your own median click-through rate: ${best.figures}.`;
   }
   const plan = testPlan(briefs, { budget: o.budget, currency: o.currency, brand });
+  let hero = null;
+  if (o.deps && Object.prototype.hasOwnProperty.call(o.deps, 'hero')) hero = o.deps.hero;
+  else { try { hero = await heroWithPhoto(brand, o.workspaceId || null, market); } catch (_) { hero = null; } }
+  const drawn = staticsFor(briefs, hooks.bank, brand, hero, { market, date: o.now ? new Date(o.now).toISOString().slice(0, 10) : '' });
   const gaps = [];
+  if (!drawn.statics.length) gaps.push(drawn.note);
   if (!competitors.length) gaps.push(marker('competitor set', brand));
   if (!report.read) gaps.push(`No competitor ads were read${competitors.length ? ` for ${competitors.slice(0, 5).join(', ')}` : ''}; the angles come from ${brand.name}'s own claims.`);
   if (hooks.count < 20) gaps.push(`${hooks.count} hooks, not 20: ${brand.name}'s record states too few lines to write more without inventing.`);
   delete report._pool;
-  return { ok: true, brand: brand.name, market: market || null, competitors, sources: got.sources, library_links: got.links, report, angles, hooks: { bank: hooks.bank, count: hooks.count, dropped: hooks.dropped.length }, briefs, test_plan: plan, gaps, _by: hooks.by };
+  return { ok: true, brand: brand.name, market: market || null, competitors, sources: got.sources, library_links: got.links, report, angles, hooks: { bank: hooks.bank, count: hooks.count, dropped: hooks.dropped.length }, briefs, statics: drawn.statics, statics_note: drawn.note, test_plan: plan, gaps, _by: hooks.by };
 }
 
-module.exports = { run, assignAnswers, normalizeAd, daysRunning, hookPattern, patternReport, rankAngles, hookBank, templateHooks, briefStack, testPlan, competitorNames, gatherAds, MIN_DAYS };
+module.exports = { run, staticsFor, heroWithPhoto, MAX_STATICS, assignAnswers, normalizeAd, daysRunning, hookPattern, patternReport, rankAngles, hookBank, templateHooks, briefStack, testPlan, competitorNames, gatherAds, MIN_DAYS };

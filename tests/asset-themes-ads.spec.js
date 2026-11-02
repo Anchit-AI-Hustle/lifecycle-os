@@ -194,3 +194,65 @@ test('six layouts, every word AA against the pixels behind it, no dark-neutral g
     expect(positions.size, `${r}: distinct headline placements across the six templates`).toBeGreaterThanOrEqual(4);
   }
 });
+
+// One static per placement ratio (2026-11-02): the same theme, template and
+// words at 1:1, 4:5 and 9:16, and in the 9:16 frame every word inside the
+// platform's safe zone READ from asset-specs (Meta story_reel, TikTok in_feed),
+// measured on the rendered page.
+test('every static ad comes in three ratios, one design; in 9:16 every word sits inside the platform\'s safe zone', async ({ page }) => {
+  test.setTimeout(240_000);
+  const specs = require(path.join(ROOT, 'api', '_shared', 'asset-specs.js')).ADS;
+  const px = (safe, side) => Number((new RegExp(side + ' (\\d+)px').exec(safe) || [0, 0])[1]);
+  const metaPl = specs.meta.placements.find((x) => x.ratio === '9:16');
+  const tikPl = specs.tiktok.placements.find((x) => x.ratio === '9:16');
+  const zone = {
+    meta: { top: px(metaPl.safe, 'top') / 1920, bottom: px(metaPl.safe, 'bottom') / 1920, right: 0 },
+    tiktok: { top: 0, bottom: px(tikPl.safe, 'bottom') / 1920, right: px(tikPl.safe, 'right') / 1080 },
+  };
+  expect(zone.meta.top).toBeGreaterThan(0.1);
+  expect(zone.tiktok.right).toBeGreaterThan(0.1);
+  await page.route('**/*.jpg', (r) => r.fulfill({ contentType: 'image/svg+xml', body: PHOTOS.stripes }));
+  await page.setViewportSize({ width: 405, height: 720 });
+  let frames = 0; let measured = 0;
+  const outside = [];
+  for (const b of BRANDS) {
+    for (const d of [3, 9, 15]) {
+      for (const ad of await statics(slot(b, d))) {
+        const by = ad.creative.static_by_ratio;
+        expect(Object.keys(by || {}).sort(), `${b.name} ${ad.platform}: three ratios`).toEqual(['1:1', '4:5', '9:16']);
+        for (const r of Object.keys(by)) {
+          frames++;
+          expect(by[r]).toContain(`data-ratio="${r}"`);
+          expect(by[r]).toContain(`data-template="${ad.creative.design.template}"`);
+          expect(by[r]).toContain(`data-theme="${ad.creative.design.theme}"`);
+          const h = (by[r].match(/data-ad-headline[^>]*>([^<]*)</) || [])[1];
+          expect(h, `${r}: the same headline`).toBe((ad.creative.static_html.match(/data-ad-headline[^>]*>([^<]*)</) || [])[1]);
+        }
+        const z = ad.platform === 'tiktok' || ad.platform === 'meta' ? zone[ad.platform]
+          : { top: Math.max(zone.meta.top, zone.tiktok.top), bottom: Math.max(zone.meta.bottom, zone.tiktok.bottom), right: Math.max(zone.meta.right, zone.tiktok.right) };
+        await page.setContent(by['9:16'], { waitUntil: 'load' });
+        const rects = await page.evaluate(() => {
+          const ad = document.querySelector('.ad').getBoundingClientRect();
+          const out = [];
+          for (const el of document.querySelectorAll('[data-ad-text]')) {
+            const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+            for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+              if (!n.textContent.trim()) continue;
+              const rg = document.createRange(); rg.selectNodeContents(n);
+              for (const q of rg.getClientRects()) if (q.width > 1 && q.height > 1) out.push({ t: (q.top - ad.top) / ad.height, b: (q.bottom - ad.top) / ad.height, r: (q.right - ad.left) / ad.width, text: n.textContent.trim().slice(0, 24) });
+            }
+          }
+          return { out, ratio: ad.height / ad.width };
+        });
+        expect(rects.ratio).toBeCloseTo(16 / 9, 1);
+        for (const q of rects.out) {
+          measured++;
+          if (q.t < z.top - 0.002 || q.b > 1 - z.bottom + 0.002 || q.r > 1 - z.right + 0.002) outside.push(`${b.name}/${ad.platform}/${ad.creative.design.template}: "${q.text}" at ${q.t.toFixed(3)}-${q.b.toFixed(3)}, right ${q.r.toFixed(3)}`);
+        }
+      }
+    }
+  }
+  expect(frames, 'frames checked').toBeGreaterThan(30);
+  expect(measured, 'text runs measured in 9:16 frames').toBeGreaterThan(40);
+  expect(outside.slice(0, 20), `${outside.length} words outside the safe zone`).toEqual([]);
+});

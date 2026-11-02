@@ -150,6 +150,28 @@ function photo(theme, src, alt, style) {
 }
 
 /** The template this ad can fill: no photograph means the typographic poster. */
+/**
+ * The part of a 9:16 frame the platform leaves clear of its own chrome, as
+ * fractions of the frame, READ from asset-specs.js (never re-typed): Meta's
+ * story_reel "keep text out of top 250px and bottom 420px", TikTok's in_feed
+ * "avoid right 120px and bottom 480px". An unknown platform gets the union of
+ * both, so its copy clears either. (2026-11-02)
+ */
+function safeZoneFor(platform) {
+  const ADS = require('../../api/_shared/asset-specs.js').ADS;
+  const read = (key) => {
+    const pl = ((ADS[key] && ADS[key].placements) || []).find((x) => x.ratio === '9:16' && x.safe);
+    if (!pl) return null;
+    const [w, h] = String(pl.size).split('x').map(Number);
+    const px = (side) => { const m = new RegExp(side + ' (\\d+)px').exec(pl.safe); return m ? Number(m[1]) : 0; };
+    return { top: px('top') / h, bottom: px('bottom') / h, left: px('left') / w, right: px('right') / w, source: `asset-specs ${key}.${pl.key}: ${pl.safe}` };
+  };
+  const k = /tiktok/i.test(String(platform || '')) ? 'tiktok' : (/meta|facebook|instagram/i.test(String(platform || '')) ? 'meta' : '');
+  if (k) return read(k);
+  const a = read('meta') || {}; const b = read('tiktok') || {};
+  return { top: Math.max(a.top || 0, b.top || 0), bottom: Math.max(a.bottom || 0, b.bottom || 0), left: Math.max(a.left || 0, b.left || 0), right: Math.max(a.right || 0, b.right || 0), source: 'asset-specs: the Meta story_reel and TikTok in_feed safe zones together' };
+}
+
 function fit(template, hasImage, hasOffer) {
   if (!hasImage) return 'type';
   if (template === 'offer' && !hasOffer) return 'band';
@@ -167,7 +189,19 @@ function renderStaticAd(spec) {
   const theme = typeof s.theme === 'string' ? (THEMES[s.theme] || THEMES.minimal) : (s.theme && s.theme.heading ? s.theme : THEMES.minimal);
   const ratio = RATIOS[s.ratio] ? s.ratio : '1:1';
   const [rw, rh] = RATIOS[ratio];
-  const k = K[ratio];
+  // A 9:16 frame keeps every word inside the platform's safe zone: the
+  // template is laid out in that zone (its own container, so type is sized to
+  // it) at the ratio nearest the zone's own shape, and the bands outside it
+  // are the brand's ground with no copy in them.
+  const sz = s.safe && typeof s.safe === 'object' && ratio === '9:16' ? s.safe : null;
+  const clampF = (v) => Math.max(0, Math.min(0.4, Number(v) || 0));
+  let lay = ratio;
+  if (sz) {
+    const shape = ((1 - clampF(sz.top) - clampF(sz.bottom)) * rh / rw) / (1 - clampF(sz.left) - clampF(sz.right));
+    lay = ['1:1', '4:5', '9:16'].reduce((best, r) => (Math.abs(RATIOS[r][1] / RATIOS[r][0] - shape) < Math.abs(RATIOS[best][1] / RATIOS[best][0] - shape) ? r : best), '9:16');
+  }
+  const [lw, lh] = RATIOS[lay];
+  const k = K[lay];
   const img = httpsUrl(s.image);
   const P0 = words(s.price);
   const CMP = P0 && words(s.compare) && words(s.compare) !== P0 ? words(s.compare) : '';
@@ -187,8 +221,8 @@ function renderStaticAd(spec) {
   const pd = theme.density === 'airy' ? 8 : (theme.density === 'compact' ? 5 : 6.5);
   const align = theme.align === 'center' ? 'center' : 'left';
   const logoAt = theme.header === 'center' ? 'center' : (theme.header === 'band' ? 'band' : 'left');
-  const wide = rw / rh > 1.2;
-  const tall = rh / rw > 1.4;
+  const wide = lw / lh > 1.2;
+  const tall = lh / lw > 1.4;
   const sk = wide ? 0.6 : Math.max(0.8, k);
   const hs = 7.2 * k; // headline base size, in cqw
   const ls = 3.4 * sk; // line / button size
@@ -255,7 +289,11 @@ ${logoRow(C.onGround, true)}
     const ph = `<div style="flex:1 1 auto;min-height:0;position:relative">${photo(Object.assign({}, theme, { image: 'bleed' }), img, alt)}<div style="position:absolute;${top ? 'bottom' : 'top'}:${pd / 1.4}cqw;${logoAt === 'center' ? 'left:50%;transform:translateX(-50%);' : `left:${pd / 1.4}cqw;`}padding:2cqw 3cqw;background:${C.ground};border-radius:${frameR}px">${logoEl(s, C.onGround, 3.2 * sk, true)}</div></div>`;
     inner = `<div style="position:absolute;inset:0;display:flex;flex-direction:column">${top ? bandEl + ph : ph + bandEl}</div>`;
   }
-  const outer = theme.ground === 'framed' ? `box-shadow:inset 0 0 0 1.2cqw ${C.surface},inset 0 0 0 1.5cqw ${C.ground};` : '';
+  if (sz) {
+    const pc = (v) => `${(clampF(v) * 100).toFixed(3)}%`;
+    inner = `<div data-ad-safe data-ad-layout="${esc(lay)}" style="position:absolute;top:${pc(sz.top)};bottom:${pc(sz.bottom)};left:${pc(sz.left)};right:${pc(sz.right)};overflow:hidden;container-type:inline-size">${inner}</div>`;
+  }
+  const outer = (sz ? `background:${C.ground};` : '') + (theme.ground === 'framed' ? `box-shadow:inset 0 0 0 1.2cqw ${C.surface},inset 0 0 0 1.5cqw ${C.ground};` : '');
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(words(s.brandName) || 'Ad')} static ad</title>
@@ -272,4 +310,4 @@ ${inner}
   return { html, template, theme: theme.id, data_gaps: gaps };
 }
 
-module.exports = { renderStaticAd, colours, scrimAlpha, TEMPLATE_IDS, RATIOS };
+module.exports = { renderStaticAd, colours, scrimAlpha, safeZoneFor, TEMPLATE_IDS, RATIOS };

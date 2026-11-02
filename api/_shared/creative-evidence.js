@@ -240,7 +240,10 @@ function ownAdsFrom(entry) {
     const tiring = rated.filter((a) => Number(a.metrics.ctr) < median).sort((x, y) => Number(x.metrics.ctr) - Number(y.metrics.ctr)).slice(0, 3).map(view);
     return { provider: prov, label, ads: list.length, rated: rated.length, median, worked, tiring };
   });
-  return { imported: true, metric: AD_METRIC, total: ads.length, platforms };
+  // Hook patterns and video / no video, counted (2026-11-02, ad-patterns.js).
+  let patterns = null;
+  try { patterns = require('./ad-patterns.js').patternStats(ads); } catch (_) { patterns = null; }
+  return { imported: true, metric: AD_METRIC, total: ads.length, platforms, patterns };
 }
 
 /**
@@ -325,6 +328,8 @@ function evidenceBrief(pack) {
         for (const w of pl.worked) lines.push(`    WORKED - "${w.name}": ${w.figures}${w.pattern ? `. Copy: ${w.pattern}` : ''}`);
         for (const t of pl.tiring) lines.push(`    TIRING - "${t.name}": ${t.figures}${t.pattern ? `. Copy: ${t.pattern}` : ''}`);
       }
+      const pl2 = p.ads.patterns ? require('./ad-patterns.js').briefLines(p.ads.patterns) : [];
+      if (pl2.length) { lines.push('  WHAT THE BRAND\'S OWN ADS ARE MADE OF (counted; a median only where 3 or more ads carry a rate):'); lines.push(...pl2); }
       lines.push('  Build on the PATTERN of the ads above the median, not their wording; do not re-run the angle of an ad below it. Never call an ad a winner without the figures shown here.');
     }
   }

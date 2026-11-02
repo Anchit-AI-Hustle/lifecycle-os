@@ -185,3 +185,51 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     await expect(page.locator('#m-headline')).toHaveValue(answer.briefs[1].headline);
   });
 }
+
+// Each brief as a finished static ad (2026-11-02): composed by the shipped
+// static-ad.js from ONE product's own catalogue photo and a hook of the bank,
+// in a theme/template asset-themes picks for this brand; at most 12; every
+// word on it the hook's, the brand's own claims or the product's stated price
+// (copy-grounding finds nothing unbacked); no product photo = no statics, said.
+test('briefs become static ads from the product\'s own photo, each headed by a bank hook, at most 12, grounded', async () => {
+  const grounding = require(path.join(ROOT, 'api', '_shared', 'copy-grounding.js'));
+  const hero = { title: 'Party Platter', image: 'https://cdn.delichic.example/p/platter.jpg', price: 899, compare_at: 1099 };
+  const out = await runLab({ deps: { ciAds: null, fetchMetaAds, callLLM: scriptedModel([]), hero } });
+  const bank = out.hooks.bank.flatMap((r) => r.hooks);
+  const control = out.briefs.find((b) => b.basis === 'control');
+  expect(out.statics.length).toBe(Math.min(12, bank.length + 1));
+  expect(out.statics.length).toBeGreaterThan(3);
+  const facts = grounding.factsFor(BRAND);
+  const themes = new Set(); const templates = new Set();
+  for (const st of out.statics) {
+    const head = (st.static_html.match(/data-ad-headline[^>]*>([^<]*)</) || [])[1];
+    const said = head.replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+    if (st.basis === 'control') expect(said).toBe(control.hook);
+    else expect(bank, `"${said}" is a hook of the bank`).toContain(said);
+    expect(st.static_html).toContain(`src="${hero.image}"`);
+    expect(st.static_html).toContain(`data-template="${st.design.template}"`);
+    expect(st.static_html).not.toMatch(/DATA REQUIRED/);
+    // Every word on the ad, held to the brand's own words.
+    const text = (st.static_html.match(/<(?:div|span|li|s)[^>]*data-ad-text[^>]*>([^<]+)</g) || []).map((x) => x.replace(/<[^>]*>/g, '').trim()).filter(Boolean);
+    for (const t of text) expect(grounding.unbacked(t.replace(/&#39;/g, "'").replace(/&amp;/g, '&'), facts), `"${t}" on the static`).toEqual([]);
+    expect(st.static_html, 'the stated price, struck compare-at').toMatch(/899/);
+    themes.add(st.design.theme); templates.add(st.design.template);
+  }
+  expect(templates.size, 'the statics are not one layout').toBeGreaterThan(1);
+  // Every brief carries its first static.
+  for (const b of out.briefs) expect(b.creative && b.creative.static_html, b.id).toBeTruthy();
+  // Capped at 12, whatever the bank holds.
+  const lab2 = require(path.join(ROOT, 'api', '_shared', 'ad-angle-lab.js'));
+  const many = lab2.staticsFor(Array.from({ length: 8 }, (_, i) => ({ id: `brief-${i}`, angle: `a${i}`, basis: 'competitor-pain', cta: 'Shop now' })),
+    Array.from({ length: 8 }, (_, i) => ({ angle: `a${i}`, hooks: ['Smoked in small batches every week', '100% chicken, no pork'] })), BRAND, hero, { market: 'IN' });
+  expect(many.statics.length).toBe(12);
+  expect(new Set(many.statics.slice(0, 8).map((s) => s.brief)).size, 'every brief\'s first hook before any second').toBe(8);
+  // No product with its own photo: nothing drawn, the gap said.
+  const bare = await runLab({ deps: { ciAds: null, fetchMetaAds, callLLM: scriptedModel([]), hero: null } });
+  expect(bare.statics).toEqual([]);
+  // A product with no photo of its own (or one not on https) draws nothing either.
+  for (const h of [{ title: 'Party Platter', price: 899 }, { title: 'Party Platter', image: 'http://cdn.delichic.example/p.jpg' }]) {
+    expect(lab2.staticsFor(out.briefs, out.hooks.bank, BRAND, h, { market: 'IN' }).statics).toEqual([]);
+  }
+  expect(bare.gaps.join(' ')).toMatch(/No static ads were drawn: Deli Chic's catalogue has no product with its own photo for IN\. \[DATA REQUIRED BEFORE LAUNCH: product image, Deli Chic, IN\]/);
+});

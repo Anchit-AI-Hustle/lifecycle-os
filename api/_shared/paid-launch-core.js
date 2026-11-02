@@ -366,10 +366,19 @@ function videoUrlOf(a) {
   const u = String(v.url || v.mp4_url || c.video_url || c.mp4_url || a.video_url || '');
   return /^https:\/\//i.test(u) ? u : '';
 }
-function imageOf(a) {
+/**
+ * The picture a static ad sends (2026-11-02): the DESIGNED static, drawn to a
+ * PNG and hosted (static-raster.js, `creative.static_png_url`), when it is an
+ * https file; else the product photo the design was made over. Which one is
+ * said on the ad (`image_source`) and in the plan's notes.
+ */
+function imageChoice(a) {
   const c = (a && a.creative) || {};
-  return String(c.image || a.image_url || (Array.isArray(c.images_used) && c.images_used[0]) || '');
+  const png = String(c.static_png_url || '');
+  if (/^https:\/\//i.test(png)) return { url: png, source: 'designed_static' };
+  return { url: String(c.image || a.image_url || (Array.isArray(c.images_used) && c.images_used[0]) || ''), source: 'photo' };
 }
+function imageOf(a) { return imageChoice(a).url; }
 const lines = (v) => (Array.isArray(v) ? v : (v == null || v === '' ? [] : [v])).map((x) => String(x || '').trim()).filter(Boolean);
 
 /** One source ad as the launch carries it, for one platform. */
@@ -377,7 +386,7 @@ function launchAd(provider, a, i, brandName, link) {
   const base = {
     name: clip(a.headline || a.angle_name || `${brandName} ad ${i + 1}`, 80),
     primary_text: a.primary_text || a.caption || a.hook || '', headline: a.headline || '', description: a.description || '',
-    image_url: imageOf(a), link: String(a.link || link || ''), script: a.script || '',
+    image_url: imageOf(a), image_source: imageChoice(a).source, link: String(a.link || link || ''), script: a.script || '',
   };
   if (provider === 'google_ads') {
     Object.assign(base, {
@@ -413,6 +422,12 @@ async function sourceAds(workspaceId, body, brandName, provider) {
         return;
       }
       if (a.creative_type !== 'video') delete ad.video_url;
+      if (a.creative_type !== 'video' && provider !== 'google_ads') {
+        const label = `"${clip(a.headline || `ad ${i + 1}`, 60)}"`;
+        notes.push(ad.image_source === 'designed_static'
+          ? `The ad ${label} sends its designed static (the composed ad drawn to a PNG and hosted), not the bare photo.`
+          : `The ad ${label} sends the product photo: ${a.creative && a.creative.static_html ? 'its designed static has not been drawn to a PNG yet (the Paid launch tab draws it before planning; this one was not drawn).' : 'it has no designed static.'}`);
+      }
       kept.push(ad);
     });
     return {

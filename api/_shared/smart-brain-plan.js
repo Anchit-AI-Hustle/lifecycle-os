@@ -4744,16 +4744,26 @@ function attachStaticCreative(campaign, entry) {
       // A stated discount leads with the offer panel on the A ad: the price
       // struck and the price paid are what that ad sells.
       if (compare && String(ad.variant || 'A').toUpperCase() === 'A' && p.template !== 'offer') { p.template = 'offer'; p.why = String(p.why || '').replace(/the \w+ template rotates by send\./, '') + 'The store states a compare-at price, so the A ad leads with the offer template.'; }
-      const out = SA.renderStaticAd({
+      const spec = {
         id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template, compare, benefits: benefits.filter((b) => b.toLowerCase() !== headline.toLowerCase()),
         brandName: brand.name || '', logo: brand.logo_url || '', market: entry && entry.market,
         ratio: ad.aspect || '1:1', headline, line: line && line.toLowerCase() !== headline.toLowerCase() ? line : '',
         price, proof: clean(ov.proof), cta: clean(ov.cta || ad.cta),
         image: (ad.creative && ad.creative.image) || '',
         palette: pal, fonts: { head: fs.head, body: fs.body }, fontsHref,
-      });
+      };
+      const safe = SA.safeZoneFor(ad.platform) || SA.safeZoneFor('');
+      const out = SA.renderStaticAd(Object.assign({}, spec, { safe }));
+      // One static per placement ratio (2026-11-02): the SAME theme, template
+      // and words at 1:1, 4:5 and 9:16, the 9:16 frame laid out inside the
+      // platform's safe zone (asset-specs). Paid launch still sends one image:
+      // a per-placement asset field on Meta was not confirmed.
+      const byRatio = {};
+      for (const r of ['1:1', '4:5', '9:16']) byRatio[r] = SA.renderStaticAd(Object.assign({}, spec, { ratio: r, safe })).html;
       ad.creative = Object.assign({}, ad.creative || {}, {
         static_html: out.html,
+        static_by_ratio: byRatio,
+        static_safe_zone: { ratio: '9:16', top: safe.top, bottom: safe.bottom, left: safe.left, right: safe.right, source: safe.source },
         design: { theme: out.theme, template: out.template, id: p.id, why: p.why },
         // What a scene is made from (/brain "Put this pack in a scene"): the
         // product's name and the ad's own catalogue photo, nothing else.

@@ -1398,6 +1398,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     };
     if (kind === 'campaign') body.source = { kind: 'campaign', campaign_id: val('pl-campaign') };
     else { var br = plBriefs(); body.source = { kind: 'briefs', briefs: (br && br.briefs) || [] }; }
+    // The designed static ads are drawn to PNGs first (2026-11-02), so the
+    // launch sends the composed ad, not the bare photo. A refusal here is not
+    // a failure: the plan's notes say which picture each ad sends.
+    if (kind === 'campaign' && val('pl-campaign') && provider !== 'google_ads') {
+      try { await call('/api/public-config?action=video-render&op=static-png', { campaign_id: val('pl-campaign') }); } catch (_) { /* said in the plan */ }
+    }
     try {
       var r = await call(PL + 'plan', body);
       plShow(r.launch);

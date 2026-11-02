@@ -137,6 +137,13 @@ for (const width of [1280, 390]) {
     await expect(ad2Clicks).toContainText('not returned');
     await expect(card.locator('tr[data-ah-ad="ad-2"] td[data-label="CTR"]')).not.toContainText('0');
 
+    // What the ads are made of: counts, not percentages, and no rate under 3 rated ads.
+    const pats = card.locator('[data-ah-patterns]');
+    await expect(pats).toBeVisible();
+    await expect(pats.locator('tr[data-ah-pattern="statement"] [data-ah-share]')).toHaveText('3 of 3');
+    await expect(pats.locator('tr[data-ah-pattern="without video"] [data-ah-share]')).toHaveText('3 of 3');
+    await expect(pats.locator('tr[data-ah-pattern="statement"] td[data-label="Median CTR"]')).toHaveText('no rate');
+
     expect(db.table('brand_ad_history').length).toBe(3);
     const sideways = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(sideways).toBeLessThanOrEqual(1);
