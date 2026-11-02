@@ -989,8 +989,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if (!perf) return '';
     var winners = perf.winners || [];
     var winIds = {};
-    winners.forEach(function (w) { (w.winners || []).forEach(function (x) { winIds[w.provider + '|' + x.ad_id] = true; }); });
-    var vary = function (prov, id) { return winIds[prov + '|' + id] ? '<button type="button" class="btn sm" data-credit-feature="ads.copy_matrix" data-ah-vary="' + esc(id) + '">Make variations</button>' : ''; };
+    winners.forEach(function (w) { (w.winners || []).forEach(function (x) { winIds[w.provider + '|' + x.ad_id] = x; }); });
+    // A winner is offered variations only when its platform returned its copy;
+    // otherwise the card says why (Google Ads' copy is not read).
+    var vary = function (prov, id) {
+      var w = winIds[prov + '|' + id];
+      if (!w) return '';
+      if (w.has_copy === false) return '<span class="note" data-ah-no-copy title="' + esc(w.no_copy_reason || '') + '">' + esc(w.no_copy_reason || 'No copy was returned for this ad, so there is nothing to vary.') + '</span>';
+      return '<button type="button" class="btn sm" data-credit-feature="ads.copy_matrix" data-ah-vary="' + esc(id) + '">Make variations</button>';
+    };
     var groups = ((perf.ranking && perf.ranking.platforms) || []).filter(function (g) { return g.ads; });
     if (!groups.length) return '';
     var html = '<div class="ah-sec" data-ah-ranking><h3>Ranked by cost per result</h3><p class="note">Cost per result is spend divided by results, as each platform reported them (lower is better). Each platform and currency is ranked on its own; a median, and a cheapest or dearest ad, only where 3 or more ads carry the figure.</p>';

@@ -40,6 +40,15 @@ Three more gaps against usefastlane.ai, plus a quality pass on the Ad history ca
   the video rows of "What your ads are made of" were labelled "Opening" on a phone (now "Format"); long ad names and
   URLs in a cell could widen the table (cells wrap anywhere). In the setup run, a step that THREW (a read missing a
   field) left its row "running" with its clock going for ever: a running row now says it stopped and why.
+- **Review of #413 (Cursor Bugbot), four findings, all real, each executed and mutation-checked**: (1) the meter
+  reads `op` from the QUERY and the handler read query OR body, so `op:'variations'` in the body ran the model
+  unmetered: the handler reads the query too and refuses a body op that differs (`400 op_in_query`); (2) a Google
+  winner was offered "Make variations" though Google's copy is not read: winners and ranked rows carry `has_copy` /
+  `no_copy_reason` and the card shows the reason instead of the button; (3) status (1,000 unordered), variations (500
+  newest) and evidence (300 newest) judged different slices, so a ranked winner could be "not a winner": all three use
+  `judgedRows()` (`order=last_seen.desc,ad_id.asc&limit=1000`); (4) `adFigures` printed only a REPORTED cost per result,
+  so a winner ranked on spend / results showed none: it prints the ranking's figure, labelled "worked out: spend /
+  results, as the platform reported them".
 - Gate entries added on purpose: `router-brain` (`ad-history op=variations` metered, describe titles take an optional
   `title`), `prompt-output-contracts` and `brand-content-invariant` (`ad-history` driven over seeded own ads),
   `social-gateway-executed` (Google's query and row now carry conversions).
