@@ -510,26 +510,21 @@ function _resolveBrandOfferings(brand) {
   const own = (brand && brand.brand_data && Array.isArray(brand.brand_data.offerings) && brand.brand_data.offerings.length)
     ? brand.brand_data.offerings
     : (brand && Array.isArray(brand.offerings) && brand.offerings.length) ? brand.offerings : null;
+  // A template's offerings are this brand's only when the record IS that
+  // template: same slug, same website (host AND path) and same name
+  // (2026-11-03, template-offerings.js). The TOI Health & Fitness template's
+  // "Marathon training plan" reached a record renamed The Times of India on
+  // the same host.
+  const TPL = require('./template-offerings.js');
   let raw = own;
+  if (raw) {
+    const foreignTpl = TPL.foreignTemplateOfferings(brand);
+    raw = raw.filter((o) => !TPL.offeringFromOtherTemplate(o, foreignTpl));
+    if (!raw.length) raw = null;
+  }
   if (!raw) {
-    try {
-      const dir = path.join(process.cwd(), 'data', 'brands', 'presets');
-      const host = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0].toLowerCase();
-      // A renamed preset retains its old slug, and a name can be anybody's.
-      // A preset's offerings are this brand's only when the record SAYS it
-      // was made from that template (brand_data.template) AND its website is
-      // the preset's host (2026-10-11) - the same rule as the browser's
-      // brand-catalog.js / brand-demo.js presetMatches().
-      const tpl = templateSlugOf(brand);
-      const website = host(brand.website);
-      if (tpl && website && /^[a-z0-9-]{1,60}$/.test(tpl)) {
-        const f = path.join(dir, tpl + '.json');
-        if (fs.existsSync(f)) {
-          const preset = JSON.parse(fs.readFileSync(f, 'utf8'));
-          if (String(preset.slug || tpl).trim().toLowerCase() === tpl && host(preset.website) === website && Array.isArray(preset.offerings)) raw = preset.offerings;
-        }
-      }
-    } catch (_) { /* no preset dir - fall through */ }
+    const t = TPL.templateOfferings(brand);
+    if (t.length) raw = t;
   }
   if (!raw) return [];
   // Another brand's products never become this brand's offerings (2026-10-10):
@@ -563,14 +558,25 @@ function slotForeignProducts(entry, verdict) {
   return items.some((o) => offeringForeign(o, verdict));
 }
 
+/**
+ * The verdict for a slot that names another brand's product (catalogue rule)
+ * or another template's offering (template-offerings.js), else null.
+ */
+function slotForeignVerdict(entry, brand) {
+  if (!entry || !brand) return null;
+  const verdict = catalogServer.catalogVerdict(brand);
+  if (verdict && slotForeignProducts(entry, verdict)) return verdict;
+  if (catalogServer.isTenantZeroBrand(brand) === true) return null;
+  return require('./template-offerings.js').slotTemplateVerdict(entry, brand);
+}
+
 /** The verdict when a stored or inline slot names another brand's product. */
 async function staleForeignSlot(entry, config) {
   if (!entry || typeof entry !== 'object') return null;
   const probe = { workspace_id: entry.workspace_id || null };
   try { await stampBrand(probe, config); } catch (_) { /* fall back to the slot's own */ }
   const brand = probe.brand || entry.brand || null;
-  const verdict = brand ? catalogServer.catalogVerdict(brand) : null;
-  return verdict && slotForeignProducts(entry, verdict) ? verdict : null;
+  return brand ? slotForeignVerdict(entry, brand) : null;
 }
 
 /**
@@ -580,8 +586,8 @@ async function staleForeignSlot(entry, config) {
  * scrubbed, else null. The slot keeps its date, market, cohort and objective.
  */
 function scrubForeignProducts(entry) {
-  const verdict = entry && entry.brand ? catalogServer.catalogVerdict(entry.brand) : null;
-  if (!verdict || !slotForeignProducts(entry, verdict)) return null;
+  const verdict = entry && entry.brand ? slotForeignVerdict(entry, entry.brand) : null;
+  if (!verdict) return null;
   const where = entry.market ? String(entry.market).toUpperCase() : '';
   const name = (entry.brand && entry.brand.name) || 'this brand';
   entry.heroProduct = {
@@ -1154,9 +1160,10 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   // one is left to its reviewer (getPlan hides it, preview shows the marker).
   const staleForeign = [];
   if (!pb.isZero && pb.brand) {
-    const verdict = catalogServer.catalogVerdict(pb.brand);
     for (const r of stored) {
-      if ((r.status === 'tentative' || r.status === 'rejected' || r.status === 'needs_human_verification') && slotForeignProducts(r.payload || {}, verdict)) staleForeign.push({ row: r, verdict });
+      if (!(r.status === 'tentative' || r.status === 'rejected' || r.status === 'needs_human_verification')) continue;
+      const verdict = slotForeignVerdict(r.payload || {}, pb.brand);
+      if (verdict) staleForeign.push({ row: r, verdict });
     }
   }
 
@@ -1279,7 +1286,9 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     for (const sf of staleForeign) {
       if (fresh.some((e) => e.id === sf.row.id)) continue;   // re-planned in place above
       const log = Array.isArray(sf.row.change_log) ? sf.row.change_log.slice(-30) : [];
-      const detail = `Archived: planned from another brand's catalogue (${sf.verdict.domain || 'another site'}). ${sf.verdict.sentence || ''}`.trim();
+      const detail = sf.verdict.template
+        ? `Archived: planned from another template's offering. ${sf.verdict.sentence || ''}`.trim()
+        : `Archived: planned from another brand's catalogue (${sf.verdict.domain || 'another site'}). ${sf.verdict.sentence || ''}`.trim();
       log.push({ at: nowIso(), kind: 'catalogue_excluded', detail });
       const upd = await db.update(config.tableNames.calendarEntries, { id: `eq.${sf.row.id}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', change_log: log, updated_at: nowIso() }).catch(() => null);
       if (upd && upd.ok) changes.push({ id: sf.row.id, kind: 'catalogue_excluded', detail: `${sf.row.date} ${sf.row.market}: ${detail}` });
@@ -5717,6 +5726,7 @@ module.exports = {
   __test_slotForOtherRecord: slotForOtherRecord,
   // tests/review-leak-fixes.spec.js: which preset offerings a brand may take.
   __test_resolveBrandOfferings: _resolveBrandOfferings,
+  __test_scrubForeignProducts: scrubForeignProducts,
   // Executed by tests/catalog-provenance.spec.js: whose store a slot links to.
   __test_slotLinks: slotLinks,
   __test_productUrl: productUrl,

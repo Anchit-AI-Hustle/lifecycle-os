@@ -43,6 +43,16 @@ Three more gaps against usefastlane.ai, plus a quality pass on the Ad history ca
 - Gate entries added on purpose: `router-brain` (`ad-history op=variations` metered, describe titles take an optional
   `title`), `prompt-output-contracts` and `brand-content-invariant` (`ad-history` driven over seeded own ads),
   `social-gateway-executed` (Google's query and row now carry conversions).
+## ⭐ A template's offerings belong only to the template itself (2026-11-03)
+Production /brain for "The Times of India" built ads for "Marathon training plan (multi-week)", an offering of the TOI
+Health & Fitness TEMPLATE on the same host. A template's offerings were handed to any record whose `brand_data.template`
+named it and whose website shared the host. `api/_shared/template-offerings.js` (server) and the twins in
+`brand-catalog.js` / `brand-demo.js`: the record must BE the template (same slug, same website host AND path, same
+folded name). A copy of another template's offering stored on the record (same name + same source line) is dropped; one
+the brand typed itself is kept. A stored slot naming another template's offering (only templates the record names or
+that share its host) gets `slotTemplateVerdict`: preview/approve treat it like a foreign-catalogue slot (rebuilt with the
+`offerings` marker / 409), Daily Sync archives it with the reason. Gated by `tests/template-offerings.spec.js` (planner +
+brand-catalog.js in Chromium over the real preset files; both match rules mutation-checked).
 
 ## ⭐ Four gaps against usefastlane.ai, closed: the designed static ships, per ratio, per angle, and ad history is counted (2026-11-02)
 - **Paid launch sends the designed static** (`api/_shared/static-raster.js` on POST `/api/public-config?action=video-render&op=static-png`
