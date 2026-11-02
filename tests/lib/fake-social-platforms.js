@@ -371,11 +371,19 @@ function installPlatforms(db, opts) {
       if (!call.headers['developer-token']) return refuse(401, { error: { status: 'UNAUTHENTICATED', message: 'developer-token header is required' } });
       if (!call.body || typeof call.body.query !== 'string' || !/^SELECT\s/.test(call.body.query)) return refuse(400, { error: { status: 'INVALID_ARGUMENT', message: 'query is required' } });
       // A list of batches; int64 metrics arrive as strings, doubles as numbers.
-      return [{ results: [
-        { adGroupAd: { resourceName: 'customers/111/adGroupAds/7~901', ad: { id: '901' }, status: 'ENABLED' }, metrics: { impressions: '5145', clicks: '91', ctr: 0.0177, costMicros: '12500000' } },
-        // Google returned no cost for this ad: there is no spend, not a spend of 0.
-        { adGroupAd: { resourceName: 'customers/111/adGroupAds/7~902', ad: { id: '902' }, status: 'PAUSED' }, metrics: { impressions: '2000', clicks: '10', ctr: 0.005 } },
-      ], fieldMask: 'adGroupAd.ad.id,adGroupAd.status,metrics.impressions,metrics.clicks,metrics.ctr,metrics.costMicros', requestId: 'req-1' }];
+      // A metric comes back only when the query SELECTED it (metrics.conversions
+      // is a double). opts.googleAdRows replaces the two default ads.
+      const asks = (f) => new RegExp(`\\b${f.replace('.', '\\.')}\\b`).test(call.body.query);
+      const rowsG = (o.googleAdRows || [
+        { id: '901', status: 'ENABLED', impressions: '5145', clicks: '91', ctr: 0.0177, costMicros: '12500000', conversions: 5 },
+        // Google returned no cost (and no conversions) for this ad: there is no spend, not a spend of 0.
+        { id: '902', status: 'PAUSED', impressions: '2000', clicks: '10', ctr: 0.005 },
+      ]).map((x) => {
+        const m = {};
+        for (const [k, f] of [['impressions', 'metrics.impressions'], ['clicks', 'metrics.clicks'], ['ctr', 'metrics.ctr'], ['costMicros', 'metrics.cost_micros'], ['conversions', 'metrics.conversions']]) if (x[k] !== undefined && asks(f)) m[k] = x[k];
+        return { adGroupAd: { resourceName: `customers/111/adGroupAds/7~${x.id}`, ad: { id: x.id }, status: x.status }, metrics: m };
+      });
+      return [{ results: rowsG, fieldMask: 'adGroupAd.ad.id,adGroupAd.status,metrics.impressions,metrics.clicks,metrics.ctr,metrics.costMicros' + (asks('metrics.conversions') ? ',metrics.conversions' : ''), requestId: 'req-1' }];
     }
     // A stateful Google Ads account for the paid launch (opts.googleAccount):
     // the REST mutate shape (operations[].create, or update + updateMask),

@@ -531,7 +531,7 @@ test('Google Ads: ad metrics read over the documented searchStream with LIVE_CON
   const r = await gw('read', { query: { provider: 'google_ads', kind: 'ad_metrics' } });
   expect(r.payload.ok, JSON.stringify(r.payload)).toBe(true);
   expect(r.payload.rows).toEqual([
-    { external_id: '901', kind: 'paid', status: 'ENABLED', values: { spend: 12.5, impressions: 5145, clicks: 91, ctr: 0.0177 } },
+    { external_id: '901', kind: 'paid', status: 'ENABLED', values: { spend: 12.5, impressions: 5145, clicks: 91, ctr: 0.0177, conversions: 5 } },
     { external_id: '902', kind: 'paid', status: 'PAUSED', values: { impressions: 2000, clicks: 10, ctr: 0.005 } },
   ]);
   for (const row of r.payload.rows) expect(row.values, 'Google ROAS is not read, so it is absent, never computed').not.toHaveProperty('roas');
@@ -539,7 +539,7 @@ test('Google Ads: ad metrics read over the documented searchStream with LIVE_CON
   expect(q.method).toBe('POST');
   expect(q.path).toMatch(/^\/v\d+\/customers\/1112223333\/googleAds:searchStream$/);
   expect(q.headers['developer-token']).toBe('dev-tok-1');
-  expect(q.sent).toEqual({ query: 'SELECT ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros FROM ad_group_ad WHERE segments.date DURING LAST_30_DAYS' });
+  expect(q.sent).toEqual({ query: 'SELECT ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group_ad WHERE segments.date DURING LAST_30_DAYS' });
   expect(r.payload.snapshots).toEqual({ stored: 2 });
   // A range the docs read here did not show is refused, not composed.
   const custom = await gw('read', { query: { provider: 'google_ads', kind: 'ad_metrics', since: '2026-09-01', until: '2026-09-30' } });

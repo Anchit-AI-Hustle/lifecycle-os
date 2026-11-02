@@ -617,18 +617,23 @@ for (const mode of ['account', 'device']) {
       expect(steps.slice(1, 4).map((s) => s[2]).join(' ')).not.toMatch(/Applied|observed from the site/);
       if (mode === 'device') {
         // On this device no server can read the brand: the action says so instead of pretending.
-        expect(steps.map((s) => s[0])).toEqual(['brand', 'colour', 'type', 'voice', 'catalog', 'review']);
+        expect(steps.map((s) => s[0])).toEqual(['brand', 'colour', 'type', 'voice', 'catalog', 'ads', 'review']);
         expect(steps[4][1]).toBe('skipped');
+        // Past ads are read from accounts connected on the server: one sentence, nothing sent.
+        expect(steps[5][1]).toBe('skipped');
+        expect(steps[5][2]).toMatch(/a brand kept on this device has none to read/);
         expect(calls).toEqual(['extract:' + SITE]);
       } else {
         expect(calls.filter((c) => c !== 'save'), JSON.stringify(steps)).toEqual(['extract:' + SITE, 'catalog-import:' + SITE + ':uk', 'context-build']);
         expect(calls.indexOf('save'), 'the brand was not saved before the import read it').toBeLessThan(calls.indexOf('catalog-import:' + SITE + ':uk'));
-        expect(steps.map((s) => s[0] + ':' + s[1]).slice(4)).toEqual(['catalog:done', 'pack:done', steps[6][0] + ':' + steps[6][1]]);
-        expect(steps[6][0]).toBe('review');
+        // The ad history read answers 503 in this world: said on its row, and the run goes on to Review.
+        expect(steps.map((s) => s[0] + ':' + s[1]).slice(4)).toEqual(['catalog:done', 'pack:done', 'ads:failed', steps[7][0] + ':' + steps[7][1]]);
+        expect(steps[6][2]).toMatch(/We could not read your past ads/);
+        expect(steps[7][0]).toBe('review');
         expect(steps[4][2]).toMatch(/Brought in 12 products from brambleweld-larder\.example/);
       }
       // Each step was shown working, in order, before the next.
-      const order = ['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'review'];
+      const order = ['brand', 'colour', 'type', 'voice', 'catalog', 'pack', 'ads', 'review'];
       const shown = seen.filter((k) => order.includes(k));
       expect(shown, 'steps were not shown running in the wizard\'s order').toEqual(order.filter((k) => shown.includes(k)));
       expect(shown.length, 'the run did not show its steps one by one').toBeGreaterThanOrEqual(mode === 'device' ? 4 : 6);

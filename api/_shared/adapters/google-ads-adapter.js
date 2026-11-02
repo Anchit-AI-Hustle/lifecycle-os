@@ -59,7 +59,7 @@ const ENDPOINTS = {
   ads_search_stream: {
     method: 'POST', read: true, verified: true, url: `${API}/customers/{customer_id}/googleAds:searchStream`,
     doc: GADS_COOKBOOK,
-    note: 'Fields: https://developers.google.com/google-ads/api/fields/v25/ad_group_ad (ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros); DURING LAST_7_DAYS / LAST_30_DAYS from https://developers.google.com/google-ads/api/docs/query/structure.',
+    note: 'Fields: https://developers.google.com/google-ads/api/fields/v25/ad_group_ad (ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions: listed among that resource\'s selectable metrics, read 2026-11-02, and already selected by ad-insights-core); DURING LAST_7_DAYS / LAST_30_DAYS from https://developers.google.com/google-ads/api/docs/query/structure.',
   },
   // The paid launch pipeline (2026-11-01, paid-launch-core.js). Every create
   // follows the REST mutate shape (POST /vN/customers/{id}/<service>:mutate,
@@ -457,8 +457,10 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
   }
 
   /**
-   * Spend, impressions, clicks and CTR per ad, over the last 7 or 30 days.
-   * A metric Google did not return stays absent; ROAS is not read (see top).
+   * Spend, impressions, clicks, CTR and conversions per ad, over the last 7
+   * or 30 days. A metric Google did not return stays absent; ROAS is not read
+   * (see top). Conversions (a double) let ad-performance.js work out a cost
+   * per result as spend / conversions, both as Google returned them.
    */
   async readAdMetrics(range) {
     const r0 = range || {};
@@ -467,7 +469,7 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
     if (r0.since || r0.until) return { ok: false, supported: false, note: `Google Ads metrics are read for ${DATE_RANGES.join(' or ')} only; a custom date range was not composed from GAQL the docs read here did not show.` };
     const preset = String(r0.date_preset || 'LAST_30_DAYS').toUpperCase();
     if (DATE_RANGES.indexOf(preset) < 0) return { ok: false, supported: false, note: `date_preset must be one of ${DATE_RANGES.join(', ')}.` };
-    const query = 'SELECT ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros'
+    const query = 'SELECT ad_group_ad.ad.id, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions'
       + ` FROM ad_group_ad WHERE segments.date DURING ${preset}`;
     const r = await this.callEndpoint('ads_search_stream', { params: { customer_id: customer }, headers: this.headers(), body: { query } });
     if (!r.ok) return Object.assign({ ok: false }, r);
@@ -486,12 +488,13 @@ class GoogleAdsAdapter extends AdPlatformAdapter {
         if (isNum(m.impressions)) values.impressions = Number(m.impressions);
         if (isNum(m.clicks)) values.clicks = Number(m.clicks);
         if (isNum(m.ctr)) values.ctr = Number(m.ctr);
+        if (isNum(m.conversions)) values.conversions = Number(m.conversions);
         rows.push({ external_id: id, kind: 'paid', status: (x.adGroupAd && x.adGroupAd.status) || null, values });
       }
     }
     return {
       ok: true, rows, date_range: preset,
-      units_note: 'Google reports ctr as a ratio (clicks / impressions) and cost in micros of the account currency; spend here is cost_micros / 1,000,000. ROAS is not read.',
+      units_note: 'Google reports ctr as a ratio (clicks / impressions) and cost in micros of the account currency; spend here is cost_micros / 1,000,000; conversions as Google counts them. ROAS is not read.',
     };
   }
 

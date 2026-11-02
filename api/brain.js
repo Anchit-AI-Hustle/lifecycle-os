@@ -138,6 +138,8 @@ const MODEL_FEATURE = {
   tts: ['POST', 'audio.tts'],
   'music-compose': ['POST', 'audio.music'],
   'ad-angle-lab': ['POST', 'ads.copy_matrix'],
+  // Only op=variations writes copy (ad-variations.js); status, list and import are not metered.
+  'ad-history': ['POST', 'ads.copy_matrix', 'variations'],
   'launch-concepts': ['POST', 'launch.concepts'],
   'ad-fix': ['POST', 'ads.fix'],
   'review-mine': ['POST', 'reviews.mine'],
@@ -151,6 +153,8 @@ function modelFeature(action, req) {
   const m = MODEL_FEATURE[action];
   if (!m) return null;
   if (m[0] && String((req && req.method) || 'GET').toUpperCase() !== m[0]) return null;
+  // An action whose model work is ONE of its ops names that op third.
+  if (m[2] && String(((req && req.query) || {}).op || '').toLowerCase() !== m[2]) return null;
   return m[1];
 }
 
@@ -1058,7 +1062,9 @@ module.exports = async function handler(req, res) {
       case 'ad-history': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);
-        return await require('./_shared/ad-history.js').handle(req, res, { auth, workspaceId: __wsId, body: b });
+        const rtA = require('./_shared/brand-runtime.js');
+        const brandA = req.__brand && !rtA.isUnresolved(req.__brand) ? req.__brand : null;
+        return await require('./_shared/ad-history.js').handle(req, res, { auth, workspaceId: __wsId, body: b, brand: brandA });
       }
 
       case 'deliverability-domain': {

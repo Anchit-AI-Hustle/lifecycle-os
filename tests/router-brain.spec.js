@@ -1212,6 +1212,18 @@ add('ad-history', { gate: 'user', browser: 'refuse', run: { method: 'GET', query
   cases: [{ name: 'a POST import hands the parsed body through', run: { json: { days: 90 }, query: { op: 'import' } },
     expect: (r) => { expect(r.out.op).toBe('import'); const a = last(M.adhist, 'handle'); expect(a[2].body).toMatchObject({ days: 90 }); } }],
 });
+// Variations of a winning ad (2026-11-02, ad-variations.js) write copy: op=variations
+// alone is metered at ads.copy_matrix (MODEL_FEATURE's op), and the brand handed to
+// the reader is the one this request resolved, never a body's.
+add('ad-history', { title: 'op=variations', gate: 'user', model: 'ads.copy_matrix', browser: 'refuse', run: { json: { ad_id: 'ad-1', n: 3, brand: { name: 'Forged' } }, query: { op: 'variations' } },
+  stubs: () => S.on(M.adhist, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, brand: ctx.brand && ctx.brand.name, ad: ctx.body.ad_id })),
+  expect: (r) => {
+    expect(r.status).toBe(200);
+    expect(r.out).toEqual({ ok: true, op: 'variations', ws: H.WS, brand: BRAND.name, ad: 'ad-1' });
+  },
+  cases: [{ name: 'status, list and import are not metered (only op=variations writes copy)', run: { json: { days: 90 }, query: { op: 'import' } },
+    expect: (r) => { expect(r.out.op).toBe('import'); expect(r.out.credits).toBeUndefined(); expect(guard.calls.some((c) => /\/rpc\/credit_hold/.test(c.url))).toBe(false); } }],
+});
 add('social-gateway', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
   stubs: () => S.on(M.gateway, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
   expect: (r) => {
@@ -1270,7 +1282,7 @@ const caseRun = (base, c) => {
 };
 
 for (const e of T) {
-  test.describe(`?action=${e.action} [${e.gate}]`, () => {
+  test.describe(`?action=${e.action}${e.title ? " " + e.title : ""} [${e.gate}]`, () => {
     const base = Object.assign(defaultsFor(e.gate), e.run || {});
 
     test('dispatches to its core with the arguments the router built', withEnv(e.env, async () => {
@@ -1502,7 +1514,7 @@ test.describe('the router', () => {
     // meter fails here, and a key the catalog does not declare fails too.
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
-      'access-narrative', 'ad-angle-lab', 'ad-fix', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
+      'access-narrative', 'ad-angle-lab', 'ad-fix', 'ad-history', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
       'console-chat', 'generate', 'launch-concepts', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'review-mine', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();

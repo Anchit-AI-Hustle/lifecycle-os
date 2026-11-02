@@ -1961,6 +1961,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     { key: 'voice',   n: 4, label: 'Voice' },
     { key: 'catalog', n: 5, label: 'Data & catalog' },
     { key: 'pack',    n: 5, label: 'Context pack' },
+    { key: 'ads',     n: 5, label: 'Ad history' },
     { key: 'review',  n: 6, label: 'Review' }
   ];
   function reducedMotion() { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } }
@@ -2017,7 +2018,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           ? '<span class="srun-live" data-setup-live>' + (l.live ? esc(l.live) + ' · ' : '') + '<span data-setup-clock>' + esc(setupElapsed(l)) + '</span></span>'
           : '';
         return '<li data-setup-step="' + esc(st.key) + '" data-state="' + esc(l.state) + '"' + (isNew ? ' class="srun-in"' : '') + '><span class="dot" aria-hidden="true"></span><div><b>' + esc(st.label) +
-          (!setupBusy && st.key !== 'pack' ? ' <button type="button" class="srun-edit" data-setup-edit="' + st.n + '">View and edit</button>' : '') + '</b>' +
+          (!setupBusy && st.key !== 'pack' && st.key !== 'ads' ? ' <button type="button" class="srun-edit" data-setup-edit="' + st.n + '">View and edit</button>' : '') + '</b>' +
           '<span class="srun-text">' + esc(l.text) + '</span>' + live + (l.html || '') + '</div></li>';
       }).join('') + '</ol></div>';
     // The step being worked on is lit in the step row too.
@@ -2113,6 +2114,65 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     repos: 'Looking for your public code repositories',
     done: 'Finishing up'
   };
+  /* AD HISTORY, READ DURING SETUP (2026-11-02, against usefastlane.ai: one
+     link gives the brand AND its ad history). When the brand already has a
+     Meta or Google Ads account connected on the server, the run imports its
+     past ads (ad-history.js) and says per platform how many and the brand's
+     own median: cost per result where 3 or more ads carry one, else
+     click-through rate, else that there are too few. Not connected: one
+     sentence and the way to Connections. A brand on this device: one
+     sentence. It never stops the run; a failure is said. */
+  async function brainAds(op, body) {
+    var t = window.BrandContext && window.BrandContext.token ? window.BrandContext.token() : '';
+    var headers = { 'Content-Type': 'application/json' };
+    if (t) headers.Authorization = 'Bearer ' + t;
+    var ws = brand && brand.id ? brand.id : '';
+    var res = await fetch('/api/brain?action=ad-history&op=' + encodeURIComponent(op) + (ws ? '&workspace_id=' + encodeURIComponent(ws) : ''), {
+      method: body ? 'POST' : 'GET', headers: headers, cache: 'no-store',
+      body: body ? JSON.stringify(Object.assign({ workspace_id: ws || undefined }, body)) : undefined
+    });
+    var json = await res.json().catch(function () { return {}; });
+    if (!res.ok) { var e = new Error(json.message || ('The ad history answered ' + res.status + '.')); e.payload = json; e.status = res.status; throw e; }
+    return json;
+  }
+  function adMedianWords(perf, provider) {
+    var w = ((perf && perf.winners) || []).filter(function (x) { return x.provider === provider; })[0];
+    if (!w || w.median == null) return 'too few with figures for a median yet';
+    if (w.basis === 'cost_per_result') return 'median cost per result ' + Number(w.median).toFixed(2) + (w.currency ? ' ' + w.currency : '');
+    return 'median click-through ' + (Number(w.median) * 100).toFixed(2) + '%';
+  }
+  async function setupAdHistory() {
+    var who = brand.name || 'this brand';
+    if (actionsOff() || !brand.id || isLocalId(brand.id)) {
+      setupNote('ads', 'skipped', 'Past ads are read from ad accounts connected to a brand on our server, so a brand kept on this device has none to read.');
+      return;
+    }
+    setupNote('ads', 'running', 'Looking for ad accounts connected to ' + who + '.', '', 'Checking Meta and Google Ads');
+    try {
+      var st = await brainAds('status');
+      if (st && st.storage === 'device') { setupNote('ads', 'skipped', 'Past ads are read from ad accounts connected to a brand on our server, so a brand kept on this device has none to read.'); return; }
+      var conn = ((st && st.platforms) || []).filter(function (p) { return p.built && p.connected; });
+      if (!conn.length) {
+        setupNote('ads', 'skipped', 'No Meta or Google Ads account is connected to ' + who + ' yet. Connect one on Connections and its past ads are read there.', '<a href="/connections" data-setup-connect>Open Connections</a>');
+        return;
+      }
+      setupNote('ads', 'running', 'Reading the ads ' + who + ' ran on ' + listWords(conn.map(function (p) { return p.label; })) + '.', '', 'Reading your ad accounts');
+      var r = await brainAds('import', { days: 180 });
+      var after = null;
+      try { after = await brainAds('status'); } catch (_) { after = null; }
+      var perf = after && after.performance;
+      var read = (r.platforms || []).filter(function (p) { return p.built && p.connected; });
+      var lines = read.map(function (p) {
+        if (p.ok) return p.label + ': ' + plural(p.ads, 'ad') + ', ' + adMedianWords(perf, p.provider);
+        if (p.live === false) return p.label + ': not read, reading ad accounts is switched off on this deployment';
+        return p.label + ': not read, ' + String(p.note || 'the platform did not answer').replace(/\.$/, '').replace(/^./, function (c) { return c.toLowerCase(); });
+      });
+      var any = read.some(function (p) { return p.ok; });
+      setupNote('ads', any ? 'done' : 'failed', (any ? 'Read your past ads. ' : 'Your past ads were not read. ') + lines.join('. ') + '. Connections shows each ad and its figures.');
+    } catch (e) {
+      setupNote('ads', 'failed', 'We could not read your past ads. ' + window.LifecycleFailure.sentence(e));
+    }
+  }
   async function setUpFromWebsite() {
     if (setupBusy || extractBusy) return;
     var input = $('xUrl');
@@ -2166,6 +2226,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         });
         setupNote('pack', packState ? 'done' : 'failed', packState ? 'Design notes ready, written from ' + siteName(packState.site_url || brand.website) + '.' : 'We could not write the design notes this time. You can try again on Review.');
       }
+      // Ad history: read when an ad account is connected; never stops the run.
+      try { await setupAdHistory(); } catch (e) { setupNote('ads', 'failed', 'We could not read your past ads. ' + window.LifecycleFailure.sentence(e)); }
       // 6 Review: saved as a draft, then the review step opens.
       setupNote('review', 'running', 'Saving ' + (brand.name || 'your brand') + ' and checking what is left to do.', '', 'Saving');
       var draftSaved = null, draftError = null;
@@ -2177,6 +2239,14 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         : 'Saved as a draft. ' + plural(rd.blocking.length, 'thing') + ' to finish before you can activate' + (rd.missing.length > rd.blocking.length ? ', and ' + plural(rd.missing.length - rd.blocking.length, 'more', 'more') + ' worth adding' : '') + '. Review lists each one with the step that sets it.');
       await setupPause(300);
       go(6);
+    } catch (e) {
+      // A step that threw never leaves its row "running" for ever (found
+      // 2026-11-02: a read that came back without a field stopped the run
+      // mid-way and the Brand row kept its clock going). Each running row says
+      // it stopped and why; the steps can still be opened and edited.
+      setupLog.filter(function (l) { return l.state === 'running'; }).forEach(function (l) {
+        setupNote(l.step, 'failed', 'This step stopped before it finished. ' + (window.LifecycleFailure && window.LifecycleFailure.sentence ? window.LifecycleFailure.sentence(e) : String((e && e.message) || e)));
+      });
     } finally { setupBusy = false; render(); renderSetupRun(); }
   }
 

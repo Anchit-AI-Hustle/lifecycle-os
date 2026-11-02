@@ -136,6 +136,9 @@ const GENERATORS = [
   { id: 'social-run-daily', path: '/api/brain', q: { action: 'social-run-daily' }, body: () => ({ dry_run: true, platforms: ['instagram', 'linkedin'], date: '2026-10-20' }), modes: ['device', 'account'], own: ['name'], marker: true, templates: true },
   // Competitor ads -> angles + hooks + briefs: built from the ACTIVE brand's own claims and name only.
   { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), modes: ['device', 'account'], own: ['name'] },
+  // Variations of the brand's OWN winning ad (2026-11-02): ad history lives on a server
+  // workspace, so the account world; the ads seeded per brand in makeWorld are its own.
+  { id: 'ad-history', path: '/api/brain', q: { action: 'ad-history', op: 'variations' }, body: (b) => ({ ad_id: `inv-${b.slug}-1`, n: 3 }), modes: ['account'], own: ['name'] },
   { id: 'launch-concepts', path: '/api/brain', q: { action: 'launch-concepts' }, body: () => ({ customer: 'people who want it' }), modes: ['device', 'account'], own: ['name'],
     statuses: { 409: (b) => ((b.tagline || (b.claims || []).length) ? null : 'a brand with no tagline or claims has nothing true to pitch when the model answers prose: it is told to add its claims, never handed invented concepts') } },
   { id: 'ad-fix', path: '/api/brain', q: { action: 'ad-fix' }, body: () => ({ worst: { ad: 'Old ad' }, why: ['It spent 400 and brought no conversion.'] }), modes: ['device', 'account'], own: ['name'],
@@ -242,6 +245,8 @@ async function makeWorld(mode) {
     // The buyer agent agent-chat speaks as: a row in THIS workspace (the
     // device world kept it beside the brand; an account keeps it here).
     w.db.insert('smart_agents', { id: 'agent_brand', workspace_id: ws, level: 'brand', name: b.name + ' Assistant', market: (b.regions && b.regions[0] && b.regions[0].code) || '', persona: {}, catalog_scope: {}, active: true });
+    // Its own ad history (ad-history.js): three ads in its own words, the first above its median.
+    [0.05, 0.02, 0.01].forEach((ctr, i) => w.db.insert('brand_ad_history', { workspace_id: ws, provider: 'meta', account_id: 'act_1', ad_id: `inv-${b.slug}-${i + 1}`, name: `${b.name} ad ${i + 1}`, primary_text: `${(b.claims || [])[0] || b.name}.`, headline: b.name, metrics: { ctr, impressions: 1000 }, last_seen: new Date().toISOString() }));
     for (const reg of (b.regions || [])) {
       for (const p of b.catalogue) {
         w.db.insert('brand_catalog_products', { workspace_id: ws, region: String(reg.code).toLowerCase(), sku: p.handle, handle: p.handle, title: p.title, product_type: p.product_type, collections: [], price: p.price, currency: reg.currency || '', image_url: p.image, product_url: (b.website || '') + '/products/' + p.handle });
