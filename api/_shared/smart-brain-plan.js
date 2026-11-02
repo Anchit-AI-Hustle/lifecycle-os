@@ -4085,7 +4085,22 @@ async function buildCampaign(entry, config, opts = {}) {
     try { ads = await require('./ad-history.js').evidenceAds(catalogCtx.workspaceId); } catch (_) { ads = null; }
     if (ads) Object.defineProperty(entry, '__ownAds', { value: ads, enumerable: false, configurable: true });
   }
-  const built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
+  // A site's SEO title stored as the tagline (2026-11-03: The Times of India's
+  // "India News, Latest News, Breaking News") is search phrases, not a line to
+  // a person: no asset of this build prints it. The record is untouched; the
+  // build reads a copy without it, and the slot keeps the record it came with.
+  const recordBrand = entry && entry.brand;
+  let siteTitleSwapped = false;
+  if (recordBrand && typeof recordBrand === 'object' && require('./asset-playbooks.js').isSiteTitle(recordBrand.tagline)) {
+    entry.brand = Object.assign({}, recordBrand, { tagline: '' });
+    siteTitleSwapped = true;
+  }
+  let built;
+  try {
+    built = await catalogServer.withCatalog(catalogCtx, () => _buildCampaign(entry, config, opts));
+  } finally {
+    if (siteTitleSwapped) entry.brand = recordBrand;
+  }
   if (built && typeof built === 'object') {
     if (entry && entry.__mailStudy) {
       const st = entry.__mailStudy;

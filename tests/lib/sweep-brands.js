@@ -36,4 +36,21 @@ const BRANDS = [
   { id: 'device:unicode', slug: 'chai', name: 'Chāy & Co. — Café', website: 'https://chay.example', industry: 'café', tagline: 'Masala chai, brewed "slow" & strong',
     palette: { primary: '#C2410C', accent: '#FCD34D', ink: '#1C1917', surface: '#FFFBEB' }, regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ["Brewed for 12 minutes, not 2"], legal_entity: 'Chay & Co, Mumbai', voice: { banned: ['authentic'] } },
 ];
-module.exports = { BRANDS };
+// One brand per business model that is not commerce (asset-playbooks.
+// BUSINESS_MODELS), for tests/non-commerce-asset-copy.spec.js. Kept apart from
+// BRANDS so the parameter sweep's counts are unchanged.
+const MODEL_BRANDS = [
+  { id: 'device:mkt', slug: 'tickerwise', name: 'Tickerwise', website: 'https://tickerwise.example', industry: 'stock market research', tagline: 'Indian equities, read before the open',
+    palette: { primary: '#14532D', accent: '#E2B93B', ink: '#0F1F17', surface: '#F6FBF7' }, regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ['Coverage of every Nifty 50 company'],
+    offerings: [{ kind: 'section', name: 'Pre-open note', url: 'https://tickerwise.example/pre-open' }], legal_entity: 'Tickerwise Research LLP, Mumbai', channels: ['sms', 'push'] },
+  { id: 'device:subs', slug: 'loomclub', name: 'Loomclub', website: 'https://loomclub.example', industry: 'membership club', tagline: 'A weaving club that meets every Sunday',
+    palette: { primary: '#6D28D9', accent: '#F59E0B', ink: '#1E1B4B', surface: '#FAF5FF' }, regions: [{ code: 'UK', currency: 'GBP', home: true }], claims: ['Four studios across London'],
+    offerings: [{ kind: 'plan', name: 'Studio membership', url: 'https://loomclub.example/join' }], legal_entity: 'Loomclub Ltd, London' },
+  { id: 'device:events', slug: 'ridgefest', name: 'Ridgefest', website: 'https://ridgefest.example', industry: 'trail running events', tagline: 'Trail races in the Western Ghats',
+    palette: { primary: '#B45309', accent: '#0E7490', ink: '#1C1917', surface: '#FFFBF5' }, regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ['Courses of 10, 25 and 50 km'],
+    offerings: [{ kind: 'event', name: 'Sahyadri 50', url: 'https://ridgefest.example/sahyadri-50' }], legal_entity: 'Ridgefest Sports Pvt Ltd, Pune', channels: ['sms'] },
+  { id: 'device:svc', slug: 'plumbline', name: 'Plumbline Studio', website: 'https://plumbline.example', industry: 'architecture practice', tagline: 'Homes drawn around the light you have',
+    palette: { primary: '#334155', accent: '#F97316', ink: '#0F172A', surface: '#F8FAFC' }, regions: [{ code: 'IN', currency: 'INR', home: true }], claims: ['Every project drawn by a partner'],
+    offerings: [{ kind: 'service', name: 'Home design', url: 'https://plumbline.example/homes' }], legal_entity: 'Plumbline Studio LLP, Bengaluru' },
+];
+module.exports = { BRANDS, MODEL_BRANDS };

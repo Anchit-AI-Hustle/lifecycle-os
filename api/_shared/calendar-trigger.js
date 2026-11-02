@@ -65,6 +65,10 @@ function _brand(o) {
 function teamName(name) { return String(name || '').replace(/^the\s+/i, ''); }
 
 function brandNameOf(o) { return _brand(o).name || 'the brand'; }
+// Who the mail is to, by the brand's business model (2026-11-03): a news
+// brand's reader is not "a The Times of India customer".
+function _audienceWords(o) { try { return require('./asset-playbooks.js').audienceWords(_brand(o)); } catch (_) { return { one: 'customer', browse: 'Shop by' }; } }
+function _audienceOne(o) { return _audienceWords(o).one; }
 function brandStore(o, market) {
   const b = _brand(o);
   const code = String(market || '').toUpperCase();
@@ -749,7 +753,7 @@ function _renderVariantBody(o) {
       <tr><td align="center" data-mail-footer style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${footerClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${footerClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} ${_audienceOne(o)}.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   // THE TEXT MAIL NAMES WHAT IT SELLS (2026-10-24, Lenskart: the Text
@@ -815,14 +819,14 @@ function _renderVariantBody(o) {
   const offers = layout.shop_by_links === false ? [] : (Array.isArray(_brand(o).offerings) ? _brand(o).offerings : [])
     .filter((x) => x && x.name && /^https:\/\//i.test(String(x.url || '')) && String(x.url).replace(/\/+$/, '') !== String(baseUrl).replace(/\/+$/, ''))
     .filter((x, i, a) => a.findIndex((y) => String(y.url).replace(/\/+$/, '') === String(x.url).replace(/\/+$/, '')) === i).slice(0, 4);
-  const legal = `${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${MF.article(brandNameOf(o))} ${esc(brandNameOf(o))} customer.<br>Manage preferences or unsubscribe from your account settings.`;
+  const legal = `${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${MF.article(brandNameOf(o))} ${esc(brandNameOf(o))} ${_audienceOne(o)}.<br>Manage preferences or unsubscribe from your account settings.`;
   const _logoIsImage = (() => { try { return !!MF.logoSourceOf(_brand(o)).url; } catch (_) { return false; } })();
   return require('./mail-templates.js').render({
     style, design, core: _core, palette, HEAD, BODY, E: _E, _px, ctaStyle, h1With, subWith, JUSTIFY: MF.JUSTIFY,
     emailHead, baseUrl, cta_text, collection_url, hero_headline, hero_subline, hero_image_url, hero_prompt,
     assetSlot: hero_prompt ? MF.assetSlot({ kind: 'image', slot: 'hero', displayW: 536, displayH: 340, prompt: hero_prompt, alt: hero_product || 'hero', ground: palette.green }) : '',
     heroLabel, heroName, heroAlt: heroLabel || esc(hero_headline || ''), caption: _cap && !_bodyTxt.includes(_fold(_cap)) ? _cap : '',
-    heroRow: _heroRow, border, body_blocks, others, allProducts, gridItems, promises, offers, money,
+    heroRow: _heroRow, border, body_blocks, others, allProducts, gridItems, promises, offers, browseLabel: _audienceWords(o).browse, money,
     productImg: (p) => _productImg(p, market, o && o.brand), productNote: (p) => _productNote(p, market, o && o.brand),
     pdp: (p) => p.url || ((p.handle || p.h) ? `${store}/products/${p.handle || p.h}` : baseUrl),
     offerBar: offerBarRow, productList, productGrid, team: teamName(brandNameOf(o)),

@@ -493,12 +493,22 @@ function storyPage(all) {
     var alpha = Math.min(1, p * 4) * alpha0;
     var fg = D.pal.on_primary;
     if (TPL === 'editorial' || (themed && TT.align === 'left' && TPL !== 'split')) {
+      // The stack sits in the middle of the frame (2026-11-03): drawn from the
+      // top, a short line and a button left the lower half of a 9:16 card an
+      // empty block of the brand colour (The Times of India on /brain).
+      spacing(big);
+      var nl = wrap(caseOf(sc.headline), W - 192, headFont(big)).length;
+      unspacing();
+      var top = 356, bottom = 640 + nl * big * 1.15 + (sc.sub ? 300 : 190);
+      var dy = Math.max(0, (H - (bottom - top)) / 2 - top);
+      cx.save(); cx.translate(0, dy);
       cx.globalAlpha = alpha; cx.fillStyle = fg; cx.textAlign = 'left';
       cx.font = headFont(64); cx.fillText(caseOf(D.name), 96, 420);
       cx.fillRect(96, 470, 160, 6);
       var y = lines(sc.headline, 96, 640 + rise, big, W - 192, 'left', fg);
       button(sc.cta, 96, y + 60, 'left', TT.button === 'outline' || TT.button === 'link' ? fg : D.pal.surface, D.pal.primary);
       if (sc.sub) { cx.fillStyle = fg; cx.textAlign = 'left'; cx.font = '500 44px ' + D.fonts.body; cx.fillText(sc.sub, 96, y + 300); }
+      cx.restore();
       cx.textAlign = 'left'; cx.globalAlpha = 1; return;
     }
     if (TPL === 'split') {
