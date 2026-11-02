@@ -304,6 +304,21 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .sbtop{position:fixed;right:20px;bottom:20px;z-index:150;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px 14px;border-radius:var(--vh-r-pill,999px);background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);box-shadow:var(--vh-lift-1,none);font-size:13px;font-weight:700;text-decoration:none}
   .sbtop[hidden]{display:none}
   @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+/* Review strip (2026-11-02): every built asset of the sends in view, as
+   thumbnails, approved or rejected per send. Tokens only. */
+#reviewstrip{min-width:0;max-width:100%}
+#reviewstrip .rs-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+#reviewstrip .rs-slots{display:flex;flex-direction:column;gap:12px}
+#reviewstrip .rs-slot{border:1px solid var(--vh-line);border-radius:10px;background:var(--vh-panel);padding:10px;min-width:0}
+#reviewstrip .rs-slot-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:0 0 8px}
+#reviewstrip .rs-thumbs{display:flex;gap:8px;min-width:0;max-width:100%;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+#reviewstrip .rs-thumb{flex:0 0 140px;margin:0;border:1px solid var(--vh-line);border-radius:8px;background:var(--vh-panel-2);overflow:hidden}
+#reviewstrip .rs-thumb iframe,#reviewstrip .rs-thumb img{display:block;width:100%;height:150px;border:0;object-fit:cover;pointer-events:none;background:var(--vh-panel)}
+#reviewstrip .rs-thumb figcaption{font-size:12px;line-height:1.3;padding:4px 6px;color:var(--vh-ink)}
+#reviewstrip .rs-tile{display:flex;align-items:center;justify-content:center;height:150px;padding:8px;text-align:center;font-size:12px;color:var(--vh-ink-dim)}
+#reviewstrip .rs-say{font-size:12px;margin:6px 0 0;color:var(--vh-ink)}
+#reviewstrip .rs-say[data-kind="err"]{color:var(--vh-err-text)}
+#reviewstrip .rs-say[data-kind="ok"]{color:var(--vh-ok-text)}
 </style>
 <script src="/music-client.js" defer></script>
 <script src="/auth.js?v=20260718light" defer></script>
@@ -421,6 +436,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <tbody id="plan"><tr><td colspan="9" class="tdim">Loading plan…</td></tr></tbody>
       </table>
       </div>
+    </div>
+
+    <div class="card wide" id="reviewstrip">
+      <h2 style="margin:0 0 6px">Review strip</h2>
+      <p class="tdim" style="margin:0 0 10px">Every built mailer, static ad, video and landing page of the sends in view, side by side. A send's assets are approved or rejected together, one send at a time.</p>
+      <div class="rs-head">
+        <button type="button" class="btn sm secondary" id="rsLoad" onclick="rsLoad()">Show built assets</button>
+        <button type="button" class="btn sm ok" id="rsApproveAll" onclick="rsApproveAll()" hidden>Approve all shown</button>
+        <span id="rsProgress" class="tdim" role="status" aria-live="polite" style="font-size:12px"></span>
+      </div>
+      <div id="rsItems" class="rs-slots"></div>
     </div>
 
     <div class="card two" id="insightscard"><h2>Daily insights</h2><div id="insights" class="feed"><p>Run a sync to refresh insights.</p></div></div>
@@ -1421,7 +1447,7 @@ function renderAd(ad){
     const dz = cr.design || {};
     window.__SB_STATIC = window.__SB_STATIC || [];
     const sidx = window.__SB_STATIC.push(ad) - 1;
-    const sceneBar = cr.scene_source ? `<div class="akbar"><button type="button" class="btn sm" data-scene onclick="sbMakeScene(this,${sidx})" title="Gemini places this product's own catalogue photo, label unchanged, into a lifestyle scene; needs a Gemini key on AI Models">✨ Put this pack in a scene</button></div><div class="advnote" data-scene-out hidden></div>` : '';
+    const sceneBar = cr.scene_source ? `<div class="akbar"><button type="button" class="btn sm" data-scene onclick="sbMakeScene(this,${sidx})" title="Gemini or OpenAI places this product's own catalogue photo, label unchanged, into a lifestyle scene; needs a Gemini or OpenAI key on AI Models">✨ Put this pack in a scene</button></div><div class="advnote" data-scene-out hidden></div>` : '';
     return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}" data-ad-design="${esc((dz.theme||'')+'/'+(dz.template||''))}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
     ${gap}
@@ -2873,6 +2899,120 @@ async function approveAll(){
     `Approve all finished: ${ok} approved${fails.length ? `, ${fails.length} failed (${fails[0]})` : ''}.`);
 }
 window.approveAll = approveAll;
+
+// ── Review strip (2026-11-02, Fastlane's bulk review) ───────────────────────
+// Every built asset of the visible sends, as thumbnails: mailers, static ads,
+// videos, landing pages. Approve and Reject go through the EXISTING actions
+// (smart-brain-approve through generateEntry, smart-brain-reject), ONE request
+// per send, one after another; a refusal (brand_changed, catalogue_excluded,
+// anything) is shown on that send in the server's own words and the rest go on.
+const RS_MAX = 24;
+let RS_SLOTS = [];
+function rsBuilt(e){ return e && e.status !== 'rejected' && !!(e.generated_campaign_id || e.status==='approved' || e.status==='final' || (e.__prebuilt && e.__prebuilt.campaign_id)); }
+function rsLocked(e){ return e.status === 'approved' || e.status === 'final'; }
+function rsThumbs(data){
+  const c = (data && data.campaign) || {};
+  const A = c.assets || {};
+  const out = [];
+  const frame = (kind, label, html) => out.push(`<figure class="rs-thumb" data-rs-thumb="${kind}"><iframe title="${esc(label)}" sandbox="" srcdoc="${esc(html)}" loading="lazy"></iframe><figcaption>${esc(label)}</figcaption></figure>`);
+  const mail = data.email_html || (A.email && A.email.html) || '';
+  if (mail) frame('mailer', 'Mailer', mail);
+  const vars = data.email_variants || (A.email && A.email.variants) || null;
+  if (Array.isArray(vars)) vars.forEach((v, n) => { if (v && v.html && v.html !== mail) frame('mailer', 'Mailer · ' + (v.label || ('variant ' + (n + 1))), v.html); });
+  for (const ad of (data.ads || A.ads || [])) {
+    if (!ad) continue;
+    const cr = ad.creative || {};
+    const name = [ad.platform, ad.variant].filter(Boolean).join(' ');
+    if (ad.creative_type === 'video') {
+      const poster = /^https:\/\//i.test(String(cr.image || '')) ? cr.image : '';
+      out.push(`<figure class="rs-thumb" data-rs-thumb="video">${poster ? `<img src="${esc(poster)}" alt="${esc('Video ad ' + name)}" loading="lazy">` : `<div class="rs-tile">${esc(ad.headline || 'Video ad')}</div>`}<figcaption>Video · ${esc(name)}</figcaption></figure>`);
+    } else if (cr.static_html) frame('static', 'Static · ' + name, cr.static_html);
+  }
+  (A.landing_pages || (data.landing_html ? [{ html: data.landing_html }] : [])).forEach((lp, n) => { if (lp && lp.html) frame('landing', 'Landing page' + (n ? ' ' + (n + 1) : ''), lp.html); });
+  return out;
+}
+function rsRender(){
+  const box = $('rsItems'); if(!box) return;
+  box.innerHTML = RS_SLOTS.map((it) => {
+    const e = PLAN[it.i] || {};
+    const pill = rsLocked(e) ? '<span class="st approved">✓ approved</span>' : e.status === 'rejected' ? '<span class="st rejected">✗ rejected</span>' : '<span class="st tentative">draft</span>';
+    const ctl = (rsLocked(e) || e.status === 'rejected' || it.failedLoad) ? '' : `<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn sm ok" data-rs-approve="${it.i}" onclick="rsApprove(${it.i})">✓ Approve</button><button type="button" class="btn sm secondary" data-rs-reject="${it.i}" onclick="rsReject(${it.i})">✗ Reject</button></span>`;
+    const thumbs = it.thumbs && it.thumbs.length ? `<div class="rs-thumbs">${it.thumbs.join('')}</div>` : (it.loaded && !it.failedLoad ? '<p class="tdim rs-say">No built asset to show for this send.</p>' : '');
+    const say = it.say ? `<p class="rs-say" data-rs-say data-kind="${esc(it.kind||'')}">${esc(it.say)}</p>` : '';
+    return `<div class="rs-slot" data-rs-slot="${esc(e.id||'')}"><div class="rs-slot-head"><span><b>${esc(e.date||'')}</b> · ${esc(e.market||'')} · ${esc((e.cohort && e.cohort.name) || '')} ${pill}</span>${ctl}</div>${thumbs}${say}</div>`;
+  }).join('');
+  const open = RS_SLOTS.filter((it) => { const e = PLAN[it.i] || {}; return !rsLocked(e) && e.status !== 'rejected' && it.loaded && !it.failedLoad; }).length;
+  const ab = $('rsApproveAll'); if(ab){ ab.hidden = !open; ab.textContent = `Approve all shown (${open})`; }
+}
+async function rsLoad(){
+  const targets = PLAN.map((e,i)=>({e,i})).filter(({e}) => slotVisible(e) && rsBuilt(e));
+  const prog = $('rsProgress');
+  if(!targets.length){ RS_SLOTS = []; rsRender(); if(prog) prog.textContent = 'None of the sends in view has built assets yet: generate them first.'; return; }
+  const list = targets.slice(0, RS_MAX);
+  RS_SLOTS = list.map(({i}) => ({ i, thumbs: [], loaded: false }));
+  rsRender();
+  const lb = $('rsLoad'); if(lb) lb.disabled = true;
+  try {
+    for(let n=0; n<list.length; n++){
+      const { e } = list[n]; const it = RS_SLOTS[n];
+      if(prog) prog.textContent = `Loading ${n+1} of ${list.length}…`;
+      try {
+        let data = PREVIEW_CACHE[e.id];
+        if(!data){
+          const r = await fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: e, reviewer: reviewerEmail() })});
+          data = await safeJson(r);
+          if(!data.ok) throw new Error(data.message || data.error || ('HTTP ' + r.status));
+          PREVIEW_CACHE[e.id] = data;
+        }
+        it.thumbs = rsThumbs(data);
+      } catch(err){ it.failedLoad = true; it.say = String(err && err.message || err); it.kind = 'err'; }
+      it.loaded = true;
+      rsRender();
+    }
+    if(prog) prog.textContent = `${list.length} send${list.length===1?'':'s'} shown${targets.length > list.length ? ` (the first ${RS_MAX} of ${targets.length} in view)` : ''}.`;
+  } finally { if(lb) lb.disabled = false; }
+}
+async function rsApprove(i, quiet){
+  const it = RS_SLOTS.find((x) => x.i === i); const e = PLAN[i];
+  if(!it || !e) return false;
+  it.say = 'Approving…'; it.kind = ''; rsRender();
+  try { await generateEntry(i, { silent: true }); it.say = 'Approved and locked.'; it.kind = 'ok'; rsRender(); if(!quiet) renderPlan(); return true; }
+  catch(err){ it.say = String(err && err.message || err); it.kind = 'err'; rsRender(); return false; }
+}
+async function rsReject(i){
+  const it = RS_SLOTS.find((x) => x.i === i); const e = PLAN[i];
+  if(!it || !e) return;
+  const notes = await window.LifecycleDialog.prompt('Reject this send? Add an optional reason. It is logged and the slot is re-planned on the next daily sync.', '', { ok: 'Reject', danger: true });
+  if(notes === null) return;
+  it.say = 'Rejecting…'; it.kind = ''; rsRender();
+  try {
+    const r = await fetch(`${API}?action=smart-brain-reject`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, reviewer: reviewerEmail(), notes })});
+    const data = await safeJson(r);
+    if(!data.ok) throw new Error(data.message || data.error || ('HTTP ' + r.status));
+    keepDecision(data);
+    e.status = 'rejected'; e.generated_campaign_id = null;
+    it.say = 'Rejected: re-planned on the next daily sync.'; it.kind = 'ok';
+  } catch(err){ it.say = String(err && err.message || err); it.kind = 'err'; }
+  rsRender(); renderPlan();
+}
+async function rsApproveAll(){
+  const todo = RS_SLOTS.filter((it) => { const e = PLAN[it.i] || {}; return !rsLocked(e) && e.status !== 'rejected' && it.loaded && !it.failedLoad; });
+  if(!todo.length) return;
+  const go = await sbConfirm(`Approve and lock the ${todo.length} send(s) shown in the review strip? Each is approved on its own; a refused one is shown and the rest go on.`, 'Approve all shown');
+  if(!go) return;
+  const ab = $('rsApproveAll'); const prog = $('rsProgress');
+  if(ab) ab.disabled = true;
+  let ok = 0, bad = 0;
+  try {
+    for(let n=0; n<todo.length; n++){
+      if(prog) prog.textContent = `Approving ${n+1} of ${todo.length} · ✓${ok}${bad ? ` ✕${bad}` : ''}`;
+      (await rsApprove(todo[n].i, true)) ? ok++ : bad++;
+    }
+  } finally { if(ab) ab.disabled = false; }
+  renderPlan(); rsRender();
+  if(prog) prog.textContent = `Approve all shown: ${ok} approved${bad ? `, ${bad} refused (each says why above)` : ''}.`;
+}
+window.rsLoad = rsLoad; window.rsApprove = rsApprove; window.rsReject = rsReject; window.rsApproveAll = rsApproveAll;
 
 // ── Review verdict (per-row human sign-off) ─────────────────────────────────
 // Approve locks the slot and builds its final assets (reuses generateEntry, which
