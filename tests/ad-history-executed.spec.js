@@ -313,3 +313,55 @@ test('a brand kept on this device: status is one sentence, import is refused, no
   expect(im.code).toBe(409);
   expect(seen.meta).toHaveLength(0);
 });
+
+// What the brand's own ads are made of (2026-11-02, ad-patterns.js): openings
+// by the SAME hook-pattern rule Winning angles reads competitor ads with, and
+// with / without video, each a stated count ("3 of 6") and a median rate only
+// where 3 or more ads carry one; per platform, never pooled; an ad that came
+// without its copy or its format is counted apart, never classified.
+test('patterns: shares are counts per platform, a median only from 3 rated ads, copy and format not returned are said; on status and in the OWN ADS block', async () => {
+  const patterns = require(path.join(ROOT, 'api', '_shared', 'ad-patterns.js'));
+  const st = patterns.patternStats([
+    { provider: 'meta', primary_text: 'Tired of frames that slip?', metrics: { ctr: 0.05 }, image_url: 'https://x/1.jpg' },
+    { provider: 'meta', primary_text: 'Still squinting at screens?', metrics: { ctr: 0.03 }, video_id: 'v1' },
+    { provider: 'meta', primary_text: 'Why do frames pinch?', metrics: { ctr: 0.04 }, image_url: 'https://x/3.jpg' },
+    { provider: 'meta', primary_text: 'Loved by 20,000 readers.', metrics: { ctr: 0.02 }, video_id: 'v2' },
+    { provider: 'meta', primary_text: 'Rated 4.8 by readers.', metrics: { ctr: null }, image_url: 'https://x/5.jpg' },
+    { provider: 'meta', primary_text: 'Frames for every face.', metrics: { ctr: 0.01 }, image_url: 'https://x/6.jpg' },
+    { provider: 'google_ads', primary_text: null, headline: null, metrics: { ctr: 0.09 } },
+    { provider: 'google_ads', primary_text: null, headline: null, metrics: { ctr: 0.07 } },
+  ]);
+  const meta = st.platforms.find((p) => p.provider === 'meta');
+  const by = Object.fromEntries(meta.patterns.map((p) => [p.pattern, p]));
+  expect(by.question).toMatchObject({ count: 3, of: 6, share_text: '3 of 6', rated: 3 });
+  expect(by.question.median_ctr).toBeCloseTo(0.04, 10);
+  expect(by['social proof']).toMatchObject({ share_text: '2 of 6', rated: 1, median_ctr: null });
+  expect(by['social proof'].rate_reason).toMatch(/under 3, so no rate is given/);
+  expect(by.statement).toMatchObject({ share_text: '1 of 6', median_ctr: null });
+  expect(meta.video.with).toMatchObject({ share_text: '2 of 6', rated: 2, median_ctr: null });
+  expect(meta.video.without).toMatchObject({ share_text: '4 of 6', rated: 3 });
+  expect(meta.video.without.median_ctr).toBeCloseTo(0.04, 10);
+  // Google returned no copy and no format: counted apart, never classified, its rates never pooled with Meta's.
+  const g = st.platforms.find((p) => p.provider === 'google_ads');
+  expect(g).toMatchObject({ ads: 2, copy_read: 0, copy_not_returned: 2, patterns: [], video: null });
+  expect(g.note).toMatch(/2 of 2 Google Ads ads came without their copy/);
+
+  // The shipped path: an import over the fake Meta account, then status.
+  const { db } = world();
+  process.env.LIVE_CONNECTORS = 'on';
+  await call('import', { body: { days: 180 } });
+  const s = await call('status');
+  const pm = s.body.patterns.platforms.find((p) => p.provider === 'meta');
+  // ad-1..ad-4: four openings that are statements; three carry a rate (3%, 1%, 2%), ad-4 none.
+  expect(pm.patterns).toEqual([expect.objectContaining({ pattern: 'statement', share_text: '4 of 4', rated: 3 })]);
+  expect(pm.patterns[0].median_ctr).toBeCloseTo(0.02, 10);
+  expect(pm.video.with).toMatchObject({ share_text: '1 of 4', median_ctr: null });
+  expect(pm.video.without).toMatchObject({ share_text: '3 of 4', rated: 3 });
+  // And the same counts reach the writer, through evidenceAds -> the OWN ADS block.
+  history.resetCache();
+  const ev = await history.evidenceAds('ws-a');
+  const brief = evidence.evidenceBrief(evidence.evidenceFor({ __ownAds: ev }));
+  expect(brief).toContain('Meta openings: statement 4 of 4 (median 2.00%).');
+  expect(brief).toContain('Meta format: with video 1 of 4 (no rate), without video 3 of 4 (median 2.00%).');
+  db.restore && db.restore();
+});

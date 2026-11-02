@@ -1157,6 +1157,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div class="al-k">Evidence</div><div class="al-v note">${alEsc(b.evidence)}</div>
         <div class="btn-row"><button type="button" class="btn btn-ghost" data-use-brief="${alEsc(b.id)}">Use in a Meta ad</button></div>
       </div>`).join('');
+    // Each brief as a finished static ad (2026-11-02): drawn from one product's
+    // own photo and a hook of the bank, shown as the ad itself.
+    const statics = (d.statics || []).length
+      ? `<div class="al-grid">${d.statics.map((st) => `<figure class="al-card" data-angle-static="${alEsc(st.brief)}" style="margin:0"><iframe title="${alEsc(st.hook)}" sandbox="" srcdoc="${alEsc(st.static_html)}" style="width:100%;aspect-ratio:1/1;border:0;display:block"></iframe><figcaption class="note">${alEsc(st.angle_name)} · ${alEsc(st.design && st.design.template)}</figcaption></figure>`).join('')}</div><p class="note">${alEsc(d.statics_note || '')}</p>`
+      : `<p class="note">${alEsc(d.statics_note || '')}</p>`;
     const tp = d.test_plan || { rows: [] };
     const plan = `<table class="al-table"><thead><tr><th>Brief</th><th>Share</th><th>Daily</th></tr></thead><tbody>${tp.rows.map((r) => `<tr><td>${alEsc(r.angle)}</td><td>${r.share}%</td><td>${r.daily != null ? alEsc(r.daily + (tp.currency ? ' ' + tp.currency : '')) : '<span class="note">set a budget</span>'}</td></tr>`).join('')}</tbody></table>
       <p class="note">${alEsc(tp.budget_note)}</p><p class="note">${alEsc(tp.method)}</p><ul class="al-hooks">${(tp.rules || []).map((r) => `<li>${alEsc(r)}</li>`).join('')}</ul>`;
@@ -1165,6 +1170,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         ${rep.read ? `<div class="al-grid">${rows(rep.hooks, 'Hook pattern') ? `<div>${rows(rep.hooks, 'Hook pattern')}</div>` : ''}${rows(rep.formats, 'Format') ? `<div>${rows(rep.formats, 'Format')}</div>` : ''}${rows(rep.personas, 'Audience') ? `<div>${rows(rep.personas, 'Audience')}</div>` : ''}</div>` : ''}</div>
       <div class="al-sec"><h3>Ranked angles and hook bank (${(d.hooks && d.hooks.count) || 0} hooks)</h3><div class="al-grid">${angles}</div></div>
       <div class="al-sec"><h3>Briefs</h3><div class="al-grid">${briefs}</div></div>
+      <div class="al-sec"><h3>Static ads (${(d.statics || []).length})</h3>${statics}</div>
       <div class="card al-sec"><h3>Test plan</h3>${plan}<div class="btn-row"><button type="button" class="btn" id="al-launch">Launch on Meta, step by step</button></div><p class="note">Opens Publishing, Paid launch: each brief becomes its own ad set with its share of the daily budget, built paused. Add a product photo and a landing page there if a brief has none.</p></div>`;
     { const lb = out.querySelector('#al-launch'); if (lb) lb.addEventListener('click', () => {
       const shareOf = {}; for (const r of (tp.rows || [])) shareOf[r.brief] = r.share;

@@ -169,7 +169,9 @@ function installPlatforms(db, opts) {
         if (p[1] === 'adcreatives') {
           const s = b.object_story_spec || {};
           if (!s.page_id || !s.link_data || !s.link_data.picture || !s.link_data.link) return refuse(400, { error: { message: 'object_story_spec needs page_id and link_data' } });
-          const o2 = { id: id('cr'), kind: 'creative', fields: { name: b.name } };
+          // The picture the creative carries is kept, so a spec can assert WHICH
+          // image reached Meta (the designed static or the bare photo).
+          const o2 = { id: id('cr'), kind: 'creative', fields: { name: b.name, picture: s.link_data.picture } };
           A.objects[o2.id] = o2; return { id: o2.id };
         }
         if (p[1] === 'ads') {

@@ -385,6 +385,18 @@ class FakeSupabase {
     const who = token === SERVICE_KEY ? 'service' : this.userFor(token);
     if (!who) return response(401, { message: 'JWT invalid', code: 'PGRST301' });
 
+    // Storage uploads (POST /storage/v1/object/<bucket>/<path>), as supa.js and
+    // static-raster.js call it: the service role only, the bytes kept as sent.
+    const so = /^\/storage\/v1\/object\/([a-z0-9-]+)\/(.+)$/i.exec(u.pathname);
+    if (so && method === 'POST') {
+      if (who !== 'service') return response(403, { statusCode: '403', error: 'Unauthorized', message: 'new row violates row-level security policy' });
+      this.objects = this.objects || {};
+      const key = `${so[1]}/${decodeURIComponent(so[2])}`;
+      const raw = init.body;
+      this.objects[key] = { type: lower['content-type'] || '', bytes: Buffer.isBuffer(raw) ? raw : Buffer.from(raw instanceof Uint8Array ? raw : String(raw || '')) };
+      return response(200, { Key: key });
+    }
+
     const rpc = /^\/rest\/v1\/rpc\/([a-z0-9_]+)$/i.exec(u.pathname);
     if (rpc) return this.callRpc(rpc[1], body || {}, who);
 

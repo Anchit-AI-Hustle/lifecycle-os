@@ -121,6 +121,12 @@ module.exports = async function handler(req, res) {
   // (_shared/code-video.js, docs/code-video-benchmark.md). Mounted here because
   // this is the function that carries Chromium, and the Hobby cap is 12.
   if (req.query && req.query.action === 'video-render') {
+    // The designed static ad drawn to a PNG and hosted (2026-11-02,
+    // _shared/static-raster.js): the same Chromium, so the same function.
+    if (req.query.op === 'static-png') {
+      try { return await require('./_shared/static-raster.js').handle(req, res); }
+      catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'static_png_router_failed', message: 'The ads could not be drawn just now. Please try again.' }); }
+    }
     try { return await require('./_shared/code-video.js').handle(req, res); }
     catch (_) { res.setHeader('Cache-Control', 'no-store'); return res.status(500).json({ ok: false, error: 'video_router_failed', message: 'The video could not be rendered just now. Please try again.' }); }
   }

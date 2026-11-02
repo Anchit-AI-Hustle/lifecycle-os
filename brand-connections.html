@@ -951,7 +951,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }).join('');
     var table = rows ? '<div class="ah-wrap"><table class="ah"><thead><tr><th>Ad</th><th>Platform</th><th>Status</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Conversions</th><th>Cost per result</th><th>ROAS</th><th>Copy</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<p class="note" data-ah-empty>No ads are kept for this brand yet.</p>';
-    el.innerHTML = head + pl + btn + table;
+    // What this brand's own ads are made of (2026-11-02): openings by hook
+    // pattern and video / no video, each a count ("3 of 6"), a median rate only
+    // where 3 or more ads carry one.
+    var pats = ((st && st.patterns && st.patterns.platforms) || []).filter(function (p) { return p.copy_read || p.video; });
+    var rate = function (g) { return g.median_ctr == null ? '<span class="note" title="' + esc(g.rate_reason) + '">no rate</span>' : esc(fmtPct(g.median_ctr)); };
+    var patHtml = pats.length ? '<div data-ah-patterns><h3 style="margin:14px 0 6px">What your ads are made of</h3>' + pats.map(function (p) {
+      var rows = p.patterns.map(function (g) { return '<tr data-ah-pattern="' + esc(g.pattern) + '">' + '<td data-label="Opening">' + esc(g.pattern) + '</td><td data-label="Share" data-ah-share>' + esc(g.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(g) + '</td></tr>'; }).join('');
+      if (p.video) {
+        rows += '<tr data-ah-pattern="with video"><td data-label="Opening">With video</td><td data-label="Share" data-ah-share>' + esc(p.video.with.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.with) + '</td></tr>'
+          + '<tr data-ah-pattern="without video"><td data-label="Opening">Without video</td><td data-label="Share" data-ah-share>' + esc(p.video.without.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.without) + '</td></tr>';
+      }
+      return '<p class="note" style="margin:8px 0 4px"><b>' + esc(p.label) + '</b>' + (p.note ? ' · ' + esc(p.note) : '') + '</p><div class="ah-wrap"><table class="ah"><thead><tr><th>Opening or format</th><th>Share</th><th>Median CTR</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }).join('') + '<p class="note">A share is a count of this platform\'s own ads. A median click-through rate is shown only where 3 or more of those ads carry one.</p></div>' : '';
+    el.innerHTML = head + pl + btn + patHtml + table;
     var b = $('adHistoryImport');
     if (b) b.addEventListener('click', importAdHistory);
   }

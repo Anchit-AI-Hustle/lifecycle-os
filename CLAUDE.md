@@ -4,6 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Four gaps against usefastlane.ai, closed: the designed static ships, per ratio, per angle, and ad history is counted (2026-11-02)
+- **Paid launch sends the designed static** (`api/_shared/static-raster.js` on POST `/api/public-config?action=video-render&op=static-png`
+  {workspace_id, campaign_id}, still 12/12): every static ad's `creative.static_html` is drawn in the shipped Chromium
+  (render-browser.js, one browser and one context, a page per ad, at most 12), its photos fetched by `code-video.fetchImage`
+  (public hosts, every hop, images only, capped), Google Fonts only, everything else aborted; the `.ad` element is a PNG
+  hosted by the service role at `brand-assets/<workspace_id>/<sha256>.png` and recorded as `creative.static_png_url`
+  (+ `static_png` with the page's hash, so an unchanged page is not drawn twice). Owner/editor only (assertCanWrite), the
+  campaign read with the workspace on the query, the `video` rate limit. A photo that cannot be fetched = NO PNG (never a
+  broken picture), said. `paid-launch-core.imageChoice()` prefers an https `static_png_url`, else the photo; each ad carries
+  `image_source` (`designed_static` | `photo`) and the plan's notes say which it sends. /publishing's Paid launch draws the
+  statics before planning a campaign launch (a refusal is not a failure; the notes say).
+- **One static per ratio**: `attachStaticCreative` renders the same theme/template/words at 1:1, 4:5, 9:16 into
+  `creative.static_by_ratio`; `static-ad.safeZoneFor(platform)` READS the 9:16 safe zone from asset-specs (Meta story_reel
+  top 250 / bottom 420 px, TikTok in_feed right 120 / bottom 480; unknown platform = both), and a 9:16 frame lays the
+  template out inside it (its own container, at the ratio nearest the zone's shape; the bands are the brand ground, no
+  copy). Paid launch still sends ONE image: a per-placement asset field on Meta was not confirmed.
+- **Winning angles draw statics** (`ad-angle-lab.staticsFor`): one per (brief, hook), every brief's first hook before any
+  second, at most 12, from the FIRST catalogue product with its own https photo (`heroWithPhoto`, through
+  brand-catalog-server, said as such), theme/template from `asset-themes.pick`, price/compare-at only as the store states
+  them, benefits = the brand's own claims; each brief gets `creative.static_html`; no photo = no statics + the marker in
+  `gaps`. The /ad-campaigns tab shows them (sandboxed srcdoc frames).
+- **Ad history is counted** (`api/_shared/ad-patterns.js`): per platform (never pooled), openings by ad-angle-lab's
+  `hookPattern`, and with / without video where the platform returned the format; every share a count ("3 of 6"), a median
+  CTR only from 3+ rated ads (else `null` + reason); copy or format not returned counted apart. On `ad-history` status
+  (`patterns`), the /connections Ad history card ("What your ads are made of"), and creative-evidence's OWN ADS block.
+- Gated by `paid-launch-executed` (2 new: the real PNG drawn in Chromium, decoded by pngjs, hosted in the fake's new
+  Storage route, and the fake Meta creative's recorded `picture`), `asset-themes-ads` (three ratios, one design; every word
+  of every 9:16 frame inside the zone, measured), `ad-angle-lab` (statics), `ad-history-executed` + `ad-history-page`
+  (patterns). `tests/lib/fake-supabase.js` now models a service-role Storage upload; `fake-social-platforms.js` keeps a
+  creative's `picture`.
+
 ## ⭐ Claude through Amazon Bedrock is the Messages endpoint, for Claude 4.7 and later (2026-11-02)
 `llm.js` `_bedrock`: a model id with no `:` version (`anthropic.claude-opus-5-5`, from `bedrockModelId('claude-opus-5-5')`)
 goes to Claude in Amazon Bedrock, `https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages` (first-party body,
