@@ -71,6 +71,15 @@ test.describe('template offerings follow the template, not the host', () => {
     expect(TPL.slotTemplateVerdict({ heroProduct: { title: MARATHON } }, stranger)).toBeNull();
   });
 
+  test('a record on the template\'s own website, with no template label, keeps its own offerings', () => {
+    const toi = require('../data/brands/presets/times-of-india.json');
+    const own = { name: toi.name, website: toi.website, brand_data: { offerings: toi.offerings } };
+    expect(TPL.foreignTemplateOfferings(own).has('india')).toBe(false);
+    expect(TPL.slotTemplateVerdict({ heroOffering: { kind: 'section', name: 'India' } }, own)).toBeNull();
+    // ...while the Health & Fitness vertical's programmes stay foreign to it.
+    expect(TPL.slotTemplateVerdict({ heroOffering: { kind: 'programme', name: MARATHON } }, own)).not.toBeNull();
+  });
+
   test('scrubForeignProducts clears that slot before it is built', () => {
     const entry = { id: 's2', market: 'IN', objective: 'Nurture', brand: toiRenamed, heroOffering: { kind: 'programme', name: MARATHON }, heroProduct: { title: MARATHON }, supportingProducts: [] };
     const fn = plan.__test_scrubForeignProducts || null;
