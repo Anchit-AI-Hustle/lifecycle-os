@@ -11,9 +11,9 @@
  * Times of India home page kept getting the vertical's programmes.
  *
  * A template's offerings are a brand's only when the record IS that template:
- * the same template slug, the same website (host AND path: two sections of one
- * site are two brands), and the same name. Anything less and the record is
- * another brand that happens to share a host or a template label.
+ * the same template slug and the same website (host AND path: two sections of
+ * one site are two brands). A rename is the person's and keeps them. Anything
+ * less and the record is another brand that shares a host or a template label.
  *
  * Slots planned before this rule may still name such an offering. An offering
  * whose name only a template the brand is NOT carries (and which the brand's
@@ -56,7 +56,7 @@ function templateSlugOf(brand) {
   return /^[a-z0-9-]{1,60}$/.test(s) ? s : '';
 }
 
-/** Is this record the template itself (slug, host, path and name all agree)? */
+/** Is this record the template's brand (slug, host and path all agree)? */
 function presetMatches(brand, preset) {
   if (!brand || !preset) return false;
   const t = templateSlugOf(brand);
@@ -64,8 +64,9 @@ function presetMatches(brand, preset) {
   if (!t || !ps || t !== ps) return false;
   const b = site(brand.website);
   const p = site(preset.website);
-  if (!b.host || b.host !== p.host || b.path !== p.path) return false;
-  return !!fold(brand.name) && fold(brand.name) === fold(preset.name);
+  // The name is the person's to change (a brand made from a template may be
+  // renamed and stay that template's brand); the website is not.
+  return !!b.host && b.host === p.host && b.path === p.path;
 }
 
 /** The template's offerings when the record is that template, else []. */
