@@ -4,6 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Claude through Amazon Bedrock is the Messages endpoint, for Claude 4.7 and later (2026-11-02)
+`llm.js` `_bedrock`: a model id with no `:` version (`anthropic.claude-opus-5-5`, from `bedrockModelId('claude-opus-5-5')`)
+goes to Claude in Amazon Bedrock, `https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages` (first-party body,
+`anthropic-version`, a Bedrock API key in `x-api-key`, SigV4 signed for `bedrock-mantle`); an ARN-versioned id
+(`anthropic.claude-3-...:0`, `us.anthropic...:0`) stays on InvokeModel. Read 2026-11-02:
+platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock. With no Anthropic key the Anthropic slot asks
+Bedrock's own chain (`modelsFor('bedrock')`: premium `BEDROCK_TEXT_MODEL_MAX` else Opus 5.5 then Opus 4.8; standard
+Sonnet 5 then Opus 4.8; fast Haiku 4.5) and the Bedrock slot is not tried again with the same key. `BEDROCK_REGION` now
+outranks `AWS_REGION` (on Vercel that is the function's own region). `providerSays` redacts `ABSK` keys.
+Production env (sensitive): `BEDROCK_API_KEY`, plus `BEDROCK_REGION=us-east-1` and the three `BEDROCK_TEXT_MODEL*` =
+`anthropic.claude-opus-5-5`. Measured with the operator's key on 2026-11-02: it authenticates in us-east-1, but every Claude
+model answers "not available for this account" (Opus 5.5, 5, 4.8, Sonnet 5, Haiku 4.5), and InvokeModel is refused by an
+explicit deny on `bedrock:CallWithBearerToken` in the AWS Organization's service control policy. The account owner must enable
+Claude model access in the Bedrock console (and lift that SCP for InvokeModel); no code change is needed after that.
+Gated in `llm-provider-chain` (x-api-key only, one call, model map, redaction; mutation-checked) and `unified-credits-bedrock-deepseek`.
+
 ## ⭐ Hugging Face is the person's own model: paste a token or Sign in with Hugging Face (2026-11-01)
 The "not built yet" from 2026-10-24 is built. A `huggingface` AI connection on /ai-models and /connections
 (`workspace-connections-core` PROVIDERS, `env_default ''`: there is NO platform key and it is in no platform

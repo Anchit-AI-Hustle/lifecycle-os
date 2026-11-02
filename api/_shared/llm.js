@@ -215,17 +215,27 @@ function noteOutcome(kind, info) {
 
 // ── AWS Bedrock helpers for Claude models ────────────────────────────────────
 function bedrockModelId(model) {
-  if (typeof model !== 'string' || !model) return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
-  if (model.startsWith('anthropic.') || model.startsWith('us.anthropic.') || model.startsWith('eu.anthropic.')) return model;
+  if (typeof model !== 'string' || !model) return 'anthropic.claude-opus-5-5';
+  if (/^(?:[a-z]{2,6}\.)?anthropic\./.test(model)) return model;
   const m = model.toLowerCase();
-  if (m.includes('opus')) return 'anthropic.claude-3-opus-20240229-v1:0';
-  if (m.includes('haiku-3-5') || m.includes('3.5-haiku') || m.includes('haiku-5')) return 'anthropic.claude-3-5-haiku-20241022-v1:0';
-  if (m.includes('haiku')) return 'anthropic.claude-3-haiku-20240307-v1:0';
-  if (m.includes('sonnet')) return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
-  return 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+  // Claude Opus 4.7 and later are served by Claude in Amazon Bedrock as
+  // `anthropic.<first-party id>` (platform.claude.com/docs/en/build-with-claude/
+  // claude-in-amazon-bedrock, read 2026-11-02): no date, no ":0" version.
+  if (/^claude-(?:opus|sonnet|haiku|fable|mythos)-\d/.test(m) && !/^claude-3/.test(m)) return 'anthropic.' + m;
+  if (m.includes('opus')) return 'anthropic.claude-opus-5-5';
+  if (m.includes('haiku')) return 'anthropic.claude-haiku-4-5';
+  return 'anthropic.claude-sonnet-5';
 }
 
-function signAwsBedrock({ region, accessKeyId, secretAccessKey, sessionToken, method, url, body, headers = {} }) {
+// Claude in Amazon Bedrock (Opus 4.7 and later) answers the Messages API at
+// https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages; the older
+// InvokeModel path serves only ARN-versioned ids (anthropic.claude-3-...:0,
+// us.anthropic....:0). A model id with a ":" version is the older path.
+function bedrockIsMantle(bModel) {
+  return /^anthropic\.claude-/.test(bModel) && !/:/.test(bModel) && !/^anthropic\.claude-(?:3|instant|v2)/.test(bModel);
+}
+
+function signAwsBedrock({ region, accessKeyId, secretAccessKey, sessionToken, method, url, body, headers = {}, service = 'bedrock' }) {
   const u = new URL(url);
   const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
   const datestamp = datetime.slice(0, 8);
@@ -260,7 +270,7 @@ function signAwsBedrock({ region, accessKeyId, secretAccessKey, sessionToken, me
     payloadHash,
   ].join('\n');
 
-  const credentialScope = `${datestamp}/${region}/bedrock/aws4_request`;
+  const credentialScope = `${datestamp}/${region}/${service}/aws4_request`;
   const stringToSign = [
     'AWS4-HMAC-SHA256',
     datetime,
@@ -274,7 +284,7 @@ function signAwsBedrock({ region, accessKeyId, secretAccessKey, sessionToken, me
 
   const kDate = hmac('AWS4' + secretAccessKey, datestamp);
   const kRegion = hmac(kDate, region);
-  const kService = hmac(kRegion, 'bedrock');
+  const kService = hmac(kRegion, service);
   const kSigning = hmac(kService, 'aws4_request');
   const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex');
 
@@ -379,9 +389,13 @@ function modelsFor(provider, tier) {
       if (tier === 'premium') return _dedupe([env.DEEPSEEK_TEXT_MODEL_MAX || 'deepseek-v4-pro', 'deepseek-flash']);
       return _dedupe([env.DEEPSEEK_TEXT_MODEL || 'deepseek-flash']);
     case 'bedrock':
-      if (tier === 'premium') return _dedupe([env.BEDROCK_TEXT_MODEL_MAX || 'anthropic.claude-3-5-sonnet-20241022-v2:0', 'anthropic.claude-3-opus-20240229-v1:0']);
-      if (tier === 'fast')    return _dedupe([env.BEDROCK_TEXT_MODEL_FAST || 'anthropic.claude-3-5-haiku-20241022-v1:0']);
-      return _dedupe([env.BEDROCK_TEXT_MODEL || 'anthropic.claude-3-5-sonnet-20241022-v2:0', 'anthropic.claude-3-5-haiku-20241022-v1:0']);
+      // Claude in Amazon Bedrock ids (platform.claude.com/docs/en/build-with-claude/
+      // claude-in-amazon-bedrock, read 2026-11-02). Opus 4.8, Sonnet 5 and
+      // Haiku 4.5 are open to every Bedrock account; Opus 5.5 needs the account's
+      // model access, so it leads only where the operator names it in the env.
+      if (tier === 'premium') return _dedupe([env.BEDROCK_TEXT_MODEL_MAX || 'anthropic.claude-opus-5-5', 'anthropic.claude-opus-4-8']);
+      if (tier === 'fast')    return _dedupe([env.BEDROCK_TEXT_MODEL_FAST || 'anthropic.claude-haiku-4-5']);
+      return _dedupe([env.BEDROCK_TEXT_MODEL || 'anthropic.claude-sonnet-5', 'anthropic.claude-opus-4-8']);
     case 'pollinations':
       // A label for the trace only: the request names no model, because the
       // service's documentation names none to send (text.pollinations.ai/models
@@ -571,11 +585,17 @@ module.exports = async function callLLM(opts) {
   const anthropicKey = _clean(ovKeys.anthropic) || _clean(process.env.ANTHROPIC_API_KEY);
   const bedrockAccessKey = _clean(ovKeys.bedrock_access_key_id) || _clean(ovKeys.aws_access_key_id) || _clean(process.env.AWS_ACCESS_KEY_ID);
   const bedrockSecretKey = _clean(ovKeys.bedrock_secret_access_key) || _clean(ovKeys.aws_secret_access_key) || _clean(process.env.AWS_SECRET_ACCESS_KEY);
-  const bedrockRegion = _clean(ovKeys.aws_region) || _clean(process.env.AWS_REGION) || _clean(process.env.AWS_DEFAULT_REGION) || _clean(process.env.BEDROCK_REGION) || 'us-east-1';
+  // BEDROCK_REGION first: on Vercel AWS_REGION is the FUNCTION's own region
+  // (bom1 = ap-south-1), not the region the Bedrock key and model live in.
+  const bedrockRegion = _clean(ovKeys.aws_region) || _clean(process.env.BEDROCK_REGION) || _clean(process.env.AWS_REGION) || _clean(process.env.AWS_DEFAULT_REGION) || 'us-east-1';
   const bedrockSessionToken = _clean(ovKeys.aws_session_token) || _clean(process.env.AWS_SESSION_TOKEN);
   const bedrockApiKey = _clean(ovKeys.bedrock) || _clean(process.env.BEDROCK_API_KEY) || _clean(process.env.AWS_BEDROCK_API_KEY);
   const hasBedrockSigV4 = !!(bedrockAccessKey && bedrockSecretKey);
   const hasBedrockKey = hasBedrockSigV4 || !!bedrockApiKey;
+  // Claude is reached through Bedrock when there is no Anthropic key (or the
+  // operator asks for it). The Anthropic slot then asks for Bedrock's own model
+  // chain, and the separate Bedrock slot is not tried again with the same key.
+  const anthropicViaBedrock = hasBedrockKey && (!anthropicKey || String(process.env.USE_BEDROCK_FOR_ANTHROPIC || '').toLowerCase() === 'true' || anthropicKey.startsWith('aws:') || anthropicKey.startsWith('bedrock:'));
 
   const deepseekKey = _clean(ovKeys.deepseek) || _clean(process.env.DEEPSEEK_API_KEY);
   // A person who signed in with Google (ai-account-signin.js) carries an OAuth
@@ -601,6 +621,7 @@ module.exports = async function callLLM(opts) {
     openai: OPENAI_BASE, anthropic: ANTHROPIC_BASE,
     deepseek: (ov && ov.bases && ov.bases.deepseek) || DEEPSEEK_BASE,
     bedrock: (ov && ov.bases && ov.bases.bedrock) || `https://bedrock-runtime.${bedrockRegion}.amazonaws.com`,
+    bedrock_mantle: (ov && ov.bases && ov.bases.bedrock_mantle) || `https://bedrock-mantle.${bedrockRegion}.api.aws`,
     gemini: GEMINI_BASE, grok: GROK_BASE, groq: GROQ_BASE, cerebras: CEREBRAS_BASE,
     openrouter: OPENROUTER_BASE, huggingface: HUGGINGFACE_BASE,
     cloudflare: cloudflareBase(), ollama: OLLAMA_BASE, sakana: SAKANA_BASE,
@@ -718,17 +739,24 @@ module.exports = async function callLLM(opts) {
     const claudeSystem = responseFormat
       ? systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. First character must be { and last must be }. No markdown fences, no commentary, no text before or after.'
       : systemPrompt;
+    const mantle = bedrockIsMantle(bModel);
 
-    const bodyStr = JSON.stringify(Object.assign({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: maxTokens,
-      system: claudeSystem,
-      messages: [{ role: 'user', content: seededUserMessage }]
-    }, /^claude-3/.test(model) ? { temperature } : {}));
+    const bodyStr = mantle
+      // The first-party Messages API shape; temperature is not sent (4.6+
+      // Claude models reject sampling parameters).
+      ? JSON.stringify({ model: bModel, max_tokens: maxTokens, system: claudeSystem, messages: [{ role: 'user', content: seededUserMessage }] })
+      : JSON.stringify(Object.assign({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: maxTokens,
+        system: claudeSystem,
+        messages: [{ role: 'user', content: seededUserMessage }]
+      }, /^claude-3/.test(model) ? { temperature } : {}));
 
-    const url = bases.bedrock + '/model/' + encodeURIComponent(bModel) + '/invoke';
+    const url = mantle
+      ? bases.bedrock_mantle + '/anthropic/v1/messages'
+      : bases.bedrock + '/model/' + encodeURIComponent(bModel) + '/invoke';
 
-    let reqHeaders = { 'Content-Type': 'application/json' };
+    let reqHeaders = mantle ? { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' } : { 'Content-Type': 'application/json' };
     if (hasBedrockSigV4) {
       reqHeaders = signAwsBedrock({
         region: bedrockRegion,
@@ -738,10 +766,14 @@ module.exports = async function callLLM(opts) {
         method: 'POST',
         url,
         body: bodyStr,
-        headers: { 'content-type': 'application/json' },
+        headers: mantle ? { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' } : { 'content-type': 'application/json' },
+        service: mantle ? 'bedrock-mantle' : 'bedrock',
       });
     } else if (bedrockApiKey) {
-      reqHeaders['Authorization'] = 'Bearer ' + bedrockApiKey;
+      // Claude in Amazon Bedrock takes a bearer token in x-api-key; the
+      // InvokeModel path takes it as Authorization: Bearer.
+      if (mantle) reqHeaders['x-api-key'] = bedrockApiKey;
+      else reqHeaders['Authorization'] = 'Bearer ' + bedrockApiKey;
     }
 
     return attempt('bedrock', bModel, url, {
@@ -756,7 +788,7 @@ module.exports = async function callLLM(opts) {
   }
 
   function _anthropic(model) {
-    if (hasBedrockKey && (!anthropicKey || String(process.env.USE_BEDROCK_FOR_ANTHROPIC || '').toLowerCase() === 'true' || anthropicKey.startsWith('aws:') || anthropicKey.startsWith('bedrock:'))) {
+    if (anthropicViaBedrock) {
       return _bedrock(model);
     }
     // Claude has no native JSON mode — inject instruction into system prompt
@@ -1086,8 +1118,10 @@ module.exports = async function callLLM(opts) {
     // may name a model this platform does not ship, which is deliberate: the
     // account paying for the call knows what it can reach, and a model-not-found
     // demotes within the provider.
-    const chosen = ovModels[providerName];
-    const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(providerName, tierNorm)).map((m) => String(m || '').trim()));
+    if (providerName === 'bedrock' && anthropicViaBedrock && order.includes('anthropic')) { _skipped.push({ provider: 'bedrock', reason: 'tried as Claude through Bedrock' }); continue; }
+    const listName = providerName === 'anthropic' && anthropicViaBedrock ? 'bedrock' : providerName;
+    const chosen = ovModels[listName];
+    const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(listName, tierNorm)).map((m) => String(m || '').trim()));
     const keys = providerName === 'openai' ? openaiKeys : [keyFor[providerName]];
     // A connection Test (overrides.fresh) always makes the real call: a person who
     // just pasted a new key, or added credit, must hear the provider's answer now,
@@ -1271,3 +1305,5 @@ module.exports.keylessOnly = async function keylessOnly() {
     || (!!process.env.SAKANA_BASE_URL && any(process.env.SAKANA_API_KEY)));
 };
 module.exports._resetKeyless = function () { KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
+module.exports.bedrockModelId = bedrockModelId;
+module.exports.bedrockIsMantle = bedrockIsMantle;

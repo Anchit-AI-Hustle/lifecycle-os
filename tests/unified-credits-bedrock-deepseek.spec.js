@@ -170,9 +170,12 @@ test('AWS Bedrock AI model signs SigV4 and invokes Claude endpoint correctly', a
 
   expect(res.provider).toBe('bedrock');
   expect(res.text).toBe('response from Bedrock Claude');
-  expect(captured.url).toBe('https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-3-5-sonnet-20241022-v2%3A0/invoke');
+  // Changed on purpose (2026-11-02): Claude 4.7+ is served by Claude in Amazon
+  // Bedrock at /anthropic/v1/messages, signed for the bedrock-mantle service.
+  expect(captured.url).toBe('https://bedrock-mantle.us-east-1.api.aws/anthropic/v1/messages');
+  expect(JSON.parse(captured.init.body).model).toBe('anthropic.claude-sonnet-5');
   const auth = captured.init.headers.Authorization || captured.init.headers.authorization;
-  expect(auth).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7BEDROCK\/.*\/us-east-1\/bedrock\/aws4_request/);
+  expect(auth).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7BEDROCK\/.*\/us-east-1\/bedrock-mantle\/aws4_request/);
   expect(captured.init.headers['x-amz-date']).toBeTruthy();
 });
 
