@@ -16,7 +16,13 @@
  *               platform says what was read and what was not.
  *   op=list     (member) the brand's ads with their metrics.
  *   op=status   (member) per platform: built or not (with why), connected,
- *               the last import and how many ads are kept.
+ *               the last import and how many ads are kept; what the ads are
+ *               made of (ad-patterns.js) and their ranking by cost per result
+ *               with each platform's winners (ad-performance.js).
+ *   op=variations (owner or editor, POST, metered ads.copy_matrix) new
+ *               versions of one of the brand's own WINNING ads, in its hook
+ *               pattern and format, within its platform's limits
+ *               (ad-variations.js).
  *
  * WHICH PLATFORMS, and why only these. Every call goes through an adapter's
  * `callEndpoint`, which refuses an endpoint its table marks unverified.
@@ -50,7 +56,7 @@ const brandCore = require('./brand-workspace-core.js');
 const registry = require('./adapters/registry.js');
 const { liveConnectorsEnabled } = require('./live-connectors.js');
 
-const OPS = ['status', 'import', 'list'];
+const OPS = ['status', 'import', 'list', 'variations'];
 const DEFAULT_DAYS = 180;
 const MAX_DAYS = 1095;          // Meta's insights reach 37 months; kept inside it
 const DAY = 86400000;
@@ -240,9 +246,22 @@ async function listFor(workspaceId, { provider, limit } = {}) {
   return Array.isArray(rows) ? rows : [];
 }
 
+/**
+ * THE ONE READ every judgement of this brand's ads is made from (2026-11-02,
+ * review of #413): the status ranking and its winners, op=variations and the
+ * writer's evidence. They were three slices (1,000 unordered, the 500 newest,
+ * the 300 newest), so an ad ranked a winner on the card could be refused as
+ * "not a winner". Same rows, same order, same limit, metrics cleaned.
+ */
+const JUDGED_LIMIT = 1000;
+async function judgedRows(workspaceId) {
+  const rows = await svc(`brand_ad_history?select=*&workspace_id=eq.${enc(workspaceId)}&order=last_seen.desc,ad_id.asc&limit=${JUDGED_LIMIT}`);
+  return (Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }));
+}
+
 async function statusFor(workspaceId) {
   const runs = await svc(`brand_ad_history_runs?select=*&workspace_id=eq.${enc(workspaceId)}&order=ran_at.desc&limit=40`);
-  const rows = await svc(`brand_ad_history?select=provider,ad_id,primary_text,headline,image_url,video_url,video_id,metrics&workspace_id=eq.${enc(workspaceId)}&limit=1000`);
+  const rows = await judgedRows(workspaceId);
   const counts = {};
   for (const r of Array.isArray(rows) ? rows : []) counts[r.provider] = (counts[r.provider] || 0) + 1;
   const out = [];
@@ -255,9 +274,34 @@ async function statusFor(workspaceId) {
     out.push({ provider: p.id, label: p.label, built: p.built, reason: p.reason || '', window_note: p.window_note || '', connected, ads: counts[p.id] || 0, last_import: last });
   }
   // What the brand's own ads are made of, counted per platform (2026-11-02).
+  const clean = rows;
   let patterns = null;
-  try { patterns = require('./ad-patterns.js').patternStats((Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { metrics: cleanMetrics(r.metrics) }))); } catch (_) { patterns = null; }
-  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out, patterns };
+  try { patterns = require('./ad-patterns.js').patternStats(clean); } catch (_) { patterns = null; }
+  // Ranked by cost per result, per platform and currency, with each
+  // platform's winners on the basis it could judge (2026-11-02).
+  let performance = null;
+  try { performance = performanceOf(clean); } catch (_) { performance = null; }
+  return { ok: true, live_connectors: liveConnectorsEnabled(), default_days: DEFAULT_DAYS, platforms: out, patterns, performance };
+}
+
+/** The ranking and the winners the page shows: figures and ids only, no copy. */
+function performanceOf(ads) {
+  const perf = require('./ad-performance.js');
+  // A winner can be varied only when the platform returned its copy (Google
+  // Ads' is not read), so each says whether it has copy and, if not, why.
+  const opening = require('./ad-patterns.js').opening;
+  const byId = {};
+  for (const a of ads) byId[`${a.provider}|${a.ad_id}`] = a;
+  const copyOf = (prov, id) => !!opening(byId[`${prov}|${id}`] || {});
+  const noCopy = (prov) => `${(PLATFORMS.find((p) => p.id === prov) || {}).label || prov} did not return this ad's copy, so there is nothing to vary.`;
+  const slimFor = (prov) => (x) => ({ ad_id: x.ad_id, name: x.name, value: x.value, value_basis: x.value_basis, has_copy: copyOf(prov, x.ad_id), no_copy_reason: copyOf(prov, x.ad_id) ? '' : noCopy(prov) });
+  const ranking = perf.rankByCostPerResult(ads);
+  for (const g of ranking.platforms) for (const r of g.ranked) { r.has_copy = copyOf(g.provider, r.ad_id); r.no_copy_reason = r.has_copy ? '' : noCopy(g.provider); }
+  return {
+    ranking,
+    winners: perf.winnersFor(ads).map((w) => ({ provider: w.provider, label: w.label, basis: w.basis, metric: w.metric, currency: w.currency || null, median: w.median, rated: w.rated, ads: w.ads,
+      winners: w.winners.map(slimFor(w.provider)), losers: w.losers.map(slimFor(w.provider)), note: w.note || '', reason: w.reason || '', cpr_reason: w.cpr_reason || '' })),
+  };
 }
 
 /**
@@ -274,7 +318,7 @@ async function evidenceAds(workspaceId, { ttlMs = 10 * 60 * 1000 } = {}) {
   try {
     const runs = await svc(`brand_ad_history_runs?select=provider,ok,ran_at&workspace_id=eq.${enc(workspaceId)}&ok=eq.true&order=ran_at.desc&limit=1`);
     if (Array.isArray(runs) && runs.length) {
-      const rows = await listFor(workspaceId, { limit: 300 });
+      const rows = await judgedRows(workspaceId);
       value = {
         imported: true,
         ads: rows.map((r) => ({
@@ -315,10 +359,17 @@ async function refreshDue({ maxWorkspaces = 2, olderThanMs = 20 * 3600 * 1000 } 
 
 /* ── router ───────────────────────────────────────────────────────────────── */
 
-async function handle(req, res, { auth, workspaceId, body } = {}) {
+async function handle(req, res, { auth, workspaceId, body, brand } = {}) {
   const q = (req && req.query) || {};
   const b = body && typeof body === 'object' ? body : {};
-  const op = String(q.op || b.op || 'status').toLowerCase();
+  // The op is read from the QUERY, where api/brain.js's meter reads it (it
+  // decides before the body is parsed). A body naming another op is refused,
+  // so op=variations can never run unmetered by hiding in the body (2026-11-02,
+  // review of #413).
+  const op = String(q.op || 'status').toLowerCase();
+  if (b.op != null && String(b.op).toLowerCase() !== String(q.op || '').toLowerCase()) {
+    return res.status(400).json({ ok: false, error: 'op_in_query', message: 'Name the operation in the address (?op=...), not only in the body: the body named a different one, so nothing was run.' });
+  }
   if (OPS.indexOf(op) < 0) return res.status(400).json({ ok: false, error: 'unknown_ad_history_operation', available: OPS });
   if (!workspaceId) {
     return res.status(op === 'status' ? 200 : 409).json({
@@ -335,17 +386,28 @@ async function handle(req, res, { auth, workspaceId, body } = {}) {
       resetCache();
       return res.status(200).json(out);
     }
+    if (op === 'variations') {
+      if (String(req.method || 'POST').toUpperCase() !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Variations are made with a POST.' });
+      await brandCore.assertCanWrite(auth, workspaceId, 'make ad variations');
+      const rows = await judgedRows(workspaceId);
+      const out = await require('./ad-variations.js').variationsFor({
+        ads: rows,
+        brand: brand || null, adId: b.ad_id || q.ad_id || null, n: b.n || q.n,
+      });
+      // Which model did the work is the platform's business; whether one did is said.
+      return res.status(200).json(out);
+    }
     const ws = await brandCore.getWorkspace(auth, workspaceId);
     if (!ws) throw err(404, 'workspace_not_found', 'That brand is not one you can see.');
     if (op === 'list') return res.status(200).json({ ok: true, ads: await listFor(workspaceId, { provider: q.provider || b.provider, limit: q.limit || b.limit }) });
     return res.status(200).json(await statusFor(workspaceId));
   } catch (e) {
-    return res.status(e && e.status ? e.status : 500).json({ ok: false, error: (e && e.code) || 'ad_history_failed', message: (e && e.message) || 'The ad history operation failed.' });
+    return res.status(e && e.status ? e.status : 500).json(Object.assign({ ok: false, error: (e && e.code) || 'ad_history_failed', message: (e && e.message) || 'The ad history operation failed.' }, (e && e.extra) || {}));
   }
 }
 
 module.exports = {
-  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache,
+  handle, importFor, listFor, statusFor, evidenceAds, refreshDue, resetCache, performanceOf, judgedRows, JUDGED_LIMIT,
   readPlatform, cleanMetrics, windowFor, inWindow,
   OPS, PLATFORMS, DEFAULT_DAYS,
 };

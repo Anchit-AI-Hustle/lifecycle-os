@@ -156,6 +156,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   table.ah th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
   table.ah td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
   table.ah .copy{color:var(--muted);overflow-wrap:anywhere}
+  table.ah td{overflow-wrap:anywhere}
+  .ah-sec{margin-top:16px}
+  .ah-sec h3{margin:0 0 6px;font-size:15px}
+  .ah-tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--muted);white-space:nowrap}
+  .ah-tag[data-verdict="below_median"]{border-color:var(--primary);color:var(--brand-primary-text,var(--ink))}
+  .ah-vars{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:10px;margin-top:8px}
+  .ah-var{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);font-size:13px;line-height:1.5;min-width:0;overflow-wrap:anywhere}
+  .ah-var b{display:block;margin-bottom:4px}
+  .btn.sm{padding:5px 10px;font-size:12px;min-height:0}
   @media(max-width:720px){
     table.ah thead{display:none}
     table.ah,table.ah tbody,table.ah tr,table.ah td{display:block;width:100%}
@@ -930,7 +939,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var el = $('adHistoryCard');
     el.hidden = false;
     var plats = (st && st.platforms) || [];
-    var head = '<h2>Ad history</h2><p class="note">This brand\'s own ads, read from its connected ad accounts with the figures each platform returned. They are evidence for new ads: what ran above this brand\'s own median click-through rate, and what ran below it.</p>';
+    var head = '<h2>Ad history</h2><p class="note">This brand\'s own ads, read from its connected ad accounts with the figures each platform returned. They are evidence for new ads: on each platform, the ads that cost less per result than this brand\'s own median (or, where too few carry a cost per result, ran above its median click-through rate), and the ones that did worse.</p>';
     var pl = '<div class="ah-plats">' + plats.map(function (p) {
       var last = p.last_import;
       var line = !p.built ? p.reason
@@ -947,7 +956,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<tr data-ah-ad="' + esc(a.ad_id) + '">' + cell('Ad', a.name || a.ad_id) + cell('Platform', a.provider === 'google_ads' ? 'Google Ads' : (a.provider === 'meta' ? 'Meta' : a.provider)) +
         cell('Status', a.status || '') + cell('Spend', m.spend == null ? '' : fmtN(m.spend, 2) + (a.currency ? ' ' + a.currency : ''), 'n') + cell('Impressions', fmtN(m.impressions), 'n') +
         cell('Clicks', fmtN(m.clicks), 'n') + cell('CTR', fmtPct(m.ctr), 'n') + cell('Conversions', fmtN(m.conversions, 2), 'n') +
-        cell('Cost per result', fmtN(m.cost_per_result, 2), 'n') + cell('ROAS', m.roas == null ? '' : fmtN(m.roas, 2) + 'x', 'n') + cell('Copy', copy, 'copy') + '</tr>';
+        cell('Cost per result', m.cost_per_result == null ? '' : fmtN(m.cost_per_result, 2) + (a.currency ? ' ' + a.currency : ''), 'n') + cell('ROAS', m.roas == null ? '' : fmtN(m.roas, 2) + 'x', 'n') + cell('Copy', copy, 'copy') + '</tr>';
     }).join('');
     var table = rows ? '<div class="ah-wrap"><table class="ah"><thead><tr><th>Ad</th><th>Platform</th><th>Status</th><th>Spend</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Conversions</th><th>Cost per result</th><th>ROAS</th><th>Copy</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
       : '<p class="note" data-ah-empty>No ads are kept for this brand yet.</p>';
@@ -959,14 +968,97 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var patHtml = pats.length ? '<div data-ah-patterns><h3 style="margin:14px 0 6px">What your ads are made of</h3>' + pats.map(function (p) {
       var rows = p.patterns.map(function (g) { return '<tr data-ah-pattern="' + esc(g.pattern) + '">' + '<td data-label="Opening">' + esc(g.pattern) + '</td><td data-label="Share" data-ah-share>' + esc(g.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(g) + '</td></tr>'; }).join('');
       if (p.video) {
-        rows += '<tr data-ah-pattern="with video"><td data-label="Opening">With video</td><td data-label="Share" data-ah-share>' + esc(p.video.with.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.with) + '</td></tr>'
-          + '<tr data-ah-pattern="without video"><td data-label="Opening">Without video</td><td data-label="Share" data-ah-share>' + esc(p.video.without.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.without) + '</td></tr>';
+        rows += '<tr data-ah-pattern="with video"><td data-label="Format">With video</td><td data-label="Share" data-ah-share>' + esc(p.video.with.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.with) + '</td></tr>'
+          + '<tr data-ah-pattern="without video"><td data-label="Format">Without video</td><td data-label="Share" data-ah-share>' + esc(p.video.without.share_text) + '</td><td data-label="Median CTR" class="n">' + rate(p.video.without) + '</td></tr>';
       }
       return '<p class="note" style="margin:8px 0 4px"><b>' + esc(p.label) + '</b>' + (p.note ? ' · ' + esc(p.note) : '') + '</p><div class="ah-wrap"><table class="ah"><thead><tr><th>Opening or format</th><th>Share</th><th>Median CTR</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     }).join('') + '<p class="note">A share is a count of this platform\'s own ads. A median click-through rate is shown only where 3 or more of those ads carry one.</p></div>' : '';
-    el.innerHTML = head + pl + btn + patHtml + table;
+    el.innerHTML = head + pl + btn + perfHtml(st) + patHtml + table + '<div id="adVariations" data-ah-variations></div>';
     var b = $('adHistoryImport');
     if (b) b.addEventListener('click', importAdHistory);
+    Array.prototype.forEach.call(el.querySelectorAll('[data-ah-vary]'), function (x) { x.addEventListener('click', function () { makeVariations(x.getAttribute('data-ah-vary'), x); }); });
+  }
+  /* Ranked by cost per result (2026-11-02, ad-performance.js): per platform
+     and currency, never pooled; a median and a winner only from 3 or more ads
+     that carry the figure. Where too few do, the platform's winners are by
+     click-through rate, and the card says so. Each winner can make variations. */
+  function money(v, cur) { return v == null ? '' : fmtN(v, 2) + (cur ? ' ' + cur : ''); }
+  function verdictWords(v) { return v === 'below_median' ? 'cheaper than your median' : v === 'above_median' ? 'dearer than your median' : v === 'at_median' ? 'at your median' : ''; }
+  function perfHtml(st) {
+    var perf = st && st.performance;
+    if (!perf) return '';
+    var winners = perf.winners || [];
+    var winIds = {};
+    winners.forEach(function (w) { (w.winners || []).forEach(function (x) { winIds[w.provider + '|' + x.ad_id] = x; }); });
+    // A winner is offered variations only when its platform returned its copy;
+    // otherwise the card says why (Google Ads' copy is not read).
+    var vary = function (prov, id) {
+      var w = winIds[prov + '|' + id];
+      if (!w) return '';
+      if (w.has_copy === false) return '<span class="note" data-ah-no-copy title="' + esc(w.no_copy_reason || '') + '">' + esc(w.no_copy_reason || 'No copy was returned for this ad, so there is nothing to vary.') + '</span>';
+      return '<button type="button" class="btn sm" data-credit-feature="ads.copy_matrix" data-ah-vary="' + esc(id) + '">Make variations</button>';
+    };
+    var groups = ((perf.ranking && perf.ranking.platforms) || []).filter(function (g) { return g.ads; });
+    if (!groups.length) return '';
+    var html = '<div class="ah-sec" data-ah-ranking><h3>Ranked by cost per result</h3><p class="note">Cost per result is spend divided by results, as each platform reported them (lower is better). Each platform and currency is ranked on its own; a median, and a cheapest or dearest ad, only where 3 or more ads carry the figure.</p>';
+    html += groups.map(function (g) {
+      var head = '<p class="note" style="margin:8px 0 4px" data-ah-rank-platform="' + esc(g.provider) + '"><b>' + esc(g.label) + (g.currency ? ' · ' + esc(g.currency) : '') + '</b> · ' +
+        (g.median_cpr != null ? 'median <span data-ah-median>' + esc(money(g.median_cpr, g.currency)) + '</span> per result across ' + g.rated + ' ads' : esc(g.reason)) +
+        (g.basis_note ? ' · ' + esc(g.basis_note) : '') + '</p>';
+      var rows = (g.ranked || []).map(function (r) {
+        return '<tr data-ah-rank="' + esc(r.ad_id) + '">' + cell('Rank', String(r.rank), 'n') + cell('Ad', r.name) + cell('Cost per result', money(r.cost_per_result, g.currency), 'n') +
+          cell('How', r.basis === 'reported' ? 'as reported' : 'spend / results') + cell('Spend', money(r.spend, g.currency), 'n') + cell('Results', fmtN(r.results, 2), 'n') +
+          '<td data-label="Against your median">' + (r.verdict ? '<span class="ah-tag" data-verdict="' + esc(r.verdict) + '">' + esc(verdictWords(r.verdict)) + '</span>' : '<span class="note">no median</span>') + ' ' + vary(g.provider, r.ad_id) + '</td></tr>';
+      }).join('');
+      var un = (g.unrated || []);
+      var why = {};
+      un.forEach(function (u) { why[u.reason] = (why[u.reason] || 0) + 1; });
+      var unNote = un.length ? '<p class="note" data-ah-unrated>' + un.length + ' of ' + g.ads + ' carry no cost per result: ' + Object.keys(why).map(function (k) { return why[k] + ' ' + k; }).join(', ') + '.</p>' : '';
+      var table = rows ? '<div class="ah-wrap"><table class="ah"><thead><tr><th>Rank</th><th>Ad</th><th>Cost per result</th><th>How</th><th>Spend</th><th>Results</th><th>Against your median</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '';
+      return head + table + unNote;
+    }).join('');
+    // Platforms judged by click-through rate instead: their winners, said as such.
+    var byCtr = winners.filter(function (w) { return w.basis === 'ctr' && (w.winners || []).length; });
+    if (byCtr.length) {
+      html += byCtr.map(function (w) {
+        return '<p class="note" style="margin:10px 0 4px" data-ah-ctr-winners="' + esc(w.provider) + '"><b>' + esc(w.label) + '</b> · winners by click-through rate, not cost per result (' + esc(String(w.cpr_reason || '').replace(/\.$/, '')) + '); median ' + esc(fmtPct(w.median)) + '.</p>' +
+          '<div class="ah-wrap"><table class="ah"><thead><tr><th>Ad</th><th>Click-through rate</th><th></th></tr></thead><tbody>' + w.winners.map(function (x) {
+            return '<tr data-ah-ctr-winner="' + esc(x.ad_id) + '">' + cell('Ad', x.name || x.ad_id) + cell('Click-through rate', fmtPct(x.value), 'n') + '<td data-label="Variations">' + vary(w.provider, x.ad_id) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      }).join('');
+    }
+    return html + '</div>';
+  }
+  var lastVariations = null;
+  async function makeVariations(adId, btn) {
+    var host = $('adVariations');
+    if (!host) return;
+    if (btn) btn.disabled = true;
+    host.innerHTML = '<div class="ah-sec"><h3>Variations</h3><p class="note" data-ah-var-status>Writing variations of this ad in its own hook pattern…</p></div>';
+    try {
+      var r = await brainApi('variations', { ad_id: adId, n: 4 });
+      lastVariations = r;
+      var s = r.source || {};
+      var won = s.basis === 'cost_per_result' ? money(s.value, s.currency) + ' per result against your median ' + money(s.median, s.currency) : fmtPct(s.value) + ' click-through against your median ' + fmtPct(s.median);
+      var cards = (r.variations || []).map(function (v, i) {
+        return '<div class="ah-var" data-ah-var="' + esc(v.id) + '"><b>Variation ' + (i + 1) + '</b>' + esc(v.primary_text) + (v.headline ? '<br><span class="note">Headline: ' + esc(v.headline) + '</span>' : '') + '</div>';
+      }).join('');
+      host.innerHTML = '<div class="ah-sec" data-ah-var-result><h3>Variations of "' + esc(s.name) + '"</h3>' +
+        '<p class="note">' + esc(s.platform) + ' · ' + esc(won) + '. Kept: its opening ("' + esc(r.pattern) + '") and its format (' + esc(r.format) + '), within ' + esc(s.platform) + '\'s own limits' + (r.limits && r.limits.primary_text ? ' (' + r.limits.primary_text + ' characters of text' + (r.limits.headline ? ', ' + r.limits.headline + ' of headline' : '') + ')' : '') + '.</p>' +
+        (r.note ? '<p class="note" data-ah-var-by="' + esc(r.by) + '">' + esc(r.note) + '</p>' : '') +
+        (cards ? '<div class="ah-vars">' + cards + '</div>' : '<p class="note">No variation could be written in this ad\'s pattern from the brand\'s own words.</p>') +
+        ((r.gaps || []).length ? '<p class="note" data-ah-var-gap>' + esc(r.gaps.join(' ')) + '</p>' : '') +
+        ((r.dropped || []).length ? '<p class="note">' + r.dropped.length + ' draft' + (r.dropped.length === 1 ? '' : 's') + ' left out: ' + esc(r.dropped.slice(0, 3).map(function (d) { return d.why; }).join('; ')) + '.</p>' : '') +
+        (cards ? '<div class="row"><button type="button" class="btn" id="adVarLaunch">Launch these, step by step</button><span class="note">Opens Publishing, Paid launch: each variation becomes its own ad set, built paused.</span></div>' : '') + '</div>';
+      var lb = $('adVarLaunch');
+      if (lb) lb.addEventListener('click', function () {
+        var briefs = (lastVariations.variations || []).map(function (v) { return Object.assign({}, v.brief, { variation_of: v.variation_of }); });
+        try { window.sessionStorage.setItem('lifecycle.launch.briefs', JSON.stringify({ at: new Date().toISOString(), market: '', budget: null, briefs: briefs })); } catch (_) {}
+        window.location.href = '/publishing?tab=launch';
+      });
+    } catch (e) {
+      window.LifecycleFailure.show(host, e, { title: 'Variations were not made' });
+    } finally { if (btn) btn.disabled = false; }
   }
   function adHistorySentence(text) {
     var el = $('adHistoryCard');

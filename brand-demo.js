@@ -64,8 +64,12 @@
     t = t ? String(typeof t === 'object' ? (t.slug || '') : t).trim().toLowerCase() : '';
     var ps = String(preset.slug || '').trim().toLowerCase();
     if (!t || !ps || t !== ps) return false;
+    // The record must be the template's brand (2026-11-03): same host AND path
+    // (server twin: api/_shared/template-offerings.js presetMatches).
     var bh = host(brand.website);
-    return !!(bh && bh === host(preset.website));
+    if (!(bh && bh === host(preset.website))) return false;
+    var path = function (u) { var s = String(u || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[?#]/)[0]; var i = s.indexOf('/'); return i < 0 ? '' : s.slice(i).replace(/\/+$/, ''); };
+    return path(brand.website) === path(preset.website);
   }
 
   function fetchOfferings(brand) {

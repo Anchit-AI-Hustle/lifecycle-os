@@ -235,8 +235,17 @@
     if (!brand || !preset) return false;
     var t = templateOf(brand), ps = String(preset.slug || '').trim().toLowerCase();
     if (!t || !ps || t !== ps) return false;
+    // The record must be the template's brand (2026-11-03): same host AND path
+    // (two sections of one site are two brands). Server twin:
+    // api/_shared/template-offerings.js presetMatches.
     var bh = hostOf(brand.website);
-    return !!(bh && bh === hostOf(preset.website));
+    if (!(bh && bh === hostOf(preset.website))) return false;
+    return pathOf(brand.website) === pathOf(preset.website);
+  }
+  function pathOf(u) {
+    var s = String(u || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[?#]/)[0];
+    var i = s.indexOf('/');
+    return i < 0 ? '' : s.slice(i).replace(/\/+$/, '');
   }
   function brandOfferings(brand) {
     if (Array.isArray(brand.offerings) && brand.offerings.length) return Promise.resolve(brand.offerings);

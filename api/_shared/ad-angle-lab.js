@@ -549,11 +549,19 @@ async function run(opts) {
   const own = ownAds ? require('./creative-evidence.js').ownAdsFrom({ ownAds }) : null;
   const control = briefs.find((x) => x.basis === 'control');
   if (control && own) {
-    const best = own.platforms.map((pl) => pl.worked[0] && Object.assign({ platform: pl.label, median: pl.median }, pl.worked[0])).filter(Boolean).sort((x, y) => (y.ctr - y.median) - (x.ctr - x.median))[0];
+    // Cost per result where a platform carries it for 3+ ads, else click-through
+    // rate (ad-performance.js); platforms are compared by how far each ad beat
+    // its OWN median, as a share of it, never by raw figures in two units.
+    const lead = require('./ad-performance.js').lead;
+    const best = own.platforms.map((pl) => pl.worked[0] && Object.assign({ platform: pl.label, median: pl.median, basis: pl.basis, currency: pl.currency, lead: lead(pl.worked[0], pl) }, pl.worked[0])).filter(Boolean).sort((x, y) => y.lead - x.lead)[0];
     control.own_ad_evidence = best
-      ? { platform: best.platform, ad: best.name, figures: best.figures, copy: best.pattern, median_ctr: best.median, metric: own.metric }
-      : { note: own.total ? own.platforms.map((pl) => pl.reason || `${pl.label}: no ad above the median`).join(' ') : 'The ad accounts were read and no ad ran in the window.' };
-    if (best) control.evidence = `${control.evidence} Your own ${best.platform} ad "${best.name}" ran above your own median click-through rate: ${best.figures}.`;
+      ? { platform: best.platform, ad: best.name, figures: best.figures, copy: best.pattern, basis: best.basis,
+        median_ctr: best.basis === 'ctr' ? best.median : null, median_cost_per_result: best.basis === 'cost_per_result' ? best.median : null,
+        metric: best.basis === 'cost_per_result' ? require('./ad-performance.js').METRIC_CPR : own.metric }
+      : { note: own.total ? own.platforms.map((pl) => pl.reason || `${pl.label}: no ad beat the median`).join(' ') : 'The ad accounts were read and no ad ran in the window.' };
+    if (best) control.evidence = best.basis === 'cost_per_result'
+      ? `${control.evidence} Your own ${best.platform} ad "${best.name}" cost less per result than your own median (${best.median.toFixed(2)}${best.currency ? ' ' + best.currency : ''}): ${best.figures}.`
+      : `${control.evidence} Your own ${best.platform} ad "${best.name}" ran above your own median click-through rate: ${best.figures}.`;
   }
   const plan = testPlan(briefs, { budget: o.budget, currency: o.currency, brand });
   let hero = null;
