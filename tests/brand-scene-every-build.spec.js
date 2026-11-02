@@ -135,7 +135,9 @@ test('the offline rebuild never waits on the image host, and a host that is down
 });
 
 test('a brand with its own imagery uses it and asks the image host nothing; FREE_GENERATION=off makes no scene', async () => {
-  const own = brand('scene-e', { imagery: [{ url: 'https://scene-e.example/img/newsroom.jpg', page: 'https://scene-e.example/', role: 'hero' }] });
+  // The fixture is a news brand, whose site photos are its articles' since
+  // #419 (brand-imagery.ownImageUrls): its OWN imagery is an image it uploaded.
+  const own = brand('scene-e', { imagery: [{ url: 'https://scene-e.example/img/newsroom.jpg', page: 'https://scene-e.example/', role: 'hero', source: 'upload' }] });
   const c = await withWorld((plan, config) => build(plan, config, own, 'e1', { withCreatives: false }));
   expect(hostCalls).toBe(0);
   expect(c.image_source).toBe('brand-site');
