@@ -2397,15 +2397,22 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // Only a storage-hosted copy of the image is used; a source URL we could not
   // re-host is never hotlinked, and no other brand's picture is substituted.
   const _prShot = _pr && (Array.isArray(_pr.media) ? _pr.media : []).find((m) => m && m.hosted_url);
+  // Who the page is speaking about follows the business (2026-11-03). A news
+  // landing page headed "What customers say" and "Buy with confidence" is a
+  // shop talking; readers, members, participants and clients keep their own word.
+  const _aud = (() => { try { return require('./asset-playbooks.js').audienceWords(_b); } catch (_) { return null; } })();
+  const _audMany = (_aud && _aud.many) || 'customers';
+  const _audOne = (_aud && _aud.one) || 'customer';
+  const _audCap = _audOne.charAt(0).toUpperCase() + _audOne.slice(1);
   const proofSection = _pr
-    ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`Customer photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
+    ? `<section class="sec proof"><div class="wrap">${_prShot ? `<img class="proofshot" src="${esc(_prShot.hosted_url)}" alt="${esc(`${_audCap} photo published by ${bName}`)}">` : ''}<blockquote>“${esc(_pr.quote || '')}”</blockquote>${_pr.author ? `<p class="who">- ${esc(_pr.author)}</p>` : ''}</div></section>`
     : '';   // no approved review: no section (the gap is in data_gaps), never a marker on the page
   // A promise is rendered only where the brand actually states one - approved
   // per-SKU claims first, then the brand record's own verifiable claims.
   const _guaranteeRe = /guarantee|make it right|refund|return|free shipping/i;
   const _guaranteeText = _appClaims.find((c) => _guaranteeRe.test(String(c))) || bClaims.find((c) => _guaranteeRe.test(String(c))) || '';
   const guaranteeBlock = _guaranteeText
-    ? `<div class="guarantee"><h3>Buy with confidence</h3><p style="margin:0;color:var(--ink-dim)">${esc(_guaranteeText)}</p></div>`
+    ? `<div class="guarantee"><h3>${_audMany === 'customers' ? 'Buy with confidence' : 'The promise'}</h3><p style="margin:0;color:var(--ink-dim)">${esc(_guaranteeText)}</p></div>`
     : '';
   const cleanWhyTitle = (() => {
     let t = L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName));
@@ -2520,7 +2527,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     </div></div></section>` : '';
   // More than one review: the rest of them as cards (the first leads the page).
   const _moreReviews = _proofPool.slice(1, 4).filter((r) => r && r.quote);
-  const reviewCards = _moreReviews.length ? `<section class="sec revs"><h2>What customers say</h2><div class="rgrid">${_moreReviews.map((r) => `<figure><blockquote>“${esc(r.quote)}”</blockquote>${r.author ? `<figcaption>${esc(r.author)}</figcaption>` : ''}</figure>`).join('')}</div></section>` : '';
+  const reviewCards = _moreReviews.length ? `<section class="sec revs"><h2>What ${esc(_audMany)} say</h2><div class="rgrid">${_moreReviews.map((r) => `<figure><blockquote>“${esc(r.quote)}”</blockquote>${r.author ? `<figcaption>${esc(r.author)}</figcaption>` : ''}</figure>`).join('')}</div></section>` : '';
   // Who the brand is, in its own words from its own record.
   const _bd = (_b && _b.brand_data) || {};
   const _about = String(_b.description || _bd.description || (_bd.brand_extraction && _bd.brand_extraction.applied && _bd.brand_extraction.applied.description && _bd.brand_extraction.applied.description.value) || '').trim();

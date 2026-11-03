@@ -979,6 +979,10 @@ test('signed in to an account: Apply hosts the logo, and the private brand book 
     expect(last.brand_data.brand_files.document).toMatchObject({ id: sha, hosted_url: '' });
     expect(await page.evaluate(async (id) => (await window.BrandContext.files.list(id)).map((f) => f.slot).sort(), WSID)).toEqual(['document', 'logo']);
   } finally {
+    // Chromium keeps the page's keep-alive socket open. server.close() waits
+    // for that socket, and the page stays open until the test returns, so the
+    // close never finishes and the 60s test budget expires after the asserts.
+    if (typeof srv.closeAllConnections === 'function') srv.closeAllConnections();
     await new Promise((r) => srv.close(r));
   }
 });
