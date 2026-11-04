@@ -222,7 +222,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const b = activeBrand() || {};
     const p = b.palette || {}, t = b.typography || {}, v = b.voice || {};
     const name = brandName();
-    const need = (what) => '[DATA REQUIRED BEFORE LAUNCH: ' + what + ', ' + name + ']';
+    const need = (what) => 'not on record (' + what + '); leave it out and do not invent it';
     const roles = ['primary', 'accent', 'ink', 'surface'].filter((k) => p[k]).map((k) => k + ' ' + p[k]);
     const claims = (b.claims || (b.brand_data && b.brand_data.claims) || []).map((c) => (c && typeof c === 'object' ? c.text : c)).filter(Boolean);
     const stack = (slot) => (t[slot] && (t[slot].stack || t[slot].family)) || '';
@@ -259,13 +259,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic.',
         '',
         'PAGE BRIEF:',
-        '- Hero headline: ' + (r.hero || item.name || '(write a strong, specific one)'),
-        '- Sub-headline: ' + (r.sub || '(write a supporting line)'),
-        '- Offer: ' + (r.offer || '(sell on quality, provenance and ritual — no forced discount)'),
+        '- Hero headline: ' + (r.hero || item.name || 'use the brand name. Do not invent a claim.'),
+        '- Sub-headline: ' + (r.sub || 'use the brand tagline if this brief states one. Otherwise omit it.'),
+        '- Offer: ' + (r.offer || 'none stated. Do not invent a discount, a deadline, or a product attribute.'),
         r.notes ? '- Extra notes / story: ' + r.notes : '',
         '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA.',
         '',
-        'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof (only quotes this brief supplies, else the DATA REQUIRED marker); FAQ; final CTA; footer; sticky mobile CTA.'
+        'REQUIRED STRUCTURE: an offer bar only if this brief states an offer; hero (the headline and sub this brief states, one button, a product image only if a hosted URL is listed); the brand\'s own claims; the product and its price only if stated; reviews only if this brief quotes them; FAQ only from stated facts; one closing button; footer. Omit any section you cannot fill. Never invent a testimonial, a reader count, or a claim.'
       ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + outputBlock('landing', market, {
         returns: 'ONE complete, production-ready, single-file responsive landing page as an HTML document.',
         formatRule: 'ONE HTML document, from <!doctype html> to </html>.',
@@ -287,10 +287,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         returns: 'ONE complete ' + platform + ' ad creative package, ready to paste into the ' + platform + ' ad builder.',
         formatRule: 'These four labelled sections, in this order:',
         lines: [
-          '1) HEADLINES: 3 options (6 words at most) leading with the emotional end-state, never an ingredient list.',
-          '2) PRIMARY TEXT: at most 125 characters, then a 1-line description and a strong CTA.',
-          '3) IMAGE PROMPT: a photoreal lifestyle scene in the brand palette, soft natural light, shallow depth of field; NO readable lettering, NO logos, NO watermarks.',
-          '4) AUDIENCE: which cohort this is aimed at and why (only one the brief or the brand record names, else the DATA REQUIRED marker).'
+          '1) HEADLINES: up to 3, each from facts in this brief, inside the platform limit. No claim the brief does not state.',
+          '2) PRIMARY TEXT: at most 125 characters, then a 1-line description and the button words this brief states.',
+          '3) IMAGE PROMPT: a photograph of the product this brief names, in the brand palette, soft natural light; NO readable lettering, NO logos, NO watermarks, NO invented scene.',
+          '4) AUDIENCE: only a cohort this brief or the brand record names. If none is named, say so and do not invent one.'
         ] });
     }
     // mailer
@@ -300,9 +300,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       'EMAIL BRIEF:',
       '- Campaign: ' + (r.campaign_title || item.name || '(name it)'),
       r.type ? '- Type / moment: ' + r.type : '',
-      r.brief ? '- Brief / story: ' + r.brief : '- Brief: write a warm, sensory, story-driven campaign around origin + ritual.',
+        r.brief ? '- Brief / story: ' + r.brief : '- Brief: use only the brand facts above. Do not invent an origin story, a ritual, or a sensory claim.',
       '',
-      'REQUIRED STRUCTURE: preheader; branded header; hero (headline + sub + CTA + product image placeholder); story/benefit block; product block with price + CTA; a testimonial ONLY if this brief supplies one (else leave it out); secondary CTA; footer with unsubscribe.'
+      'REQUIRED STRUCTURE: preheader; branded header with the logo linked home; hero (the headline this brief states, one button, a product image only if a hosted URL is listed); benefits only from the brand\'s own claims; the product and its price only if stated; one closing button; footer with the legal sender and unsubscribe. No testimonial unless this brief quotes one.'
     ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + outputBlock('mailer', market, {
       returns: 'ONE complete, production-ready, responsive HTML marketing email.',
       formatRule: 'ONE HTML email document, from <!DOCTYPE html> to </html>.',
@@ -316,6 +316,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return window.OutputContract.block(Object.assign({
       id: 'assets.' + kind, kind: 'asset', format: 'html', region: market,
       brand: (B && B.name) || 'this brand',
+      missing: 'omit any fact this brief does not state. Never invent a price, review, claim, statistic, or URL, and never print a bracket marker or an unfilled tag.',
       forbid: ['base64 or data: URIs (images are hosted URLs)', 'a plan or a description of the asset in place of the asset']
     }, o));
   }

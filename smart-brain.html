@@ -1920,7 +1920,7 @@ function renderPreview(payload, e, i, opts){
     const tdx = window.__SB_EXPORTS.push({ name, label, html: msgPlain(m), ext: 'txt' }) - 1;
     const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: JSON.stringify(m, null, 2), ext: 'json' }) - 1;
     tab(id, label, first);
-    pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderMessage(m)}`, first);
+    pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderMessage(m)}${promptBar(m)}`, first);
     first = false;
   });
   // MUSIC (2026-10-25): this send's track, briefed from the brand's own record
@@ -1933,9 +1933,9 @@ function renderPreview(payload, e, i, opts){
     tab('pv-music', '🎵 Music', first);
     pane('pv-music', `<div class="pvmusic" data-music-pane="${mx}">
       <p class="pvnote" style="margin-top:0"><b>${esc(mus.purpose_label || 'Track')}</b> · ${esc(mus.genre)} · about ${esc(String(mus.bpm))} BPM · ${esc(String(mus.seconds))} s · ${mus.vocals ? 'with vocals' : 'instrumental'} · for ${esc(mus.for || 'this send')}</p>
-      <label class="pvnote" style="display:block;margin:6px 0 4px">The brief the music model gets (edit anything):</label>
+      <label class="pvnote" style="display:block;margin:6px 0 4px">The brief for this track. Paste it into Claude, ChatGPT, or Gemini, or compose it here. Edit anything first.</label>
       <textarea class="mprompt" data-music-prompt rows="8" style="width:100%;font:13px/1.5 var(--vh-font-body);padding:10px;border:1px solid var(--vh-line-hot);border-radius:8px;background:var(--vh-panel);color:var(--vh-ink)">${esc(mus.prompt)}</textarea>
-      <div class="akbar" style="margin-top:8px"><button type="button" class="btn sm" data-credit-feature="audio.music" onclick="sbComposeMusic(${mx}, this)">🎵 Compose track</button><a class="btn sm secondary" href="/music" target="_blank" rel="noopener">Open the Music Studio ↗</a></div>
+      <div class="akbar" style="margin-top:8px"><button type="button" class="btn sm secondary" onclick="sbCopyMusic(this)">📋 Copy brief</button><button type="button" class="btn sm" data-credit-feature="audio.music" onclick="sbComposeMusic(${mx}, this)">🎵 Compose track</button><a class="btn sm secondary" href="/music" target="_blank" rel="noopener">Open the Music Studio ↗</a></div>
       <div class="pvnote" data-music-status role="status" aria-live="polite"></div>
       <div data-music-out></div>
     </div>`, first);
@@ -2356,6 +2356,11 @@ function copyText(text, btn){
 //
 // Both are now offered together, the whole-asset prompt first, each labelled
 // with what comes back.
+window.sbCopyMusic = function(btn){
+  const box = btn && btn.closest ? btn.closest('[data-music-pane]') : null;
+  const prompt = box && box.querySelector('[data-music-prompt]');
+  copyText(prompt ? prompt.value : '', btn);
+};
 window.sbCopyPrompt = function(idx, btn){
   const item = (window.__SB_PROMPTS||[])[idx]; if(!item) return;
   copyText(item.text, btn);

@@ -529,35 +529,47 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var b = activeBrand() || {};
     var p = b.palette || {}, t = b.typography || {}, v = b.voice || {};
     var claims = (b.claims || (b.brand_data && b.brand_data.claims) || []).filter(Boolean);
+    var gap = (what) => 'not on record (' + what + '); leave it out and do not invent it';
+    var name = /^\[DATA REQUIRED/.test(brandName()) ? 'this brand' : brandName();
     return [
-      'BRAND RULES (strict — obey exactly):',
-      '- Palette, ONLY these: primary ' + (p.primary || '[DATA REQUIRED BEFORE LAUNCH: palette]') + ', accent ' + (p.accent || '') + ', ink ' + (p.ink || '') + ', surface ' + (p.surface || '') + '.',
-      '- Headings: ' + ((t.heading && t.heading.stack) || '[DATA REQUIRED BEFORE LAUNCH: heading typeface]') + '. Body: ' + ((t.body && t.body.stack) || '[DATA REQUIRED BEFORE LAUNCH: body typeface]') + '.',
-      '- Voice: ' + (v.tone || '[DATA REQUIRED BEFORE LAUNCH: voice]') + (Array.isArray(v.preferred) && v.preferred.length ? ' Prefer: ' + v.preferred.join(', ') + '.' : ''),
+      'BRAND RULES (strict, obey exactly):',
+      '- Palette, ONLY these: primary ' + (p.primary || gap('palette')) + ', accent ' + (p.accent || '') + ', ink ' + (p.ink || '') + ', surface ' + (p.surface || '') + '.',
+      '- Headings: ' + ((t.heading && t.heading.stack) || gap('heading typeface')) + '. Body: ' + ((t.body && t.body.stack) || gap('body typeface')) + '.',
+      '- Voice: ' + (v.tone || gap('voice')) + (Array.isArray(v.preferred) && v.preferred.length ? ' Prefer: ' + v.preferred.join(', ') + '.' : ''),
       (Array.isArray(v.banned) && v.banned.length ? '- NEVER use: ' + v.banned.join(', ') + '.' : '- NEVER use a phrase the brand record bans.'),
-      '- ' + brandName() + ': ' + (claims.length ? claims.join(' · ') : '[DATA REQUIRED BEFORE LAUNCH: verifiable claims, ' + brandName() + '] — state no proof, guarantee or credential.')
+      '- ' + name + ': ' + (claims.length ? claims.join(' · ') : gap('verifiable claims') + '. State no proof, guarantee, or credential.'),
+      '- No em dash or en dash in the copy. Grounds are the brand colour or its surface, never black or dark grey.'
     ].join('\n');
   }
   const SELF_CHECK = '\n\nSELF-CHECK (do this before finishing): re-read the BRAND RULES, list any violations in your draft, fix them, and return ONLY the corrected final output.';
   function buildAdPrompt(ch, c) {
     const platform = ch === 'google' ? 'Google Ads' : ch === 'meta' ? 'Meta (Facebook/Instagram)' : 'TikTok';
     const market = c.market || ((window.RegionContext && window.RegionContext.home) || '');
-    return 'ROLE: You are a senior paid-social/search creative director + performance copywriter for ' + brandName() + '.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK() + '\n\n' + [
-      'Produce a scroll-stopping ' + platform + ' ad campaign package.',
+    var who = /^\[DATA REQUIRED/.test(brandName()) ? 'this brand' : brandName();
+    return 'ROLE: You are the creative director for ' + who + '.\nMARKET: ' + market + '\n\n' + BRAND_BLOCK() + '\n\n' + [
+      'Produce one ' + platform + ' ad, ready to paste into the ad builder.',
       '',
       'CAMPAIGN BRIEF:',
-      '- Name: ' + (c.name || '(name it)'),
-      c.aud ? '- Audience: ' + c.aud : '',
-      c.primary || c.hook ? '- Existing angle to improve on: ' + (c.primary || c.hook) : '',
-      c.headlines && c.headlines.length ? '- Existing headlines: ' + c.headlines.join(' | ') : '',
+      '- Name: ' + (c.name || who),
+      c.aud ? '- Audience: ' + c.aud : '- Audience: none named. Do not invent a persona.',
+      c.primary || c.hook ? '- Line already written: ' + (c.primary || c.hook) : '',
+      c.headlines && c.headlines.length ? '- Headlines already written: ' + c.headlines.join(' | ') : '',
+      '',
+      'BANS: state only facts in this brief. No invented claim, testimonial, statistic, other brand, unfilled tag, or bracket marker.',
       '',
       'DELIVER, clearly labelled:',
-      '1) 3 headline options leading with the emotional end-state, never an ingredient list.',
-      '2) Primary text / caption + a strong CTA, sized correctly for ' + platform + '.',
-      '3) An IMAGE-GENERATION PROMPT for a photoreal lifestyle scene: brand palette, gallery-print/8K sharpness, soft natural light; the product exactly as photographed, with NO readable lettering; NO logos, NO watermarks, NO garbled text.',
-      '4) Which cohort/audience this is aimed at and why.',
+      '1) 3 headline options from the facts above, inside the platform limit. No claim the brief does not state.',
+      '2) Primary text or caption, plus the button words, sized correctly for ' + platform + '.',
+      '3) An image description of the product named above, in the brand palette, soft natural light, the product as photographed. NO readable lettering, NO logos, NO watermarks, NO invented scene.',
+      '4) The audience only if this brief names one. Otherwise do not invent a persona.',
       'OUTPUT: clean sections, ready to paste into the ' + platform + ' ad builder. No preamble.'
-    ].filter(Boolean).join('\n') + SELF_CHECK;
+    ].filter(Boolean).join('\n') + SELF_CHECK + '\n\n' + (window.OutputContract ? window.OutputContract.block({
+      id: 'ad-campaigns.prompt.' + ch, kind: 'asset', format: 'sections', brand: who, region: market,
+      missing: 'omit any fact this brief does not state. Never invent a price, review, claim, statistic, or URL, and never print a bracket marker or an unfilled tag.',
+      returns: 'ONE complete ' + platform + ' ad, ready to paste into the ad builder.',
+      formatRule: 'The labelled sections above, and nothing before them.',
+      lines: ['Keep every field inside the platform limit. Never base64.']
+    }) : '');
   }
   function cloneAd(ch, c) {
     store[ch] = store[ch] || [];
@@ -1047,7 +1059,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   };
   function storeFor(market) {
     const base = window.BrandCatalog ? window.BrandCatalog.storeBase(market) : '';
-    return base || ('[DATA REQUIRED BEFORE LAUNCH: store URL, ' + brandName() + ', ' + String(market || '').toUpperCase() + ']');
+    return base || ('no store URL on record for ' + String(market || 'this market') + '; do not invent one');
   }
   const AD_SPEC = {
     google: 'Google (Responsive Search + Performance Max): 15 headlines (≤30 chars), 4 descriptions (≤90 chars), long headline (≤90), business name. PRODUCED creatives are static images at 1.91:1 (1200×628) and 1:1 (1200×1200).',
@@ -1061,38 +1073,40 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     const market = v(CRE_CFG[ch].market) || ((window.RegionContext && window.RegionContext.home) || '');
     // The market's own currency (the brand's record, else its country's), never a '$' fallback.
     const loc = (window.RegionContext && window.RegionContext.localeOf) ? window.RegionContext.localeOf(market) : {};
-    const f = { currency: loc.currency || (STORE_FACTS[market] && STORE_FACTS[market].currency) || ('[DATA REQUIRED BEFORE LAUNCH: currency, ' + brandName() + ', ' + String(market || '').toUpperCase() + ']') };
+    const f = { currency: loc.currency || (STORE_FACTS[market] && STORE_FACTS[market].currency) || 'not stated; do not invent a price' };
     const c = getCopy(ch);
-    const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join(' — ');
+    const brief = [v(CRE_CFG[ch].name), c.headline, c.sub].filter(Boolean).join('. ');
+    const who = /^\[DATA REQUIRED/.test(brandName()) ? 'this brand' : brandName();
     return [
-      'You are ' + brandName() + "'s senior lifecycle creative director. Produce best-in-class, ready-to-ship output. Follow every rule exactly.",
+      'You are the senior lifecycle creative director for ' + who + '. Produce the finished ad, ready to ship. Follow every rule exactly.',
       '',
-      'BRAND: ' + brandName() + ((activeBrand() && activeBrand().tagline) ? ' — ' + activeBrand().tagline : '') + '.',
+      'BRAND: ' + who + ((activeBrand() && activeBrand().tagline) ? '. ' + activeBrand().tagline : '') + '.',
       BRAND_BLOCK(),
       '',
       'MARKET: ' + market + ' · Store: ' + storeFor(market) + ' · Currency: ' + f.currency,
       brief ? '\nCAMPAIGN BRIEF:\n' + brief : '',
       '',
-      'ASSET: Paid ad creative for ' + platform.toUpperCase() + ' — a FULL ad, not just copy.',
-      'The PRODUCED creative is a still, photoreal, on-palette image at each size below with the on-creative text overlay (headline + offer) BAKED INTO the image, exactly like a real ' + platform + ' ad.',
+      'ASSET: Paid ad creative for ' + platform.toUpperCase() + ', a full ad, not just a picture.',
+      'Write every text field inside the limits below, using only facts in this brief. The still uses a hosted photograph this brief lists. Overlay wording is the headline and the offer this brief states. On a 9:16 frame keep text clear of the bottom 20%.',
       'Platform spec: ' + (AD_SPEC[platform] || AD_SPEC.meta),
-      'Deliver: (a) every text field the platform requires; (b) for EACH static size, a precise creative brief describing the still visual, the baked-in overlay wording + pixel placement + safe zones; (c) the destination URL.',
-      'VISUALS (produced asset): one still on-palette image per size with the overlay baked in. If a hosted product image/MP4 URL is supplied, its first frame is the base still. Motion (GIF/short video) is an OPTIONAL follow-up brief — never a delivered asset here. To produce the actual video ad, hand this brief to OpenMontage (open-source agentic video pipeline): https://github.com/Open-Montage/OpenMontage',
+      'Deliver: (a) every text field the platform requires; (b) for each static size, the still and the overlay wording; (c) the destination, a URL this brief lists, or omitted.',
+      'One still per size. Never base64. Never a placeholder service. Never an invented URL. Do not invent a testimonial, a statistic, or another brand.',
       '',
-      'QUALITY BAR: premium, specific, sensory, zero filler. No banned phrases. No medical claims.',
+      'QUALITY BAR: specific, and only as specific as the facts above. No banned phrases. No medical claim this brief does not state. Where a fact is missing, leave it out.',
     ].filter((l) => l !== null && l !== undefined).join('\n').trim()
     // It said what to make and never what to RETURN (2026-10-11). The same
     // OUTPUT REQUIREMENT the server's master prompt closes with, from the
     // shared /output-contract.js; the copy limits are the Platform spec's.
       + '\n\n' + window.OutputContract.block({
         id: 'ad-campaigns.master.' + platform, kind: 'asset', format: 'sections', brand: brandName(), region: market,
+        missing: 'omit any fact this brief does not state. Never invent a price, review, claim, statistic, or URL, and never print a bracket marker or an unfilled tag.',
         returns: 'ONE complete ' + platform.toUpperCase() + ' ad unit, ready to upload: its copy, its creative briefs and the destination URL.',
         forbid: ['base64 or data: URIs (images are hosted URLs)', 'an image in place of the copy and the briefs', 'a delivered video (motion is a follow-up brief only)'],
         formatRule: 'These labelled sections, in this order, each starting with its heading on its own line:',
         lines: [
           'COPY: every text field the platform requires, one per line, each inside its limit in the Platform spec above.',
           'CREATIVE BRIEFS: one per static size in the Platform spec: the still visual, the baked-in overlay wording, its pixel placement and safe zones.',
-          'DESTINATION URL: the store link above, or the DATA REQUIRED marker it carries.',
+          'DESTINATION URL: a URL listed above. If none is listed, omit it. Do not invent one.',
         ],
       });
   }
