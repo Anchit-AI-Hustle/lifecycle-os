@@ -754,35 +754,44 @@ ${notes ? `<p class="story">${e(notes)}</p>` : `<p class="story">${e(brandTaglin
   function lpKey(channel) {
     try { return (window.LCStore && window.LCStore.key) ? window.LCStore.key('lp-lib-' + channel) : 'lp-lib-' + channel; } catch (_) { return 'lp-lib-' + channel; }
   }
+  function statedFact(s, what) {
+    s = String(s || '');
+    if (!s || /\[DATA REQUIRED/.test(s)) return 'not on record (' + what + '); leave it out and do not invent it';
+    return s;
+  }
   function buildLandingPrompt(f) {
     f = f || {};
     var region = f.region || f.market || homeRegion();
     var channel = f.channel || 'landing';
+    var name = statedFact(brandName(), 'brand name');
     return [
-      'You are a senior D2C conversion copywriter and front-end developer for ' + brandName() + (brandTagline() ? ' \u2014 ' + brandTagline() : '') + (brandClaims().length ? '. The only statements you may present as fact: ' + brandClaims().join(' | ') + '.' : '. No claim may be presented as fact unless it appears in the brief.'),
-      'Build a COMPLETE, production-ready, single-file responsive HTML landing page that converts ' + channel + ' traffic in the ' + region + ' market.',
+      'You are the creative director for ' + name + (brandTagline() ? '. Tagline: ' + brandTagline() : '') + (brandClaims().length ? '. The only statements you may present as fact: ' + brandClaims().join(' | ') + '.' : '. No claim may be presented as fact unless it appears in this brief.'),
+      'Build ONE complete landing page as a single HTML document for ' + channel + ' traffic in the ' + region + ' market.',
       '',
       'BRAND RULES (strict):',
-      // The ACTIVE brand's own palette, typefaces and voice, never tenant zero's.
-      '- Colour palette ONLY: ' + brandPaletteLine() + '.',
-      '- ' + brandTypeLine(),
-      '- Voice: ' + brandVoiceLine(),
+      '- Colour palette ONLY: ' + statedFact(brandPaletteLine(), 'palette') + '.',
+      '- ' + statedFact(brandTypeLine(), 'type'),
+      '- Voice: ' + statedFact(brandVoiceLine(), 'voice'),
       '- NEVER use: ' + brandBannedLine(),
-      '- Currency in all copy must match the ' + region + ' market.',
+      '- Currency in all copy must match the ' + region + ' market. State no price this brief does not state.',
+      '- No em dash or en dash in the copy. Use commas, colons, or plain hyphens.',
+      '- Grounds are the brand colour or its surface. Never a black or dark-neutral section.',
       '',
       'PAGE BRIEF:',
-      '- Hero headline: ' + (f.hero || '(write a strong, specific one)'),
-      '- Sub-headline: ' + (f.sub || '(write a supporting line)'),
-      '- Offer: ' + (f.offer || '(no explicit discount — sell on quality, provenance and ritual)'),
-      f.notes ? '- Extra notes / story: ' + f.notes : '',
-      '- Channel intent: ' + channel + ' — mobile-first, one clear primary CTA, match how this channel\'s visitors arrive.',
+      '- Hero headline: ' + (f.hero || 'use the brand name. Do not invent a claim.'),
+      '- Sub-headline: ' + (f.sub || brandTagline() || 'omit the sub-headline.'),
+      '- Offer: ' + (f.offer || 'none stated. Do not invent a discount, a deadline, or a product attribute.'),
+      f.notes ? '- Extra notes: ' + f.notes : '',
+      '- Channel: ' + channel + '. One primary button. Mobile-first.',
       '',
-      'REQUIRED STRUCTURE: announcement bar; hero (headline + sub + CTA + product image placeholder); trust strip; benefits; product/offer block with price; social proof (only quotes this brief supplies, else the DATA REQUIRED marker); FAQ; final CTA; footer; plus a sticky mobile CTA.'
+      'REQUIRED STRUCTURE, omitting any section this brief cannot fill: an offer bar only if an offer is stated; hero (headline, sub, one button, a product image only if a hosted URL is listed); the brand\'s own claims; price only if stated; reviews only if this brief quotes them; FAQ only from stated facts; one closing button; legal footer.',
+      'BANS: no invented testimonial, rating, statistic, reader count, other brand, unfilled tag, or href="#". Every button uses an https URL this brief lists or the button is text.'
     ].filter(Boolean).join('\n') + '\n\n' + window.OutputContract.block({
-      id: 'landing-pages.prompt', kind: 'asset', format: 'html', brand: brandName(), region: region,
+      id: 'landing-pages.prompt', kind: 'asset', format: 'html', brand: name, region: region,
+      missing: 'omit any fact this brief does not state. Never invent a price, review, claim, statistic, or URL, and never print a bracket marker or an unfilled tag.',
       returns: 'ONE complete, production-ready, single-file responsive landing page as an HTML document.',
       formatRule: 'ONE HTML document, from <!doctype html> to </html>.',
-      lines: ['Inline CSS, no external dependencies (no CDN, no web-font link, no framework).', 'Every image is a hosted URL the brief supplied, or a labelled empty placeholder box; never base64, never an invented URL.'] });
+      lines: ['Inline CSS, no external dependencies (no CDN, no web-font link, no framework).', 'Every image is a hosted URL the brief supplied. If none was supplied, leave the image out. Never base64, never an invented URL.'] });
   }
   function copyText(txt, statusEl) {
     function done(ok) { if (statusEl) statusEl.textContent = ok ? '✓ AI prompt copied — paste it into ChatGPT, Gemini or Claude.' : 'Could not copy automatically — see console.'; if (!ok) console.log('[landing] AI prompt:\n' + txt); }

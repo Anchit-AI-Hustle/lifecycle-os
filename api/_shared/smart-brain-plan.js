@@ -3792,34 +3792,69 @@ function checkAssetContracts(campaign, entry) {
 // ── Master prompts (portable, copy-anywhere) ────────────────────────────────
 // Attach a self-contained master_prompt to every generated asset so a human can
 // reproduce/upgrade it in a blank ChatGPT/Claude/Gemini session.
+function promptProducts(entry) {
+  const list = [];
+  const push = (p) => {
+    if (!p || p.placeholder) return;
+    const title = String(p.title || p.name || '').trim();
+    if (!title || /\[DATA REQUIRED/i.test(title)) return;
+    list.push(p);
+  };
+  push(entry && entry.heroProduct);
+  for (const p of (entry && entry.supportingProducts) || []) push(p);
+  return list;
+}
+function shotLines(brief) {
+  const scenes = brief && Array.isArray(brief.scenes) ? brief.scenes : [];
+  return scenes.map((s) => [s && s.kind, s && s.text, s && s.price, s && s.cta].filter(Boolean).join(' · ')).filter(Boolean);
+}
 function attachMasterPrompts(campaign, entry) {
   const market = entry.market;
   const cohort = entry.cohort?.name || '';
-  const brief = entry.rationale || entry.objective || '';
-  const products = entry.heroProduct ? [entry.heroProduct] : [];
+  // The job, not the planner's note to the operator. A sentence such as
+  // "Our next campaign speaks to customers in IN" must not be handed to an
+  // external model as copy to print.
+  const brief = entry.objective || '';
+  const products = promptProducts(entry);
+  let links = {};
+  try { links = slotLinks(entry) || {}; } catch (_) { links = {}; }
+  const offer = offerOf(entry);
   // The brand this campaign is FOR. Without it every prompt was built from
   // tenant zero, so a mailer generated inside another workspace carried that
-  // brand's palette, voice, claims and logo - the asset looked like the wrong
-  // company. entry.brand is stamped when the slot is planned; fall back to the
-  // campaign's own brand before ever falling back to the default.
+  // brand's palette, voice, claims and logo.
   const brand = entry.brand || campaign.brand || null;
-  const base = { brand, market, cohort, brief, products };
-  if (campaign.assets.email) {
-    // Both mailer variants the operator requires, per region.
-    campaign.assets.email.master_prompt_v1 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V1' });
-    campaign.assets.email.master_prompt_v2 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V2' });
-    campaign.assets.email.master_prompt = campaign.assets.email.master_prompt_v2;
-    campaign.assets.email.prompts = promptsFor(campaign.assets.email, 'mailer');
+  const base = { brand, market, cohort, brief, products, offer, links };
+  const em = campaign.assets && campaign.assets.email;
+  if (em) {
+    const written = { subject: em.subject, preheader: em.preheader };
+    em.master_prompt_v1 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V1', written });
+    em.master_prompt_v2 = buildMasterPrompt({ ...base, assetType: 'mailer', variant: 'V2', written });
+    em.master_prompt = em.master_prompt_v2;
+    em.prompts = promptsFor(em, 'mailer');
   }
   for (const lp of campaign.assets.landing_pages || []) {
-    lp.master_prompt = buildMasterPrompt({ ...base, assetType: 'landing_page' });
+    lp.master_prompt = buildMasterPrompt({ ...base, assetType: 'landing_page', written: { title: lp.title, headline: lp.headline } });
     lp.prompts = promptsFor(lp, 'landing_page');
   }
   for (const ad of campaign.assets.ads || []) {
-    ad.master_prompt = buildMasterPrompt({ ...base, assetType: 'ad', platform: ad.platform });
-    // The index that stops an image brief being copied as if it were the ad.
-    // Built AFTER master_prompt exists, or the asset row has nothing to point at.
+    const written = { headline: ad.headline, primary_text: ad.primary_text, description: ad.description, caption: ad.caption, cta: ad.cta };
+    ad.master_prompt = buildMasterPrompt({ ...base, assetType: 'ad', platform: ad.platform, written });
+    const story = ad.creative && ad.creative.story_brief;
+    if (story) {
+      ad.story_prompt = buildMasterPrompt({
+        ...base, assetType: 'story', platform: ad.platform,
+        written: { headline: ad.headline || ad.hook, cta: ad.cta, shots: shotLines(story) },
+      });
+    }
+    // Built AFTER master_prompt and story_prompt exist, or an asset row points at nothing.
     ad.prompts = promptsFor(ad, 'ad');
+  }
+  for (const m of (campaign.assets && campaign.assets.messages) || []) {
+    m.master_prompt = buildMasterPrompt({
+      ...base, assetType: 'message', channel: m.channel,
+      written: { text: m.text, body: m.body, title: m.title, headline: m.headline, cta: m.cta },
+    });
+    m.prompts = promptsFor(m, 'message');
   }
   return campaign;
 }
@@ -4485,7 +4520,6 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   campaign.copywriter = copyMeta;
   campaign.agent_trace = trace;
   campaign.calendar_entry_id = entry.id || id || null;
-  attachMasterPrompts(campaign, entry);
   reportCatalogGaps(campaign, entry, trace);
   reportProofGap(campaign, entry, trace);
   attachDisclaimer(campaign, entry);
@@ -4517,6 +4551,9 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // MUSIC (2026-10-25): the brief for this send's track, in the brand's own
   // words, as long as its Story video (built above); composed on request.
   attachMusic(campaign, entry, null);
+  // After every pass that changes reader-facing copy, so the brief a person
+  // pastes into Claude, ChatGPT, or Gemini asks for the asset that shipped.
+  attachMasterPrompts(campaign, entry);
   campaign.build_version = ASSET_BUILD_VERSION;
   // Last, because it judges the FINISHED artefacts rather than the plan. The
   // entry names whose brand, which market and which offer they are judged as.

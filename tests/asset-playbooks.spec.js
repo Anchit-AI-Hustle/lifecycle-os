@@ -173,7 +173,8 @@ test('buildMasterPrompt for market data brand includes financial disclaimers and
   expect(prompt).toContain('Market Pulse & Benchmark Bar');
   expect(prompt).toContain('SEBI (Research Analysts) Regulations');
   expect(prompt).toContain('NEVER hallucinate fake charts or fictional tickers');
-  expect(prompt).toContain('COMPETITIVE BENCHMARK PLAYBOOK');
+  expect(prompt).toContain('STRUCTURE (order only');
+  expect(prompt).toContain('or the section is left out');
 });
 
 test('buildMasterPrompt for news publisher includes editorial Smart Brevity structure', () => {
@@ -196,8 +197,9 @@ test('buildMasterPrompt for news publisher includes editorial Smart Brevity stru
   expect(prompt).toContain('Lead Story');
   expect(prompt).toContain('Why it matters');
   expect(prompt).toContain('Bulletin Radar');
-  expect(prompt).toContain('COMPETITIVE BENCHMARK PLAYBOOK');
+  expect(prompt).toContain('STRUCTURE (order only');
   expect(prompt).not.toContain('Shop the edit');
+  expect(prompt).not.toContain('[DATA REQUIRED BEFORE LAUNCH');
 });
 
 test('promptsFor provides clear AI-choice instructions for each asset prompt', () => {

@@ -218,6 +218,7 @@
     } else {
       lines.push('Instrumental only, no vocals.');
     }
+    lines.push('Use no claim, price, number, or brand name that is not written in this brief.');
     lines.push('Do not imitate any named artist, voice or existing song, and use no copyrighted lyrics or melodies.');
     return noDash(lines.join('\n')).slice(0, 4000);
   }
