@@ -566,7 +566,15 @@ async function site(fn) {
     s.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(s);
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  try { return await fn('http://127.0.0.1:' + server.address().port); } finally { await new Promise((r) => server.close(r)); }
+  try { return await fn('http://127.0.0.1:' + server.address().port); }
+  finally {
+    // Chromium keeps the page's keep-alive socket open. server.close() waits
+    // for those sockets, and under a busy CI shard that hung the /brain MP4
+    // refusal test past its 120 s budget after every assertion had already
+    // passed (2026-11-06, main run 42205791147 shard 2).
+    try { if (typeof server.closeAllConnections === 'function') server.closeAllConnections(); } catch (_) {}
+    await new Promise((r) => server.close(r));
+  }
 }
 
 test('music-client: every press sends a new take; a take the caller pins is kept; the caller\'s body is not changed', async ({ page }) => {
