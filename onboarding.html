@@ -1080,6 +1080,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var c = $('stepCard');
 
     if (step === 1) {
+      // Snapshot any open delete confirm before this paint replaces #step1Brands
+      // (sticky: two events can re-enter render() while loadStep1Brands awaits).
+      noteStep1DelKeep();
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
         '<p class="hint">Paste your site, pick a sample, or type the basics. You can change anything later.</p>' +
@@ -3567,6 +3570,24 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the name is the standard bar for that. Shared by step 1 and Review -
      Switch Brand / compact setup put brand management on step 1, where Delete
      used to be missing (found live after multi-brand setup). */
+  // Sticky keep for an open step-1 delete confirm across render() / list redraws.
+  // A single keep local to one loadStep1Brands call is not enough: auth backend
+  // and brandcontext:storage both call render(), and the second wipe sees an
+  // empty host (panel already removed) so a non-sticky keep is null (2026-11-06).
+  var __step1DelKeep = null;
+  function noteStep1DelKeep() {
+    var host = $('step1Brands');
+    var openDel = host && host.querySelector('[data-delete-confirm]');
+    if (openDel) {
+      __step1DelKeep = {
+        id: openDel.getAttribute('data-delete-confirm'),
+        text: ((openDel.querySelector('[data-del-name]') || {}).value) || ''
+      };
+    }
+    return __step1DelKeep;
+  }
+  function clearStep1DelKeep() { __step1DelKeep = null; }
+
   // The confirmation is a panel under the brand's own row, never a native
   // prompt (2026-10-23): a browser under remote debugging, an embedded view or
   // a blocked-dialogs setting answers window.prompt with null at once, and
@@ -3576,7 +3597,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var alsoActive = id === activeId;
     var host = rowEl && rowEl.parentNode;
     var old = document.querySelector('[data-delete-confirm]');
-    if (old) { var same = old.getAttribute('data-delete-confirm') === id; old.remove(); if (same) return; }
+    if (old) { var same = old.getAttribute('data-delete-confirm') === id; old.remove(); if (same) { clearStep1DelKeep(); return; } }
     if (!host) return;
     var box = document.createElement('div');
     box.className = 'ws-del';
@@ -3596,9 +3617,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var go = box.querySelector('[data-del-go]');
     var status = box.querySelector('[data-del-status]');
     function matches() { return input.value.trim().toLowerCase() === String(name).trim().toLowerCase(); }
-    input.addEventListener('input', function () { go.disabled = !matches(); });
-    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && matches()) go.click(); if (ev.key === 'Escape') box.remove(); });
-    box.querySelector('[data-del-cancel]').addEventListener('click', function () { box.remove(); });
+    function syncKeep() {
+      __step1DelKeep = { id: id, text: input.value || '' };
+    }
+    input.addEventListener('input', function () { go.disabled = !matches(); syncKeep(); });
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && matches()) go.click();
+      if (ev.key === 'Escape') { clearStep1DelKeep(); box.remove(); }
+    });
+    box.querySelector('[data-del-cancel]').addEventListener('click', function () { clearStep1DelKeep(); box.remove(); });
     go.addEventListener('click', async function () {
       if (!matches()) return;
       go.disabled = true; input.disabled = true; status.textContent = 'Deleting ' + name + '...';
@@ -3613,6 +3640,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             try { if (window.BrandContext.endSetupShell) window.BrandContext.endSetupShell(); } catch (_) {}
           }
         }
+        clearStep1DelKeep();
         box.remove();
         try { await window.BrandContext.refresh(); } catch (_) {}
         if (typeof after === 'function') after();
@@ -3623,6 +3651,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         status.textContent = 'Nothing was deleted. ' + window.LifecycleFailure.sentence(e);
       }
     });
+    syncKeep();
     try { input.focus(); } catch (_) {}
   }
 
@@ -3631,16 +3660,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   async function loadStep1Brands() {
     var host = $('step1Brands');
     if (!host || !window.BrandContext) return;
+    // Refresh the sticky keep from the live panel when it is still mounted;
+    // if render() already replaced the host, noteStep1DelKeep leaves the sticky.
+    noteStep1DelKeep();
+    var genHost = host;
     try {
       var r = await window.BrandContext.list();
+      // A newer render() replaced #step1Brands while we awaited: abandon this
+      // paint so we do not write into a detached node or clobber a fresher list.
+      if ($('step1Brands') !== genHost) return;
       var rows = r.workspaces || [];
       var active = r.active_id || (window.BrandContext.brand && window.BrandContext.brand.id);
       if (!rows.length) { host.innerHTML = ''; return; }
       // A delete confirmation open in this list survives the list being drawn
       // again (2026-10-24, CI: a late refresh redrew the rows while a person
-      // was typing the name, and their panel and text vanished).
-      var openDel = host.querySelector('[data-delete-confirm]');
-      var keep = openDel ? { id: openDel.getAttribute('data-delete-confirm'), text: ((openDel.querySelector('[data-del-name]') || {}).value) || '' } : null;
+      // was typing the name, and their panel and text vanished). The sticky
+      // keep also covers a full step re-paint from auth/storage events.
+      var keep = __step1DelKeep;
       host.innerHTML =
         '<label style="display:block;margin:0 0 6px">Your brands <span class="note">' + rows.length + '</span></label>' +
         rows.map(function (w) {
@@ -3684,10 +3720,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           confirmDeleteBrand(keep.id, keepRow, active, function () { loadStep1Brands(); }, keepEl);
           var inp = host.querySelector('[data-delete-confirm] [data-del-name]');
           if (inp && keep.text) { inp.value = keep.text; inp.dispatchEvent(new Event('input')); }
+        } else {
+          clearStep1DelKeep();
         }
       }
     } catch (e) {
-      host.innerHTML = '';
+      if ($('step1Brands') === genHost) host.innerHTML = '';
     }
   }
 

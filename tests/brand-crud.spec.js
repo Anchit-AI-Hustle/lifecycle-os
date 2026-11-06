@@ -88,6 +88,20 @@ test('delete requires the brand name, not a single OK', () => {
   expect(block).toMatch(/credit ledger/i);
 });
 
+test('a step-1 re-render keeps an open delete confirm (not only a list redraw)', () => {
+  // loadStep1Brands kept across its own redraw; render() still wiped the host
+  // first (main CI 42205791147). Sticky keep survives a second wipe while the
+  // first loadStep1Brands is still awaiting list().
+  expect(ONBOARDING).toMatch(/var __step1DelKeep/);
+  expect(ONBOARDING).toMatch(/function noteStep1DelKeep/);
+  expect(ONBOARDING).toMatch(/function clearStep1DelKeep/);
+  const render = ONBOARDING.slice(ONBOARDING.indexOf('function render()'));
+  const step1 = render.slice(render.indexOf('if (step === 1)'), render.indexOf('c.innerHTML'));
+  expect(step1, 'render() must note the open panel before replacing #step1Brands')
+    .toMatch(/noteStep1DelKeep\(\)/);
+  expect(ONBOARDING).toMatch(/\$\('step1Brands'\) !== genHost/);
+});
+
 test('deleting the ACTIVE brand warns that it is the active one', () => {
   const fn = ONBOARDING.slice(ONBOARDING.indexOf('function confirmDeleteBrand'));
   const block = fn.slice(0, 2500);

@@ -280,7 +280,10 @@ test('/brain: "MP4 video with music and voiceover" sends the story and the send\
     expect(sent[1].music_prompt).toBeUndefined();
     expect(sent[0].html).toBe(html);
     expect(sent[0].cut).toBe('full');
-  } finally { await new Promise((r) => server.close(r)); }
+  } finally {
+    try { if (typeof server.closeAllConnections === 'function') server.closeAllConnections(); } catch (_) {}
+    await new Promise((r) => server.close(r));
+  }
 });
 
 // A host that omits Content-Length is read only up to the cap, never whole
@@ -341,5 +344,8 @@ test('/brain: the short cut chosen in the sandboxed Story player is the cut the 
     await page.locator('#cv-host [data-code-mp4]').click();
     await expect.poll(() => sent.length).toBe(2);
     expect(sent[1].cut).toBe('full');
-  } finally { await new Promise((r) => server.close(r)); }
+  } finally {
+    try { if (typeof server.closeAllConnections === 'function') server.closeAllConnections(); } catch (_) {}
+    await new Promise((r) => server.close(r));
+  }
 });
