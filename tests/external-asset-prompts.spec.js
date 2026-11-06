@@ -118,12 +118,9 @@ test('an ad brief states the platform limit and a message brief states the opt-o
 });
 
 test('the rule is in the builder: dropping the rewrite would leave the marker in the brief', () => {
-  // Mutation check. brandBlock still tells an internal caller to print the
-  // marker. The pasted brief runs that block through forExternalModel. If the
-  // rewrite is removed, the assertion above fails because the marker returns.
-  const src = require('fs').readFileSync(path.join(ROOT, 'api/_shared/master-prompt.js'), 'utf8');
-  expect(src).toMatch(/return forExternalModel\(/);
-  expect(src).toMatch(/Never print a bracket marker/);
+  // Mutation check, executed: brandBlock still tells an internal caller to
+  // print the marker. The pasted brief rewrites it. If forExternalModel is
+  // removed, the marker returns and this fails.
   const bare = mp.buildMasterPrompt({
     brand: { id: 'ws-bare', name: 'Bare Goods', voice: {}, regions: [{ code: 'US', home: true }] },
     assetType: 'mailer', market: 'US',
@@ -131,6 +128,7 @@ test('the rule is in the builder: dropping the rewrite would leave the marker in
   expect(bare).toContain('Bare Goods');
   expect(bare).not.toMatch(/\[DATA REQUIRED BEFORE LAUNCH/);
   expect(bare).toContain('leave it out');
+  expect(bare).toContain('Never print a bracket marker');
 });
 
 async function build(brand, over) {

@@ -50,7 +50,9 @@ function inputFrom(prompt, { instrumental, seconds } = {}) {
   const offer = grab(/^It promotes this offer: ([^\n]+?)\.?$/im);
   const purpose = grab(/^Purpose: ([^\n]+)$/im);
   const lyr = t.split(/Sing exactly these lyrics, in this order, and no others:\s*\n/i)[1];
-  const lyrics = lyr ? cleanLyrics(lyr.split(/\nDo not imitate/i)[0]) : '';
+  // Stop at the brief's trailing rules (claim ban, artist ban). A rule added
+  // between the lyrics and "Do not imitate" must not be sung as a lyric line.
+  const lyrics = lyr ? cleanLyrics(lyr.split(/\n(?:Use no claim|Do not imitate)/i)[0]) : '';
   const language = grab(/lead vocal in ([A-Za-z ,]+?)\./i);
   let description;
   if (brand) {

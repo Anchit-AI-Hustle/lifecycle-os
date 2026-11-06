@@ -378,8 +378,12 @@ test.describe('4. a request with no verified caller is answered as no brand: nev
     const ex = require('../api/_shared/calendar-export.js');
     const csv = ex.buildExportCsv([{ id: 'e1', date: '2026-10-20', cohort: { name: 'At Risk', size: 0 }, heroProduct: { title: 'A product', handle: 'a-product' } }]);
     expect(csv).toContain('[DATA REQUIRED BEFORE LAUNCH: region store URL, this brand]');
-    expect(csv).toContain('[DATA REQUIRED BEFORE LAUNCH: brand name');
+    // Pasteable asset prompts rewrite the app's gap marker to "leave it out"
+    // (#422). The brand gap is still stated; tenant zero's name and store are not.
+    expect(csv).toMatch(/BRAND:\s*not on record \(leave it out/i);
+    expect(csv).not.toMatch(/\[DATA REQUIRED BEFORE LAUNCH: brand name/);
     expect(csv).not.toMatch(/knickgasm\.com/i);
+    expect(csv).not.toMatch(new RegExp(ZERO_NAME.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
   });
 
   test('social run: a workspace that only carries tenant zero\'s slug is not planned for tenant zero\'s market', async () => {
