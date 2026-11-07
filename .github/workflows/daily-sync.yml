@@ -1,3 +1,7 @@
+# The scheduler calls the project's own vercel.app address, not the custom
+# domain: Cloudflare in front of lifecycle-os.anchit-tandon.com answers
+# GitHub's runners with a 403 bot challenge. vercel.json lets /api/ through
+# on that address (pages still redirect). SCHEDULER_BASE_URL overrides it.
 name: Daily Intelligence Sync (noon IST + manual)
 
 # The full daily loop = pull READ-ONLY data from the source platforms into
@@ -10,11 +14,10 @@ name: Daily Intelligence Sync (noon IST + manual)
 # This workflow adds the SECOND daily run at NOON IST, plus a manual "Run now"
 # button (workflow_dispatch) for on-demand/one-time runs.
 #
-# SETUP (one-time): add two repo secrets under Settings -> Secrets and variables
+# SETUP (one-time): add the repo secret(s) under Settings -> Secrets and variables
 # -> Actions:
 #   CRON_SECRET   = the same value as the Vercel CRON_SECRET env var
-#   APP_BASE_URL  = https://lifecycle-os.anchit-tandon.com   (optional;
-#                   falls back to that default below if unset)
+#   SCHEDULER_BASE_URL (optional) = https://lifecycle-os-anchit-ai-hustle.vercel.app
 
 on:
   workflow_dispatch: {}            # manual "Run now" for the one-time run
@@ -35,9 +38,9 @@ jobs:
       - name: Trigger the daily loop (read-only pull -> analyse -> re-plan -> regenerate)
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          SCHEDULER_BASE_URL: ${{ secrets.SCHEDULER_BASE_URL }}
         run: |
-          BASE="${APP_BASE_URL:-https://lifecycle-os.anchit-tandon.com}"
+          BASE="${SCHEDULER_BASE_URL:-https://lifecycle-os-anchit-ai-hustle.vercel.app}"
           if [ -z "$CRON_SECRET" ]; then
             echo "CRON_SECRET repo secret is not set — add it under Settings -> Secrets and variables -> Actions." >&2
             exit 1

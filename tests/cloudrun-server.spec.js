@@ -74,6 +74,38 @@ test('vercel.json sources compile like path-to-regexp', () => {
   expect(sourceRegex('/(.*)\\.html').test('/xhtml')).toBe(false);
 });
 
+test('a scheduler on the project\'s vercel.app address reaches /api; its pages still go to the custom domain', async () => {
+  // The custom domain sits behind a Cloudflare bot challenge that answers
+  // GitHub's runners 403 "Just a moment...", so the scheduled workflows call
+  // the project's own vercel.app address. Its pages still redirect to the
+  // canonical domain; /api/ is answered where it was asked.
+  const http = require('http');
+  const port = srv.address().port;
+  const ask = (p, host) => new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port, path: p, headers: { host } }, (res) => { res.resume(); resolve({ status: res.statusCode, location: res.headers.location }); }).on('error', reject);
+  });
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  const hosts = cfg.redirects.filter((r) => r.has && /\.vercel\.app$/.test(r.has[0].value)).map((r) => r.has[0].value);
+  expect(new Set(hosts).size).toBeGreaterThanOrEqual(4);
+  for (const host of new Set(hosts)) {
+    const page = await ask('/onboarding', host);
+    expect(page.status, host).toBe(308);
+    expect(page.location, host).toBe('https://lifecycle-os.anchit-tandon.com/onboarding');
+    const root = await ask('/', host);
+    expect(root.location, host).toBe('https://lifecycle-os.anchit-tandon.com/');
+    const api = await ask('/api/health', host);
+    expect(api.status, host).toBe(200);
+  }
+  // The workflows that call /api on a schedule use that address.
+  for (const f of ['alerts.yml', 'daily-sync.yml', 'data-analysis-hourly.yml']) {
+    const y = fs.readFileSync(path.join(ROOT, '.github', 'workflows', f), 'utf8');
+    expect(y, f).toContain('https://lifecycle-os-anchit-ai-hustle.vercel.app');
+    expect(y, f).not.toMatch(/BASE="\$\{APP_BASE_URL/);
+  }
+  expect(sourceRegex('/:path((?!api/).*)').exec('/a/b').groups.path).toBe('a/b');
+  expect(sourceRegex('/:path((?!api/).*)').test('/api/brain')).toBe(false);
+});
+
 test('the Dockerfile runs this server on $PORT', () => {
   const df = fs.readFileSync(path.join(ROOT, 'Dockerfile'), 'utf8');
   expect(df).toMatch(/^FROM node:24/m);

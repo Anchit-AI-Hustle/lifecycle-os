@@ -54,6 +54,15 @@ Three more gaps against usefastlane.ai and a quality pass on the static ad.
   ground or unstated-price defect was found. Gated by `tests/static-ad-quality.spec.js` (4 mutations caught; a compare-at
   drawn with no price is held by two layers, so one mutation alone is not seen). static-raster draws the same page, so
   its PNGs carry the fix.
+## ⭐ Scheduled jobs call the vercel.app address: Cloudflare challenges GitHub's runners (2026-11-07)
+Revenue Alerts, Hourly Data Analysis and the Daily Intelligence Sync failed every run in under a second: the custom
+domain `lifecycle-os.anchit-tandon.com` is behind Cloudflare (`server: cloudflare`), which answers GitHub Actions'
+requests with a 403 managed challenge ("Just a moment..."). The workflows now call
+`https://lifecycle-os-anchit-ai-hustle.vercel.app` (override: repo secret `SCHEDULER_BASE_URL`; `APP_BASE_URL` is no
+longer read), and `vercel.json`'s vercel.app host redirects are `/:path((?!api/).*)`: pages still go to the custom
+domain, `/api/` is answered on the address asked. `scripts/cloudrun-server.js` reads `:name(regex)` sources as
+path-to-regexp does. Gated in `tests/cloudrun-server.spec.js` (mutation-checked). If Cloudflare also challenges
+Vercel's own egress, self-calls (`self-url.js`) can be pointed at the same address with `SELF_BASE_URL`.
 ## ⭐ Ads ranked by cost per result, winning ads spawn variations, ad history read during setup (2026-11-02)
 Three more gaps against usefastlane.ai, plus a quality pass on the Ad history card. Gated by
 `tests/ad-performance-variations.spec.js` (9 executed: the shipped reader over the fake Meta and Google APIs, the

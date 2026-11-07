@@ -1,3 +1,7 @@
+# The scheduler calls the project's own vercel.app address, not the custom
+# domain: Cloudflare in front of lifecycle-os.anchit-tandon.com answers
+# GitHub's runners with a 403 bot challenge. vercel.json lets /api/ through
+# on that address (pages still redirect). SCHEDULER_BASE_URL overrides it.
 name: Hourly Data Analysis & Anomaly Alerts
 
 # Runs the unified Data Analysis control plane once per hour. The persisted
@@ -6,7 +10,7 @@ name: Hourly Data Analysis & Anomaly Alerts
 #
 # Required GitHub Actions secrets:
 #   CRON_SECRET  — same value as the Vercel CRON_SECRET environment variable
-#   APP_BASE_URL — required production Lifecycle OS origin, e.g. https://your-domain
+#   SCHEDULER_BASE_URL (optional) — defaults to https://lifecycle-os-anchit-ai-hustle.vercel.app
 
 on:
   workflow_dispatch:
@@ -30,17 +34,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+      SCHEDULER_BASE_URL: ${{ secrets.SCHEDULER_BASE_URL }}
     steps:
       - name: Run source-backed analysis and anomaly delivery
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${APP_BASE_URL:-}" ]; then
-            echo "APP_BASE_URL repo secret is not set." >&2
-            exit 1
-          fi
-          BASE="${APP_BASE_URL%/}"
+          BASE="${SCHEDULER_BASE_URL:-https://lifecycle-os-anchit-ai-hustle.vercel.app}"
+          BASE="${BASE%/}"
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET repo secret is not set." >&2
             exit 1
