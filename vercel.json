@@ -124,47 +124,47 @@
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/:path((?!api/).*)",
       "has": [
         {
           "type": "host",
           "value": "knickgasm.vercel.app"
         }
       ],
-      "destination": "https://lifecycle-os.anchit-tandon.com/:path*",
+      "destination": "https://lifecycle-os.anchit-tandon.com/:path",
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/:path((?!api/).*)",
       "has": [
         {
           "type": "host",
           "value": "knickgasm-anchit-ai-hustle.vercel.app"
         }
       ],
-      "destination": "https://lifecycle-os.anchit-tandon.com/:path*",
+      "destination": "https://lifecycle-os.anchit-tandon.com/:path",
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/:path((?!api/).*)",
       "has": [
         {
           "type": "host",
           "value": "lifecycle-os-anchit-ai-hustle.vercel.app"
         }
       ],
-      "destination": "https://lifecycle-os.anchit-tandon.com/:path*",
+      "destination": "https://lifecycle-os.anchit-tandon.com/:path",
       "permanent": true
     },
     {
-      "source": "/:path*",
+      "source": "/:path((?!api/).*)",
       "has": [
         {
           "type": "host",
           "value": "lifecycle-os.vercel.app"
         }
       ],
-      "destination": "https://lifecycle-os.anchit-tandon.com/:path*",
+      "destination": "https://lifecycle-os.anchit-tandon.com/:path",
       "permanent": true
     },
     {

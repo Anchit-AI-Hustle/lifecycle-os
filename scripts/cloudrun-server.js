@@ -41,7 +41,24 @@ function sourceRegex(source) {
   let rx = '';
   for (let i = 0; i < source.length;) {
     const m = /^:([A-Za-z_][A-Za-z0-9_]*)(\*)?/.exec(source.slice(i));
-    if (m) { rx += m[2] ? `(?<${m[1]}>.*)` : `(?<${m[1]}>[^/]+)`; i += m[0].length; continue; }
+    if (m) {
+      i += m[0].length;
+      // `:name(regex)`: the parameter matches the given pattern (path-to-regexp,
+      // as Vercel reads it), e.g. "/:path((?!api/).*)".
+      if (!m[2] && source[i] === '(') {
+        let depth = 0, j = i;
+        for (; j < source.length; j++) {
+          if (source[j] === '\\') { j++; continue; }
+          if (source[j] === '(') depth++;
+          else if (source[j] === ')' && --depth === 0) break;
+        }
+        rx += `(?<${m[1]}>${source.slice(i + 1, j)})`;
+        i = j + 1;
+        continue;
+      }
+      rx += m[2] ? `(?<${m[1]}>.*)` : `(?<${m[1]}>[^/]+)`;
+      continue;
+    }
     const c = source[i];
     rx += c === '.' && source[i - 1] !== '\\' && !/[\\(]/.test(source[i - 1] || '') ? '\\.' : c;
     i += 1;
