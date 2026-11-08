@@ -413,11 +413,16 @@ function modelsFor(provider, tier) {
 // they are tried before any paid provider, and a paid key (Anthropic, OpenAI,
 // xAI) is reached only when every free one failed. The user's credit charge is
 // unchanged. FREE_GENERATION=off keeps the paid-first order (and no keyless).
+const platformPolicy = require('./platform-model-policy.js');
 const PAID_PROVIDERS = new Set(['anthropic', 'bedrock', 'openai', 'grok', 'deepseek']);
 // The order a workspace's OWN models are used in: the operator's four first,
 // then the rest by output quality.
 const OWN_KEY_PRIORITY = ['anthropic', 'bedrock', 'openai', 'gemini', 'grok', 'deepseek', 'openrouter', 'huggingface', 'groq', 'cerebras', 'cloudflare', 'sakana', 'ollama'];
 function providerOrder(tier) {
+  // The operator's own model, and only it, while their budget lasts
+  // (2026-11-09, platform-model-policy.js). Off unless PLATFORM_LLM_ONLY=bedrock.
+  const only = platformPolicy.platformOrder();
+  if (only) return only;
   const base = providerOrderBase(tier);
   if (!freeGenerationOn()) return base;
   // A run the user is paying credits for goes to the flagship models first
@@ -605,6 +610,9 @@ module.exports = async function callLLM(opts) {
     ? { token: _clean(ovKeys.gemini_oauth.access_token), project: _clean(ovKeys.gemini_oauth.project) } : null;
   const geminiKey    = _clean(ovKeys.gemini) || (geminiOauth ? 'google-oauth' : '') || _clean(userGeminiKey) || _clean(process.env.GEMINI_API_KEY);
   const ownKey = (p) => !!ovKeys[p] || (p === 'gemini' && !!geminiOauth);
+  // A Bedrock key of the person's own (API key or AWS key pair) is theirs; the
+  // platform policy below governs only the platform's own Bedrock key.
+  const ownBedrock = !!(ovKeys.bedrock || ovKeys.bedrock_access_key_id || ovKeys.aws_access_key_id);
   const grokKey      = _clean(ovKeys.grok) || _clean(process.env.XAI_API_KEY);
   const groqKey      = _clean(ovKeys.groq) || _clean(process.env.GROQ_API_KEY);
   const cerebrasKey  = _clean(ovKeys.cerebras) || _clean(process.env.CEREBRAS_API_KEY);
@@ -952,6 +960,23 @@ module.exports = async function callLLM(opts) {
     // generations use it from the next call, not ten minutes later.
     clearCool(result.provider, result.provider === 'openai' ? openaiKeys : [keyFor[result.provider]], result.model);
     const usage = result.usage || { input_tokens: null, output_tokens: null };
+    // The operator's money: every answer on the platform's Bedrock key is
+    // recorded and priced (platform-model-policy.js), in the background.
+    if (result.provider === 'bedrock' && !ownBedrock && platformPolicy.bedrockOnly()) {
+      let req = null; try { req = require('./request-scope.js').currentRequest(); } catch (_) { req = null; }
+      Promise.resolve().then(async () => {
+        let user = null; let ws = null;
+        try {
+          if (req && req.headers && (req.headers.authorization || req.headers.Authorization)) {
+            const a = await require('./brand-workspace-core.js').requireUser(req);
+            if (a && a.ok) user = a.user_id;
+          }
+          const q = (req && req.query) || {}; const b = (req && req.body && typeof req.body === 'object') ? req.body : {};
+          ws = String(b.workspace_id || q.workspace_id || '') || null;
+        } catch (_) { /* attribution is best effort */ }
+        await platformPolicy.record({ model: result.model, input_tokens: usage.input_tokens, output_tokens: usage.output_tokens, user_id: user, workspace_id: ws });
+      }).catch(() => {});
+    }
     noteOutcome('ok', { own: ownKey(result.provider), kind: 'text', provider: result.provider, model: result.model,
       input_tokens: usage.input_tokens, output_tokens: usage.output_tokens });
     return { text: result.text, provider: result.provider, model: result.model, seed, usage,
@@ -1031,6 +1056,8 @@ module.exports = async function callLLM(opts) {
   // platform to finish the job (`fallback`). A workspace that turned fallback
   // off has said its brand's prompts go to the providers it named and nowhere
   // else, so the cascade ends there even if that means failing.
+  // The operator's spend so far, read at most once a minute (bounded, never throws).
+  if (platformPolicy.bedrockOnly()) { try { await platformPolicy.refresh(); } catch (_) { /* decide on the last read */ } }
   const known = (p) => hasKey[p] !== undefined;
   let order;
   let outsideRouting = [];
@@ -1121,7 +1148,9 @@ module.exports = async function callLLM(opts) {
     if (providerName === 'bedrock' && anthropicViaBedrock && order.includes('anthropic')) { _skipped.push({ provider: 'bedrock', reason: 'tried as Claude through Bedrock' }); continue; }
     const listName = providerName === 'anthropic' && anthropicViaBedrock ? 'bedrock' : providerName;
     const chosen = ovModels[listName];
-    const models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(listName, tierNorm)).map((m) => String(m || '').trim()));
+    let models = _dedupe((Array.isArray(chosen) && chosen.length ? chosen : modelsFor(listName, tierNorm)).map((m) => String(m || '').trim()));
+    // On the platform's Bedrock key under the operator's policy: Opus 5.5 only, every tier.
+    if (listName === 'bedrock' && !ownBedrock && platformPolicy.bedrockOnly()) models = [platformPolicy.model()];
     const keys = providerName === 'openai' ? openaiKeys : [keyFor[providerName]];
     // A connection Test (overrides.fresh) always makes the real call: a person who
     // just pasted a new key, or added credit, must hear the provider's answer now,

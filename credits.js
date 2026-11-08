@@ -669,6 +669,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       emit();
       decorate(document);
       subscribeRealtime();
+      if (r.wallet) modelNudge();
       return state;
     } catch (e) {
       if (e.status === 503 && e.payload) {
@@ -682,6 +683,89 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       decorate(document);
       return state;
     }
+  }
+
+  /* ── Your own model (2026-11-09) ──────────────────────────────────────────
+     The platform's model runs on the operator's money while it lasts. As a
+     person uses it more (and as that money runs down) they are asked, more
+     firmly each step, to connect the model they already pay for. One quiet
+     line in the page flow, never over a control; tokens only; dismissed per
+     level for a week, except "required", which comes back each page. */
+  var NUDGE_KEY = 'lifecycle.model-nudge.v1';
+  var nudgeShown = false;
+  function nudgeDismissed(level) {
+    if (level === 'required') { try { return sessionStorage.getItem(NUDGE_KEY) === level; } catch (_) { return false; } }
+    try {
+      var d = JSON.parse(localStorage.getItem(NUDGE_KEY) || 'null');
+      return !!(d && d.level === level && Date.now() - d.at < 7 * 86400000);
+    } catch (_) { return false; }
+  }
+  function nudgeDismiss(level) {
+    try { if (level === 'required') sessionStorage.setItem(NUDGE_KEY, level); else localStorage.setItem(NUDGE_KEY, JSON.stringify({ level: level, at: Date.now() })); } catch (_) {}
+  }
+  function renderNudge(n) {
+    if (!n || !n.level || n.level === 'none' || !n.message) return;
+    if (nudgeDismissed(n.level) || document.getElementById('lc-model-nudge')) return;
+    var firm = n.level === 'strong' || n.level === 'required';
+    var box = document.createElement('div');
+    box.id = 'lc-model-nudge';
+    box.setAttribute('role', firm ? 'alert' : 'status');
+    box.setAttribute('data-level', n.level);
+    box.style.cssText = 'margin:10px 16px;padding:12px 14px;border:1px solid var(--vh-line);border-left:3px solid ' +
+      (firm ? 'var(--vh-warn)' : 'var(--vh-accent)') +
+      ';border-radius:10px;background:var(--vh-panel);color:var(--vh-ink);font-size:14px;line-height:1.45;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center';
+    var p = document.createElement('div');
+    p.style.cssText = 'flex:1 1 280px;min-width:0';
+    p.textContent = n.message;
+    var opts = document.createElement('details');
+    opts.style.cssText = 'flex-basis:100%;font-size:13px';
+    var sum = document.createElement('summary');
+    sum.textContent = 'Which model do you already pay for?';
+    sum.style.cursor = 'pointer';
+    opts.appendChild(sum);
+    var ul = document.createElement('ul');
+    ul.style.cssText = 'margin:6px 0 0;padding-left:18px';
+    (n.options || []).forEach(function (o) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = o.how === 'sign-in' ? (n.link || '/ai-models') : (o.where || n.link || '/ai-models');
+      if (/^https?:/.test(a.href) && a.host !== location.host) { a.target = '_blank'; a.rel = 'noopener'; }
+      a.textContent = o.name;
+      li.appendChild(a);
+      li.appendChild(document.createTextNode(': ' + (o.how === 'sign-in' ? 'sign in on AI Models. ' : 'make a key there, then paste it on AI Models. ') + (o.note || '')));
+      ul.appendChild(li);
+    });
+    opts.appendChild(ul);
+    var go = document.createElement('a');
+    go.href = n.link || '/ai-models';
+    go.className = 'btn sm';
+    go.textContent = 'Connect my model';
+    go.style.cssText = 'white-space:nowrap';
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'btn sm secondary';
+    x.textContent = n.level === 'required' ? 'Not now' : 'Dismiss';
+    x.addEventListener('click', function () { nudgeDismiss(n.level); box.remove(); });
+    box.appendChild(p); box.appendChild(go); box.appendChild(x);
+    if (n.options && n.options.length) box.appendChild(opts);
+    var after = document.getElementById('lc-authnotice') || document.getElementById('lifecycle-nav');
+    if (after && after.parentNode) after.parentNode.insertBefore(box, after.nextSibling);
+    else document.body.insertBefore(box, document.body.firstChild);
+    // The credit pill floats in the top corner: never let it sit on the notice's buttons.
+    try {
+      if (pillEl) {
+        var pr = pillEl.getBoundingClientRect(); var br = box.getBoundingClientRect();
+        if (pr.width && pr.bottom > br.top && pr.top < br.bottom && pr.left < br.right && pr.right > br.left) {
+          box.style.marginTop = Math.ceil(pr.bottom - br.top + 18) + 'px';
+        }
+      }
+    } catch (_) {}
+  }
+  async function modelNudge() {
+    if (nudgeShown) return;
+    nudgeShown = true;
+    if (/^\/(ai-models|connections)\b/.test(location.pathname)) return;
+    try { renderNudge(await api('model-nudge')); } catch (e) { if (e && e.status !== 401) log(e); }
   }
 
   /* ── boot ──────────────────────────────────────────────────────────────── */

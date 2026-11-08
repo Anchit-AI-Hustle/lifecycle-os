@@ -1453,6 +1453,20 @@ async function handle(req, res) {
         }
         return res.status(200).json(Object.assign({}, r, { message: `${g.amount} credits sent to ${g.hint}. They arrive the next time that person opens their balance, signed in with that email.` }));
       }
+      case 'model-nudge': {
+        // How strongly this person is asked to connect a model of their own
+        // (2026-11-09, platform-model-policy.js): rises with their use of the
+        // platform's model and with how much of the operator's budget is gone.
+        const policy = require('./platform-model-policy.js');
+        let ownConnected = false;
+        try {
+          const ov = await require('./workspace-connections-core.js').llmOverridesFor(req);
+          ownConnected = !!(ov && ((Array.isArray(ov.configured) && ov.configured.length) || (ov.keys && Object.keys(ov.keys).length)));
+        } catch (_) { ownConnected = false; }
+        await policy.refresh().catch(() => null);
+        const mine = await policy.usageFor(auth.user_id);
+        return res.status(200).json(Object.assign({ ok: true }, policy.nudgeFor(mine, { ownConnected })));
+      }
       case 'gifts': {
         const rows = await serviceRest(`credit_gifts?select=id,to_email_hint,amount,note,status,created_at,claimed_at&from_user=eq.${encodeURIComponent(auth.user_id)}&order=created_at.desc&limit=50`).catch(() => []);
         return res.status(200).json({ ok: true, gifts: Array.isArray(rows) ? rows : [] });
@@ -1481,7 +1495,7 @@ async function handle(req, res) {
         return res.status(200).json({ ok: true, orders: Array.isArray(rows) ? rows : [] });
       }
       default:
-        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts', 'rzp-order', 'rzp-verify'] });
+        return res.status(400).json({ ok: false, error: 'unknown_credits_operation', available: ['catalog', 'balance', 'ledger', 'usage', 'quote', 'recharge', 'orders', 'gift', 'gifts', 'model-nudge', 'rzp-order', 'rzp-verify'] });
     }
   } catch (err) {
     return res.status(err.status || 500).json({ ok: false, error: err.message || 'credits_operation_failed' });
