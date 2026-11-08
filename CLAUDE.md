@@ -25,6 +25,20 @@ A product with no description builds as before. In ASSET_BUILD_VERSION. Gated by
 `claims` / `tagline` (35 of 40 starter templates) is a gap (`brand-runtime.withoutMarkerFacts`), landing B differs from
 A with no tagline, footers read "a reader of The Times of India" (`mailer-format.memberPhrase`), no sub line equal to
 its headline (`tests/asset-simulation-fixes.spec.js`).
+## ⭐ Landing pages: four text sizes, a big headline on a phone, the ad's promise under it (2026-11-08)
+The operator, with a carousel of website tips (kill the AI look; a big first screen, real prices, reviews, one button;
+"only 4 text sizes"; the phone check: buttons 44px, text 16px, nothing wider than the screen, the main button visible
+without scrolling) and "research on linkedin and other blogger platforms ... and learn". Measured on our landing pages
+in Chromium at 390 and 1280: buttons, width and the button above the fold already passed; the line under the headline
+was 12px on a phone, pages used 7-8 text sizes, and a theme's phone headline was 22-24px. Fixed: `lp-craft.snapFont` maps
+every px size to four roles (label 14, body 16, heading 24, display 40; `TYPE_STEPS`); the phone hero line is 16px; the
+headline is always the display size (`lpThemeCss`: desktop >= 36 -> 40, phone `clamp(26px, 8vw x theme scale, 36px)`,
+`overflow-wrap:anywhere`), section titles the heading size. **Message match** (the one rule every landing page source
+agreed on: the page repeats the promise of the ad that sent the visitor): on the template path the hero line is the
+product reason the static ad led with (A) or the video ad led with (B), and the Why list holds the others
+(`templateEmailCopy.landing.hero_sub`). LinkedIn posts cannot be read from here; the blogs read are vendor guides with
+no controlled study, so only rules that decide no fact were taken. Gated in `tests/product-story-assets.spec.js` (phone
+checklist + message match, mutation-checked); `landing-page-craft`'s step assertion changed on purpose.
 ## ⭐ A scene through OpenAI too, a competitor's layout remixed, bulk review on /brain, static ads fitted (2026-11-02)
 Three more gaps against usefastlane.ai and a quality pass on the static ad.
 - **Scene, second rung** (`api/ai/image.js` `tryOpenaiEdit`, `mode:'scene'` only): after Gemini, OpenAI's image EDIT,

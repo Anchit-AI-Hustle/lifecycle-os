@@ -76,7 +76,7 @@ test('the page carries the tagline reveal, said once, with noindex, a skip link,
   expect(f.skip).toBe('#main');
   expect(f.mains).toBe(1);
   expect(f.sizes.length).toBeGreaterThan(10);
-  for (const sz of f.sizes) expect(craft.TYPE_STEPS, `font-size ${sz}px is not a Tailwind step`).toContain(sz);
+  for (const sz of f.sizes) expect(craft.TYPE_STEPS, `font-size ${sz}px is not one of the four text sizes`).toContain(sz);
 });
 
 test('a brand with no tagline gets no reveal, and its button never says "Learn more"', async ({ page }) => {
@@ -93,7 +93,10 @@ test('the muted tone is a colour 3:1 off the ground, never the ink itself', () =
     expect(m.toLowerCase()).not.toBe(ink.toLowerCase());
     expect(craft.contrast(m, ground)).toBeGreaterThanOrEqual(3);
   }
-  for (const [n, s] of [[13, 12], [15, 14], [19, 18], [22, 20], [26, 24], [34, 30], [41, 36], [11, 12]]) expect(craft.snapFont(n)).toBe(s);
+  // Changed on purpose (2026-11-08): four text sizes, label 14 / body 16 /
+  // heading 24 / display 40; nothing under 14 (body under 16 read 12px on phones).
+  for (const [n, s] of [[11, 14], [13, 14], [15, 16], [17, 16], [19, 24], [26, 24], [34, 40], [48, 40]]) expect(craft.snapFont(n)).toBe(s);
+  expect(craft.TYPE_STEPS).toEqual([14, 16, 24, 40]);
 });
 
 const wordState = (page) => page.$$eval('[data-tagline-reveal] .tw', (ws) => ws.map((w) => ({ lit: w.classList.contains('lit'), color: getComputedStyle(w).color })));
