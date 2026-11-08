@@ -71,6 +71,8 @@ const OWNED_ELSEWHERE = new Set([
   'brand_catalog', 'brand_catalog_products', 'brand_members',
   'brand_user_prefs', 'brand_workspace_members',
   'workspace_members',                // membership of the legacy text workspace
+  'platform_model_usage',             // platform-model-policy: the OPERATOR's spend across all brands, service role only;
+                                      // workspace_id is attribution, never a read filter
 ]);
 
 test('SCOPED_TABLES covers every table the migrations give a workspace_id', () => {
