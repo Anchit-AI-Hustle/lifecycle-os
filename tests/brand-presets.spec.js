@@ -109,8 +109,11 @@ test('a default preset asserts a name, a URL and a sector, and nothing else', ()
     // No claims, no products, no store URLs invented to make the card look full.
     expect(p.offerings).toEqual([]);
     expect(p.regions).toEqual([]);
-    expect(p.claims.join(' ')).toMatch(/DATA REQUIRED BEFORE LAUNCH/);
-    expect(p.claims.join(' ')).toContain(p.name);
+    // Changed on purpose (2026-11-08): the gap is said in data_gaps. A marker
+    // INSIDE claims was read by every generator as a claim and printed in the
+    // subject, every paid ad and the landing page.
+    expect(p.claims).toEqual([]);
+    expect(p.data_gaps.join(' ')).toMatch(new RegExp('verifiable claims, ' + p.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     expect(p.data_gaps.length).toBeGreaterThan(0);
     // A tagline is a brand's own sentence about itself. There is no honest way
     // to supply one without reading it.

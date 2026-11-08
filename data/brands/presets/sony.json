@@ -55,9 +55,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Sony] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Sony]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "sony.com",
@@ -178,7 +176,8 @@
     "[DATA REQUIRED BEFORE LAUNCH: typography, Sony]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Sony]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Sony]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Sony]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Sony]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Sony]"
   ],
   "brand_assets": [
     {

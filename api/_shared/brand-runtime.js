@@ -152,8 +152,51 @@ const HOISTED = ['offerings', 'claims', 'market_study', 'legal_entity', 'contact
  * Lift brand_data fields onto the brand, without ever shadowing a real column.
  * A genuine column always wins: brand_data is the overflow, not an override.
  */
+// A record may hold the MARKER for a missing fact where the fact belongs: 35 of
+// the 40 starter templates shipped claims: ["[DATA REQUIRED BEFORE LAUNCH:
+// verifiable claims, <brand>]"], and every brand set up from one inherited it.
+// Every generator then read the marker as a claim the brand makes and printed
+// it in the subject, every paid ad and the landing page ("Why Lenskart ✓ [DATA
+// REQUIRED ...]"), 17 blocking findings on one send (2026-11-08 simulation).
+// A marker is a gap, never a fact: it leaves the fact lists and the tagline here,
+// and the gap is said in data_gaps instead.
+const MARKER_RX = /\[\s*DATA REQUIRED/i;
+function withoutMarkerFacts(brand) {
+  if (!brand || typeof brand !== 'object') return brand;
+  const isMarker = (v) => typeof v === 'string' ? MARKER_RX.test(v) : !!(v && typeof v === 'object' && typeof v.text === 'string' && MARKER_RX.test(v.text));
+  const clean = (o) => {
+    let out = o; const gaps = [];
+    for (const key of ['claims', 'approved_claims']) {
+      if (!Array.isArray(o[key]) || !o[key].some(isMarker)) continue;
+      if (out === o) out = { ...o };
+      o[key].filter(isMarker).forEach((m) => gaps.push(typeof m === 'string' ? m : m.text));
+      out[key] = o[key].filter((v) => !isMarker(v));
+    }
+    if (typeof o.tagline === 'string' && MARKER_RX.test(o.tagline)) {
+      if (out === o) out = { ...o };
+      gaps.push(o.tagline); out.tagline = '';
+    }
+    return { out, gaps };
+  };
+  const top = clean(brand);
+  let out = top.out; let gaps = top.gaps;
+  if (brand.brand_data && typeof brand.brand_data === 'object') {
+    const inner = clean(brand.brand_data);
+    if (inner.out !== brand.brand_data) {
+      if (out === brand) out = { ...brand };
+      out.brand_data = inner.out; gaps = gaps.concat(inner.gaps);
+    }
+  }
+  if (out !== brand && gaps.length) {
+    const have = Array.isArray(out.data_gaps) ? out.data_gaps : [];
+    out.data_gaps = Array.from(new Set(have.concat(gaps)));
+  }
+  return out;
+}
+
 function normalizeBrand(brand) {
   if (!brand || typeof brand !== 'object') return brand;
+  brand = withoutMarkerFacts(brand);
   const data = brand.brand_data;
   if (!data || typeof data !== 'object') return brand;
 
@@ -886,7 +929,7 @@ function promptFacts(brand) {
 }
 
 module.exports = {
-  withoutTemplateCopies,
+  withoutTemplateCopies, withoutMarkerFacts,
   realFamily, realStack,
   isUaLinkColour,
   coherentForGeneration,

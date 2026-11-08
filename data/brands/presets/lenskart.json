@@ -239,9 +239,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Lenskart] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Lenskart]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "lenskart.com",
@@ -445,7 +443,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Lenskart]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Lenskart]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Lenskart]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Lenskart]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Lenskart]"
   ],
   "brand_assets": [
     {

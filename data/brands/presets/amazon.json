@@ -295,9 +295,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Amazon] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Amazon]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "amazon.com",
@@ -545,7 +543,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Amazon]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Amazon]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Amazon]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Amazon]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Amazon]"
   ],
   "brand_assets": [
     {

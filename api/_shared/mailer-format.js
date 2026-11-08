@@ -168,6 +168,16 @@ function article(name) {
   return /^[aeiou]/i.test(String(name || '').replace(/^[^A-Za-z]+/, '')) ? 'an' : 'a';
 }
 
+// "you are a The Times of India reader" (2026-11-08 simulation): a name that
+// carries its own article reads "a reader of The Times of India"; any other
+// reads "a Lenskart customer". `name` is passed as it will be printed (escaped).
+function memberPhrase(name, one) {
+  const n = String(name || '').trim(); const who = String(one || 'customer').trim();
+  if (!n) return `${article(who)} ${who}`;
+  if (/^(the|a|an)\s/i.test(n.replace(/^[^A-Za-z]+/, ''))) return `${article(who)} ${who} of ${n}`;
+  return `${article(n)} ${n} ${who}`;
+}
+
 // Body copy in every mailer is set justified (the operator, 2026-10-17:
 // "alignment must be justified in mailers"). A line before a <br> and the
 // last line of a paragraph stay at the start edge (CSS text-align-last), so a
@@ -370,6 +380,7 @@ function logoHeader({ brand, store = '', color = '', font = 'Arial,sans-serif', 
 }
 
 module.exports = {
+  memberPhrase,
   productLine,
   displayName,
   dedupeTitle,

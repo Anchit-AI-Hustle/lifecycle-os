@@ -338,7 +338,8 @@ function template(t) {
       tone: '', preferred: [], banned: [], no_em_dashes: true,
       notes: marker('voice, tone and banned phrases', t.name) + " Nothing is inferred: a voice written from memory reads as approved guidance and is not.",
     },
-    claims: [marker('verifiable claims', t.name)],
+    // The gap is in data_gaps; a marker in claims was read as a claim (2026-11-08).
+    claims: [],
     regions: [],
     asset_hosts: [t.host],
     catalog_source: {
@@ -352,7 +353,7 @@ function template(t) {
     data_gaps: [
       marker('brand palette', t.name), marker('typography', t.name),
       marker('voice', t.name), marker('offerings and catalogue', t.name),
-      marker('regions and store URLs', t.name),
+      marker('regions and store URLs', t.name), marker('verifiable claims', t.name),
     ],
   };
 }

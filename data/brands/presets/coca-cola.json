@@ -263,9 +263,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Coca-Cola] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Coca-Cola]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "coca-cola.com",
@@ -417,7 +415,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Coca-Cola]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Coca-Cola]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Coca-Cola]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Coca-Cola]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Coca-Cola]"
   ],
   "brand_assets": [
     {

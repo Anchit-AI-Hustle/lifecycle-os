@@ -584,7 +584,11 @@ function _renderVariantBody(o) {
   // Keep the whole options object in scope: the brand-derived helpers below
   // (name, store, legal sender) read `o.brand`, which a destructured-only
   // signature would have hidden.
-  const { style, subject, hero_headline, hero_subline, body_blocks, cta_text, cta_url, market, hero_product, hero_sku, hero_image_url, hero_prompt, products, offer_bar, collection_url } = o || {};
+  const { style, subject, hero_headline, hero_subline: _subIn, body_blocks, cta_text, cta_url, market, hero_product, hero_sku, hero_image_url, hero_prompt, products, offer_bar, collection_url } = o || {};
+  // A sub line that says the headline again printed one line twice in a row
+  // ("General news coverage from The Times of India" x2, 2026-11-08 simulation).
+  const _same = (a, b) => String(a || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === String(b || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const hero_subline = _same(_subIn, hero_headline) ? '' : _subIn;
   const brandClaims = _brandClaims(o);
   // CTA points at the resolved product/collection page; the brand domain still
   // falls back per-market if no specific destination was provided.
@@ -753,7 +757,7 @@ function _renderVariantBody(o) {
       <tr><td align="center" data-mail-footer style="background:${palette.green};padding:22px 20px 28px;">
         <div style="font-family:${HEAD};font-size:14px;letter-spacing:0.24em;color:${palette.onGreen};">${esc(brandNameOf(o).toUpperCase())}</div>
         ${footerClaims.length ? `<div style="font-family:${BODY};font-size:10.5px;letter-spacing:0.05em;color:${palette.onGreen};margin:8px 0;">${footerClaims.join(" &middot; ")}</div>` : ""}
-        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${require('./mailer-format.js').article(brandNameOf(o))} ${esc(brandNameOf(o))} ${_audienceOne(o)}.<br>Manage preferences or unsubscribe from your account settings.</div>
+        <div style="font-family:${BODY};font-size:11px;color:${palette.onGreen};line-height:1.7;">${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${require('./mailer-format.js').memberPhrase(esc(brandNameOf(o)), _audienceOne(o))}.<br>Manage preferences or unsubscribe from your account settings.</div>
       </td></tr>`;
 
   // THE TEXT MAIL NAMES WHAT IT SELLS (2026-10-24, Lenskart: the Text
@@ -819,7 +823,7 @@ function _renderVariantBody(o) {
   const offers = layout.shop_by_links === false ? [] : (Array.isArray(_brand(o).offerings) ? _brand(o).offerings : [])
     .filter((x) => x && x.name && /^https:\/\//i.test(String(x.url || '')) && String(x.url).replace(/\/+$/, '') !== String(baseUrl).replace(/\/+$/, ''))
     .filter((x, i, a) => a.findIndex((y) => String(y.url).replace(/\/+$/, '') === String(x.url).replace(/\/+$/, '')) === i).slice(0, 4);
-  const legal = `${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${MF.article(brandNameOf(o))} ${esc(brandNameOf(o))} ${_audienceOne(o)}.<br>Manage preferences or unsubscribe from your account settings.`;
+  const legal = `${(() => { const org = [brandOrg(o).name, brandOrg(o).address].filter(Boolean); const line = org.length === 1 && _fold(org[0]) === _fold(brandNameOf(o)) ? '' : org.join(' · '); return line ? esc(line) + '<br>' : ''; })()}You are receiving this because you are ${MF.memberPhrase(esc(brandNameOf(o)), _audienceOne(o))}.<br>Manage preferences or unsubscribe from your account settings.`;
   const _logoIsImage = (() => { try { return !!MF.logoSourceOf(_brand(o)).url; } catch (_) { return false; } })();
   return require('./mail-templates.js').render({
     style, design, core: _core, palette, HEAD, BODY, E: _E, _px, ctaStyle, h1With, subWith, JUSTIFY: MF.JUSTIFY,

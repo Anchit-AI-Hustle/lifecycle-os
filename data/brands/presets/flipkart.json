@@ -267,9 +267,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Flipkart] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Flipkart]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "flipkart.com",
@@ -511,7 +509,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Flipkart]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Flipkart]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Flipkart]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Flipkart]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Flipkart]"
   ],
   "brand_assets": [
     {

@@ -384,9 +384,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Tesla] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Tesla]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "tesla.com",
@@ -463,7 +461,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Tesla]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Tesla]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Tesla]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Tesla]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Tesla]"
   ],
   "brand_assets": [
     {
