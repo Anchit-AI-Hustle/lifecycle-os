@@ -4272,7 +4272,11 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // creative briefs - each sent back once when its reviewer finds a defect.
     // Not on the keyless floor (one answer per 30 s cannot carry a team) and
     // switched off with MARKETING_TEAM=off; both keep the single strategy call.
-    const teamOn = !keylessOnly && String(process.env.MARKETING_TEAM || '').toLowerCase() !== 'off';
+    // On the operator's Bedrock money the build runs lean (llm.platformLean):
+    // the strategy call and the copy directions, no maker/reviewer pairs.
+    let lean = false;
+    try { lean = await require('./llm.js').platformLean(); } catch (_) { lean = false; }
+    const teamOn = !keylessOnly && !lean && String(process.env.MARKETING_TEAM || '').toLowerCase() !== 'off';
     const MA = require('./marketing-agents.js');
     const tctx = teamOn ? teamContext(entry) : null;
     // The workspace whose credits pay for the team: the router's tier choice reads its balance,

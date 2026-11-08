@@ -31,7 +31,7 @@ const HOSTS = {
   'text.pollinations.ai': 'pollinations', 'db.example.test': 'store',
 };
 
-function installNet({ spent = 0, failBedrock = false } = {}) {
+function installNet({ spent = 0, failBedrock = false, todayUsd = 0 } = {}) {
   const real = global.fetch;
   const calls = []; const usage = [];
   global.fetch = async (url, init = {}) => {
@@ -39,15 +39,16 @@ function installNet({ spent = 0, failBedrock = false } = {}) {
     const who = HOSTS[u.host];
     if (!who) throw new Error('unrouted host: ' + u.host);
     let body = {}; try { body = init.body ? JSON.parse(init.body) : {}; } catch (_) { body = {}; }
-    const reply = (status, json) => ({ ok: status < 300, status, headers: { get: () => null }, text: async () => JSON.stringify(json) });
+    const reply = (status, json) => ({ ok: status < 300, status, headers: { get: () => null }, text: async () => JSON.stringify(json), json: async () => json });
     if (who === 'store') {
+      if (u.pathname === '/auth/v1/user') return reply(200, { id: '11111111-1111-4111-8111-111111111111', email: 'p@example.test', app_metadata: { provider: 'google', providers: ['google'] } });
       const fn = u.pathname.split('/').pop();
       if (fn === 'platform_usage_total') return reply(200, [{ usd: spent, answers: 0, unpriced: 0 }]);
       if (fn === 'platform_usage_add') { usage.push(body); return reply(204, null); }
-      if (fn === 'platform_usage_for_user') return reply(200, [{ usd: 1.2, answers: 60 }]);
+      if (fn === 'platform_usage_for_user') return reply(200, [{ usd: 1.2, answers: 60, today_usd: todayUsd }]);
       throw new Error('unrouted rpc ' + fn);
     }
-    calls.push({ who, model: body.model || '' });
+    calls.push({ who, model: body.model || '', body });
     if (who === 'bedrock') {
       if (failBedrock) return reply(403, { type: 'error', error: { type: 'permission_error', message: 'not available for this account' } });
       return reply(200, { content: [{ type: 'text', text: 'bedrock says hi' }], stop_reason: 'end_turn', usage: { input_tokens: 1000, output_tokens: 500 } });
@@ -57,7 +58,7 @@ function installNet({ spent = 0, failBedrock = false } = {}) {
   return { calls, usage, restore() { global.fetch = real; } };
 }
 
-const ENV = ['PLATFORM_LLM_ONLY', 'PLATFORM_BEDROCK_BUDGET_USD', 'PLATFORM_BEDROCK_PRICE_IN', 'PLATFORM_BEDROCK_PRICE_OUT', 'BEDROCK_API_KEY',
+const ENV = ['PLATFORM_LLM_ONLY', 'PLATFORM_BACKGROUND_LLM', 'PLATFORM_USER_DAILY_USD', 'PLATFORM_USER_TOTAL_USD', 'PLATFORM_BEDROCK_EFFORT', 'PLATFORM_TEAM', 'SUPABASE_ANON_KEY', 'PLATFORM_BEDROCK_BUDGET_USD', 'PLATFORM_BEDROCK_PRICE_IN', 'PLATFORM_BEDROCK_PRICE_OUT', 'BEDROCK_API_KEY',
   'BEDROCK_REGION', 'AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY', 'OPENAI_API_KEY',
   'GEMINI_API_KEY', 'CEREBRAS_API_KEY', 'OPENROUTER_API_KEY', 'CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'FREE_GENERATION',
   'BEDROCK_TEXT_MODEL_MAX', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'XAI_API_KEY', 'DEEPSEEK_API_KEY'];
@@ -65,7 +66,7 @@ let saved = {}; let net = null;
 test.beforeEach(() => {
   saved = {}; for (const k of ENV) { saved[k] = process.env[k]; delete process.env[k]; }
   Object.assign(process.env, { FREE_GENERATION: 'off', BEDROCK_API_KEY: 'ABSK-test', BEDROCK_REGION: 'us-east-1', GROQ_API_KEY: 'gq',
-    SUPABASE_URL: 'https://db.example.test', SUPABASE_SERVICE_ROLE_KEY: 'svc' });
+    SUPABASE_URL: 'https://db.example.test', SUPABASE_SERVICE_ROLE_KEY: 'svc', SUPABASE_ANON_KEY: 'anon' });
   llm().resetProviderCooldowns(); policy()._reset();
 });
 test.afterEach(() => {
@@ -73,11 +74,15 @@ test.afterEach(() => {
   for (const k of ENV) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
   llm().resetProviderCooldowns(); policy()._reset();
 });
+const scope = require(path.join(ROOT, 'api', '_shared', 'request-scope.js'));
+// A call made for a signed-in person (the request carries their bearer token).
+const askAs = (o) => scope.run({ headers: { authorization: 'Bearer person-token' }, query: {}, body: {} }, () => ask(o));
 const ask = (o) => llm()(Object.assign({ systemPrompt: 'sys', userMessage: 'hi', stage: 'policy-test', overrides: null, tier: 'fast', timeoutMs: 800 }, o || {}));
 const settle = () => new Promise((r) => setTimeout(r, 30));
 
 test('policy on: every platform call goes to Opus 5.5 on Bedrock, at every tier, and nothing else', async () => {
   process.env.PLATFORM_LLM_ONLY = 'bedrock';
+  process.env.PLATFORM_BACKGROUND_LLM = 'on';
   for (const t of ['premium', 'standard', 'fast']) expect(llm().providerOrder(t)).toEqual(['bedrock']);
   net = installNet();
   const out = await ask({ tier: 'fast' });
@@ -91,6 +96,7 @@ test('policy on: every platform call goes to Opus 5.5 on Bedrock, at every tier,
 
 test('policy on and Bedrock refuses: no other platform model is asked (template copy follows)', async () => {
   process.env.PLATFORM_LLM_ONLY = 'bedrock';
+  process.env.PLATFORM_BACKGROUND_LLM = 'on';
   net = installNet({ failBedrock: true });
   await expect(ask()).rejects.toThrow(/All providers failed/);
   expect(net.calls.every((c) => c.who === 'bedrock')).toBe(true);
@@ -109,7 +115,7 @@ test('budget used up: the platform model is off for everyone; a person with thei
 });
 
 test('budget not yet used up: the platform model answers and its spend is added', async () => {
-  Object.assign(process.env, { PLATFORM_LLM_ONLY: 'bedrock', PLATFORM_BEDROCK_BUDGET_USD: '50' });
+  Object.assign(process.env, { PLATFORM_LLM_ONLY: 'bedrock', PLATFORM_BEDROCK_BUDGET_USD: '50', PLATFORM_BACKGROUND_LLM: 'on' });
   net = installNet({ spent: 10 });
   const out = await ask();
   expect(out.provider).toBe('bedrock');
@@ -119,6 +125,7 @@ test('budget not yet used up: the platform model answers and its spend is added'
 
 test('a person with their own key is asked first, and the platform Opus answers after it fails', async () => {
   process.env.PLATFORM_LLM_ONLY = 'bedrock';
+  process.env.PLATFORM_BACKGROUND_LLM = 'on';
   net = installNet();
   const real = global.fetch;
   global.fetch = async (url, init) => (new URL(String(url)).host === 'api.openai.com'
@@ -127,6 +134,50 @@ test('a person with their own key is asked first, and the platform Opus answers 
   const out = await ask({ overrides: { keys: { openai: 'sk-bad' }, configured: ['openai'], fallback: true } });
   expect(out.provider).toBe('bedrock');
   global.fetch = real;
+});
+
+test('the request: the system prompt is marked for caching, and the fast tier asks for low effort', async () => {
+  Object.assign(process.env, { PLATFORM_LLM_ONLY: 'bedrock', PLATFORM_BACKGROUND_LLM: 'on' });
+  net = installNet();
+  await ask({ tier: 'fast' });
+  const b = net.calls[0].body;
+  expect(b.system[0].cache_control).toEqual({ type: 'ephemeral' });
+  expect(b.output_config).toEqual({ effort: 'low' });
+  await ask({ tier: 'premium' });
+  expect(net.calls[1].body.output_config).toBeUndefined();
+});
+
+test('a cached prompt is priced at the cache rates: a hit costs a twentieth of a fresh read on Opus 5.5', () => {
+  const P = policy();
+  expect(P.costUsd('anthropic.claude-opus-5-5', 10000, 0, 0, 0)).toBeCloseTo(0.04, 9);
+  expect(P.costUsd('anthropic.claude-opus-5-5', 10000, 0, 0, 10000)).toBeCloseTo(0.002, 9);
+  expect(P.costUsd('anthropic.claude-opus-5-5', 10000, 0, 10000, 0)).toBeCloseTo(0.05, 9);
+});
+
+test('a background job (no signed-in person) does not spend the operator\'s money; a person does', async () => {
+  process.env.PLATFORM_LLM_ONLY = 'bedrock';
+  net = installNet();
+  await expect(ask()).rejects.toThrow(/background job/);
+  expect(net.calls).toHaveLength(0);
+  const out = await askAs();
+  expect(out.provider).toBe('bedrock');
+  await settle();
+  expect(net.usage[0].p_user).toBe('11111111-1111-4111-8111-111111111111');
+});
+
+test('a person past today\'s share waits for tomorrow (or their own key); under it they run', async () => {
+  Object.assign(process.env, { PLATFORM_LLM_ONLY: 'bedrock', PLATFORM_USER_DAILY_USD: '1' });
+  net = installNet({ todayUsd: 1.5 });
+  await expect(askAs()).rejects.toThrow(/today's share/);
+  expect(net.calls).toHaveLength(0);
+  const own = await askAs({ overrides: { keys: { openai: 'sk-own' }, configured: ['openai'], fallback: true } });
+  expect(own.provider).toBe('openai');
+  net.restore(); policy()._reset();
+  net = installNet({ todayUsd: 0.2 });
+  expect((await askAs()).provider).toBe('bedrock');
+  const n = policy().nudgeFor({ answers: 3, usd: 1.6, today_usd: 1.5 }, { ownConnected: false });
+  expect(n.level).toBe('required');
+  expect(n.message).toMatch(/today's free share/);
 });
 
 test('policy off: the platform order is unchanged (no Bedrock-only)', async () => {

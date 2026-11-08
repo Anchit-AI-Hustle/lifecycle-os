@@ -197,7 +197,8 @@ function reportedUsage(data) {
   const u = data && data.usage;
   if (u && typeof u === 'object') {
     if (n(u.input_tokens) != null || n(u.output_tokens) != null) {
-      return { input_tokens: sum(n(u.input_tokens), n(u.cache_creation_input_tokens), n(u.cache_read_input_tokens)), output_tokens: n(u.output_tokens) };
+      return { input_tokens: sum(n(u.input_tokens), n(u.cache_creation_input_tokens), n(u.cache_read_input_tokens)), output_tokens: n(u.output_tokens),
+        cache_write_tokens: n(u.cache_creation_input_tokens), cache_read_tokens: n(u.cache_read_input_tokens) };
     }
     return { input_tokens: n(u.prompt_tokens), output_tokens: n(u.completion_tokens) };
   }
@@ -752,7 +753,15 @@ module.exports = async function callLLM(opts) {
     const bodyStr = mantle
       // The first-party Messages API shape; temperature is not sent (4.6+
       // Claude models reject sampling parameters).
-      ? JSON.stringify({ model: bModel, max_tokens: maxTokens, system: claudeSystem, messages: [{ role: 'user', content: seededUserMessage }] })
+      // The system prompt (brand block, contracts) repeats across a build's
+      // calls: it is marked for prompt caching, so a repeat within five minutes
+      // is billed at a fraction of the input price (prompt-caching docs; Claude
+      // in Amazon Bedrock supports it). Effort is set only on the platform's
+      // own key, by the operator's policy (platform-model-policy.js).
+      ? JSON.stringify(Object.assign({ model: bModel, max_tokens: maxTokens,
+        system: [{ type: 'text', text: claudeSystem, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: seededUserMessage }] },
+        (!ownBedrock && platformPolicy.bedrockOnly() && platformPolicy.effortFor(tierNorm)) ? { output_config: { effort: platformPolicy.effortFor(tierNorm) } } : {}))
       : JSON.stringify(Object.assign({
         anthropic_version: 'bedrock-2023-05-31',
         max_tokens: maxTokens,
@@ -974,7 +983,7 @@ module.exports = async function callLLM(opts) {
           const q = (req && req.query) || {}; const b = (req && req.body && typeof req.body === 'object') ? req.body : {};
           ws = String(b.workspace_id || q.workspace_id || '') || null;
         } catch (_) { /* attribution is best effort */ }
-        await platformPolicy.record({ model: result.model, input_tokens: usage.input_tokens, output_tokens: usage.output_tokens, user_id: user, workspace_id: ws });
+        await platformPolicy.record({ model: result.model, input_tokens: usage.input_tokens, output_tokens: usage.output_tokens, cache_write_tokens: usage.cache_write_tokens, cache_read_tokens: usage.cache_read_tokens, user_id: user, workspace_id: ws });
       }).catch(() => {});
     }
     noteOutcome('ok', { own: ownKey(result.provider), kind: 'text', provider: result.provider, model: result.model,
@@ -1130,6 +1139,17 @@ module.exports = async function callLLM(opts) {
     }
   }
   order = _dedupe(order);
+  // The operator's money goes to people, fairly (2026-11-09): a background job
+  // (no signed-in person) and a person past their own daily share do not use
+  // the platform's Bedrock key; their own keys still run.
+  if (platformPolicy.bedrockOnly() && !ownBedrock && order.includes('bedrock')) {
+    let gate = null;
+    try { gate = await platformPolicy.callerGate(); } catch (_) { gate = null; }
+    if (gate && gate.open === false) {
+      order = order.filter((p) => p !== 'bedrock' && !(p === 'anthropic' && anthropicViaBedrock));
+      _skipped.push({ provider: 'bedrock', reason: gate.reason });
+    }
+  }
   // Providers that timed out or asked to wait moments ago go last, in order.
   if (order.length > 1 && !freshCall) order = order.filter((p) => !isSlow(p)).concat(order.filter(isSlow));
   for (const p of outsideRouting) if (hasKey[p]) _skipped.push({ provider: p, reason: 'outside this call\'s routing' });
@@ -1332,6 +1352,20 @@ module.exports.keylessOnly = async function keylessOnly() {
     || (any(k.cloudflare, process.env.CLOUDFLARE_API_TOKEN) && !!cloudflareBase())
     || !!process.env.OLLAMA_BASE_URL || (ov && ov.bases && ov.bases.ollama)
     || (!!process.env.SAKANA_BASE_URL && any(process.env.SAKANA_API_KEY)));
+};
+/**
+ * True when this call would run on the operator's Bedrock money (the policy is
+ * on and the caller connected no model of their own) and the operator has not
+ * asked for the full team (PLATFORM_TEAM=full). Smart Brain then writes with
+ * one strategy call and the copy directions, without the maker/reviewer pairs
+ * (about a third of the calls; the code gates after still judge the copy).
+ */
+module.exports.platformLean = async function platformLean() {
+  if (!platformPolicy.bedrockOnly()) return false;
+  if (String(process.env.PLATFORM_TEAM || '').toLowerCase() === 'full') return false;
+  const ov = await scopedOverrides();
+  const k = (ov && ov.keys) || {};
+  return !Object.keys(k).some((p) => !!_clean(k[p]));
 };
 module.exports._resetKeyless = function () { KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
 module.exports.bedrockModelId = bedrockModelId;

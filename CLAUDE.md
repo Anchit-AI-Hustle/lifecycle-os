@@ -126,7 +126,18 @@ runs or with an own model connected; tip 10, suggest 50, strong 200 or the budge
 `credits.js` renders one in-flow line (`#lc-model-nudge`, tokens only, moved below the floating credit pill) with
 "Connect my model" -> /ai-models and the models a person may already pay for (Claude, ChatGPT, Gemini sign-in, Bedrock,
 OpenRouter, Hugging Face, Grok, with which plans include API use); dismissed per level for a week, "required" per session.
-Not shown on /ai-models or /connections. While Bedrock refuses the account (model access / SCP), switching the policy
+**Spread across as many people as possible** (same day, the operator: "optimise ... per user ... max unique user
+satiability"): (1) prompt caching: every Bedrock Messages call sends its system prompt as one block with `cache_control:
+ephemeral` (Opus 5.5 caches from 512 tokens; a hit costs 0.05x input, a write 1.25x), and usage keeps
+`cache_write_tokens` / `cache_read_tokens` so the spend is priced at those rates; (2) effort `low` on the fast tier
+(`output_config.effort`, Opus 5.5 default medium; `PLATFORM_BEDROCK_EFFORT` overrides); (3) `callerGate()`: a call with
+no signed-in person (cron, prebuild queue) does not use the platform key (`PLATFORM_BACKGROUND_LLM=on` allows it), so
+the 90-day prebuild saves template copy and the slot a person OPENS is rebuilt with the model (preview's existing
+template-fallback heal); (4) each person's share per UTC day, `PLATFORM_USER_DAILY_USD` (default $2 when a budget is
+set, `off` none) and an optional lifetime `PLATFORM_USER_TOTAL_USD`; past it their calls skip the platform key and the
+nudge is `required` ("resets 00:00 UTC"); `platform_usage_for_user` returns `today_usd` (migration `20261108203000`);
+(5) `llm.platformLean()`: on the platform's money with no own key, Smart Brain runs without the maker/reviewer team
+pairs (`PLATFORM_TEAM=full` keeps them). Not shown on /ai-models or /connections. While Bedrock refuses the account (model access / SCP), switching the policy
 on means every platform run falls to template copy. Gated by `tests/platform-model-policy.spec.js` (mutation-checked).
 
 ## ⭐ A template's offerings belong only to the template itself (2026-11-03)
