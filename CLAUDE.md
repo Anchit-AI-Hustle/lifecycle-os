@@ -111,6 +111,24 @@ Three more gaps against usefastlane.ai, plus a quality pass on the Ad history ca
 - Gate entries added on purpose: `router-brain` (`ad-history op=variations` metered, describe titles take an optional
   `title`), `prompt-output-contracts` and `brand-content-invariant` (`ad-history` driven over seeded own ads),
   `social-gateway-executed` (Google's query and row now carry conversions).
+## ⭐ The platform's model is Claude Opus 5.5 on Bedrock, on the operator's money, then each person's own (2026-11-09)
+The operator: "claude opus 5.5 from aws bedrock only with my personal credits ... till they are exhausted for all users
+initially and then gradually with usage nudge each user to use their own api keys - keep a notification alert".
+`api/_shared/platform-model-policy.js`: `PLATFORM_LLM_ONLY=bedrock` makes `llm.providerOrder()` `['bedrock']` at every
+tier (no free tier, no keyless, no other paid provider) and the platform's Bedrock key asks `BEDROCK_TEXT_MODEL_MAX`
+(default `anthropic.claude-opus-5-5`) only. A person's own keys are untouched and come first for them (a Bedrock key of
+their own keeps its normal chain). Every answer on the platform's Bedrock key is recorded in `platform_model_usage`
+(migration `20261108200000`, service role only: day x user x model, tokens Bedrock reported, USD priced from
+`PLATFORM_BEDROCK_PRICE_IN/_OUT` else Anthropic's list price labelled an ESTIMATE). `PLATFORM_BEDROCK_BUDGET_USD`: when
+the recorded total reaches it (read once a minute, plus this instance's own spend since) the platform order is `[]` for
+everyone; no budget = no cap. Nudge: `?action=credits&op=model-nudge` (signed in) = `nudgeFor()`: none under 10 platform
+runs or with an own model connected; tip 10, suggest 50, strong 200 or the budget 80% used, required when used up;
+`credits.js` renders one in-flow line (`#lc-model-nudge`, tokens only, moved below the floating credit pill) with
+"Connect my model" -> /ai-models and the models a person may already pay for (Claude, ChatGPT, Gemini sign-in, Bedrock,
+OpenRouter, Hugging Face, Grok, with which plans include API use); dismissed per level for a week, "required" per session.
+Not shown on /ai-models or /connections. While Bedrock refuses the account (model access / SCP), switching the policy
+on means every platform run falls to template copy. Gated by `tests/platform-model-policy.spec.js` (mutation-checked).
+
 ## ⭐ A template's offerings belong only to the template itself (2026-11-03)
 Production /brain for "The Times of India" built ads for "Marathon training plan (multi-week)", an offering of the TOI
 Health & Fitness TEMPLATE on the same host. A template's offerings were handed to any record whose `brand_data.template`
