@@ -2205,12 +2205,17 @@ function lpThemeCss(T, tpl, c) {
     if (onSurfaceHero) {
       css.push(`.hero{background:${T.ground === 'cards' ? 'var(--chalk-warm)' : 'var(--chalk)'};color:var(--ink)}.hero .eyebrow,.hero p,.hero .assure{color:var(--ink)}.hero .pills span{background:${T.ground === 'cards' ? 'var(--chalk)' : 'var(--chalk-warm)'};color:var(--ink)}`);
       css.push(`.hero .btn{background:${c.heroBtn};color:${c.onHeroBtn}}`);
-      if (T.button === 'outline') css.push(`.hero .btn{background:transparent;color:var(--ink);border:2px solid var(--ink)}`);
+      // The hero's button is the page's primary action: it stays FILLED in
+      // every theme (2026-11-08 asset review: an outline theme left the one
+      // action above the fold as a hollow box, weaker than the sticky bar's).
+      // The theme's outline shape stays on the secondary buttons.
       if (T.ground === 'framed') css.push(`.hero{outline:1px solid var(--ink);outline-offset:-14px}`);
       if (T.ground === 'cards') css.push(`.hero{margin:14px;border-radius:${Math.min(28, T.radius.card)}px}`);
-    } else if (T.button === 'outline') {
-      css.push(`.hero .btn{background:transparent;color:var(--on-moss);border:2px solid var(--on-moss)}`);
     }
+    // A left-aligned hero with no picture starts on the sections' own left
+    // edge (the page's .wrap): its 680px text column was centred, so the
+    // headline sat ~160px right of every heading under it (2026-11-08).
+    if (T.align === 'left') css.push(`@media(min-width:900px){.hero .hero-grid:not(.has-media){max-width:920px;padding:0 22px}.hero .hero-grid:not(.has-media) .hero-copy{margin-left:0;margin-right:0;justify-self:start}}`);
     if (T.align === 'left') css.push(`.hero{text-align:left}.hero h1,.hero p,.hero .eyebrow{margin-left:0;margin-right:auto}.hero .hero-price{margin-left:0!important}.hero .pills{justify-content:flex-start}.sec-head{text-align:left;margin-left:0}`);
     if (T.eyebrow === 'rule') css.push(`.hero .eyebrow::after{content:"";display:block;width:48px;height:2px;background:currentColor;margin:10px 0 0}`);
     if (T.eyebrow === 'spaced') css.push(`.hero .eyebrow{letter-spacing:.38em}`);
@@ -2245,8 +2250,17 @@ function lpThemeCss(T, tpl, c) {
     // in the other half on the hero's own ground.
     css.push(`@media(min-width:900px){.hero:has(.hero-grid.has-media){padding:0}.hero-grid.has-media,.hero-grid.has-media.hero--media-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr);text-align:left;max-width:none;gap:0;align-items:stretch}.hero-grid.has-media .hero-copy{padding:64px 56px;align-self:center}.hero-grid.has-media .hero-media img{height:100%;min-height:560px;border-radius:0}}`);
     css.push(`.wrap>.sec:nth-of-type(even){background:var(--chalk-warm);box-shadow:0 0 0 100vmax var(--chalk-warm);clip-path:inset(0 -100vmax)}`);
+    // A framed ground draws its rule 14px inside the hero; the split's
+    // photograph ran edge to edge THROUGH it, so the frame cut across the
+    // picture and the picture spilled past it (2026-11-08 asset review). On a
+    // framed ground the split sits inside its frame.
+    if (!c.ds && T.ground === 'framed') css.push(`@media(min-width:900px){.hero:has(.hero-grid.has-media){padding:28px}.hero-grid.has-media .hero-media img{min-height:504px}}@media(max-width:899px){.hero:has(.hero-grid.has-media){padding-left:28px;padding-right:28px}}`);
   } else if (tpl === 'editorial') {
     css.push(`.hero-grid,.hero-grid.has-media{display:grid;grid-template-columns:minmax(0,1fr)!important;max-width:820px;text-align:left}.hero-grid .hero-media{order:2!important}.hero h1{max-width:none}`);
+    // The long-read's hero starts on the same left edge as its sections: the
+    // text column was centred inside the hero (lp-craft caps it at 680px), so
+    // the headline sat ~180px right of every section heading under it.
+    css.push(`.hero{padding-left:0;padding-right:0}.hero-grid,.hero-grid.has-media{max-width:780px;padding:0 22px}.hero .hero-grid .hero-copy,.hero .hero-grid:not(.has-media) .hero-copy{margin-left:0;margin-right:0;justify-self:start}`);
     css.push(`.hero-grid.has-media .hero-media img{height:auto;aspect-ratio:16/9}`);
     css.push(`.wrap{max-width:780px;counter-reset:lpsec}.wrap>.sec>h2::before{counter-increment:lpsec;content:counter(lpsec,decimal-leading-zero);display:block;font-size:14px;letter-spacing:.2em;margin-bottom:6px;color:var(--ink)}`);
   }
@@ -2504,6 +2518,8 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     return `<section class="sec listicle" data-format="listicle"><ol class="lreasons">${_lReasons.map((t, i) => `<li><span class="num">${i + 1}</span><div><h3>${esc(t)}</h3>${i ? `<a class="lnext" href="${esc(shopUrl)}">${cta} &rarr;</a>` : ''}</div></li>${i === 0 ? card : ''}`).join('')}</ol></section>`;
   })() : '';
   // What is inside / the details: only the facts the store states.
+  const _fold = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const _heroEyebrow = () => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); };
   const _det = _hp ? [
     _hp.unit_spec ? ['Size', _hp.unit_spec] : null,
     _hp.piece_count ? ['In the box', String(_hp.piece_count) + ' pieces'] : null,
@@ -2511,8 +2527,14 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     _cat ? ['Type', _cat] : null,
   ].filter(Boolean) : [];
   const _desc = _hp ? require('./mailer-format.js').productLine(_hp.description || '', _hp.title || '', bName) : '';
-  const detailSec = (_det.length || _desc) && !_collection
-    ? `<section class="sec details"><h2>The details</h2>${_desc ? `<p class="lede">${esc(_desc)}</p>` : ''}${_det.length ? `<div class="dgrid">${_det.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
+  // A details section of ONE row repeating the hero's eyebrow ("The details:
+  // Type, Face oil" under a hero headed "FACE OIL") is an empty section with a
+  // heading (2026-11-08 asset review): the type the hero already shows is not
+  // listed again, and a section left with nothing is not printed.
+  const _heroShowsCat = !!_cat && _fold(_heroEyebrow()) === _fold(_cat);
+  const _detShown = _det.filter(([k]) => !(k === 'Type' && _heroShowsCat));
+  const detailSec = (_detShown.length || _desc) && !_collection
+    ? `<section class="sec details"><h2>The details</h2>${_desc ? `<p class="lede">${esc(_desc)}</p>` : ''}${_detShown.length ? `<div class="dgrid">${_detShown.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
     : '';
   // The buy box: the store's price against its own compare-at (the saving is
   // that arithmetic, nothing more), per serving when the pack states servings.
@@ -2543,8 +2565,28 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // sub line is not the tagline again: a line is said once.
   const _intro = (copy.email || {}).intro_paragraph || '';
   const _trStatement = lpCraft.taglineStatement(_b);
-  const _trShow = _trStatement && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
-  const _heroSub = L.hero_sub || (_trShow ? _intro : (_b.tagline || _intro)) || '';
+  // THE HERO SAYS WHAT THE BRAND IS (2026-11-08 asset review). A brand with no
+  // product on the slot got its bare name as the headline under its bare name
+  // as the eyebrow ("Ledgerline Gazette / Ledgerline Gazette"), and variant B
+  // was the same page as A. Variant B now leads with the brand's own tagline
+  // (its value in its own words) and A stays brand-led with the tagline revealed
+  // further down: two real directions, each line said once.
+  const _h1Base = listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName);
+  const _h1Tagline = !listicleSec && _o.variant === 'B' && _trStatement && _trStatement.length <= 110 && _fold(_h1Base) === _fold(bName);
+  const _h1 = _h1Tagline ? _trStatement : _h1Base;
+  const _eyebrowRaw = _heroEyebrow();
+  const _eyebrow = _fold(_eyebrowRaw) === _fold(_h1) ? '' : _eyebrowRaw;
+  let _trShow = _trStatement && !_h1Tagline && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
+  let _heroSub = L.hero_sub || (_trShow || _h1Tagline ? _intro : (_b.tagline || _intro)) || '';
+  // A sub line that CARRIES the tagline beside other words ("It has been a
+  // while. <tagline>") said it twice on a page with the reveal or a tagline
+  // headline: the tagline leaves the sub line, or the reveal is not shown.
+  if (_trStatement && (_trShow || _h1Tagline) && _fold(_heroSub).indexOf(_fold(_trStatement)) >= 0 && _fold(_heroSub) !== _fold(_trStatement)) {
+    const rest = String(_heroSub).split(_trStatement).join(' ').replace(/\s+/g, ' ').replace(/^[\s.,;:·-]+|[\s,;:·-]+$/g, '').trim();
+    if (rest.split(/\s+/).length >= 3) _heroSub = /[.!?]$/.test(rest) ? rest : `${rest}.`;
+    else if (_trShow) _trShow = '';
+  }
+  if (_h1Tagline && _fold(_heroSub) === _fold(_trStatement)) _heroSub = _intro && _fold(_intro) !== _fold(_trStatement) ? _intro : '';
   const tagReveal = lpCraft.taglineSection(_trShow, { locale: (() => { try { return require('./brand-runtime.js').homeRegion(_b); } catch (_) { return ''; } })() });
   return lpCraft.finish(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
@@ -2712,8 +2754,8 @@ ${anncBar}<div class="bar">${(() => { const home = /^https?:\/\//i.test(String(_
         try { b = require('./offering-intelligence.js').enrich(Object.assign({ title: hp.title, product_url: hp.product_url }, hp)).badge; } catch (_) { b = null; }
         return b ? `<div class="hero-badge" style="display:inline-block;background:var(--lava);color:var(--on-lava);font-size:12px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;margin-bottom:10px">${esc(b)}</div>` : '';
       })()}
-      <p class="eyebrow">${esc((() => { const t = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.title || '') : ''; const h = String(L.hero_headline || ''); return t && h && h.toLowerCase().indexOf(t.toLowerCase()) < 0 ? t : (_cat || bName); })())}</p>
-      <h1 data-ds="h1">${esc(listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName))}</h1>
+      ${_eyebrow ? `<p class="eyebrow">${esc(_eyebrow)}</p>` : ''}
+      <h1 data-ds="h1">${esc(_h1)}</h1>
       ${(() => { const sub = _heroSub; return sub ? `<p data-ds="hero-body">${esc(sub)}</p>` : ''; })()}
       ${priceLabel && !listicleSec ? `<p class="hero-price" style="font-family:var(--head);font-size:22px;margin:0 auto 18px">${esc(priceLabel)}</p>` : ''}
       <a href="${esc(shopUrl)}" class="btn" data-ds="button-primary">${cta}</a>
@@ -3583,7 +3625,7 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     lp.title = (copy.landing && copy.landing.hero_headline) || lp.title;
     lp.creative = { brief: (copy.landing && copy.landing.image_brief) || '', image: img, provider: isB ? (poolSource(entry) || 'catalog') : ((creatives.landing && creatives.landing.provider) || poolSource(entry) || 'catalog') };
     lp.format = landingFormat(entry, copy, lp.variant);
-    lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, img) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? img : null, { layout: lp.format });
+    lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, img, { variant: lp.variant }) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? img : null, { layout: lp.format });
     lp.path = isB ? `/lp/${campaign.campaign_id}?v=b` : `/lp/${campaign.campaign_id}`;
   });
   for (const ad of campaign.assets.ads || []) {
@@ -4467,7 +4509,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
         const isB = lp.variant === 'B';
         const copy = isB ? tc.B : tc.A;
         lp.format = landingFormat(entry, copy, lp.variant);
-        lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, heroImg) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? heroImg : null, { layout: lp.format });
+        lp.html = lp.format === 'direct-offer' ? lpHtml(entry, copy, campaign.campaign_id, heroImg, { variant: lp.variant }) : lpHtml(entry, copy, campaign.campaign_id, lp.format === 'listicle' ? heroImg : null, { layout: lp.format });
       });
     }
   } catch (e) { console.warn('[smart-brain] template mail variants failed:', e && e.message); }
@@ -4850,7 +4892,10 @@ function attachStaticCreative(campaign, entry) {
       const p = AT.pick(entry, 'ad', name);
       // A stated discount leads with the offer panel on the A ad: the price
       // struck and the price paid are what that ad sells.
-      if (compare && String(ad.variant || 'A').toUpperCase() === 'A' && p.template !== 'offer') { p.template = 'offer'; p.why = String(p.why || '').replace(/the \w+ template rotates by send\./, '') + 'The store states a compare-at price, so the A ad leads with the offer template.'; }
+      // Every static this builder makes is variant 'Static' (the A of its
+      // static/video pair): the test for 'A' alone never matched one, so no
+      // shipped static ever showed the struck price (2026-11-08 asset review).
+      if (compare && /^(a|static)$/i.test(String(ad.variant || 'A')) && p.template !== 'offer') { p.template = 'offer'; p.why = String(p.why || '').replace(/the \w+ template rotates by send\./, '') + 'The store states a compare-at price, so the A ad leads with the offer template.'; }
       const spec = {
         id: p.id, seed: AT.seedOf(p.id), theme: p.theme, template: p.template, compare, benefits: benefits.filter((b) => b.toLowerCase() !== headline.toLowerCase()),
         brandName: brand.name || '', logo: brand.logo_url || '', market: entry && entry.market,
