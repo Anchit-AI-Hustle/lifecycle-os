@@ -4,6 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Why to buy it, in every asset, in the store's own words (2026-11-08)
+The operator, after a simulation of every asset for four brands: "ads are still awful - landing pages also very basic -
+no information on why to buy those products ... no wow factor", then "even update for mailers". The store's own
+description (what it is, what it does, what is in it, how to use it) reached the landing page once and no ad, list or
+answer. `api/_shared/product-story.js` `story(product)` sorts the description's OWN sentences (HTML read as text,
+store boilerplate like shipping/returns/click left out, an attribute list is not a sentence: `mailer-format.isProse`
+judged before a stop is added) into `what`, `benefits`, `inside`, `how`, `specs`; `faq(st, name)` answers "How do I use
+it?" / "What is it made of?" / size (only when the name does not state it) with those sentences. Nothing is paraphrased
+or invented. `services.productFacts` carries `story` (its `description` is cleaned of markup: a Shopify body_html printed
+`<p>` in the mail). Used by: every ad (`buildAdAssets`: static leads with the first reason + price, video with the second,
+script = reason, product + price, how to use, button; RSA descriptions are the reasons; TikTok caption; overlay proof),
+the template mail (`buildEmailAsset`: what it is + how to use, the product's reasons before the brand's claims), the four
+variants (`templateEmailCopy`: reasons in "What you get", how to use as the second paragraph, B headed by a short reason),
+the landing pages (`templateEmailCopy.landing`: reasons as Why bullets, FAQ; listicle B's reasons; `lpHtml` details add
+"How to use" / "What is in it" when the FAQ does not say them; the lede is not the hero sub again; no empty details
+heading), statics (`attachStaticCreative`: headline = the name without its trailing size; short reasons tick first).
+A product with no description builds as before. In ASSET_BUILD_VERSION. Gated by `tests/product-story-assets.spec.js`
+(4 executed; mutations on the ad and mail wiring caught). Same day (PR #436): a `[DATA REQUIRED ...]` marker stored in
+`claims` / `tagline` (35 of 40 starter templates) is a gap (`brand-runtime.withoutMarkerFacts`), landing B differs from
+A with no tagline, footers read "a reader of The Times of India" (`mailer-format.memberPhrase`), no sub line equal to
+its headline (`tests/asset-simulation-fixes.spec.js`).
 ## ⭐ A scene through OpenAI too, a competitor's layout remixed, bulk review on /brain, static ads fitted (2026-11-02)
 Three more gaps against usefastlane.ai and a quality pass on the static ad.
 - **Scene, second rung** (`api/ai/image.js` `tryOpenaiEdit`, `mode:'scene'` only): after Gemini, OpenAI's image EDIT,

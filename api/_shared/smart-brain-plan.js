@@ -2531,10 +2531,20 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // Type, Face oil" under a hero headed "FACE OIL") is an empty section with a
   // heading (2026-11-08 asset review): the type the hero already shows is not
   // listed again, and a section left with nothing is not printed.
+  // How to use it and what is in it, in the store's own sentences
+  // (product-story.js, 2026-11-08): the details a buyer looks for.
+  const _pst = _hp ? require('./product-story.js').story(_hp) : { how: [], inside: [] };
+  const _faqSaid = _fold((L.faq || []).map((f) => f && f.a).join(' '));
+  const _howTxt = _pst.how.join(' '); const _inTxt = _pst.inside.join(' ');
+  if (_inTxt && _faqSaid.indexOf(_fold(_pst.inside[0])) < 0) _det.unshift(['What is in it', _inTxt]);
+  if (_howTxt && _faqSaid.indexOf(_fold(_pst.how[0])) < 0) _det.unshift(['How to use', _howTxt]);
   const _heroShowsCat = !!_cat && _fold(_heroEyebrow()) === _fold(_cat);
   const _detShown = _det.filter(([k]) => !(k === 'Type' && _heroShowsCat));
-  const detailSec = (_detShown.length || _desc) && !_collection
-    ? `<section class="sec details"><h2>The details</h2>${_desc ? `<p class="lede">${esc(_desc)}</p>` : ''}${_detShown.length ? `<div class="dgrid">${_detShown.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
+  // The lede is not the hero's own sub line again.
+  const _heroSubSaid = _fold([L.hero_sub, (copy.email || {}).intro_paragraph].join(' '));
+  const _descShown = !!_desc && _heroSubSaid.indexOf(_fold(_desc).replace(/[.!]$/, '')) < 0;
+  const detailSec = (_detShown.length || _descShown) && !_collection
+    ? `<section class="sec details"><h2>The details</h2>${_descShown ? `<p class="lede">${esc(_desc)}</p>` : ''}${_detShown.length ? `<div class="dgrid">${_detShown.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
     : '';
   // The buy box: the store's price against its own compare-at (the saving is
   // that arithmetic, nothing more), per serving when the pack states servings.
@@ -4888,7 +4898,10 @@ function attachStaticCreative(campaign, entry) {
   try { const c = Number(hp && hp.compare_at), n = Number(hp && hp.price); if (price && Number.isFinite(c) && c > n) compare = require('./brand-locale.js').money(c, brand, entry.market) || ''; } catch (_) { compare = ''; }
   const claimText = (c) => String((c && typeof c === 'object') ? (c.text || c.claim || '') : (c || '')).replace(/\s+/g, ' ').trim().replace(/[.]$/, '');
   const benefits = [];
-  for (const c of [].concat(brand.claims || [], (brand.brand_data && brand.brand_data.claims) || [])) {
+  // The product's own short reasons tick first, then the brand's claims
+  // (product-story.js, 2026-11-08): what THIS product does for the buyer.
+  const _pst = hp ? require('./product-story.js').story(hp) : { benefits: [], inside: [] };
+  for (const c of [].concat(_pst.benefits, _pst.inside, brand.claims || [], (brand.brand_data && brand.brand_data.claims) || [])) {
     const t = claimText(c);
     if (t && t.length <= 40 && !/DATA REQUIRED/.test(t) && !benefits.some((b) => b.toLowerCase() === t.toLowerCase())) benefits.push(t);
     if (benefits.length >= 3) break;
@@ -4897,7 +4910,12 @@ function attachStaticCreative(campaign, entry) {
   for (const ad of ads) {
     try {
       const ov = ad.overlay || {};
-      const headline = clean(ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || ov.headline || '');
+      // A static is read in a second: its big line is the product's name
+      // without the size the store appends ("Rosehip Face Oil", not "ROSEHIP
+      // FACE OIL 30 MILLILITRES" filling the frame); the size stays in the copy.
+      const _short = (t) => String(t || '').replace(/[\s,(-]+\d+(?:[.,]\d+)?\s*(?:ml|millilit(?:re|er)s?|g|gm|gms|grams?|kg|kilograms?|l|lit(?:re|er)s?|oz|ounces?|lb|pcs?|pieces?|pack|capsules?|tablets?|count|ct)\)?\s*$/i, '').trim();
+      const _h0 = clean(ad.headline || (Array.isArray(ad.headlines) && ad.headlines[0]) || ov.headline || '');
+      const headline = _short(_h0).length >= 4 ? _short(_h0) : _h0;
       const line = clean(first(ad.primary_text || ad.description || (Array.isArray(ad.descriptions) && ad.descriptions[0]) || ad.caption));
       const name = `ad:${ad.platform || ''}:static:${ad.variant || ''}:${ad.id || ''}`;
       const p = AT.pick(entry, 'ad', name);
@@ -5681,7 +5699,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js'];
+  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
