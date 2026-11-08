@@ -348,13 +348,16 @@ const LIFECYCLE_STRATEGY = [
 
 // The job of one send to this audience, for an evergreen offering. The
 // offering's own job ("Drive the reader to buy this product.") is the last line.
-function cohortJob(cohort, name, fallback) {
+function cohortJob(cohort, name, fallback, many) {
   const n = String(name || 'it');
+  // The brand's own word for the people it serves (2026-11-08): a news brand
+  // wins back READERS, a club its members (asset-playbooks.audienceWords).
+  const who = String(many || 'customers');
   const jobs = {
     Nurture: `Show what ${n} is and who it is for, before asking for anything.`,
     Engaged: `Turn interest into a first step with ${n}.`,
-    'At Risk': `Bring back customers who have gone quiet, with ${n}.`,
-    Winback: `Win back customers who have lapsed, with ${n}.`,
+    'At Risk': `Bring back ${who} who have gone quiet, with ${n}.`,
+    Winback: `Win back ${who} who have lapsed, with ${n}.`,
   };
   return jobs[cohort] || fallback;
 }
@@ -734,7 +737,7 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
       // dated offering keeps its phase's job (the date is the reason to send).
       // The job names the product as a person says it: the range, never the
       // store's model code ("Vincent Chase Online VC E13033" -> "Vincent Chase Online").
-      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, require('./mailer-format.js').displayName(useOff.name) || useOff.name, rotated.job);
+      const objective = (rotated.phase && rotated.phase !== 'evergreen') ? rotated.job : cohortJob(cohort, require('./mailer-format.js').displayName(useOff.name) || useOff.name, rotated.job, require('./asset-playbooks.js').audienceWords(brand).many);
       entries.push({
         id: stableId(date, market, cohort, ns),
         date, market,
@@ -750,12 +753,14 @@ function offeringPlanEntries(brand, offerings, startDate, days, ns) {
         heroProduct: {
           title: useOff.name,
           handle: useOff.handle || null,
-          category: useOff.type || useOff.kind,
+          // The store's own product type, never the offering KIND: a plan's
+          // mail read "Take another look at plan" and its page "Type plan".
+          category: useOff.type || null,
           price: useOff.price != null ? useOff.price : null,
           compare_at: useOff.compare_at != null ? useOff.compare_at : null,
           currency: useOff.currency || null,
           image: useOff.image || null,
-          product_url: useOff.url || useOff.product_url || null,
+          product_url: require('./offering-kinds.js').pageOf(useOff) || null,
           tags: useOff.tags || [],
           unit_spec: useOff.unit_spec || null,
           piece_count: useOff.piece_count || null,
@@ -2288,7 +2293,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const ON_HERO_BTN = textOn(HERO_BTN, SURF, INKC);
   // A category is shown only when it reads as words: a store's raw tag list
   // ("af1,gaming,aesthetic") is not one.
-  const _cat = (() => { const c = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.category || '') : ''; return /[,;|]/.test(c) ? '' : c; })();
+  const _cat = (() => { const c = entry.heroProduct && !entry.heroProduct.placeholder ? String(entry.heroProduct.category || '') : ''; const hk = entry.heroProduct && entry.heroProduct.kind; return /[,;|]/.test(c) || (hk && c.toLowerCase() === String(hk).toLowerCase()) ? '' : c; })();
   // THE BRAND'S DESIGN SYSTEM, as read off its own rendered site (2026-10-04).
   // Until now this page painted tenant zero's two font families for EVERY
   // brand (FONT_HEAD / FONT_BODY are its literals) and consumed nothing but a
@@ -2540,7 +2545,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _trStatement = lpCraft.taglineStatement(_b);
   const _trShow = _trStatement && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
   const _heroSub = L.hero_sub || (_trShow ? _intro : (_b.tagline || _intro)) || '';
-  const tagReveal = lpCraft.taglineSection(_trShow);
+  const tagReveal = lpCraft.taglineSection(_trShow, { locale: (() => { try { return require('./brand-runtime.js').homeRegion(_b); } catch (_) { return ''; } })() });
   return lpCraft.finish(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
 <style>
@@ -2818,6 +2823,7 @@ function brandStore(brand, market) {
   try { f = require('./brand-runtime.js').regionFacts(brand, market); } catch (_) { f = null; }
   return f && f.store ? `https://${f.store}` : String((brand && brand.website) || '').replace(/\/$/, '');
 }
+const OFFERING_KINDS = require('./offering-kinds.js');
 function slotLinks(entry) {
   // A non-tenant-zero brand's links come from ITS OWN record: its regional
   // store, the offering's own URL, the hero row's own product page. Tenant
@@ -2831,17 +2837,24 @@ function slotLinks(entry) {
     // on the slot and no product page, its button goes to the subscription the
     // record names (its own URL), not the homepage (asset-playbooks: the news
     // presell's whole job is the subscribe step).
-    if (!off.url && !own && entry.brand && Array.isArray(entry.brand.offerings)) {
+    if (!OFFERING_KINDS.pageOf(off) && !own && entry.brand && Array.isArray(entry.brand.offerings)) {
       let model = '';
       try { model = require('./asset-playbooks.js').businessModel(entry.brand); } catch (_) { model = ''; }
-      if (/^(news_media|market_data|subscription)$/.test(model)) {
-        const named = entry.brand.offerings.find((o) => o && /^https?:\/\//i.test(String(o.url || '')));
-        if (named) off = named;
+      // An event's button books THAT event and a practice's opens THAT service
+      // (2026-11-08): "Book your place" and "Get in touch" went to the homepage
+      // while the record named the page. The offering of the brand's own kind
+      // first, else the first with a page.
+      const KIND_FOR = { events: 'event', services: 'service', subscription: 'plan' };
+      if (/^(news_media|market_data|subscription|events|services)$/.test(model)) {
+        const withPage = entry.brand.offerings.filter((o) => o && OFFERING_KINDS.pageOf(o));
+        const named = withPage.find((o) => (OFFERING_KINDS.normalizeOffering(o) || o).kind === KIND_FOR[model]) || withPage[0];
+        if (named) off = Object.assign({}, named, { url: OFFERING_KINDS.pageOf(named) });
       }
     }
-    const target = off.url || own || bStore || storeGap(entry.brand, entry.market);
+    const offUrl = OFFERING_KINDS.pageOf(off);
+    const target = offUrl || own || bStore || storeGap(entry.brand, entry.market);
     // `pdp` is what the renderers read; `pdpUrl` stays for older callers.
-    return { store: bStore || target, collectionUrl: off.url || bStore || target, pdp: target, pdpUrl: target };
+    return { store: bStore || target, collectionUrl: offUrl || bStore || target, pdp: target, pdpUrl: target };
   }
   const facts = regionFacts(entry.market);
   const store = `https://${facts.store || 'knickgasm.com'}`;

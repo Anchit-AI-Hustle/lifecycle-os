@@ -214,7 +214,7 @@ function adSpecText(platform, opts) {
   if (!list.length) list = a.placements; // never emit an empty list
   const sizes = sizesLine(list);
   const safe = list.filter((p) => p.safe).map((p) => `${p.key}: ${p.safe}`).join(' | ');
-  return `${a.label} — produce the creative at each placement size: ${sizes}.` + (safe ? ` Safe zones — ${safe}.` : '');
+  return `${a.label}: produce the creative at each placement size: ${sizes}.` + (safe ? ` Safe zones: ${safe}.` : '');
 }
 function mailerSpecText() {
   return `Mailer sizing — desktop content column ${MAILER.desktop.contentWidth}px (never exceed ${MAILER.desktop.maxWidth}px), hero image ${MAILER.desktop.heroImage}. Mobile: collapse to one fluid 100%-width column below ${MAILER.mobile.breakpoint}px, body >=${MAILER.mobile.body.minFontPx}px, buttons full-width >=${MAILER.mobile.tapTargetPx}px tall.`;

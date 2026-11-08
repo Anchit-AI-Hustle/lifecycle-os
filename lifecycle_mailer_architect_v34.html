@@ -4684,7 +4684,12 @@ function buildEmailAssetPrompt(mkt,variant){
   if(!prodLines.length)prodLines=['  '+_promptMarker('hero product',mkt)];
   var hero=_heroSubject(prods);
   var footer=f.legalLine;
-  return [
+  // This prompt is PASTED into Claude, ChatGPT or Gemini (2026-11-08): the
+  // app's gap marker is said as a gap to leave, never handed over to print,
+  // and the output requirement tells the model to omit, as the server's
+  // master prompts do (master-prompt.forExternalModel / OMIT_MISSING).
+  var _gap=function(t){return String(t).replace(/\[DATA REQUIRED BEFORE LAUNCH:[^\]]*\]/g,'not on record (leave it out; do not invent it)');};
+  return _gap([
     'DELIVERABLE: Return ONE complete, self-contained HTML email (table layout, inline CSS, 600px, images-off safe) for '+f.name+', ready to paste into an ESP. Variant '+variant+': '+kind+'. Not a plan, not an outline, not an image, not a screenshot, not a mockup. The finished email as HTML code.',
     '',
     'BRAND - the active brand\'s own record. Use nothing else, and no other brand\'s name, products, colours or fonts.',
@@ -4715,7 +4720,7 @@ function buildEmailAssetPrompt(mkt,variant){
     '  3. Product cards: one per product above, equal size and aligned: title, price, button.',
     '  4. Proof: '+brandReviewMarker()+' Never invent a review, a rating or a reviewer.',
     '  5. Footer: '+footer+' | {{ unsubscribe }} link | the store link above.'
-  ])).filter(function(x){return x!=='';}).join('\n').replace(/\n(OFFER|PRODUCTS|SECTIONS AND COPY)/g,'\n\n$1')
+  ])).filter(function(x){return x!=='';}).join('\n').replace(/\n(OFFER|PRODUCTS|SECTIONS AND COPY)/g,'\n\n$1'))
   // The OUTPUT REQUIREMENT, from the shared contract (/output-contract.js,
   // the same file the server's prompts end with): what to return, how to mark
   // a missing fact, what not to return, and the container LAST. It used to ask
@@ -4723,6 +4728,7 @@ function buildEmailAssetPrompt(mkt,variant){
   // model given both returned prose above the HTML. Both live inside it now.
     + '\n\n' + window.OutputContract.block({
       id:'studio.email', kind:'asset', format:'html', brand:f.name, region:mkt,
+      missing:'omit any fact this brief does not state. Never invent a price, discount, code, date, rating, review, reviewer, claim, statistic, product, URL or image. Never print a bracket marker, a placeholder, or an unfilled tag into the email (the {{ unsubscribe }} merge tag of the ESP is the one exception).',
       returns:'ONE complete, self-contained HTML email for '+f.name+', Variant '+variant+' ('+kind+'), ready to paste into an ESP.',
       forbid:['an image, a screenshot or a mockup of the email in a device frame','a plan, a list of sections or copy notes'],
       formatRule:'One HTML email document, starting with <!DOCTYPE html> and ending with </html>.',
