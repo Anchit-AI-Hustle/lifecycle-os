@@ -85,6 +85,7 @@ const M = {
   adhist: 'api/_shared/ad-history.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
   ownerDesk: 'api/_shared/owner-desk-server.js',
+  autopost: 'api/_shared/calendar-autopost.js',
 };
 
 /** The active brand as brain.js resolves it onto req.__brand (home market UK). */
@@ -728,6 +729,32 @@ add('social-list', { gate: 'none', browser: 'demo', run: { method: 'GET', query:
 add('social-approve', { gate: 'none', browser: 'refuse', run: { json: { id: 'p1' } },
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: true })),
   expect: (r) => { expect(r.status).toBe(200); expect(last(M.social, 'setStatus')).toEqual(['p1', 'approved']); },
+  cases: [
+    // An approved SAVED post is scheduled on the brand's linked accounts, as
+    // the verified session, in the resolved workspace, as the resolved brand.
+    { name: 'a signed-in approval schedules the saved post on the workspace\'s linked accounts', run: { method: 'POST', json: { id: 'p1' }, auth: 'session', origin: true },
+      stubs: () => {
+        S.on(M.social, 'setStatus', async () => ({ ok: true, post: { id: 'p1', status: 'approved' } }));
+        S.on(M.autopost, 'scheduleSocialPost', async () => ({ ok: true, push_status: 'scheduled', scheduled: [{ state: 'queued' }] }));
+      },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        const a = last(M.autopost, 'scheduleSocialPost');
+        expect(a[0].user_id).toBe(H.USER_ID); expect(a[1]).toBe(H.WS); expect(a[2]).toBe('p1');
+        expect(a[3].brand && a[3].brand.name).toBe(BRAND.name);
+        expect(r.out.autopost.push_status).toBe('scheduled');
+      } },
+    { name: 'an anonymous approval of a saved post schedules nothing and says to sign in', run: { json: { id: 'p1' }, auth: 'none', origin: false, query: { workspace_id: H.WS } },
+      stubs: () => {
+        S.on(M.social, 'setStatus', async () => ({ ok: true, post: { id: 'p1', status: 'approved' } }));
+        S.on(M.autopost, 'scheduleSocialPost', async () => ({ ok: true }));
+      },
+      expect: (r) => {
+        expect(r.status).toBe(200);
+        expect(S.hits(M.autopost, 'scheduleSocialPost')).toEqual([]);
+        expect(r.out.autopost.message).toMatch(/Sign in/);
+      } },
+  ],
 });
 add('social-skip', { gate: 'none', browser: 'refuse', run: { json: { id: 'p2' } },
   stubs: () => S.on(M.social, 'setStatus', async () => ({ ok: false, error: 'not found' })),

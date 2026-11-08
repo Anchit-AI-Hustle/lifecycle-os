@@ -426,6 +426,7 @@ async function runJob(job) {
         : { status: 'queued', attempt_count: attemptNo, next_attempt_at: new Date(Date.now() + wait).toISOString(), last_error: fresh.note },
       { ok: false, error_class: 'auth', error_message: String(fresh.note || '').slice(0, 500), backoff_ms: terminal ? null : wait },
     );
+    await reconcilePost(job, { status: terminal ? 'failed' : 'queued', message: String(fresh.note || '').slice(0, 600) });
     return { id: job.id, ok: false, terminal };
   }
 
@@ -469,6 +470,7 @@ async function runJob(job) {
     // One touch per known recipient into the contact ledger. Like the sync
     // log, recording must never fail a send that has already gone out.
     await require('./contact-ledger.js').recordDispatch(job, result).catch(() => null);
+    await reconcilePost(job, { status: 'succeeded', external_id: result.external_id || null, message: result.status ? `Posted (${result.status}).` : 'Posted.' });
     return { id: job.id, ok: true };
   }
 
@@ -499,7 +501,20 @@ async function runJob(job) {
   );
 
   await logSync(job, false, result);
+  await reconcilePost(job, {
+    status: terminal ? (cls === 'blocked' ? 'blocked' : 'failed') : 'queued',
+    message: terminal ? String(result.error || '').slice(0, 600) : `Will retry: ${String(result.error || '').slice(0, 400)}`,
+  });
   return { id: job.id, ok: false, terminal, error_class: cls };
+}
+
+/**
+ * A calendar post's own record follows its job (calendar-autopost.js): the
+ * outcome lands on the post so the calendar shows it. Never fails a send.
+ */
+async function reconcilePost(job, outcome) {
+  if (!/^social:/.test(String((job && job.asset_ref) || ''))) return null;
+  return require('./calendar-autopost.js').reconcile(job, outcome).catch(() => null);
 }
 
 /** Only fields safe to store: never a token, never a full response body. */
