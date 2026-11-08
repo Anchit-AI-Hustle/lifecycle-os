@@ -258,9 +258,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Mamaearth] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Mamaearth]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "mamaearth.in"
@@ -499,7 +497,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Mamaearth]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Mamaearth]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Mamaearth]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Mamaearth]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Mamaearth]"
   ],
   "brand_assets": [
     {

@@ -296,9 +296,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, boAt] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, boAt]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "boat-lifestyle.com",
@@ -412,7 +410,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, boAt]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, boAt]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, boAt]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, boAt]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, boAt]"
   ],
   "brand_assets": [
     {

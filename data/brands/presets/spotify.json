@@ -387,9 +387,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Spotify] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Spotify]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "spotify.com",
@@ -459,7 +457,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Spotify]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Spotify]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Spotify]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Spotify]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Spotify]"
   ],
   "brand_assets": [
     {

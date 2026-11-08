@@ -289,9 +289,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Paytm] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Paytm]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "paytm.com"
@@ -366,7 +364,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Paytm]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Paytm]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Paytm]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Paytm]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Paytm]"
   ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"

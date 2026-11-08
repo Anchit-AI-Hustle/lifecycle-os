@@ -368,9 +368,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Toyota] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Toyota]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "toyota.com",
@@ -446,7 +444,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Toyota]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Toyota]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Toyota]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Toyota]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Toyota]"
   ],
   "brand_assets": [
     {

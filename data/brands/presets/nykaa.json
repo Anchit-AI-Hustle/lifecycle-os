@@ -259,9 +259,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Nykaa] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Nykaa]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "nykaa.com",
@@ -502,7 +500,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Nykaa]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Nykaa]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Nykaa]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Nykaa]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Nykaa]"
   ],
   "brand_assets": [
     {

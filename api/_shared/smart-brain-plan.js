@@ -2573,7 +2573,12 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // further down: two real directions, each line said once.
   const _h1Base = listicleSec ? listicleHeadline(entry, _lReasons.length, bName) : (L.hero_headline || entry.heroProduct?.title || bName);
   const _h1Tagline = !listicleSec && _o.variant === 'B' && _trStatement && _trStatement.length <= 110 && _fold(_h1Base) === _fold(bName);
-  const _h1 = _h1Tagline ? _trStatement : _h1Base;
+  // With no tagline B still fell back to A (The Times of India, Lenskart in the
+  // 2026-11-08 simulation: two identical pages). B then leads with the send's
+  // own opening line to this cohort (audience-led) while A stays brand-led.
+  const _introLead = String(_intro || L.hero_sub || '').split(/(?<=[.!?])\s+/)[0].trim();
+  const _h1Intro = !listicleSec && !_h1Tagline && _o.variant === 'B' && _fold(_h1Base) === _fold(bName) && _introLead.length >= 12 && _introLead.length <= 90;
+  const _h1 = _h1Tagline ? _trStatement : (_h1Intro ? _introLead : _h1Base);
   const _eyebrowRaw = _heroEyebrow();
   const _eyebrow = _fold(_eyebrowRaw) === _fold(_h1) ? '' : _eyebrowRaw;
   let _trShow = _trStatement && !_h1Tagline && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
@@ -2587,6 +2592,7 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
     else if (_trShow) _trShow = '';
   }
   if (_h1Tagline && _fold(_heroSub) === _fold(_trStatement)) _heroSub = _intro && _fold(_intro) !== _fold(_trStatement) ? _intro : '';
+  if (_h1Intro && _fold(_heroSub).indexOf(_fold(_introLead)) >= 0) _heroSub = String(_heroSub).split(_introLead).join(' ').replace(/\s+/g, ' ').trim();
   const tagReveal = lpCraft.taglineSection(_trShow, { locale: (() => { try { return require('./brand-runtime.js').homeRegion(_b); } catch (_) { return ''; } })() });
   return lpCraft.finish(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(eliminatePlaceholders(L.hero_headline || entry.heroProduct?.title || bName, entry))}</title>
@@ -4251,6 +4257,11 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // A slot planned before titles were cleaned still carries the store's
   // doubled name ("Bausch & Lomb Lacelle Bausch & Lomb Lacelle ..."): every
   // asset says it once (2026-10-24).
+  // A marker held where a fact belongs (claims, tagline) is a gap, never a fact:
+  // brand-runtime.withoutMarkerFacts (2026-11-08).
+  if (entry && entry.brand && typeof entry.brand === 'object') {
+    try { entry.brand = require('./brand-runtime.js').withoutMarkerFacts(entry.brand); } catch (_) { /* keep the record */ }
+  }
   if (entry && typeof entry === 'object') {
     const MFx = require('./mailer-format.js');
     const clean = (p) => (p && typeof p === 'object' && typeof p.title === 'string' ? { ...p, title: MFx.dedupeTitle(p.title) } : p);

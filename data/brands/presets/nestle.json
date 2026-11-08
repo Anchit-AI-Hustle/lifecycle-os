@@ -54,9 +54,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Nestle] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Nestle]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "nestle.com"
@@ -215,7 +213,8 @@
     "[DATA REQUIRED BEFORE LAUNCH: typography, Nestle]",
     "[DATA REQUIRED BEFORE LAUNCH: voice, Nestle]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Nestle]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Nestle]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Nestle]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Nestle]"
   ],
   "rights_note": "Template only. Public brand attributes observed from the brand's own site for building and demonstration; this is not a licence to use the brand's marks. Replace with your own approved guidelines before running a real programme.",
   "status": "preset"

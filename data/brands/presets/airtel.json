@@ -268,9 +268,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Airtel] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Airtel]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "airtel.in",
@@ -379,7 +377,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Airtel]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Airtel]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Airtel]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Airtel]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Airtel]"
   ],
   "brand_assets": [
     {

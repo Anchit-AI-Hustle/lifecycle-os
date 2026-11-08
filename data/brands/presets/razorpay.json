@@ -263,9 +263,7 @@
     "no_em_dashes": true,
     "notes": "[DATA REQUIRED BEFORE LAUNCH: voice, tone and banned phrases, Razorpay] Nothing is inferred: a voice written from memory reads as approved guidance and is not."
   },
-  "claims": [
-    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Razorpay]"
-  ],
+  "claims": [],
   "regions": [],
   "asset_hosts": [
     "razorpay.com",
@@ -330,7 +328,8 @@
   "data_gaps": [
     "[DATA REQUIRED BEFORE LAUNCH: voice, Razorpay]",
     "[DATA REQUIRED BEFORE LAUNCH: offerings and catalogue, Razorpay]",
-    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Razorpay]"
+    "[DATA REQUIRED BEFORE LAUNCH: regions and store URLs, Razorpay]",
+    "[DATA REQUIRED BEFORE LAUNCH: verifiable claims, Razorpay]"
   ],
   "brand_assets": [
     {
