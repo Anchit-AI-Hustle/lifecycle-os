@@ -31,15 +31,23 @@
  */
 
 const EASE = 'cubic-bezier(0.22,1,0.36,1)';
-const TYPE_STEPS = [12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72, 96, 128];
+// FOUR TEXT SIZES (2026-11-08). The operator, with a "make it feel expensive"
+// checklist: "keep one spacing scale, only 4 text sizes". Measured on our own
+// pages: 7 to 8 sizes, and the line under the headline at 12px on a phone (the
+// most-read sentence on the page, below the 16px a phone needs). Every px size
+// now takes one of four roles: a label (14), body (16, never less on any
+// screen), a heading (24) and the display line (40). A phone's headline is set
+// with clamp() in the page itself, so it stays the display role at phone size.
+const TYPE_STEPS = [14, 16, 24, 40];
 
-/** The closest Tailwind type step at or below n (12 is the floor). */
+/** The role a px font size belongs to. */
 function snapFont(n) {
   const v = Number(n);
   if (!isFinite(v)) return n;
-  let out = TYPE_STEPS[0];
-  for (const s of TYPE_STEPS) if (s <= v + 1e-6) out = s;
-  return out;
+  if (v < 14.5) return 14;
+  if (v < 18) return 16;
+  if (v < 32) return 24;
+  return 40;
 }
 
 function snapCss(css) {

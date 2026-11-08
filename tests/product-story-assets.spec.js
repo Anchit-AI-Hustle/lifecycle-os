@@ -93,3 +93,24 @@ test('a product with no description builds as before: the brand\'s own lines, no
   expect(textOf(c.assets.landing_pages[0].html)).not.toMatch(/Questions, answered/);
   expect(c.contract_check.blocking).toBe(0);
 });
+
+test('the landing page meets the phone checklist: four text sizes, 16px body, a big headline, the button on the first screen', async ({ page }) => {
+  const c = await build(DESC);
+  await page.route('**/*', (r) => (r.request().url().startsWith('data:') ? r.continue() : r.abort()));
+  for (const l of c.assets.landing_pages) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setContent(l.html);
+    const m = await page.evaluate(() => {
+      const h1 = document.querySelector('h1'); const sub = document.querySelector('[data-ds="hero-body"]');
+      const btn = document.querySelector('.hero .btn, .hero a[data-ds="button-primary"]');
+      return { h1: parseFloat(getComputedStyle(h1).fontSize), sub: sub && sub.textContent.trim(), subFs: sub && parseFloat(getComputedStyle(sub).fontSize), btnBottom: btn && btn.getBoundingClientRect().bottom, btnH: btn && btn.getBoundingClientRect().height, over: document.documentElement.scrollWidth > innerWidth };
+    });
+    expect(m.over, l.variant).toBe(false);
+    expect(m.h1, `${l.variant}: the headline is the big display line`).toBeGreaterThanOrEqual(26);
+    expect(m.subFs, `${l.variant}: the line under the headline`).toBeGreaterThanOrEqual(16);
+    expect(m.btnBottom, `${l.variant}: the main button on the first screen`).toBeLessThanOrEqual(844);
+    expect(m.btnH).toBeGreaterThanOrEqual(44);
+    // message match: A says what the static ad led with, B what the video ad led with
+    expect(m.sub, l.variant).toBe(l.variant === 'A' ? WHY : WHY2);
+  }
+});

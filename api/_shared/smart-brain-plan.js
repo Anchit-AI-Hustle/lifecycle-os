@@ -2196,8 +2196,14 @@ function lpThemeCss(T, tpl, c) {
   if (!c.ds) {
     const hs = (n) => Math.round(n * Math.max(0.85, Math.min(1.5, h.scale)));
     const type = `font-weight:${h.weight};letter-spacing:${h.tracking};text-transform:${h.case === 'upper' ? 'uppercase' : 'none'};${h.italic ? 'font-style:italic;' : ''}`;
-    css.push(`.hero h1{${type}font-size:${hs(34)}px}.sec h2,.feats h2,.details h2,.revs h2,.about h2,.sec-head h2{${type}font-size:${hs(26)}px}`);
-    css.push(`@media(max-width:640px){.hero h1{font-size:${hs(22)}px}.sec h2,.sec-head h2{font-size:${hs(19)}px}}`);
+    // The headline is always the DISPLAY size, a section title always the
+    // heading size (four sizes, lp-craft): a theme's scale tunes the phone
+    // headline inside the display range, its weight, case and tracking do the
+    // rest. A minimal theme's 29px headline snapped to the heading size and a
+    // phone's 22px to 24 (2026-11-08): the name was not big on the first screen.
+    const vw = (8 * Math.max(0.85, Math.min(1.2, h.scale))).toFixed(1);
+    css.push(`.hero h1{${type}font-size:${Math.max(36, hs(34))}px}.sec h2,.feats h2,.details h2,.revs h2,.about h2,.sec-head h2{${type}font-size:${Math.max(20, hs(26))}px}`);
+    css.push(`@media(max-width:640px){.hero h1{font-size:clamp(26px,${vw}vw,36px);overflow-wrap:anywhere}.sec h2,.sec-head h2{font-size:${Math.max(20, hs(19))}px}}`);
     const br = T.button === 'pill' ? '999px' : (T.button === 'block' ? '0' : `${Math.min(14, T.radius.button)}px`);
     css.push(`.btn,.btn.big,.hero .btn,.sticky .btn{border-radius:${br}}`);
     if (T.button === 'block') css.push(`.endcta .btn,.bb .btn{display:flex;width:100%;max-width:420px;margin-left:auto;margin-right:auto}.hero .btn{min-width:min(100%,320px)}`);
@@ -2746,7 +2752,7 @@ ${_ds.present ? '' : '.btn.big,.hero .btn{border-radius:999px;padding:15px 34px;
    with the contrast-adjusted on-primary text rather than a 60%-opacity cream
    that was only legible because the ground behind it was black. */
 footer{background:var(--moss);color:var(--on-moss);text-align:center;padding:18px 18px;padding-bottom:max(18px,env(safe-area-inset-bottom,18px));font-size:12px}
-@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:22px;margin-bottom:8px}.hero p{font-size:13px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:12px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:12px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
+@media(max-width:640px){.hero{padding:22px 14px 24px}.hero h1{font-size:clamp(30px,8.5vw,36px);margin-bottom:10px}.hero p{font-size:16px;margin-bottom:14px}.sec{padding:14px 0}.sec h2{font-size:19px}.sec-head{margin-bottom:14px}.sec-head h2{font-size:19px}.friction-grid{gap:8px;margin-top:10px}.f-card{padding:12px 14px}.f-card p{margin-bottom:8px;font-size:12px}.f-mockup{padding:6px 10px}.timeline{padding-left:36px;gap:8px;margin-top:10px}.timeline::before{left:12px}.t-step{padding:10px 14px}.t-num{left:-36px;width:26px;height:26px;font-size:12px;top:8px}.metrics-card{margin-top:10px}.m-table th,.m-table td{padding:6px 10px;font-size:12px}.reveal{flex-direction:column;align-items:flex-start;padding:14px;gap:12px}.reveal > div{width:100%;text-align:left!important}.reveal .btn{width:100%;margin-top:8px}.guarantee{padding:14px;margin:12px 0}.sticky{padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom,8px))}.sticky .info .sub{display:none}.btn{padding:12px 18px;font-size:14px;min-height:44px}.hero-media img{height:220px}}
 </style>${_ds.fonts.googleHref ? `<link rel="stylesheet" href="${esc(_ds.fonts.googleHref)}">` : ''}${_ds.present ? `<style id="ds">${_ds.fonts.faces}\n${_dsCss.css}</style>` : (_ds.fonts.faces ? `<style id="brand-fonts">${_ds.fonts.faces}</style>` : '')}${(() => {
   // The hero's button where the hero sits on the surface: the first of the
   // accent and the primary that stands 3:1 off it, else the ink (a control may
