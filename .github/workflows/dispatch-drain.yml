@@ -1,0 +1,58 @@
+# The scheduler calls the project's own vercel.app address, not the custom
+# domain: Cloudflare in front of lifecycle-os.anchit-tandon.com answers
+# GitHub's runners with a 403 bot challenge. vercel.json lets /api/ through
+# on that address (pages still redirect). SCHEDULER_BASE_URL overrides it.
+name: Dispatch queue drain (scheduled posts, every 15 minutes)
+
+# Runs the dispatch queue (api/_shared/dispatch-core.js) so a job scheduled for
+# a time - an approved calendar post on the brand's own linked account
+# (api/_shared/calendar-autopost.js) - goes out at that time, not at the next
+# daily cron. It hits the CRON_SECRET-protected POST
+# /api/brain?action=dispatch-drain, which runs every workspace's due jobs.
+#
+# WHY GitHub Actions: Vercel Hobby crons run once a day and the project already
+# uses both of its two. Nothing is widened here: every job still needs
+# LIVE_CONNECTORS, the brand's publishing toggle and <PLATFORM>_ALLOW_WRITES,
+# and a job with a switch off is recorded with the request it would have sent.
+#
+# SETUP (one-time): repo secrets CRON_SECRET (same value as on Vercel) and,
+# optionally, SCHEDULER_BASE_URL.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '*/15 * * * *'
+
+concurrency:
+  group: dispatch-drain
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drain due dispatch jobs
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SCHEDULER_BASE_URL: ${{ secrets.SCHEDULER_BASE_URL }}
+        run: |
+          set -euo pipefail
+          BASE="${SCHEDULER_BASE_URL:-https://lifecycle-os-anchit-ai-hustle.vercel.app}"
+          BASE="${BASE%/}"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET repo secret is not set - add it under Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+          # One batch per call; the route re-fires itself while jobs remain.
+          # Three calls bound a burst without leaning on the self-fire alone.
+          for i in 1 2 3; do
+            out="$(curl --fail-with-body -sS --max-time 110 -X POST \
+              "$BASE/api/brain?action=dispatch-drain" \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              -H "Content-Type: application/json")"
+            echo "call $i: $(jq -c '{ran, remaining}' <<<"$out" 2>/dev/null || echo "$out")"
+            [ "$(jq -r '.remaining // 0' <<<"$out" 2>/dev/null)" = "0" ] && break
+          done

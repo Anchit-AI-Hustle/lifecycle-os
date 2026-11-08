@@ -139,6 +139,33 @@ nudge is `required` ("resets 00:00 UTC"); `platform_usage_for_user` returns `tod
 (5) `llm.platformLean()`: on the platform's money with no own key, Smart Brain runs without the maker/reviewer team
 pairs (`PLATFORM_TEAM=full` keeps them). Not shown on /ai-models or /connections. While Bedrock refuses the account (model access / SCP), switching the policy
 on means every platform run falls to template copy. Gated by `tests/platform-model-policy.spec.js` (mutation-checked).
+## ⭐ An approved calendar post goes out on its day, on the brand's OWN linked account (2026-11-08)
+The operator: "ensure that the complete flow for auto posting as per the calendar based on the platform also is
+integrated based on the user account linked to the respective social media platform". Before: Social Media OS saved
+posts (`social-core.persistPosts` -> `social_posts_generated`), Approve only set `status`, `push_status` stayed
+`not_integrated_phase_2`, and the only push module (`social-push-core.js`) read the PLATFORM's env tokens. The queue,
+the workspace OAuth connections and the verified organic channels existed, unjoined; nothing drained the queue on time.
+- **`api/_shared/calendar-autopost.js`** is the join. `?action=social-approve` (signed in, after `setStatus`) calls
+  `scheduleSocialPost(auth, ws, id, {brand})`: post key -> `ROUTES` (facebook -> `facebook_page_feed`, instagram_feed,
+  instagram_reels -> `instagram_reel`, tiktok -> `tiktok_video_post`, pinterest -> `pinterest_pin`, youtube_shorts ->
+  `youtube_video_upload`, always private); the workspace's OWN connection (`getConnectionAsService`, never another
+  brand's, never an env token); not connected / `needs_reauth` = skipped with the Connect/Reconnect step in words;
+  Instagram Stories, LinkedIn, X, Threads, blog = `NO_ROUTE` sentence (no adapter publishes them). One
+  `dispatch.enqueue` per platform, `mode:'schedule'`, `scheduled_for` = the post's date at
+  `PLATFORM_SPECS.best_time_utc` read as LOCAL time in the brand's home zone (`brand-locale.localeFor().timeZone`,
+  `localToUtc`; no zone = UTC, said), idempotency key `autopost:social:<post>:<channel>` (approve twice = one job).
+  A declaration the platform needs (TikTok `brand_content_toggle`/`privacy_level`, YouTube made-for-kids /
+  synthetic media) comes only from the brand's connection `config`; absent = the adapter's marker, preflight blocks.
+- **Drained on time**: `.github/workflows/dispatch-drain.yml` every 15 minutes POSTs the CRON_SECRET-protected
+  `?action=dispatch-drain` on the vercel.app address (no third Vercel cron). Every job still passes preflight and the
+  three switches; a switch off = `blocked` with `would_request`.
+- **Status back on the post**: `dispatch-core.runJob` calls `reconcilePost()` for `asset_ref` `social:<id>`:
+  `payload.autopost.channels[]` per channel (queued / succeeded / blocked / failed), `push_status` scheduled /
+  posted / partly_posted / withheld / failed / not_connected / no_channel, `status:'posted'` when every scheduled
+  channel went out. /social shows it per card; /publishing lists the jobs.
+- Smart Brain slots are NOT auto-posted: their ads are paid and go through Paid launch (a budget is a decision).
+- Gated by `tests/calendar-autopost.spec.js` (5 executed over the fake platforms; 7 mutations caught: idempotency,
+  connection check, schedule mode, zone, reconcile, reauth, draft) and two `router-brain` social-approve cases.
 
 ## ⭐ A template's offerings belong only to the template itself (2026-11-03)
 Production /brain for "The Times of India" built ads for "Marathon training plan (multi-week)", an offering of the TOI
