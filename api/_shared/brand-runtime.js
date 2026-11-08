@@ -618,7 +618,9 @@ function brandBlock(brand) {
   const t = b.typography || {};
 
   const lines = [];
-  lines.push(`BRAND: ${b.name || missing('brand name', '', b)}${b.tagline ? ` — ${b.tagline}` : ''}${b.industry ? ` (${b.industry})` : ''}.`);
+  // No dash between the name and its tagline (2026-11-08): the block bans
+  // dashes in copy, and a model reproduced "Name — tagline" as a lockup.
+  lines.push(`BRAND: ${b.name || missing('brand name', '', b)}${b.industry ? ` (${b.industry})` : ''}.${b.tagline ? ` TAGLINE: ${b.tagline}` : ''}`);
   if (b.website) lines.push(`WEBSITE: ${b.website}`);
   lines.push(`VOICE: ${v.tone || missing('voice.tone', '', b)}.${v.notes ? ` ${v.notes}` : ''}`);
   // The brand's own style lock (2026-10-23, the Owner's Desk "Lock in your
@@ -636,7 +638,7 @@ function brandBlock(brand) {
   // The brand's own logo wherever its record holds it, else its site's icon
   // (mailer-format.logoSourceOf), never only the one logo_url field.
   const logo = httpsUrl(b.logo_url) || (() => { try { return require('./mailer-format.js').emailLogoSrc(b); } catch (_) { return ''; } })();
-  lines.push(`LOGO (header, exact — never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30-56px)${b.website ? `, wrapped in a link to the brand's homepage (${String(b.website).replace(/^(?!https?:\/\/)/i, 'https://')})` : ''}. Every mailer, Text included, opens with it.`
+  lines.push(`LOGO (header, exact, never substitute): ${logo ? `<img src="${logo}" alt="${b.name || 'brand'}" /> at a restrained header height (~30-56px)${b.website ? `, wrapped in a link to the brand's homepage (${String(b.website).replace(/^(?!https?:\/\/)/i, 'https://')})` : ''}. Every mailer, Text included, opens with it.`
     : pend.includes('logo') ? `${hostedMarker('logo', b)} - the logo exists only as an uploaded file on the operator's device. Write this marker where the logo goes; never embed an image as data:/base64 and never invent a URL.`
       : missing('logo URL', '', b)}`);
   if (pend.includes('font')) lines.push(`FONT FILES: ${hostedMarker('font', b)} - a brand font was uploaded as a file and has no hosted URL yet. Use the family name with its fallback stack; never embed the font as data:/base64.`);

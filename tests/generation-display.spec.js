@@ -153,7 +153,9 @@ test('a sync that returns rows renders them with no reload', async ({ page }) =>
   // The counters move with the rows. They used to be written after an early
   // return, so an empty result left them showing the page-load placeholder.
   await expect(page.locator('#entries')).toHaveText('2');
-  await expect(page.locator('#mode')).toHaveText('DB-linked');
+  // The first card is the NEXT SEND (2026-11-09: "DB-linked" meant nothing to a
+  // marketer); it moves with the rows too.
+  await expect(page.locator('#mode')).toContainText('Cohort 0');
 
   await expect(page.locator('#syncstate')).toHaveClass(/\bok\b/);
   await expect(page.locator('#syncstate')).toContainText('Sync complete');

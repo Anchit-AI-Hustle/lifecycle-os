@@ -84,7 +84,9 @@ test('each provider\'s own usage shape is read, recorded per answer with whose k
     const a = await ask({ preferProvider: 'openai' });
     expect(a.usage).toEqual({ input_tokens: 120, output_tokens: 30 });
     const b = await ask({ preferProvider: 'anthropic' });
-    expect(b.usage).toEqual({ input_tokens: 80, output_tokens: 40 });       // cache reads/writes are input too
+    // cache reads/writes are input too, and are also kept apart so the operator's Bedrock spend
+    // is priced at the cache rates (platform-model-policy.js, 2026-11-09)
+    expect(b.usage).toEqual({ input_tokens: 80, output_tokens: 40, cache_write_tokens: 20, cache_read_tokens: 10 });
     const c = await ask({ preferProvider: 'gemini' });
     expect(c.usage).toEqual({ input_tokens: 200, output_tokens: 75 });      // thinking tokens are output
     const d = await ask({ preferProvider: 'groq' });

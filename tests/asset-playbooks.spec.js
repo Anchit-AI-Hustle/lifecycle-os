@@ -2,6 +2,9 @@
 /**
  * tests/asset-playbooks.spec.js
  *
+ * Changed on purpose (2026-11-08): the mailer contract line reads "Email
+ * mailer, VARIANT V2"; the prompt bans dashes, so its own lines carry none.
+ *
  * Comprehensive test suite verifying:
  * 1. Multi-model business classification (market_data, news_media, commerce, etc.)
  * 2. Visual asset rules & image prompt policies (information and stock market integrity)
@@ -168,7 +171,7 @@ test('buildMasterPrompt for market data brand includes financial disclaimers and
     brief: 'Pre-market briefing on IT sector earnings',
   });
 
-  expect(prompt).toContain('ASSET: Email mailer — VARIANT V2');
+  expect(prompt).toContain('ASSET: Email mailer, VARIANT V2');
   expect(prompt).toContain('Executive Terminal Masthead');
   expect(prompt).toContain('Market Pulse & Benchmark Bar');
   expect(prompt).toContain('SEBI (Research Analysts) Regulations');
@@ -193,7 +196,7 @@ test('buildMasterPrompt for news publisher includes editorial Smart Brevity stru
     brief: 'Top stories in clean energy policy',
   });
 
-  expect(prompt).toContain('ASSET: Email mailer — VARIANT V2');
+  expect(prompt).toContain('ASSET: Email mailer, VARIANT V2');
   expect(prompt).toContain('Lead Story');
   expect(prompt).toContain('Why it matters');
   expect(prompt).toContain('Bulletin Radar');

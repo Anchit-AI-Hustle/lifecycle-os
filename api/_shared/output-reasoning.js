@@ -155,9 +155,14 @@ function buildEntryAnalysis(input = {}) {
   // ("Drive the reader to buy this product."): "Chosen to drive Drive the
   // reader ..." was printed on every such row of the plan.
   const objText = String(objective || '').trim().replace(/[.\s]+$/, '');
-  const aim = /^drive\b/i.test(objText) ? objText.charAt(0).toLowerCase() + objText.slice(1) : `drive ${objText}`;
+  // Any objective written as a job ("Turn interest into ...", "Win back ...",
+  // 2026-11-09: "Chosen to drive Turn interest ..." on production) is used
+  // as the verb itself; a noun phrase ("reactivation") gets "drive".
+  const VERB = /^(?:drive|turn|bring|win|get|keep|move|make|give|help|welcome|thank|invite|remind|show|introduce|grow|lift|recover|re-?engage|reactivate|nudge|convert|encourage|ask|tell|celebrate|reward|upsell|cross-sell|launch|announce|build|deepen|retain|restart|reconnect)\b/i;
+  const aim = VERB.test(objText) ? objText.charAt(0).toLowerCase() + objText.slice(1) : `drive ${objText}`;
+  const named = productName && objText.toLowerCase().indexOf(String(productName).toLowerCase()) >= 0;
   const summary = `Chosen to ${aim} for ${cohortName}${cohortSize != null ? ` (${num(cohortSize) || cohortSize} profiles)` : (unmeasured ? ' (size not measured)' : '')}` +
-    ` with ${productName}${festival && festival.name ? `, timed to ${festival.name}` : ''}.`;
+    `${named ? '' : ` with ${productName}`}${festival && festival.name ? `, timed to ${festival.name}` : ''}.`;
 
   return {
     summary,

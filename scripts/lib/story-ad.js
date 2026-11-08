@@ -215,7 +215,7 @@ function storyPage(all) {
 </style></head>
 <body><div class="wrap">
 <canvas id="v" width="1080" height="1920" data-template="${esc(all.look.template)}" data-theme="${esc(all.look.theme || 'none')}" aria-label="${esc(name)} story video ad, ${total} seconds"></canvas>
-<div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
+<div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="voice" aria-pressed="true">Voice on</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
 <p class="note" id="note">${esc(String(total))} seconds · ${scenes.length} scenes</p>
 </div>
 <script>
@@ -610,8 +610,53 @@ function storyPage(all) {
     else if (d.clear) window.setTrack('', '');
   });
   function now() { return paused ? pausedAt : ((performance.now() - t0) / 1000); }
+  // THE VOICE (2026-11-09, the operator: "ensure video ads have voice too"):
+  // while the video plays, each scene's own words are spoken as it starts (the
+  // hook, a product and its price, a line, the closing button), in the
+  // browser's voice; nothing the ad does not show is said. A browser speaks
+  // only after the person has pressed something in the frame, so the voice
+  // starts with the first press; Voice off silences it. The MP4 made in code
+  // carries a recorded human voiceover instead (code-video.js).
+  var voiceOn = true, pressed = false, spokenAt = -1, synth = (typeof window !== 'undefined' && window.speechSynthesis) || null;
+  var voiceBtn = document.getElementById('voice');
+  if (!synth && voiceBtn) voiceBtn.hidden = true;
+  function sayOf(sc) {
+    if (!sc) return '';
+    var t = String(sc.headline || '');
+    if (sc.kind === 'product' && sc.price) t += '. ' + sc.price;
+    if (sc.kind === 'end' && sc.cta) t += '. ' + sc.cta;
+    return t.split(' ').filter(function (w) { return w && w.indexOf('http://') !== 0 && w.indexOf('https://') !== 0; }).join(' ').trim();
+  }
+  function pickVoice(lang) {
+    try {
+      var vs = synth.getVoices() || []; var base = String(lang || 'en').slice(0, 2).toLowerCase();
+      var mine = vs.filter(function (v) { return String(v.lang || '').toLowerCase().indexOf(base) === 0; });
+      var nice = mine.filter(function (v) { return /natural|neural|premium|enhanced|google|samantha|daniel|serena/i.test(v.name); });
+      return nice[0] || mine[0] || null;
+    } catch (_) { return null; }
+  }
+  function speakScene(i) {
+    if (!synth || !voiceOn || !pressed || paused || i === spokenAt) return;
+    spokenAt = i;
+    var text = sayOf(D.scenes[i]); if (!text) return;
+    try {
+      synth.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = document.documentElement.lang || 'en'; var v = pickVoice(u.lang); if (v) u.voice = v;
+      u.rate = 1.02; u.pitch = 1; u.volume = 1;
+      synth.speak(u);
+    } catch (_) { /* no voice on this browser: the video plays on */ }
+  }
+  if (voiceBtn) voiceBtn.onclick = function () {
+    pressed = true; voiceOn = !voiceOn; spokenAt = -1;
+    voiceBtn.textContent = voiceOn ? 'Voice on' : 'Voice off'; voiceBtn.setAttribute('aria-pressed', voiceOn ? 'true' : 'false');
+    if (!voiceOn && synth) synth.cancel();
+  };
+  document.addEventListener('pointerdown', function () { pressed = true; }, true);
+  document.addEventListener('keydown', function () { pressed = true; }, true);
   function loop() {
     var t = now();
+    if (!window.__STORY_RENDER && synth) { var si = 0; while (si < D.scenes.length - 1 && t >= D.scenes[si + 1].start) si++; if (si < spokenAt) spokenAt = -1; speakScene(si); }
     if (t >= D.total) { if (recording) { recording.stop(); recording = null; } t0 = performance.now(); t = 0; trackFrom(0); }
     if (track && gain && actx) { var left = D.total - t; gain.gain.value = left < 0.8 ? Math.max(0, left / 0.8) : 1; }
     frame(t); requestAnimationFrame(loop);
@@ -634,7 +679,7 @@ function storyPage(all) {
   var playBtn = document.getElementById('play');
   function toggle() {
     if (paused) { t0 = performance.now() - pausedAt * 1000; paused = false; playBtn.textContent = 'Pause'; if (track) { if (actx && actx.state === 'suspended') actx.resume(); trackFrom(pausedAt); } }
-    else { pausedAt = now(); paused = true; playBtn.textContent = 'Play'; if (track) { try { track.pause(); } catch (_) {} } }
+    else { pausedAt = now(); paused = true; playBtn.textContent = 'Play'; if (track) { try { track.pause(); } catch (_) {} } if (synth) { try { synth.cancel(); } catch (_) {} } spokenAt = -1; }
   }
   playBtn.onclick = toggle; cv.onclick = toggle;
   var cutBtn = document.getElementById('cut');

@@ -1298,6 +1298,18 @@ module.exports = async function handler(req, res) {
       case 'social-approve': {
         if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
         const out = await social.setStatus(b.id, 'approved');
+        // An approved post is scheduled on every platform it targets that this
+        // brand has CONNECTED with its own account (calendar-autopost.js), for
+        // its own day at the platform's hour in the brand's time zone. The
+        // write check is enqueue's (assertCanWrite); the three switches still
+        // stand between the job and the platform.
+        if (out.ok && out.post && out.post.id != null) {
+          const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+          out.autopost = auth.ok && __wsId
+            ? await require('./_shared/calendar-autopost.js').scheduleSocialPost(auth, __wsId, out.post.id, { brand: req.__brand || null })
+                .catch((e) => ({ ok: false, scheduled: [], message: 'Approved, but it could not be scheduled: ' + String((e && e.message) || e).slice(0, 200) }))
+            : { ok: false, scheduled: [], message: 'Approved. Sign in to an account brand to have it posted on the brand\'s linked accounts.' };
+        }
         return res.status(out.ok ? 200 : 400).json(out);
       }
       case 'social-skip': {

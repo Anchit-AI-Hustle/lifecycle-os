@@ -109,10 +109,15 @@ function taglineStatement(brand) {
 
 function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-function taglineSection(statement) {
+function taglineSection(statement, opts) {
   if (!statement) return '';
-  const spans = words(statement).map((w) => `<span class="tw">${escHtml(w)}</span>`).join(' ');
-  return `<section class="sec tagline-reveal" data-tagline-reveal aria-label="${escHtml(statement)}"><p class="tr-text">${spans}</p></section>`;
+  // Units are spelled on the WHOLE line before it is cut into words
+  // (2026-11-08): cut first, each span was spelled alone and "The 100W charger"
+  // read "The 100 watts charger"; whole, it is "The 100-watt charger".
+  let said = statement;
+  try { said = require('./unit-words.js').spellUnits(statement, opts || {}); } catch (_) { said = statement; }
+  const spans = words(said).map((w) => `<span class="tw">${escHtml(w)}</span>`).join(' ');
+  return `<section class="sec tagline-reveal" data-tagline-reveal aria-label="${escHtml(said)}"><p class="tr-text">${spans}</p></section>`;
 }
 
 /* The words light in reading order as each crosses a line 40% up from the

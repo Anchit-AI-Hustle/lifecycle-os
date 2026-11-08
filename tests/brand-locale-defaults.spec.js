@@ -224,9 +224,9 @@ test.describe('/brain for a Google account whose active brand is the record', ()
       hold.release();
       await expect(page.locator('#agenticOut')).not.toContainText('please wait', { timeout: 15_000 });
 
-      // The MODE card states the real mode: an account, its brand in the database.
-      await expect(page.locator('#mode')).toHaveText(/^DB/);
-      await expect(page.locator('#mode')).not.toHaveText(/Local \/ Demo Mode/);
+      // The first card is the next send (2026-11-09); an account's plan is never
+      // described as kept on this device.
+      await expect(page.locator('#modenote')).not.toContainText('on this device');
       // The cron line is in the brand's own time zone where its record decides one.
       if (c.market === 'IN') await expect(page.locator('#cronAt')).toContainText('09:00');
       expect(log.errors).toEqual([]);
@@ -263,7 +263,7 @@ test.describe('/brain for a Google account whose active brand is the record', ()
     expect(await page.locator('#plan').innerText()).not.toMatch(PADDED);
     expect(await page.locator('#plan').innerText()).not.toMatch(/\b(US|UK|USD|GBP)\b/);
     expect(await page.locator('#syncstate').innerText()).not.toMatch(PADDED);
-    await expect(page.locator('#mode')).toHaveText(/^DB/);
+    await expect(page.locator('#modenote')).not.toContainText('on this device');
     expect(log.errors).toEqual([]);
   });
 });

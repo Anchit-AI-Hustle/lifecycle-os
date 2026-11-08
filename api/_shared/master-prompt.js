@@ -71,6 +71,41 @@ function productLines(products = [], currency = '', brandName = brandRuntime.def
   return rows.length ? rows.join('\n') : `(no specific products supplied. Refer to ${brandName} only by the offerings named in this brief. Do NOT invent a product name, price, or URL.)`;
 }
 
+function promptProducts(products) {
+  return (Array.isArray(products) ? products : []).filter((p) => p && String(p.title || p.name || p.t || '').trim() && !/\[DATA REQUIRED/i.test(String(p.title || p.name || p.t)));
+}
+/* The offerings the brand's own record names, for a send with no product
+   (2026-11-08). The product fallback says "refer to the brand only by the
+   offerings named in this brief", and an events, services, news or club brand's
+   brief named none: the outside model wrote about "Ridgefest" with no idea it
+   runs the Sahyadri 50. Only offerings on the brand's own site, never another
+   template's (template-offerings), each with its own page when it has one. */
+function offeringLines(brand) {
+  if (!brand || isShippedDefault(brand)) return '';
+  let list = Array.isArray(brand.offerings) ? brand.offerings : [];
+  try {
+    const TPL = require('./template-offerings.js');
+    const foreign = TPL.foreignTemplateOfferings(brand);
+    list = list.filter((o) => !TPL.offeringFromOtherTemplate(o, foreign));
+  } catch (_) { /* keep the record's own list */ }
+  let coh = null;
+  try { coh = require('./brand-coherence.js'); } catch (_) { coh = null; }
+  const home = String(brand.website || '');
+  const homeDom = coh && home ? coh.registrableDomain(coh.hostOf(/^https?:/i.test(home) ? home : `https://${home}`)) : '';
+  const K = require('./offering-kinds.js');
+  const rows = [];
+  for (const o of list.slice(0, 8)) {
+    const name = String((o && o.name) || '').trim();
+    if (!name || /\[DATA REQUIRED/i.test(name)) continue;
+    const page = K.pageOf(o);
+    if (page && coh && homeDom) { const d = coh.registrableDomain(coh.hostOf(page)); if (d && !coh.sameBrand(d, homeDom)) continue; }
+    const kind = (K.normalizeOffering(o) || {}).kind || '';
+    const label = { plan: 'subscription or membership', programme: 'recurring programme', section: 'section', story: 'story', service: 'service', event: 'event' }[kind] || '';
+    rows.push(`- ${name}${label || page ? ` (${[label, page ? `page: ${page}` : ''].filter(Boolean).join(' · ')})` : ''}`);
+  }
+  return rows.length ? `WHAT ${String(brand.name || 'THE BRAND').toUpperCase()} OFFERS (its own record; name only these, with no price or date this brief does not state):\n${rows.join('\n')}` : '';
+}
+
 /**
  * A person pastes this into a blank Claude, ChatGPT, or Gemini session.
  * The app's own gap marker is for the operator's record, not for the asset
@@ -243,7 +278,23 @@ function creativeFacts(brand) {
 
 // ── Per-asset output contracts ──────────────────────────────────────────────
 // The visual cascade for every visual asset, in the order the operator chose:
-const VISUAL_CASCADE = `VISUALS — use this source order: (1) if a hosted media URL is provided, embed it (product image/GIF/MP4, e.g. a Shopify product video); (2) else describe an auto-generated animated GIF (2–4 still frames, gentle Ken-Burns or cross-fade) the team can produce from product photography; (3) AI-generated video only as a last resort. Every visual must be photoreal, on-palette, text-free in the image itself (text lives in the layout, not burned into the photo) unless the asset is an ad creative.`;
+const VISUAL_CASCADE = `VISUALS: use only a hosted image or video URL this brief lists, the product's own photograph first. With none listed, leave the picture out: never a generated, placeholder or invented image. A photograph carries no words baked into it (text lives in the layout) unless the asset is an ad creative.`;
+/* What a picture may be, by the brand's own kind of business (2026-11-08,
+   asset brand-fit review). Every mailer and landing page prompt carried one
+   commerce cascade ("product image ... e.g. a Shopify product video", "product
+   photography", "describe an auto-generated GIF the team can produce"): a news
+   or market-data brand was told to picture a product it does not sell, against
+   its own image policy (asset-playbooks.IMAGE_POLICIES), and the outside model
+   was told to make a GIF the output requirement forbids it to embed. */
+function visualsFor(brand) {
+  const model = brand ? assetPlaybooks.businessModel(brand) : 'commerce';
+  if (model === 'commerce') return VISUAL_CASCADE;
+  const pol = assetPlaybooks.imagePolicyFor(brand) || {};
+  const order = (pol.sourceOrder || []).map((x) => String(x).replace(/^\d+\.\s*/, '').replace(/[.\s]+$/, '')).join('; ');
+  const never = (pol.never || []).map((x) => String(x).replace(/^NEVER\s+/i, '').replace(/[.\s]+$/, '')).join('; ');
+  // The policy's own prose carries dashes; the prompt that bans them does not.
+  return `VISUALS: only a hosted image URL this brief lists, and of this kind, in this order: ${order}. A kind with no URL listed is left out: never a generated, placeholder or invented image.${never ? ` Never ${never}.` : ''}`.replace(/\s*[\u2013\u2014]\s*/g, ', ');
+}
 
 /*
  * These describe what the FINISHED email contains, not what to write about it.
@@ -274,7 +325,7 @@ function mailerContract(variant, cf, brand, market) {
   if (model === 'market_data') {
     const disclaimer = assetPlaybooks.financialDisclaimer(market, brand);
     if (variant === 'V1') {
-      return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
+      return `ASSET: Email mailer, VARIANT V1 (TYPOGRAPHIC, no imagery).
 A high-signal financial intelligence briefing that stands on its own with zero images: typography, data hierarchy, and editorial clarity do all the work.
 It must CONTAIN, in this order:
 1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
@@ -287,7 +338,7 @@ It must CONTAIN, in this order:
 Leave out any section this brief cannot fill. Do not invent a figure, a ticker, a quote, or a reader count.
 Compact and executive-ready. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
     }
-    return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
+    return `ASSET: Email mailer, VARIANT V2 (TYPOGRAPHIC + VISUAL).
 The same financial intelligence persuasion as V1, laid out with verified data visuals. A finished email, not a layout plan.
 It must CONTAIN, in this order:
 1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
@@ -299,12 +350,12 @@ It must CONTAIN, in this order:
 7. Regulatory Compliance Footer: "${disclaimer}".
 Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
 Leave out any section this brief cannot fill. Do not invent a figure, a ticker, a quote, or a reader count.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
   }
 
   if (model === 'news_media') {
     if (variant === 'V1') {
-      return `ASSET: Email mailer — VARIANT V1 (TYPOGRAPHIC, no imagery).
+      return `ASSET: Email mailer, VARIANT V1 (TYPOGRAPHIC, no imagery).
 An authoritative editorial news briefing that stands on its own with zero images: typography, journalistic hierarchy, and smart brevity do all the work.
 It must CONTAIN, in this order:
 1. Subject lines and preheader (3 subject options and 1 preheader, in their own sections before the HTML, inside the limits the OUTPUT REQUIREMENT states).
@@ -315,7 +366,7 @@ It must CONTAIN, in this order:
 6. Editorial colophon. Leave out any section this brief cannot fill. Do not invent a reader count, a logo, or a quote.
 Compact and scannable. Because there are no images, every structural cue has to be typographic: weight, size, rules and generous space.`;
     }
-    return `ASSET: Email mailer — VARIANT V2 (TYPOGRAPHIC + VISUAL).
+    return `ASSET: Email mailer, VARIANT V2 (TYPOGRAPHIC + VISUAL).
 The same editorial briefing as V1, laid out with imagery. A finished email, not a layout plan.
 It must CONTAIN, in this order:
 1. Subject lines and preheader (3 options and 1 preheader, in their own sections before the HTML).
@@ -327,11 +378,11 @@ It must CONTAIN, in this order:
 7. Colophon and reader feedback, only when this brief states them.
 Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
 Leave out any section this brief cannot fill. Do not invent a reader count, a logo, a quote, a chart, a ticker, or a number.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
   }
 
   if (variant === 'V1') {
-    return `ASSET: Email mailer — VARIANT V1 (text only, no imagery except the logo).
+    return `ASSET: Email mailer, VARIANT V1 (text only, no imagery except the logo).
 A finished email a person can read, built only from the facts in this brief. Not a copy deck and not a description of an email.
 It contains, and a part with no fact is left out:
 1. Subject lines and a preheader (3 subjects and 1 preheader, inside the limits the OUTPUT REQUIREMENT states). The preheader does not repeat the subject.
@@ -341,7 +392,7 @@ It contains, and a part with no fact is left out:
 5. The legal sender and an unsubscribe line.
 No product photograph. No testimonial, rating, review count, or guarantee unless this brief states one.`;
   }
-  return `ASSET: Email mailer — VARIANT V2 (text and a real photograph).
+  return `ASSET: Email mailer, VARIANT V2 (text and a real photograph).
 The same email as the text-only variant, with imagery. A finished email, not a layout plan.
 It contains, and a part with no fact is left out:
 1. Subject lines and a preheader (3 subjects and 1 preheader) before the HTML.
@@ -351,7 +402,7 @@ It contains, and a part with no fact is left out:
 5. One closing button to a URL this brief lists, then the legal footer.
 Do not write a problem the brief does not state, a sensory after-state, or a testimonial. Score any motion to ${cf.audio}. Never a licensed or trending track.
 Email-client-safe throughout: bgcolor on every coloured cell for Outlook, and around two to three scrolls in total.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
 }
 
 // The studio compositor (ad-campaigns.html) renders ONE still PNG per size with
@@ -368,12 +419,12 @@ function adContract(platform, cf, brand, market) {
     google: `Google (Responsive Search + Performance Max): ${copyLimits('google')}; business name.`,
     meta: `Meta (Facebook/Instagram Feed + Reels + Stories): ${copyLimits('meta')}.`,
     instagram: 'Instagram (Feed + Reels + Stories): caption with hook in first line + hashtags.',
-    tiktok: `TikTok (In-Feed + Spark): native-feeling video script with a 0–2s hook, on-screen text beats, caption, and 3 hashtag options. AUDIO: score it to ${cf.audio}. Give the exact beat-sync moments (which cut lands on which downbeat). NEVER specify a trending/licensed sound for a paid ad. Always burn in captions — most feed views start muted. The produced creative is a cover keyframe (the script is a brief for a separate shoot/edit).`,
+    tiktok: `TikTok (In-Feed + Spark): native-feeling video script with a 0-2s hook, on-screen text beats, caption, and 3 hashtag options. AUDIO: score it to ${cf.audio}. Give the exact beat-sync moments (which cut lands on which downbeat). NEVER specify a trending/licensed sound for a paid ad. Always burn in captions: most feed views start muted. The produced creative is a cover keyframe (the script is a brief for a separate shoot/edit).`,
   };
   const sizeKey = assetSpecs.ADS[platform] ? platform : 'meta';
   // onlyProduced: list ONLY the sizes the compositor actually renders, so the
   // prompt never claims deliverables the flow does not generate.
-  const spec = (copyGuide[platform] || copyGuide.meta) + ' PRODUCED at each placement — ' + assetSpecs.adSpecText(sizeKey, { onlyProduced: true });
+  const spec = (copyGuide[platform] || copyGuide.meta) + ' PRODUCED at each placement: ' + assetSpecs.adSpecText(sizeKey, { onlyProduced: true });
 
   const complianceRule = model === 'market_data'
     ? `\nFINANCIAL COMPLIANCE RULE: Absolutely NO guaranteed return claims (e.g. "make 10x in 24 hours" or "guaranteed profits"). Visuals must use authentic terminal UI stills, macro data textures, or trading desk photography with unreadable numbers. Include regulatory disclaimer: "${assetPlaybooks.financialDisclaimer(market, brand)}".`
@@ -429,7 +480,7 @@ function landingContract(facts, cf, brand, market) {
 Sections, in order, omitting any section this brief cannot fill: a bar only if an offer is stated · hero (the headline and opening line this brief states, one button) · a sample only from copy this brief states · the brand's own claims · FAQ only from stated facts · regulatory disclaimer, exactly: "${disclaimer}" · one closing button · legal footer.
 No subscriber count, no institutional logos, no testimonials, and no guarantee unless this brief states them. ${storeNote}
 Mobile-first. CSS in one style block. No external font or script.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
   }
 
   if (model === 'news_media') {
@@ -437,7 +488,7 @@ ${VISUAL_CASCADE}`;
 Sections, in order, omitting any section this brief cannot fill: a bar only if an offer is stated · hero (the headline and the mail's opening line, one button) · the publication's own reasons or claims · a sample only from copy this brief states · FAQ only from stated facts · one closing button · legal footer.
 No reader count, no subscriber logos, and no reader quotes unless this brief quotes them. ${storeNote}
 Mobile-first. CSS in one style block. No external font or script.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
   }
 
   const currency = facts.currency ? `Prices use ${facts.currency}, and only a price this brief states.` : 'State no price unless this brief states one.';
@@ -445,7 +496,7 @@ ${VISUAL_CASCADE}`;
 Sections a reader meets: an offer bar only when an offer is stated · hero (headline, the opening line, one button) · the brand's own claims · the product's own details and price · a buy box only when a price is stated · other products this brief lists, each to its own page · reviews only when this brief quotes them · about the brand, from its own description · FAQ only from stated facts · one closing button · legal footer.
 ${currency} Proof uses only these claims: ${cf.claims}. ${storeNote}
 Mobile-first. CSS in one style block. No external font or script.
-${VISUAL_CASCADE}`;
+${visualsFor(brand)}`;
 }
 
 /**
@@ -516,7 +567,9 @@ function buildMasterPrompt(o = {}) {
     ``,
     BLOCK,
     ``,
-    `MARKET: ${market} · Store: ${storeBit} · Currency: ${currencyBit}${cohortName ? ` · Audience cohort: ${cohortName}` : ''}`,
+    // The cohort is the planner's segment name ("At Risk", "Winback"): the
+    // outside model is told who it is for and never to print the label.
+    `MARKET: ${market} · Store: ${storeBit} · Currency: ${currencyBit}${cohortName ? ` · Audience: the "${cohortName}" segment (an internal label: write to them as "you" and never print it)` : ''}`,
     job ? `\nCAMPAIGN BRIEF:\n${job}` : '',
     ``,
     offerLine(o.offer),
@@ -526,6 +579,7 @@ function buildMasterPrompt(o = {}) {
     writtenLines(o.written),
     ``,
     `PRODUCTS IN SCOPE:\n${productLines(products, facts.currency, brandName)}`,
+    promptProducts(products).length ? '' : offeringLines(pb),
     ``,
     contract,
     ``,

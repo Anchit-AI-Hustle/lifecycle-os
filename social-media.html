@@ -307,6 +307,14 @@
     return '<div class="copy">' + t + esc(c.caption || '') + '</div>';
   }
 
+  // Each platform the post was scheduled on, and what the queue did with it.
+  function autopostHtml(ap) {
+    if (!ap || !Array.isArray(ap.channels) || !ap.channels.length) return '';
+    return '<div class="meta">' + ap.channels.map(function (r) {
+      return esc((r.channel || r.key || '') + ': ' + (r.state || '') + (r.scheduled_for ? ' · ' + r.scheduled_for.slice(0, 16).replace('T', ' ') + ' UTC' : ''));
+    }).join('<br>') + '</div>';
+  }
+
   function card(post, dbId) {
     var p = post.payload || post; // DB rows wrap the post in payload
     var id = dbId != null ? dbId : post.id;
@@ -322,7 +330,7 @@
       mediaHtml(p.media) +
       (p.alt_text ? '<div class="meta">Alt: ' + esc(p.alt_text) + '</div>' : '') +
       '<div class="meta">CTA: <b>' + esc(p.cta || '') + '</b> → <a href="' + esc(p.link || '#') + '" target="_blank" rel="noopener">' + esc(p.link || '') + '</a></div>' +
-      '<div class="meta">Push: ' + esc(post.push_status || p.push_status || '') + '</div>' +
+      '<div class="meta" data-push="1">Push: ' + esc(post.push_status || p.push_status || '') + '</div>' + autopostHtml(p.autopost) +
       '<div class="actions">' +
         '<button type="button" class="btn sm secondary" data-view="1">View full</button>' +
         '<button type="button" class="btn sm secondary" data-dl="json">Download</button>' +
@@ -418,6 +426,15 @@
       var st = cardEl.querySelector('.st');
       var s = (j.post && j.post.status) || (action === 'social-approve' ? 'approved' : 'skipped');
       st.textContent = s; st.className = 'st ' + s;
+      // Where the approved post was scheduled, on the brand's own linked
+      // accounts, and why it was not where it was not (calendar-autopost.js).
+      if (j.autopost) {
+        var rows = j.autopost.scheduled || [];
+        var lines = rows.map(function (x) { return x.message; }).filter(Boolean);
+        banner(lines.length ? lines.join(' ') : (j.autopost.message || ''), true);
+        var push = cardEl.querySelector('[data-push]');
+        if (push && j.autopost.push_status) push.textContent = 'Push: ' + j.autopost.push_status;
+      }
     } catch (e) {
       banner('Could not update post: ' + e.message);
     } finally { btn.disabled = false; }
