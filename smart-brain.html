@@ -150,6 +150,27 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   #plantable td.acts{white-space:normal;min-width:140px}
   #plantable td.acts .acts-col{display:flex;flex-direction:column;gap:6px;align-items:stretch}
   #plantable td .rev{flex-direction:column;align-items:stretch}
+  /* COLUMN SPACING (2026-11-09): production /brain at ~1550px: the festival
+     chip ("Diwali (2026: Nov 8; 2027: Oct 29) - LUNAR/VARIABLE") was a nowrap
+     pill, so the Market column took 351px for a two-letter code and pushed the
+     Objective, Why, Status and Actions columns past the card's edge. Every
+     column now has a width that fits what it holds, left-aligned, and a chip
+     wraps inside its own column. */
+  #plantable th,#plantable td{text-align:left}
+  #plantable th{font-size:12px}
+  #plantable td.date,#plantable th.date{width:92px;min-width:88px}
+  #plantable td.mkt,#plantable th.mkt{white-space:normal;width:112px;min-width:80px;max-width:140px}
+  #plantable td.mkt .pill,#plantable td.date .pill{white-space:normal;display:inline-block;max-width:100%;overflow-wrap:break-word;line-height:1.35;margin-top:4px}
+  #plantable td.cohort,#plantable th.cohort{min-width:120px;max-width:160px}
+  #plantable td.obj,#plantable th.obj{min-width:170px;max-width:240px}
+  #plantable td.why,#plantable th.why{min-width:170px;max-width:260px}
+  #plantable td.chan,#plantable th.chan{min-width:88px;max-width:130px}
+  #plantable td.conf,#plantable th.conf{width:56px}
+  #plantable td.mkt .pill,#plantable td.cohort .pill{border-radius:8px;text-align:left}
+  #plantable td.mkt .pill{font-size:12px}
+  #plantable td.chan .pill{white-space:nowrap}
+  #plantable td.stat,#plantable th.stat{white-space:normal;min-width:88px;max-width:120px}
+  #plantable td.acts,#plantable th.acts{min-width:124px;max-width:150px}
   /* Clamp long copy to 2 lines — the full text lives in View / the decision panel. */
   .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   /* The catalogue pop-up: tokens only, scrolls inside itself. */
@@ -432,7 +453,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       </div>
       <div class="tblscroll">
       <table id="plantable">
-        <thead><tr><th>Date</th><th>Market</th><th class="cohort">Cohort</th><th class="obj">Objective · Hero</th><th class="why">Why (analysis)</th><th class="chan">Channels</th><th>Conf.</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th class="date">Date</th><th class="mkt">Market</th><th class="cohort">Cohort</th><th class="obj">Objective · Hero</th><th class="why">Why (analysis)</th><th class="chan">Channels</th><th class="conf">Conf.</th><th class="stat">Status</th><th class="acts">Actions</th></tr></thead>
         <tbody id="plan"><tr><td colspan="9" class="tdim">Loading plan…</td></tr></tbody>
       </table>
       </div>
@@ -1275,14 +1296,14 @@ function renderPlan(){
       : '';
     const status = `${verdict}${lpHref ? `<br><a href="${esc(lpHref)}" target="_blank" class="tok" style="font-size:11px">landing page ↗</a>` : ''}${reviewCtl}`;
     return `<tr class="planrow" id="planrow-${i}">
-    <td>${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
-    <td><b>${esc(e.market === 'UNDECLARED' ? 'Home market undeclared' : e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
+    <td class="date">${esc(e.date)}${e.mailer_total > 1 ? `<br><span class="pill" style="background:var(--vh-primary);color:var(--vh-on-primary);border-color:var(--vh-primary);font-size:10px">MAILER ${e.mailer_index}/${e.mailer_total}</span>` : ''}</td>
+    <td class="mkt"><b>${esc(e.market === 'UNDECLARED' ? 'Home market undeclared' : e.market)}</b>${e.festival ? `<br><span class="pill">🎉 ${esc(e.festival.name)}</span>` : ''}</td>
     <td class="cohort">${esc(e.cohort?.name)}<br><span class="tdim" style="font-size:11px">${(e.cohort && e.cohort.size > 0) ? `${e.cohort.size} profiles` : 'Target cohort'}</span>${reachPill(e.reach)}${feasBadge(e.feasibility)}</td>
     <td class="obj"><div class="clamp2 tink" style="font-weight:600">${esc(e.objective)}</div><span class="tdim" style="font-size:12px">${esc(e.heroProduct?.title || '')}${(e.supportingProducts&&e.supportingProducts.length)?` <span class="tdim">· + ${esc(e.supportingProducts.map(p=>p.title).filter(Boolean).join(', '))}</span>`:''}</span></td>
     <td class="why"><div class="clamp2" style="font-size:12px;color:var(--vh-ink-dim);line-height:1.45" title="${esc(why)}">${esc(why)}</div></td>
     <td class="chan">${(e.channels||[]).map(c=>`<span class="pill">${esc(CHANNEL_LABEL[c] || c)}</span>`).join('')}</td>
     <td class="conf" title="${esc(confTip)}">${e.confidence != null ? Math.round(e.confidence*100)+'%' : '—'}${confLabel?`<br><span class="tdim" style="font-size:10px;text-transform:uppercase;letter-spacing:.06em">${esc(confLabel)}</span>`:''}</td>
-    <td>${status}</td>
+    <td class="stat">${status}</td>
     <td class="acts"><div class="acts-col">
       <button type="button" class="btn sm secondary" id="viewbtn-${i}" onclick="viewEntry(${i})">View</button>
       <button type="button" class="btn sm ok" id="dlbtn-${i}" onclick="downloadEntry(${i})" title="Generate (if needed) and download every asset for this send as one HTML file">⬇ Download</button>
