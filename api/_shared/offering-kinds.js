@@ -92,14 +92,36 @@ function isKind(k) { return Object.prototype.hasOwnProperty.call(KINDS, String(k
 function isDateBound(k) { return !!(KINDS[k] && KINDS[k].dateBound); }
 function spec(k) { return KINDS[k] || null; }
 
+/* A kind word a record states that is not one of ours names one of ours
+   (2026-11-08, asset brand-fit review). Every one used to become a PRODUCT: a
+   news brand's "subscription" newsletter was sold with "Shop now", a studio's
+   offering read "Take another look at service" and its page was dropped. Only
+   words that say the kind outright; anything else is still a product. */
+const KIND_ALIASES = {
+  subscription: 'plan', membership: 'plan', tier: 'plan', pass: 'plan',
+  article: 'story', report: 'story',
+  consultation: 'service', commission: 'service', booking: 'service',
+  race: 'event', conference: 'event', summit: 'event', webinar: 'event', workshop: 'event',
+};
+function kindOf(src) {
+  const k = String((src && src.kind) || '').trim().toLowerCase();
+  if (isKind(k)) return k;
+  if (/^(newsletter|briefing|digest|podcast)$/.test(k)) return src.cadence ? 'programme' : 'section';
+  return KIND_ALIASES[k] || 'product';
+}
+
 /** Normalise one offering; returns null if it cannot satisfy its kind's required fields. */
 function normalizeOffering(input) {
   const src = input && typeof input === 'object' ? input : {};
-  const kind = isKind(src.kind) ? src.kind : 'product';
+  const kind = kindOf(src);
   const s = KINDS[kind];
   const out = { kind };
   for (const f of s.fields) if (src[f] !== undefined && src[f] !== null && src[f] !== '') out[f] = src[f];
   if (src.name && !out.name) out.name = src.name;
+  // Every offering keeps the page the record gives it, whatever its kind: a
+  // plan, a section or a service without its `url` sent every button to the
+  // homepage and hid the page from the other-brand check.
+  if (!out.url && /^https?:\/\//i.test(String(src.url || ''))) out.url = src.url;
   // Provenance travels with the offering: a claim about a real event needs one.
   if (src.source) out.source = src.source;
   for (const r of s.required) if (!out[r]) return null;
@@ -128,4 +150,11 @@ function forCalendar(offerings, now) {
   return { evergreen, upcoming, past };
 }
 
-module.exports = { KINDS, ALL, isKind, isDateBound, spec, normalizeOffering, forCalendar };
+// The page an offering sends a reader to, by its kind's own field.
+function pageOf(o) {
+  if (!o) return '';
+  for (const f of ['url', 'registration_url', 'signup_url', 'enquiry_url', 'product_url']) if (/^https?:\/\//i.test(String(o[f] || ''))) return String(o[f]);
+  return '';
+}
+
+module.exports = { KINDS, ALL, isKind, isDateBound, spec, normalizeOffering, forCalendar, pageOf };
