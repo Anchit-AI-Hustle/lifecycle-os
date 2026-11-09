@@ -157,17 +157,43 @@ function css(c) {
   ].join('\n');
 }
 
+/* ── first-screen motion (2026-11-09) ─────────────────────────────────────
+   The operator's "make it feel expensive" slides: the name revealed letter by
+   letter, a curtain reveal, a horizontal gallery. Taken on the same terms as
+   the tagline reveal: motion only (transform and clip-path, never a colour or
+   an opacity a reader or a contrast check would see half way), played ONCE on
+   load, never a section hidden until it is scrolled to, nothing with no script
+   or under reduced motion. The headline's words stay whole (each letter sits in
+   its word's box, so a line never breaks inside a word) and its text is read
+   once by a screen reader (aria-label on the heading, the letters hidden). */
+const MOTION_SCRIPT = '<script data-lp-motion-js>(function(){try{var d=document;if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;var h=d.querySelector(".hero h1");if(h&&!h.querySelector("*")){var t=h.textContent;h.setAttribute("aria-label",t);var i=0,out=[];t.split(/(\\s+)/).forEach(function(w){if(/^\\s+$/.test(w)){out.push(" ");return;}var s="";for(var k=0;k<w.length;k++){s+="<span class=\\"lt\\" style=\\"animation-delay:"+Math.min(i*28,900)+"ms\\">"+w.charAt(k).replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</span>";i++;}out.push("<span class=\\"lw\\" aria-hidden=\\"true\\">"+s+"</span>");});h.innerHTML=out.join("");}d.documentElement.classList.add("lp-motion");}catch(e){}})();</script>';
+
+function motionCss() {
+  return [
+    `.lp-motion .hero h1 .lw{display:inline-block;white-space:nowrap;overflow:hidden;vertical-align:bottom;padding-bottom:.08em}`,
+    `.lp-motion .hero h1 .lt{display:inline-block;transform:translateY(105%);animation:lp-up 700ms ${EASE} forwards}`,
+    `@keyframes lp-up{to{transform:none}}`,
+    `.lp-motion .hero-media{animation:lp-curtain 1100ms ${EASE} 150ms both}`,
+    `@keyframes lp-curtain{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}`,
+    // A horizontal gallery on a phone: the other products scroll sideways in
+    // their own row (snap to each card), the page itself never gets wider.
+    `@media(max-width:640px){.others.gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:6px;-webkit-overflow-scrolling:touch}.others.gallery>.other{flex:0 0 72%;scroll-snap-align:start}}`,
+    `@media(prefers-reduced-motion:reduce){.hero h1 .lt,.hero-media{animation:none;transform:none;clip-path:none}}`,
+  ].join('\n');
+}
+
 /** The skill's head and body additions, applied to a finished page. */
 function finish(html, o) {
   let h = String(html || '');
   if (!/<html/i.test(h)) return h;
   // A7: a campaign page is time bound and lives behind its own link.
   if (!/name\s*=\s*["']robots["']/i.test(h)) h = h.replace(/<head[^>]*>/i, (m) => m + '<meta name="robots" content="noindex">');
-  h = h.replace(/<\/head>/i, `<style id="lp-craft">${css(o)}</style></head>`);
+  h = h.replace(/<\/head>/i, `<style id="lp-craft">${css(o)}\n${motionCss()}</style></head>`);
   // B10: the keyboard's way past the header.
   if (!/class="skip"/.test(h)) h = h.replace(/<body([^>]*)>/i, (m) => `${m}<a class="skip" href="#main">Skip to content</a>`);
   if (/data-tagline-reveal/.test(h) && !/data-tagline-reveal-js/.test(h)) h = h.replace(/<\/body>/i, '<i data-tw-end aria-hidden="true" style="display:block;height:1px"></i>' + TAGLINE_SCRIPT + '</body>');
+  if (/<h1[\s>]/i.test(h) && !/data-lp-motion-js/.test(h)) h = h.replace(/<\/body>/i, MOTION_SCRIPT + '</body>');
   return snapTypeScale(h);
 }
 
-module.exports = { EASE, TYPE_STEPS, snapFont, snapTypeScale, mutedTone, contrast, taglineStatement, taglineSection, css, finish, TAGLINE_SCRIPT };
+module.exports = { EASE, TYPE_STEPS, snapFont, snapTypeScale, mutedTone, contrast, taglineStatement, taglineSection, css, finish, TAGLINE_SCRIPT, MOTION_SCRIPT, motionCss };

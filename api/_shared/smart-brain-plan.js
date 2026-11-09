@@ -2580,6 +2580,18 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // tagline in large type further down the page. When it is shown the hero's
   // sub line is not the tagline again: a line is said once.
   const _intro = (copy.email || {}).intro_paragraph || '';
+  // Hours and address (2026-11-09, the operator's "hours and address" slide):
+  // only what the brand's record states (`hours`, `locations` on the record or
+  // brand_data), printed as it is written; a brand that states neither gets no
+  // section and nothing is guessed.
+  const _visitSec = (() => {
+    const pick = (k) => (_b[k] != null && _b[k] !== '' ? _b[k] : _bd[k]);
+    const ok = (t) => { const v = String(t == null ? '' : t).trim(); return v && !/DATA REQUIRED|\{\{/.test(v) ? v : ''; };
+    const hrs = [].concat(pick('hours') || []).map((h) => (typeof h === 'string' ? ok(h) : ok([h && h.days, h && h.time].filter(Boolean).join(': ')))).filter(Boolean);
+    const locs = [].concat(pick('locations') || []).map((l) => (typeof l === 'string' ? { address: ok(l) } : { name: ok(l && l.name), address: ok(l && l.address), hours: ok(l && l.hours) })).filter((l) => l.address);
+    if (!hrs.length && !locs.length) return '';
+    return `<section class="sec visit" data-visit><h2>Visit ${esc(bName)}</h2>${locs.map((l) => `<p>${l.name ? `<b>${esc(l.name)}</b><br>` : ''}${esc(l.address)}${l.hours ? `<br>${esc(l.hours)}` : ''}</p>`).join('')}${hrs.length ? `<p>${hrs.map(esc).join('<br>')}</p>` : ''}</section>`;
+  })();
   const _trStatement = lpCraft.taglineStatement(_b);
   // THE HERO SAYS WHAT THE BRAND IS (2026-11-08 asset review). A brand with no
   // product on the slot got its bare name as the headline under its bare name
@@ -2810,7 +2822,7 @@ ${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_
   </section>` : ''}
   ${detailSec}
   ${_collection ? '' : buyBox('main')}
-  ${_others.length ? `<section class="sec"><h2>${_collection ? 'Pick yours' : `Also from ${esc(bName)}`}</h2><div class="others${_others.length === 4 ? ' four' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
+  ${_others.length ? `<section class="sec"><h2>${_collection ? 'Pick yours' : `Also from ${esc(bName)}`}</h2><div class="others${_others.length === 4 ? ' four' : ''}${_others.length >= 3 ? ' gallery' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
   ${(!_others.length && _offerList.length) ? `<section class="sec"><h2>What ${esc(bName)} offers</h2><ul class="offers">${_offerList.map((o) => `<li>${o.url ? `<a href="${esc(o.url)}">${esc(o.name)}</a>` : `<b>${esc(o.name)}</b>`}</li>`).join('')}</ul></section>` : ''}
 </div>
 ${proofSection}
@@ -2818,6 +2830,7 @@ ${proofSection}
   ${reviewCards}
   ${aboutSec}
   ${faq ? `<section class="sec"><h2>Questions, answered</h2>${faq}</section>` : ''}
+  ${_visitSec}
   ${_svcAll.indexOf(_guaranteeText) >= 0 && (_hasBuy || _annClaim === _guaranteeText) ? '' : guaranteeBlock}
   <section class="endcta"><a href="${esc(shopUrl)}" class="btn big">${cta}</a></section>
 </div>
