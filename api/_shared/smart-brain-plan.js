@@ -180,6 +180,38 @@ async function callLLMTiered(opts) {
   }
   throw lastErr;
 }
+// THE COPY GETS THE TIME IT NEEDS (2026-11-09). Production /brain (Nykaa): the
+// team's Opus calls all answered, then the copy call (one JSON for the mail,
+// landing page and every ad) was given a fixed 20 s, Opus could not write it in
+// that, and every other provider was out of credit, so the build shipped template
+// copy after 100 s. Now the copy's time is read from the request's own deadline
+// (time-budget.js): the planning window closes early enough to leave the copy
+// COPY_NEED_MS, the copy attempt gets what is left minus the time to render, and
+// with less left than Opus needs the copy starts on the standard tier (Sonnet).
+const COPY_RENDER_RESERVE_MS = 6000;
+function buildTimeLeft() { try { return require('./time-budget.js').timeLeft(); } catch (_) { return Infinity; } }
+function copyNeedMs() { return Number(process.env.COPY_NEED_MS) > 0 ? Number(process.env.COPY_NEED_MS) : 55000; }
+/**
+ * copyTiming(timeLeft) -> { attemptMs, budgetMs, tier, skip }
+ * attemptMs: one attempt's cap (at least 20 s, at most 80 s, never past the
+ * deadline less the render reserve); tier: premium when the time Opus needs is
+ * there (COPY_PREMIUM_MIN_MS, default 45 s), else standard; skip: no time for a
+ * model at all (the template assets are built and say so).
+ */
+function copyTiming(timeLeft) {
+  const avail = Number.isFinite(timeLeft) ? timeLeft - COPY_RENDER_RESERVE_MS : Infinity;
+  if (avail < 8000) return { attemptMs: 0, budgetMs: 0, tier: 'standard', skip: true };
+  const premiumMin = Number(process.env.COPY_PREMIUM_MIN_MS) > 0 ? Number(process.env.COPY_PREMIUM_MIN_MS) : 45000;
+  const attemptMs = Number.isFinite(avail) ? Math.max(Math.min(avail, 80000), Math.min(20000, avail)) : 60000;
+  return { attemptMs, budgetMs: Number.isFinite(avail) ? avail : 0, tier: avail >= premiumMin ? 'premium' : 'standard', skip: false };
+}
+/** When the planning window must close: its own cap, or early enough to leave the copy its time. */
+function planUntil(buildStart, capMs) {
+  const hard = buildStart + capMs;
+  const tl = buildTimeLeft();
+  if (!Number.isFinite(tl)) return hard;
+  return Math.min(hard, Date.now() + tl - copyNeedMs() - COPY_RENDER_RESERVE_MS);
+}
 const { buildMasterPrompt, promptsFor, regionFacts } = require('./master-prompt.js');
 // What this brand's own audience already responded to. It was computed by the
 // planner and stamped on the slot, and never reached the writer.
@@ -3264,19 +3296,22 @@ async function writeCopyWithLLM(entry, fw = null, brief = null, team = null) {
   for (let i = 0; i < rounds.length; i++) {
     const r = rounds[i];
     if (r.waitBefore) await new Promise((res) => setTimeout(res, r.waitBefore));
+    const timing = copyTiming(buildTimeLeft());
+    if (timing.skip) { lastErr = lastErr || new Error('no time left in this build for the model copy'); break; }
+    const callBudget = team && team.budgetMs ? (timing.budgetMs ? Math.min(team.budgetMs, timing.budgetMs) : team.budgetMs) : timing.budgetMs;
     let res;
     try {
       res = await callLLMTiered({
         systemPrompt: brandSystem(entry.brand) + sysLine,
         stage: 'mailer_full campaign content', feature: 'brain.campaign', workspaceId: (team && team.workspaceId) || (entry && entry.workspace_id) || null,
-        ...(team && team.budgetMs ? { budgetMs: team.budgetMs } : {}),
+        ...(callBudget ? { budgetMs: callBudget } : {}),
         userMessage: copyPrompt(entry, fw, brief, team),
         responseFormat: { type: 'json_object' },
         maxTokens: r.maxTokens,
         temperature: 0.75,
-        timeoutMs: 20000,
+        timeoutMs: Math.min(timing.attemptMs, callBudget || timing.attemptMs),
         stage: 'smart-brain-copy',
-        tier: 'premium',
+        tier: timing.tier,
       });
     } catch (e) {
       // Whole waterfall threw (every provider rate-limited/failed this round).
@@ -4380,7 +4415,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     const teamOpts = teamOn ? {
       call: (a) => callLLMTiered(Object.assign({ workspaceId: teamWorkspace }, a)), parseJSON, market: entry.market,
       brandName: (entry.brand && entry.brand.name) || 'the brand',
-      left: () => (__buildStart + (+process.env.TEAM_PLAN_MS || 45000)) - Date.now(),
+      left: () => planUntil(__buildStart, +process.env.TEAM_PLAN_MS || 45000) - Date.now(),
     } : null;
     const team = teamOn ? await MA.plan(tctx.text, teamOpts).catch(() => null) : null;
     let brief = null;
@@ -4389,7 +4424,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     } else {
       // After a team that did not produce a strategy, the single strategist fills in only within the
       // plan window (+15 s), in total across every tier; with too little left the copy runs without it.
-      const fillBudget = teamOn ? (__buildStart + (+process.env.TEAM_PLAN_MS || 45000) + 15000) - Date.now() : 0;
+      const fillBudget = teamOn ? planUntil(__buildStart, (+process.env.TEAM_PLAN_MS || 45000) + 15000) - Date.now() : 0;
       const sb = keylessOnly || (teamOn && fillBudget < 5000) ? null : await strategyBrief(entry, teamOn ? { budgetMs: fillBudget } : {});
       brief = sb ? { ...sb.brief, __provider: sb.provider } : null;
       if (sb) trace.push({ agent: 'Strategy Analyst', role: 'Head of Growth Strategy', ok: true, provider: sb.provider, output: { angle: sb.brief.angle, differentiator: sb.brief.differentiator, emotion: sb.brief.target_emotion } });
@@ -4421,8 +4456,9 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
     // sent back is rewritten ONCE with the reasons, and the first draft stands
     // if the rewrite fails. Only while the build has time for it.
     const teamCopyReview = [];
-    if (teamOn && team && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000)) {
-      const reviewOpts = Object.assign({}, teamOpts, { left: () => (__buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 12000) - Date.now() });
+    const reviewEnd = (capMs) => { const hard = __buildStart + capMs; const tl = buildTimeLeft(); return Number.isFinite(tl) ? Math.min(hard, Date.now() + tl - COPY_RENDER_RESERVE_MS) : hard; };
+    if (teamOn && team && (Date.now() - __buildStart) < (+process.env.TEAM_REVIEW_BY_MS || 70000) && buildTimeLeft() > COPY_RENDER_RESERVE_MS + 12000) {
+      const reviewOpts = Object.assign({}, teamOpts, { left: () => reviewEnd((+process.env.TEAM_REVIEW_BY_MS || 70000) + 12000) - Date.now() });
       const dirs = rawB === rawA ? [['A', rawA, fwA]] : [['A', rawA, fwA], ['B', rawB, fwB]];
       // Rewrites start at least 600 ms apart, whichever review finishes first: the slot is
       // reserved before the wait, so two rewrites never burst one provider into a 429.
@@ -4438,7 +4474,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
         teamCopyReview.push(Object.assign({ direction: d }, v.member));
         // The rewrite has until the review window closes (+30 s), in total across every tier;
         // with too little left it is skipped and the first draft stands.
-        const rewriteBy = __buildStart + (+process.env.TEAM_REVIEW_BY_MS || 70000) + 30000;
+        const rewriteBy = reviewEnd((+process.env.TEAM_REVIEW_BY_MS || 70000) + 30000);
         if (v.verdict === 'revise' && v.critique && rewriteBy - Date.now() > 8000) {
           await rewriteTurn();
           const budgetMs = rewriteBy - Date.now();
@@ -5897,6 +5933,8 @@ async function dbCheck({ config: cfg = {} } = {}) {
 
 module.exports = {
   attachUnitWords,
+  copyTiming,
+  planUntil,
   // exported for tests/mailer-justified.spec.js: a saved bundle from other
   // renderer code is never replayed.
   ASSET_BUILD_VERSION, __test_currentBuild: currentBuild,

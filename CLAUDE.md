@@ -4,6 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ The copy gets the time it needs: no build falls to template for lack of time (2026-11-09)
+Production /brain (Nykaa), the preview at "Still working 50 s" and the Agentic run at 93 s: the team's Opus calls all
+answered (~20 s), then the copy call (one JSON for mail + landing + every ad) had a FIXED 20 s attempt, Opus could not
+write it in that, and every other provider was out of credit / refused (OpenAI, Gemini, Groq daily cap, Grok, Ollama,
+OpenRouter 402, DeepSeek and Bedrock keys refused, the keyless 1-per-45 s), so the build shipped template copy at 100 s.
+`smart-brain-plan.copyTiming(timeLeft)` reads the request deadline (`time-budget.js`, 100 s on brain/calendar): the
+attempt = time left minus a 6 s render reserve (20-80 s), premium (Opus) when >= `COPY_PREMIUM_MIN_MS` (45 s) is left,
+else standard (Sonnet), none under 8 s (template assets built and said). `planUntil()` closes the planning window
+early enough to leave the copy `COPY_NEED_MS` (55 s) + the reserve; `marketing-agents` skips a maker with < 4 s left
+(said, never cut off); the copy review and rewrite are bounded by the deadline too. Gated by
+`tests/copy-time-budget.spec.js` (5 executed in a request scope with a deadline; the fixed-20 s mutation caught).
+Note: `live-keyless-and-placements` fails in a container with ambient `AWS_*` / `ANTHROPIC_BASE_URL` (Bedrock becomes
+configured); it passes with them unset, on main and on this change.
 ## ⭐ Why to buy it, in every asset, in the store's own words (2026-11-08)
 The operator, after a simulation of every asset for four brands: "ads are still awful - landing pages also very basic -
 no information on why to buy those products ... no wow factor", then "even update for mailers". The store's own

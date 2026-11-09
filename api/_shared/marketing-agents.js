@@ -112,6 +112,12 @@ async function pair(key, ctx, upstream, o) {
   const maker = MAKER[key]; const reviewer = REVIEWER[key];
   const make = async (critique) => {
     const t0 = ms();
+    // No time left in the planning window (the copy keeps its own, 2026-11-09): the maker is
+    // skipped and said, never started to be cut off.
+    if (left() < 4000) {
+      out.members.push({ department: maker.department, role: maker.role, kind: 'maker', revision: !!critique, ok: false, skipped: true, ms: 0, error: 'no time left in this build for the planning step; the copy keeps its time' });
+      return null;
+    }
     const user = OC.append([
       'SHARED MARKETING CONTEXT', ctx, upstream ? `\nWORK OF THE TEAM SO FAR\n${upstream}` : '',
       `\nYOUR JOB: ${maker.task}`,
