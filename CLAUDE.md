@@ -39,6 +39,15 @@ product reason the static ad led with (A) or the video ad led with (B), and the 
 (`templateEmailCopy.landing.hero_sub`). LinkedIn posts cannot be read from here; the blogs read are vendor guides with
 no controlled study, so only rules that decide no fact were taken. Gated in `tests/product-story-assets.spec.js` (phone
 checklist + message match, mutation-checked); `landing-page-craft`'s step assertion changed on purpose.
+## ⭐ Landing pages: the name letter by letter, a curtain, a phone gallery, hours and address (2026-11-09)
+The operator: "complete each and every thing" (the slide items not yet built). `lp-craft.MOTION_SCRIPT` + `motionCss()`
+on every `lpHtml` page: the hero headline revealed letter by letter ONCE on load (each letter in its word's box, so a
+word never breaks; the heading keeps its text as aria-label; transform only, never colour or opacity), a curtain
+(clip-path) on the hero picture, and on a phone the other products (3+) as a horizontal scroll-snap gallery inside
+their own row (`.others.gallery`; the page never gets wider). No script or reduced motion = the plain page; nothing is
+hidden until scrolled. Hours and address (`_visitSec`) print ONLY what the record states (`hours`, `locations` on the
+record or brand_data), as written; none stated = no section. Gated by `tests/lp-motion-visit.spec.js` (4 executed;
+the no-script mutation caught).
 ## ⭐ A scene through OpenAI too, a competitor's layout remixed, bulk review on /brain, static ads fitted (2026-11-02)
 Three more gaps against usefastlane.ai and a quality pass on the static ad.
 - **Scene, second rung** (`api/ai/image.js` `tryOpenaiEdit`, `mode:'scene'` only): after Gemini, OpenAI's image EDIT,
