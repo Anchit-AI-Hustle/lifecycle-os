@@ -3924,6 +3924,23 @@ function checkAssetContracts(campaign, entry) {
   ((campaign.assets && campaign.assets.messages) || []).forEach((m, i) =>
     judge(m, `message:${m.channel}#${i}`));
 
+  // Social posts are judged against their own platform's limits
+  // (social-assets.check, read from social-core.PLATFORM_SPECS).
+  try {
+    const SA = require('./social-assets.js');
+    for (const post of (campaign.assets && campaign.assets.social_posts) || []) {
+      const v = SA.check(post);
+      const cname = `social.${post.key}`;
+      post.contract_check = { contract: cname, ok: !v.some((x) => x.level === 'block'), violations: v };
+      summary.checked += 1;
+      summary.by_contract[cname] = (summary.by_contract[cname] || 0) + 1;
+      for (const x of v) {
+        if (x.level === 'block') summary.blocking += 1; else summary.warnings += 1;
+        summary.violations.push({ asset: `social:${post.key}`, contract: cname, level: x.level, slot: x.slot, message: x.message });
+      }
+    }
+  } catch (e) { console.warn('[smart-brain] social post check failed:', e && e.message); }
+
   comp.verdict = comp.blocking ? 'block' : (comp.warnings ? 'warn' : 'pass');
   campaign.contract_check = summary;
   return summary;
@@ -4698,6 +4715,10 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   let __target = '';
   try { __target = slotLinks(entry).pdp || ''; } catch (_) { __target = ''; }
   require('./marketing-team-server.js').applyToCampaign(campaign, entry, { target: __target });
+  // SOCIAL POSTS (2026-11-11): one organic post per platform (Instagram,
+  // Facebook, LinkedIn, TikTok, X, Pinterest, YouTube Shorts, Threads), written
+  // from this send's finished copy, each inside its platform's own limits.
+  attachSocialPosts(campaign, entry, __target);
   // MUSIC (2026-10-25): the brief for this send's track, in the brand's own
   // words, as long as its Story video (built above); composed on request.
   attachMusic(campaign, entry, null);
@@ -4728,6 +4749,26 @@ function musicOfferText(o) {
   if (Number.isFinite(pct) && pct > 0 && pct < 1) pct *= 100;
   if (Number.isFinite(pct) && Math.round(pct) > 0) return `${Math.round(pct)}% off${o.code ? ` with code ${String(o.code).slice(0, 24)}` : ''}`;
   return '';
+}
+function attachSocialPosts(campaign, entry, link) {
+  try {
+    if (!campaign || !campaign.assets) return null;
+    const rt = require('./brand-runtime.js');
+    const brand = (entry && entry.brand) || null;
+    let locale = '';
+    try { locale = rt.homeRegion(brand); } catch (_) { locale = ''; }
+    const U = require('./unit-words.js');
+    const finish = (t) => { try { return rt.scrubForBrand(SM.sanitizeBrand ? SM.sanitizeBrand(String(t)) : String(t), brand); } catch (_) { return String(t); } };
+    const spell = (t) => { try { return /\d/.test(String(t)) ? U.spellUnits(String(t), { locale }) : String(t); } catch (_) { return String(t); } };
+    const built = require('./social-assets.js').build(entry, campaign, { link, finish, spell });
+    if (!built.posts.length) return null;
+    campaign.assets.social_posts = built.posts;
+    if (built.data_gaps.length) campaign.data_gaps = [...new Set((Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []).concat(built.data_gaps))];
+    return built;
+  } catch (e) {
+    console.warn('[smart-brain] social posts failed:', e && e.message);
+    return null;
+  }
 }
 function attachMusic(campaign, entry, trace) {
   try {
@@ -5771,7 +5812,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js'];
+  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js', './social-assets.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
