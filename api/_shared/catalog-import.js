@@ -132,6 +132,7 @@ const LIMITS = {
   feedPageSize: 250,
   maxFeedPages: 400,          // 100,000 products: a stated ceiling, never a silent one
   maxProducts: 20000,         // per region per import run, every route
+  maxArticles: 400,           // a media brand's inventory: its most recent articles per market, a stated limit
   stepBudgetMs: 55000,        // one interactive call's share of a 120 s function
   perRequestMs: 12000,
   pdpConcurrency: 6,
@@ -1195,8 +1196,24 @@ function sitemapWords(u) {
   return p.replace(/\.(?:xml|txt)(?:\.gz)?$|\.gz$/, '').split(/[\/\-_.\d]+/).filter(Boolean);
 }
 /** 'product' | 'non-product' | 'other', from the sitemap's own path; a child of a product index inherits 'product'. */
-function sitemapClass(u, parentTyped) {
+/* A MEDIA BRAND'S INVENTORY IS ITS ARTICLES (2026-11-11, the operator: "brands
+   where it could be just media brands etc with no catalog as such but data
+   inventories of articles etc listed"). For a brand whose own record makes it a
+   publisher (asset-playbooks.businessModel: news_media / market_data), the
+   sitemaps a store import never reads (news, articles, stories, posts) ARE the
+   list of what it offers. A Google News sitemap states each article's title,
+   date and keywords itself, so those rows are filed from the sitemap with no
+   page request; a plain article sitemap's pages are read like product pages
+   (their JSON-LD Article). At most LIMITS.maxArticles per market, said. */
+const ARTICLE_WORDS = new Set(['news', 'article', 'articles', 'story', 'stories', 'post', 'posts', 'blog', 'blogs', 'latest', 'recent', 'today', 'daily']);
+const ARTICLE_DISQUALIFIERS = new Set(['category', 'categories', 'tag', 'tags', 'topic', 'topics', 'author', 'authors', 'section', 'sections', 'video', 'videos', 'photo', 'photos', 'gallery', 'galleries', 'help', 'faq', 'faqs', 'search', 'careers', 'page', 'pages']);
+function sitemapClass(u, parentTyped, inventory) {
   const w = sitemapWords(u);
+  if (inventory === 'articles') {
+    if (w.some((x) => ARTICLE_DISQUALIFIERS.has(x))) return 'non-product';
+    if (w.some((x) => ARTICLE_WORDS.has(x))) return 'product';
+    return parentTyped ? 'product' : 'other';
+  }
   const hasProduct = w.some((x) => x === 'product' || x === 'products');
   if (hasProduct && !w.some((x) => PRODUCT_DISQUALIFIERS.has(x))) return 'product';
   if (w.some((x) => NON_PRODUCT_WORDS.has(x))) return 'non-product';
@@ -1226,19 +1243,56 @@ const isProductSitemap = (u) => sitemapClass(u, false) === 'product';
  * `st.other` only while no product sitemap has been seen (a site that does not
  * say which URLs are products is read whole).
  */
+/** The <url> entries of a Google News sitemap that state their own article: { loc, title, date, keywords, image }. */
+function newsEntries(body) {
+  const out = [];
+  const un = (t) => String(t || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/\s+/g, ' ').trim();
+  const tag = (blk, name) => { const m = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}>`, 'i').exec(blk); return m ? un(m[1]) : ''; };
+  for (const m of String(body || '').matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)) {
+    const blk = m[1];
+    const title = tag(blk, 'news:title');
+    const loc = tag(blk, 'loc');
+    if (!title || !loc) continue;
+    out.push({ loc, title, date: tag(blk, 'news:publication_date') || tag(blk, 'lastmod'), keywords: tag(blk, 'news:keywords'), image: tag(blk, 'image:loc'), publication: tag(blk, 'news:name') });
+  }
+  return out;
+}
+/** A catalogue row for an article a news sitemap states (no page is requested). */
+function rowFromNewsEntry(e, { region, sitemapUrl }) {
+  const pageUrl = httpAbs(e.loc, sitemapUrl);
+  if (!pageUrl) return null;
+  let section = '';
+  try { const seg = new URL(pageUrl).pathname.split('/').filter(Boolean); if (seg.length > 1 && /^[a-z][a-z-]{2,24}$/.test(seg[0])) section = seg[0].replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()); } catch (_) { section = ''; }
+  const img = e.image ? httpAbs(e.image, pageUrl) : '';
+  return {
+    region, title: str(e.title, 300), handle: handleFromUrl(pageUrl) || str(e.title, 100).toLowerCase().replace(/[^a-z0-9]+/g, '-'), sku: null,
+    description: null, product_type: section || 'News & Editorial',
+    collections: e.keywords ? e.keywords.split(/[,;]+/).map((k) => k.trim().toLowerCase()).filter(Boolean).slice(0, 12) : [],
+    price: null, compare_at: null, currency: marketCurrency(region) || null,
+    image_url: img || null, image_urls: img ? [img] : [], variants: [],
+    product_url: pageUrl, in_stock: true, tags: ['Editorial', 'Article'],
+    // Filed in the sitemap family (the merge and the daily refresh know it);
+    // `raw.declared` says the sitemap itself stated it.
+    source: 'sitemap_jsonld', source_url: pageUrl, offering_kind: 'story',
+    published_at: e.date || null,
+    raw: { declared: 'sitemap:news', sitemap: sitemapUrl },
+  };
+}
+
 async function enumerateSitemaps(st, ctx) {
   const sm = st.sm;
   const seen = new Set(sm.seen || []);
   const typed = new Set(st.pending || []);
   const other = new Set(st.other || []);
-  const cap = LIMITS.maxProducts;
+  const articles = st.inventory === 'articles';
+  const cap = articles ? LIMITS.maxArticles : LIMITS.maxProducts;
   const inBase = (u) => { try { return !st.prefix || new URL(u).pathname.startsWith(st.prefix + '/'); } catch (_) { return false; } };
   const note = (t) => { if (sm.notes.length < 40) sm.notes.push(t); };
   let stop = null;
   if (!sm.other_markets) sm.other_markets = {};
   if (!sm.non_product) sm.non_product = { count: 0, examples: [] };
   const queueItem = (u, parent) => {
-    const cls = sitemapClass(u, !!(parent && parent.typed));
+    const cls = sitemapClass(u, !!(parent && parent.typed), st.inventory);
     return { url: u, depth: parent ? parent.depth + 1 : 0, typed: cls === 'product', cls, foreign: (parent && parent.foreign) || (foreignLocale(u, st) || {}).prefix || '' };
   };
   const market = (f) => (sm.other_markets[f.prefix] = sm.other_markets[f.prefix] || { prefix: f.prefix, country: f.country, sitemaps: 0, products: 0 });
@@ -1332,10 +1386,37 @@ async function enumerateSitemaps(st, ctx) {
       if (item.typed) f.products += locs.length;
       continue;
     }
+    // A media brand's news sitemap states each article itself: its rows are
+    // filed here, newest first as the sitemap lists them, and their pages are
+    // not requested.
+    let stated = null;
+    if (articles && kind === 'urlset' && typeof ctx.onArticle === 'function') {
+      const ents = newsEntries(r.body);
+      if (ents.length) {
+        stated = new Set();
+        if (!sm.typed_any) { sm.typed_any = true; other.clear(); if (ctx.otherQueue) await ctx.otherQueue.clear(false); }
+        item.typed = true;
+        ents.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        for (const e of ents) {
+          const u = httpAbs(e.loc, item.url);
+          if (!u || !inBase(u) || foreignLocale(u, st)) continue;
+          stated.add(u);
+          if (typed.has(u)) continue;
+          typed.add(u);
+          sm.typed_total += 1;
+          if (sm.typed_total > cap) { sm.overflow += 1; continue; }
+          const row = rowFromNewsEntry(e, { region: st.region, sitemapUrl: item.url });
+          if (row && ctx.onArticle(row)) sm.articles_filed = (sm.articles_filed || 0) + 1;
+        }
+      }
+    }
     if (item.typed) {
       if (!sm.typed_any) { sm.typed_any = true; other.clear(); if (ctx.otherQueue) await ctx.otherQueue.clear(false); }
       const fresh = [];
       for (const loc of locs) {
+        if (stated && stated.has(httpAbs(loc, item.url))) continue;
+        // An article inventory is the most recent ones, to a stated limit.
+        if (articles && sm.typed_total + fresh.length >= cap) { sm.overflow += 1; continue; }
         const u = httpAbs(loc, item.url);
         if (!u || !inBase(u) || typed.has(u)) continue;
         const lf = foreignLocale(u, st);
@@ -1353,6 +1434,7 @@ async function enumerateSitemaps(st, ctx) {
       for (const loc of locs) {
         const u = httpAbs(loc, item.url);
         if (!u || !inBase(u) || other.has(u) || u.replace(/\/$/, '') === st.base || foreignLocale(u, st)) continue;
+        if (articles && other.size + (sm.other_total || 0) >= cap) { sm.overflow += 1; continue; }
         if (ctx.otherQueue) { other.add(u); freshOther.push(u); continue; }
         if (other.size >= cap) { sm.overflow += 1; continue; }
         other.add(u);
@@ -1580,7 +1662,8 @@ function noteMissing(row, stats) {
     stats.missing[field === 'product image' ? 'image' : field] += 1;
     if (stats.missing_examples.length < 20) stats.missing_examples.push(MARKER(field, row.title, row.region));
   };
-  if (row.price == null) add('price');
+  // An article has no price to state.
+  if (row.price == null && row.offering_kind !== 'story') add('price');
   if (!row.image_url) add('product image');
   if (row.price != null && !row.currency) add('currency');
 }
@@ -1674,6 +1757,24 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
     return true;
   };
 
+  // A publisher's inventory is its articles (see ARTICLE_WORDS above): decided
+  // from the brand's own record, once, and kept on the cursor.
+  // Judged on what the record STATES about the business (a declared model, its
+  // industry, the kinds of its offerings), never on the brand's name: a store
+  // called "Big Market" or "The Daily Grind" is not a publisher.
+  const inventory = (() => {
+    try {
+      const b = brand || {}; const d = b.brand_data || {};
+      const declared = String(b.business_model || b.businessModel || d.business_model || '').toLowerCase();
+      if (declared) return declared === 'news_media' || declared === 'market_data' ? 'articles' : 'products';
+      const industry = String(b.industry || d.industry || '').toLowerCase();
+      if (/\b(news|newspaper|newsroom|journalism|publishing|publisher|publication|magazine|editorial|blog|media house|digital media|news media|market (data|intelligence|research)|equity research)\b/.test(industry) && !/\b(retail|store|shop|e-?commerce|apparel|beauty|food)\b/.test(industry)) return 'articles';
+      const kinds = (Array.isArray(b.offerings) ? b.offerings : (Array.isArray(d.offerings) ? d.offerings : [])).map((o) => String((o && o.kind) || '').toLowerCase()).filter(Boolean);
+      if (kinds.length >= 2 && kinds.filter((k) => /^(section|newsletter|publication|column|edition|podcast)$/.test(k)).length >= Math.ceil(kinds.length / 2) && !industry) return 'articles';
+      return 'products';
+    } catch (_) { return 'products'; }
+  })();
+  ctx.onArticle = (row) => { const ok = keep(row); if (ok) stats.by_source.sitemap_news = (stats.by_source.sitemap_news || 0) + 1; return ok; };
   let st = prev ? JSON.parse(JSON.stringify(prev)) : null;
   if (st) st.region = reg;
   if (st) st.siblings = sib;
@@ -1720,6 +1821,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       st = {
         v: LIMITS.cursorVersion, run, region: reg, start, base: rb.base, base_from: rb.from,
         identity: own.identity || '',
+        inventory,
         foreign_stores: foreignStores.filter((f) => regionCountry(f.code) === regionCountry(reg)).slice(0, 5),
         currency: declaredCurrency(baseHtml),
         storefront,
@@ -1732,7 +1834,8 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
         // The feed only for a store that IS Shopify or does not say what it is
         // (then it is PROBED once: see the feed below). A store that declares
         // another platform is read from its own sitemaps (or its pages).
-        route: storefront && storefront.id && storefront.id !== 'shopify' ? 'pages' : 'feed',
+        // (A publisher has no product feed to probe.)
+        route: (storefront && storefront.id && storefront.id !== 'shopify') || inventory === 'articles' ? 'pages' : 'feed',
         page: 1,
         pending: [],
         other: [],
@@ -2483,6 +2586,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   const src = [];
   if (stats.by_source.feed) src.push(`${stats.by_source.feed.toLocaleString('en-US')} from the store's product feed (/products.json, ${plural(stats.feed_pages, 'page')})`);
   if (stats.by_source.sitemap_jsonld) src.push(`${stats.by_source.sitemap_jsonld.toLocaleString('en-US')} from product pages listed in its sitemap (their JSON-LD)`);
+  if (stats.by_source.sitemap_news) src.push(`${stats.by_source.sitemap_news.toLocaleString('en-US')} stated by its news sitemap`);
   if (stats.by_source.crawl) src.push(`${stats.by_source.crawl.toLocaleString('en-US')} from crawling its linked pages`);
   if (src.length) s.push(`Source: ${src.join('; ')}.`);
   s.push(`Market ${R || 'unset'}: read from ${st.base} (${st.base_from})${st.currency ? `, priced in ${st.currency} as that storefront declares` : ''}.`);
@@ -2582,8 +2686,22 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   } else if (complete) {
     s.push('Complete: every product the source lists was read.');
   }
+  // A publisher's inventory is its articles: the same sentences, in its words.
+  if (st.inventory === 'articles') {
+    const drop = /^Most popular:/;
+    const say = (t) => String(t)
+      .replace(/\bproduct sitemaps\b/g, 'news and article sitemaps').replace(/\bproduct pages\b/g, 'article pages')
+      .replace(/JSON-LD Product and no OpenGraph product tags/g, 'JSON-LD Article').replace(/\bdeclare no product\b/g, 'declare no article')
+      .replace(/\bno product was read\b/g, 'no article was read').replace(/\bevery product\b/g, 'every article')
+      .replace(/\b(\d[\d,]*) products?\b/g, (m, n) => `${n} article${n === '1' ? '' : 's'}`).replace(/\bproducts\b/g, 'articles').replace(/\bthe store\b/g, 'the site').replace(/\bThe store\b/g, 'The site').replace(/\bthis store\b/g, 'this site');
+    const smA = st.sm || {};
+    const lead = `${hostOf(st.base) || 'This site'} is a publisher, by the brand's own record, so its inventory is its articles: the news and article sitemaps a store import skips were read.${stats.by_source.sitemap_news ? ` ${plural(stats.by_source.sitemap_news, 'article')} came from its news sitemap, which states each title, date and section itself (no article page was requested).` : ''}${smA.overflow ? ` LIMIT: the ${LIMITS.maxArticles} most recent per market are kept; ${plural(smA.overflow, 'more')} the sitemaps list were not.` : ''}`;
+    const mapped = s.filter((x) => !drop.test(x)).map(say).map((x) => x.replace('(blog, reviews, categories, pages', '(topics, tags, authors, sections'));
+    s.length = 0; s.push(lead, ...mapped);
+  }
   return {
-    route: st.route === 'done' ? (stats.by_source.feed ? 'feed' : stats.by_source.sitemap_jsonld ? 'sitemap' : 'crawl') : st.route,
+    inventory: st.inventory || 'products',
+    route: st.route === 'done' ? (stats.by_source.feed ? 'feed' : (stats.by_source.sitemap_jsonld || stats.by_source.sitemap_news) ? 'sitemap' : 'crawl') : st.route,
     region: R, base: st.base, base_from: st.base_from, start: st.start || st.base, currency: st.currency || null,
     foreign_stores: Array.isArray(st.foreign_stores) ? st.foreign_stores : [],
     declared: st.declared || (sm && !sm.done && sm.typed_any ? { count: sm.typed_total, urls: null, by: 'the site\'s product sitemaps read so far', partial: true } : null), found,

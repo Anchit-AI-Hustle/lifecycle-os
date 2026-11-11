@@ -215,7 +215,7 @@ function storyPage(all) {
 </style></head>
 <body><div class="wrap">
 <canvas id="v" width="1080" height="1920" data-template="${esc(all.look.template)}" data-theme="${esc(all.look.theme || 'none')}" aria-label="${esc(name)} story video ad, ${total} seconds"></canvas>
-<div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="voice" aria-pressed="true">Voice on</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
+<div class="bar">${hasShort ? `<button type="button" id="cut" aria-pressed="false" data-cut="full">${esc(String(Math.round(shortTotal)))} s cut</button>` : ''}<button type="button" id="play" class="main">Pause</button><button type="button" id="restart">Restart</button><button type="button" id="save">Save as video</button></div>
 <p class="note" id="note">${esc(String(total))} seconds · ${scenes.length} scenes</p>
 </div>
 <script>
@@ -617,7 +617,12 @@ function storyPage(all) {
   // only after the person has pressed something in the frame, so the voice
   // starts with the first press; Voice off silences it. The MP4 made in code
   // carries a recorded human voiceover instead (code-video.js).
-  var voiceOn = true, pressed = false, spokenAt = -1, synth = (typeof window !== 'undefined' && window.speechSynthesis) || null;
+  // NO BROWSER VOICE (2026-11-11, the operator: "ensure no robotic voices or
+  // sounds - ensure humanised assets of all types only"). The browser's
+  // built-in speech is a synthetic voice, so the preview never speaks with it:
+  // it plays the slot's music, and the ad's voiceover is the recorded human
+  // voice in the MP4 made in code (story-voice.js: ElevenLabs or Gemini TTS).
+  var voiceOn = false, pressed = false, spokenAt = -1, synth = null;
   var voiceBtn = document.getElementById('voice');
   if (!synth && voiceBtn) voiceBtn.hidden = true;
   function sayOf(sc) {

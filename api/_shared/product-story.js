@@ -23,10 +23,17 @@
 
 const MARKER = /\[\s*DATA REQUIRED/i;
 const BOILER = /\b(ship|shipping|deliver|delivery|dispatch|return|refund|exchange|cash on delivery|\bcod\b|click|tap here|add to cart|buy now|shop now|order now|sku|disclaimer|terms|policy|subscribe|newsletter|follow us|whatsapp|call us|email us|customer care|warranty card|limited stock|hurry|while stocks?)\b/i;
-const HOW = /^(use|apply|wear|drink|brew|steep|add|mix|take|wash|rinse|pair|massage|spray|plug|charge|install|store|serve|cook|heat|pour|shake|dab|gently|simply|just|for best results|directions?|how to use|to use)\b/i;
+// Storage and serving lines ("Keep refrigerated and serve within 2 days.") are
+// instructions, never a reason to buy (2026-11-11: a cake's video ad opened on one).
+const HOW = /^(keep (refrigerated|chilled|frozen|cool|dry|in |away|out of|it )|refrigerate|freeze|consume|best (served|before|enjoyed|stored|consumed)|use|apply|wear|drink|brew|steep|add|mix|take|wash|rinse|pair|massage|spray|plug|charge|install|store|serve|cook|heat|pour|shake|dab|gently|simply|just|for best results|directions?|how to use|to use)\b/i;
 const HOW_ANY = /\b(how to use|directions|apply|massage into|leave on|times a day|once a day|twice a day|every morning|every night|at night|before bed|drops? (on|onto|into))\b/i;
 const INSIDE = /\b(made (from|with|of|in)|crafted (from|with|in)|contains?|ingredients?|rich in|packed with|blend of|infused with|pressed from|sourced from|derived from|formulated with|material|fabric|cotton|linen|wool|leather|steel|aluminium|aluminum|glass|ceramic|bamboo|silk|beans?|leaves|grown in|roasted)\b/i;
 const BENEFIT = /\b(helps?|keeps?|leaves?|absorbs?|protects?|lasts?|fits?|feels?|gives?|reduces?|boosts?|softens?|hydrates?|nourish\w*|smooth\w*|soothe?s?|brightens?|strengthens?|repairs?|lightweight|light|durable|waterproof|water.resistant|breathable|comfortable|comfort|easy|quick\w*|fast|without|no (greasy|sticky|added|harsh)|in (under|just|about) \d|all day|long.lasting|every day|daily|perfect for|ideal for|great for|designed (for|to)|so you|lets you|you can|you get|stays?|holds?|works?|charges?|cleans?|refreshes?)\b/i;
+
+const STORAGE = /^(keep (refrigerated|chilled|frozen|cool|dry|in |away|out of|it )|refrigerate|freeze|store|consume|best (served|before|enjoyed|stored|consumed))\b/i;
+function isStorage(s) { return STORAGE.test(String(s || '').trim()); }
+
+function isArticle(p) { return !!p && /^(story|article|post|report)$/i.test(String(p.offering_kind || '')); }
 
 function clean(html) {
   return String(html || '')
@@ -89,6 +96,13 @@ function story(product, opts = {}) {
   const empty = { what: '', benefits: [], inside: [], how: [], specs: [], any: false };
   if (!p || p.placeholder || MARKER.test(String(p.title || ''))) return empty;
   const src = [p.description, p.body_html, p.body, p.subtitle].find((x) => String(x || '').trim()) || '';
+  // AN ARTICLE (a publisher's inventory, 2026-11-11) has a standfirst, not
+  // reasons to buy: its description is what the story is about, kept together
+  // (two sentences at most) and never sorted into benefits or instructions.
+  if (isArticle(p)) {
+    const stand = sentences(src).slice(0, 2).join(' ');
+    return { what: stand, benefits: [], inside: [], how: [], specs: [], any: !!stand, article: true };
+  }
   const list = sentences(src);
   const out = { what: '', benefits: [], inside: [], how: [], specs: [], any: false };
   list.forEach((s, i) => {
@@ -131,7 +145,10 @@ function fitting(max, ...lines) {
 function faq(st, name) {
   const out = [];
   const n = String(name || '');
-  if (st.how[0]) out.push({ q: 'How do I use it?', a: st.how.join(' ') });
+  // A storage line answers "how do I keep it", not "how do I use it".
+  const use = st.how.filter((h) => !isStorage(h)); const keep = st.how.filter(isStorage);
+  if (use[0]) out.push({ q: 'How do I use it?', a: use.join(' ') });
+  if (keep[0]) out.push({ q: 'How do I store it?', a: keep.join(' ') });
   if (st.inside[0]) out.push({ q: 'What is it made of?', a: st.inside.join(' ') });
   const size = st.specs.find((s) => s.label === 'Size' || s.label === 'Weight');
   const fold = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -141,4 +158,4 @@ function faq(st, name) {
   return out;
 }
 
-module.exports = { story, sentences, fitting, faq, clean };
+module.exports = { story, sentences, fitting, faq, clean, isStorage, isArticle };
