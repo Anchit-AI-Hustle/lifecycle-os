@@ -208,6 +208,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   /* Funnel preview */
   #preview{margin:0 0 12px}
   .pvbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  /* A social post as it reads on its platform (2026-11-11): tokens only. */
+  .socpost{max-width:420px;border:1px solid var(--vh-line);border-radius:var(--brand-radius-card,12px);background:var(--vh-panel);overflow:hidden}
+  .socpost .sochead{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--vh-line);font-size:12px;font-weight:700;color:var(--vh-ink)}
+  .socpost .sochead span{font-weight:500;color:var(--vh-ink-dim)}
+  .socpost img{display:block;width:100%;max-height:420px;object-fit:cover;background:var(--vh-panel-2)}
+  .socpost .socmedia{padding:14px 12px;font-size:12px;color:var(--vh-ink-dim);background:var(--vh-panel-2)}
+  .socpost .socbody{padding:12px;font-size:14px;line-height:1.5;color:var(--vh-ink);white-space:pre-wrap;overflow-wrap:anywhere}
+  .socpost .soctitle{display:block;font-weight:700;margin-bottom:8px}
+  .socpost .soctags{padding:0 12px 12px;font-size:13px;color:var(--brand-primary-text,var(--vh-ink));overflow-wrap:anywhere}
+  .socmeta{font-size:12px;color:var(--vh-ink-dim);margin:6px 0 0}
   .pvtabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 12px;border-bottom:1px solid var(--vh-line)}
   .pvtab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--vh-ink-dim);padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;border-radius:6px 6px 0 0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   .pvtab:hover{color:var(--vh-ink)}
@@ -1361,6 +1371,27 @@ function msgPlain(m){
   if(m.channel === 'whatsapp') return [m.headline, m.body, m.footer, ...(m.buttons || []).map(b => `[${b.text}] ${b.url || ''}`)].filter(Boolean).join('\n\n');
   return [m.title, m.body, m.deep_link].filter(Boolean).join('\n');
 }
+// A social post (campaign.assets.social_posts): the picture or the video it
+// goes out with, its title where the platform has one, the caption with its
+// own line breaks, the hashtags, and how full it is against the platform's limit.
+function socialPlain(p){
+  return [p.title || '', p.caption || '', (p.hashtags || []).join(' ')].filter(Boolean).join('\n\n');
+}
+function renderSocial(p){
+  const m = p.media || {};
+  const used = String(p.caption || '').length + ((p.hashtags || []).length ? 2 + (p.hashtags || []).join(' ').length : 0);
+  const lim = p.limits && p.limits.caption;
+  const pic = m.kind === 'image' && m.image_url ? `<img src="${esc(m.image_url)}" alt="${esc(p.alt_text || '')}" loading="lazy">`
+    : m.kind === 'video' && m.cover_image ? `<img src="${esc(m.cover_image)}" alt="${esc(p.alt_text || '')}" loading="lazy">` : '';
+  const mediaNote = m.gap ? esc(m.gap) : m.kind === 'video' ? `Video ${esc(m.aspect || '')}${m.source ? ': ' + esc(m.source) : ''}` : `Image ${esc(m.aspect || '')} (${esc(m.dims || '')})${m.source ? ': ' + esc(m.source) : ''}`;
+  const meta = [
+    lim ? `${used} of ${lim} characters` : '',
+    p.link ? `Link: <a href="${esc(p.link)}" target="_blank" rel="noopener" class="tok">${esc(String(p.link).replace(/\?.*$/, ''))}</a> (tagged for ${esc(p.platform)})` : (/link in bio/i.test(String(p.caption || '')) ? 'No link in the caption: it is not tappable on this platform.' : ''),
+    p.best_time_local ? `Suggested time: ${esc(p.best_time_local)} in the brand's home time zone` : '',
+    'Written from the brand\'s own lines and the store\'s own words about the product.',
+  ].filter(Boolean).map(x => `<p class="socmeta">${x}</p>`).join('');
+  return `<div class="socpost" data-social-post="${esc(p.key)}"><div class="sochead">${esc(p.label || p.platform)}<span>${esc(p.format || '')}</span></div>${pic}<div class="socmedia" data-social-media>${mediaNote}</div><div class="socbody" data-social-caption>${p.title ? `<span class="soctitle" data-social-title>${esc(p.title)}</span>` : ''}${esc(p.caption || '')}</div>${(p.hashtags || []).length ? `<div class="soctags" data-social-tags>${esc((p.hashtags || []).join(' '))}</div>` : ''}</div>${meta}`;
+}
 function renderMessage(m){
   const from = `<p class="msgfrom">${esc(m.sender || '')}${m.channel === 'whatsapp' ? ' · WhatsApp' : m.channel === 'push' ? ' · notification' : ''}</p>`;
   let bubble = '';
@@ -1945,6 +1976,20 @@ function renderPreview(payload, e, i, opts){
     pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderMessage(m)}${promptBar(m)}`, first);
     first = false;
   });
+  // SOCIAL POSTS (2026-11-11): one organic post per platform, each its own
+  // pane: the post as it reads there, Copy (caption + hashtags), Download
+  // (.txt) and its data (.json).
+  const socials = campaign.assets?.social_posts || [];
+  socials.forEach((p, si) => {
+    const id = 'pv-soc-' + (p.key || si);
+    const label = '📱 ' + (p.label || p.platform || 'Social post');
+    const name = 'social-' + (p.key || si);
+    const tdx = window.__SB_EXPORTS.push({ name, label, html: socialPlain(p), ext: 'txt' }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: JSON.stringify(p, null, 2), ext: 'json' }) - 1;
+    tab(id, esc(label), first);
+    pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderSocial(p)}`, first);
+    first = false;
+  });
   // MUSIC (2026-10-25): this send's track, briefed from the brand's own record
   // (brand-music.js). Compose sends the brief to the music model (Lyria first);
   // the track then scores every Story video of this send and is saved with it.
@@ -2032,8 +2077,8 @@ function renderPreview(payload, e, i, opts){
       // chosen kind's items sit side by side, so a whole kind compares at a
       // glance. Every pane stays in the page (ids, downloads and prompts
       // unchanged); the other kinds are one press away.
-      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : id === 'pv-music' ? 'music' : 'json';
-      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
+      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : /^pv-soc-/.test(id) ? 'social' : id === 'pv-music' ? 'music' : 'json';
+      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['social', '📱 Social posts'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
       const by = {};
       panes.forEach((p) => { const g = groupOf(p.id); (by[g] = by[g] || []).push(p); });
       const present = GROUPS.filter(([k]) => by[k] && by[k].length);

@@ -4,6 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Social posts are an asset of every send, one per platform (2026-11-11)
+The operator: "For asset generation, also add assets like social media posts ... individually for Instagram, Meta,
+LinkedIn, and other platforms also to be included, like TikTok". `api/_shared/social-assets.js` `build()` on every
+Smart Brain build (`attachSocialPosts`, after tracking, before music): `campaign.assets.social_posts`, ONE organic post
+each for instagram_feed, instagram_reels, facebook, linkedin, tiktok, x, pinterest, youtube_shorts, threads.
+- **Written for everyone**: a post on the brand's page is public, so it uses only the store's own sentences about the
+  product (product-story), its name and price (with compare-at), an article's headline and standfirst, the brand's
+  tagline / claims / offering names. The ADS' text is cohort-addressed ("It has been a while") and is never used. No
+  model call (the copy call's time is the mail's, page's and ads').
+- **Each platform's shape**: limits READ from `social-core.PLATFORM_SPECS` (whole lines dropped from the end, never
+  cut); Instagram and TikTok captions carry no link ("<cta>: link in bio."), the others carry the slot's page with
+  `utm_medium=social` (never the paid medium); Pinterest and Shorts have a title; hashtags only from words the record
+  states (brand, product type, range, industry, a publisher's sections), the platform's range as a ceiling, never padded.
+  Picture = the product's own photo (no photo = the marker on the post and in `data_gaps`, nothing generated); video
+  posts point at the send's Story video.
+- **Checked** in `checkAssetContracts` (`social.<key>` via `SA.check`: over the limit, a marker, a title over its
+  limit BLOCK; a link in an Instagram / TikTok caption warns). In ASSET_BUILD_VERSION.
+- **/brain**: a "Social posts" group, one pane per platform (the post as it reads, characters used of the limit, Copy,
+  Download .txt, Data .json). Not auto-posted from Smart Brain: approving and posting on the calendar is Social Media
+  OS (`calendar-autopost`), which this does not replace.
+- Gated by `tests/social-post-assets.spec.js` (5 executed: a store, a publisher with and without an article, a bare
+  name, all 40 presets, the preview in Chromium; the Instagram-link mutation caught). `brain-downloads` changed on
+  purpose (a .txt download; Chromium stops answering more than ten script-started downloads in a moment, so they are spaced).
 ## ⭐ Every asset type reviewed by building it; a publisher's inventory is its articles; no browser voice (2026-11-11)
 The operator: "ensure all assets generations are reviewed and rated ... emailers, landing pages, ads, music like jingles,
 brand theme songs etc everything - ensure for all brands", "check and fix any issues in brand setups ... media brands
