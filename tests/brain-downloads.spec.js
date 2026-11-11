@@ -105,16 +105,31 @@ async function inspect(context, file) {
 const looksLikeCode = (t) => /^\s*[{[]\s*"/.test(t) || /"master_prompt"\s*:/.test(t) || /\\n|\\"/.test(t);
 
 test('every single-asset download opens as the asset: no code, no broken image, the right file type', async ({ browser }, info) => {
+  // Nine social posts add eighteen files (text + data) to save and open.
+  test.setTimeout(240_000);
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await open(context);
   const items = await page.evaluate(() => window.__SB_EXPORTS.map((x) => ({ name: x.name, ext: x.ext })));
   expect(items.filter((i) => /^ad-/.test(i.name) && i.ext === 'html').length, 'every ad has a page download').toBe(campaign.assets.ads.length);
   for (let i = 0; i < items.length; i += 1) {
     const it = items[i];
+    // Chromium stops answering a page's script-started downloads after ten
+    // within a moment of each other (a person clicks each): the text and data
+    // files save in milliseconds, so they are spaced.
+    if (it.ext !== 'html') await page.waitForTimeout(1200);
     const f = await save(page, `sbDownload(${i})`, info.outputDir, `item-${i}`);
     if (it.ext === 'json') {
       expect(f.name, it.name).toMatch(/\.json$/);
       expect(() => JSON.parse(fs.readFileSync(f.path, 'utf8')), it.name).not.toThrow();
+      continue;
+    }
+    // A social post (2026-11-11) is plain text: the caption and its hashtags,
+    // as they are pasted into the platform.
+    if (it.ext === 'txt') {
+      expect(f.name, it.name).toMatch(/\.txt$/);
+      const txt = fs.readFileSync(f.path, 'utf8');
+      expect(txt.trim().length, it.name).toBeGreaterThan(0);
+      expect(/<[a-z][^>]*>|^\s*\{/i.test(txt), `${it.name} saved as code`).toBe(false);
       continue;
     }
     expect(f.name, it.name).toMatch(/\.html$/);
