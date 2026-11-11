@@ -925,7 +925,7 @@ function cohortLtvMap(ctx) {
 }
 function toHero(product) {
   if (!product) return null;
-  return { sku: product.sku || product.id, title: product.title, handle: product.handle, category: product.category };
+  return { sku: product.sku || product.id, title: product.title, handle: product.handle, category: product.category, ...(product.offering_kind ? { offering_kind: product.offering_kind } : {}) };
 }
 
 // Build one dormant standby variant for a slot: re-derive ONLY the lever-varied
@@ -2300,7 +2300,7 @@ function lpThemeCss(T, tpl, c) {
     // the headline sat ~180px right of every section heading under it.
     css.push(`.hero{padding-left:0;padding-right:0}.hero-grid,.hero-grid.has-media{max-width:780px;padding:0 22px}.hero .hero-grid .hero-copy,.hero .hero-grid:not(.has-media) .hero-copy{margin-left:0;margin-right:0;justify-self:start}`);
     css.push(`.hero-grid.has-media .hero-media img{height:auto;aspect-ratio:16/9}`);
-    css.push(`.wrap{max-width:780px;counter-reset:lpsec}.wrap>.sec>h2::before{counter-increment:lpsec;content:counter(lpsec,decimal-leading-zero);display:block;font-size:14px;letter-spacing:.2em;margin-bottom:6px;color:var(--ink)}`);
+    css.push(`main{counter-reset:lpsec}.wrap{max-width:780px}.wrap>.sec>h2::before{counter-increment:lpsec;content:counter(lpsec,decimal-leading-zero);display:block;font-size:14px;letter-spacing:.2em;margin-bottom:6px;color:var(--ink)}`);
   }
   return `<style data-theme="${T.id}" data-template="${tpl}">${css.join('\n')}</style>`;
 }
@@ -2471,8 +2471,15 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const guaranteeBlock = _guaranteeText
     ? `<div class="guarantee"><h3>${_audMany === 'customers' ? 'Buy with confidence' : 'The promise'}</h3><p style="margin:0;color:var(--ink-dim)">${esc(_guaranteeText)}</p></div>`
     : '';
+  // An article as the hero (a publisher's inventory): no "Why <headline>".
+  const _storyHero = (() => { try { return !!require('../../lib/smart-brain/services.js').isStoryEntry(entry); } catch (_) { return false; } })();
   const cleanWhyTitle = (() => {
-    let t = L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title) || bName));
+    if (_storyHero && !L.why_title) return 'Why ' + bName;
+    // The heading says the name, not its size ("Why Belgian Chocolate Truffle
+    // Cake", 2026-11-11).
+    const _sn = (x) => { try { return require('./mailer-format.js').shortName(x) || x; } catch (_) { return x; } };
+    let t = L.why_title || ('Why ' + ((entry.heroProduct && !entry.heroProduct.placeholder && _sn(entry.heroProduct.title)) || bName));
+    if (entry.heroProduct && !entry.heroProduct.placeholder && entry.heroProduct.title && t.indexOf(entry.heroProduct.title) >= 0) t = t.split(entry.heroProduct.title).join(_sn(entry.heroProduct.title));
     t = String(t).replace(/^Why\s+(The story behind|Why)\s+/i, 'Why ');
     return t;
   })();
@@ -2529,7 +2536,14 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // The bar says the shipping promise; the checklist (or the reassurance line)
   // says the others, so no promise is printed twice.
   const _svcClaims = _svcAll.filter((c) => c !== _annClaim).slice(0, 3);
-  const _offerPct = Number(entry.offer && entry.offer.pct) || 0;
+  // ONE discount on a page (2026-11-11 asset review: a bar and a badge said
+  // "15% off", the planner's offer depth, beside the store's own "13% off"
+  // worked out from its compare-at). The store's stated prices are the fact:
+  // where it states a compare-at, that saving is the one shown.
+  const _pNum = _hp ? Number(_hp.price) : NaN;
+  const _cNum = _hp ? Number(_hp.compare_at) : NaN;
+  const _save = Number.isFinite(_pNum) && Number.isFinite(_cNum) && _cNum > _pNum && _pNum > 0 ? Math.round(((_cNum - _pNum) / _cNum) * 100) : 0;
+  const _offerPct = _save ? 0 : (Number(entry.offer && entry.offer.pct) || 0);
   const _annc = [_offerPct > 0 ? `${_offerPct}% off` : '', _annClaim].filter(Boolean);
   const anncBar = _annc.length ? `<div class="annc">${_annc.map(esc).join(' · ')}</div>` : '';
   // The claims the reasons do not carry, as pills under the hero's button
@@ -2579,16 +2593,15 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   const _heroShowsCat = !!_cat && _fold(_heroEyebrow()) === _fold(_cat);
   const _detShown = _det.filter(([k]) => !(k === 'Type' && _heroShowsCat));
   // The lede is not the hero's own sub line again.
-  const _heroSubSaid = _fold([L.hero_sub, (copy.email || {}).intro_paragraph].join(' '));
+  // (Only what THIS page prints: the mail's intro is not on the page, and
+  // judging by it left a cake's page without the sentence that says what it is.)
+  const _heroSubSaid = _fold(L.hero_sub || (copy.email || {}).intro_paragraph || '');
   const _descShown = !!_desc && _heroSubSaid.indexOf(_fold(_desc).replace(/[.!]$/, '')) < 0;
   const detailSec = (_detShown.length || _descShown) && !_collection
     ? `<section class="sec details"><h2>The details</h2>${_descShown ? `<p class="lede">${esc(_desc)}</p>` : ''}${_detShown.length ? `<div class="dgrid">${_detShown.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}</section>`
     : '';
   // The buy box: the store's price against its own compare-at (the saving is
   // that arithmetic, nothing more), per serving when the pack states servings.
-  const _pNum = _hp ? Number(_hp.price) : NaN;
-  const _cNum = _hp ? Number(_hp.compare_at) : NaN;
-  const _save = Number.isFinite(_pNum) && Number.isFinite(_cNum) && _cNum > _pNum && _pNum > 0 ? Math.round(((_cNum - _pNum) / _cNum) * 100) : 0;
   const _perServ = _hp && Number(_hp.servings) > 1 && Number.isFinite(_pNum) && _pNum > 0 ? _money(_pNum / Number(_hp.servings)) : '';
   const _boxImg = (_gallery[0] || creativeUrl || (_hp && /^https:\/\//i.test(String(_hp.image || '')) ? _hp.image : '')) || '';
   const buyBox = (tag) => (_hp && _money(_pNum)) ? `<section class="sec buy"${tag ? ` data-buy="${tag}"` : ''}><div class="buybox">${_boxImg ? `<img src="${esc(_boxImg)}" alt="${esc(_hp.title)}" loading="lazy">` : ''}<div class="bb">
@@ -2638,7 +2651,9 @@ function lpHtml(entry, copy, campaignId, creativeUrl, opts) {
   // own opening line to this cohort (audience-led) while A stays brand-led.
   const _introLead = String(_intro || L.hero_sub || '').split(/(?<=[.!?])\s+/)[0].trim();
   const _h1Intro = !listicleSec && !_h1Tagline && _o.variant === 'B' && _fold(_h1Base) === _fold(bName) && _introLead.length >= 12 && _introLead.length <= 90;
-  const _h1 = _h1Tagline ? _trStatement : (_h1Intro ? _introLead : _h1Base);
+  const _h1Raw = _h1Tagline ? _trStatement : (_h1Intro ? _introLead : _h1Base);
+  // A headline that IS the product's name leaves the size to the buy box.
+  const _h1 = (_hp && _fold(_h1Raw) === _fold(_hp.title)) ? (require('./mailer-format.js').shortName(_hp.title) || _h1Raw) : _h1Raw;
   const _eyebrowRaw = _heroEyebrow();
   const _eyebrow = _fold(_eyebrowRaw) === _fold(_h1) ? '' : _eyebrowRaw;
   let _trShow = _trStatement && !_h1Tagline && String(L.hero_sub || '').trim() !== _trStatement ? _trStatement : '';
@@ -2854,7 +2869,7 @@ ${_appRating ? `<div class="trust"><span>${esc(`★★★★★ Rated ${String(_
   </section>` : ''}
   ${detailSec}
   ${_collection ? '' : buyBox('main')}
-  ${_others.length ? `<section class="sec"><h2>${_collection ? 'Pick yours' : `Also from ${esc(bName)}`}</h2><div class="others${_others.length === 4 ? ' four' : ''}${_others.length >= 3 ? ' gallery' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
+  ${_others.length ? `<section class="sec"><h2>${_storyHero ? `More from ${esc(bName)}` : (_collection ? 'Pick yours' : `Also from ${esc(bName)}`)}</h2><div class="others${_others.length === 4 ? ' four' : ''}${_others.length >= 3 ? ' gallery' : ''}">${_others.map((x) => { const im = _otherImg(x); return `<a class="other" href="${esc(_otherHref(x))}">${im ? `<img src="${esc(im)}" alt="${esc(x.title)}" loading="lazy">` : (_othersAnyImg ? `<span class="ph" aria-hidden="true">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>` : '')}<span>${esc(x.title)}</span>${_otherPrice(x) ? `<span class="op"><b>${esc(_otherPrice(x))}</b><u>View</u></span>` : `<span class="op"><u>View</u></span>`}</a>`; }).join('')}</div></section>` : ''}
   ${(!_others.length && _offerList.length) ? `<section class="sec"><h2>What ${esc(bName)} offers</h2><ul class="offers">${_offerList.map((o) => `<li>${o.url ? `<a href="${esc(o.url)}">${esc(o.name)}</a>` : `<b>${esc(o.name)}</b>`}</li>`).join('')}</ul></section>` : ''}
 </div>
 ${proofSection}
@@ -4718,6 +4733,8 @@ function attachMusic(campaign, entry, trace) {
   try {
     if (!campaign || !campaign.assets) return null;
     const BM = require('./brand-music.js');
+    // An article is not a product to score: a publisher's send carries the brand's own theme.
+    const _art = (() => { try { return !!require('../../lib/smart-brain/services.js').isStoryEntry(entry); } catch (_) { return false; } })();
     const brand = (entry && entry.brand) || {};
     if (!brand.name) return null;
     const hero = entry && entry.heroProduct && !entry.heroProduct.placeholder && !/^\[DATA REQUIRED/.test(String(entry.heroProduct.title || '')) ? entry.heroProduct : null;
@@ -4725,7 +4742,7 @@ function attachMusic(campaign, entry, trace) {
     const ad = (campaign.assets.ads || []).find((a) => a && a.creative && a.creative.story_brief);
     const storySecs = ad && ad.creative.story_brief && Math.ceil(Number(ad.creative.story_brief.duration_s));
     const seconds = Number.isFinite(storySecs) && storySecs > 0 ? Math.round(storySecs) : 30;
-    const p = BM.plan({ brand, purpose: offer ? 'sale' : (hero ? 'product' : 'anthem'), product: hero ? { title: hero.title } : null, offer, seconds, vocals: false });
+    const p = BM.plan({ brand, purpose: offer ? 'sale' : (hero && !_art ? 'product' : 'anthem'), product: hero && !_art ? { title: hero.title } : null, offer, seconds, vocals: false });
     const image = hero && /^https:\/\//i.test(String(hero.image || '')) ? String(hero.image) : '';
     campaign.assets.music = Object.assign({}, p, { image_url: image, for: 'Story video and ads of this send' });
     if (Array.isArray(trace)) trace.push({ agent: 'Music Director', role: 'brand track brief', ok: true, provider: 'code', output: { purpose: p.purpose, genre: p.genre, seconds: p.seconds } });

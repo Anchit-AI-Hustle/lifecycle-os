@@ -111,9 +111,29 @@
   // A store name like "Vincent Chase VC 5158/P" is the range, not the code.
   function sayable(name) {
     var n = str(name);
+    // The size the store appends is not sung ("Kay Beauty Hydrating
+    // Foundation", not "... 30ml": 2026-11-11 asset review).
+    n = n.replace(/[\s,(-]+\d+(?:[.,]\d+)?\s*(?:ml|g|gm|gms|kg|mg|l|ltr|oz|lb|pcs?|pack|capsules?|tablets?|ct)\)?\s*$/i, '').trim() || n;
     var cut = n.replace(/\b[A-Z]{1,4}[- ]?\d[\w/.-]*\b.*$/, '').trim();
     return cut.length >= 3 ? cut : n;
   }
+  // A site's SEO title ("India News, Latest News, Breaking News") is a list of
+  // search phrases, not a line a brand sings about itself.
+  function siteTitle(t) {
+    var s = str(t);
+    if (!s) return false;
+    if (/[|•·]/.test(s) || /official (site|website|store)/i.test(s)) return true;
+    var parts = s.split(/\s*[,\-:]\s+|,\s*/).filter(Boolean);
+    if (parts.length < 3) return false;
+    var words = {}, repeat = false;
+    parts.forEach(function (p) { p.toLowerCase().split(/\s+/).forEach(function (w) { if (w.length > 2) { if (words[w]) repeat = true; words[w] = 1; } }); });
+    var shortParts = parts.every(function (p) { return p.split(/\s+/).length <= 4; });
+    // A list of capitalised topics ("Business News, Markets, Economy") is a
+    // page title too; a tricolon in sentence case ("Bold, bright, yours") is a line.
+    var allCaps = parts.every(function (p) { return p.split(/\s+/).every(function (w) { return /^(and|&|of|the)$/i.test(w) || /^[A-Z0-9]/.test(w); }); });
+    return shortParts && (repeat || allCaps);
+  }
+  function fold(t) { return str(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
 
   function structureFor(seconds, purpose, vocals) {
     if (purpose === 'sonic_logo' || seconds <= 8) return 'Motif (a three to five note phrase) - Resolve';
@@ -132,28 +152,47 @@
     var brand = o.brand || {}, name = str(brand.name), banned = bannedOf(brand);
     if (!name) return '';
     var tagline = str(brand.tagline || (brand.brand_data && brand.brand_data.tagline));
-    if (tagline.length > 70) tagline = '';
+    if (tagline.length > 70 || siteTitle(tagline) || /DATA REQUIRED/i.test(tagline)) tagline = '';
     var product = o.product ? sayable(o.product.title || o.product.name) : '';
     var offer = str(o.offer).slice(0, 80);
-    var claims = (brand.claims || (brand.brand_data && brand.brand_data.claims) || []).map(str).filter(function (c) { return c && c.length <= 60; });
+    var said = fold(tagline);
+    // The brand's own claims, each once: a claim the tagline already says is
+    // not sung again under it ("Baked fresh every morning" beside "Baked fresh
+    // every morning since 1979").
+    var claims = (brand.claims || (brand.brand_data && brand.brand_data.claims) || []).map(str).filter(function (c) { return c && c.length <= 60 && !/DATA REQUIRED/i.test(c) && !(said && said.indexOf(fold(c)) >= 0); });
+    // The brand's own named offerings (a publisher's sections, a plan) are
+    // words it uses about itself: a verse when it states no claim.
+    var offered = (brand.offerings || (brand.brand_data && brand.brand_data.offerings) || []).map(function (x) { return str(x && x.name); }).filter(function (x) { return x && x.length <= 24; }).slice(0, 4);
+    var endsName = function (l) { return fold(l).slice(-fold(name).length) === fold(name); };
     var hook = [name + (tagline ? ', ' + tagline : (product ? ', ' + product : ''))];
     if (o.purpose === 'sale' && offer) hook.push(offer);
-    hook.push(name);
+    // The name answers the line; with nothing else on record it is sung over a
+    // wordless phrase, which states nothing.
+    hook.push(hook.length === 1 && fold(hook[0]) === fold(name) ? 'Oh oh oh, ' + name : name);
     var verse = [];
-    if (product) verse.push(product);
+    // The product is named once: in the hook when the brand has no tagline,
+    // else in the verse.
+    if (product && tagline) verse.push(product);
     if (claims[0]) verse.push(claims[0]);
     if (o.purpose !== 'sale' && offer) verse.push(offer);
     if (claims[1] && verse.length < 3) verse.push(claims[1]);
+    var offeredLine = offered.length >= 2 ? offered.join(', ') : '';
+    if (!verse.length && offeredLine) { verse.push(offeredLine); offeredLine = ''; }
+    var used = verse.length;
+    var verse2 = claims.slice(2, 4);
+    if (verse2.length < 1) verse2 = offeredLine ? [offeredLine] : verse.slice();
     var clean = function (lines) { return lines.map(noDash).filter(function (l) { return l && !hasBanned(l, banned); }); };
-    hook = clean(hook); verse = clean(verse);
+    hook = clean(hook); verse = clean(verse); verse2 = clean(verse2);
     if (!hook.length) return '';
     var secs = Number(o.seconds) || 30;
     var parts = [];
     if (o.purpose === 'sonic_logo' || secs <= 8) return '[Sung tag]\n' + name;
     if (secs > 20 && verse.length) parts.push('[Verse]\n' + verse.join('\n'));
     parts.push('[Hook]\n' + hook.join('\n'));
-    if (secs > 40 && verse.length) parts.push('[Verse]\n' + verse.join('\n'), '[Hook]\n' + hook.join('\n'));
-    parts.push('[Outro]\n' + name);
+    if (secs > 40 && verse.length) parts.push('[Verse]\n' + verse2.join('\n'), '[Hook]\n' + hook.join('\n'));
+    // The last hook line is the name already: the outro holds it, once.
+    if (!endsName(hook[hook.length - 1]) || parts.length === 1) parts.push('[Outro]\n' + name);
+    void used;
     return parts.join('\n\n');
   }
 
@@ -182,6 +221,9 @@
     var lyrics = vocals ? (typed || lyricsFor({ brand: brand, purpose: purpose, product: o.product, offer: o.offer, seconds: seconds })) : '';
     if (vocals && !lyrics) vocals = false;
     var structure = structureFor(seconds, purpose, vocals);
+    // The structure names only sections the lyrics have: with no verse on
+    // record, that part is played, not sung.
+    if (vocals && !/\[Verse\]/.test(lyrics)) structure = structure.replace(/Verse/g, 'Instrumental theme').replace(/Pre-chorus - /, '');
     var out = {
       purpose: purpose, purpose_label: P.label, seconds: seconds, genre: genre, bpm: bpm,
       mood: mood, tone: tone, instruments: G.inst, production: G.prod, structure: structure,
@@ -201,7 +243,7 @@
     lines.push('Create an original ' + p.genre + ' track, about ' + p.seconds + ' seconds long.');
     if (name) lines.push('For the brand ' + name + (industry ? ' (' + industry + ')' : '') + '.');
     var tagline = str(b.tagline || (b.brand_data && b.brand_data.tagline));
-    if (tagline && tagline.length <= 120) lines.push('The brand describes itself as: ' + tagline + '.');
+    if (tagline && tagline.length <= 120 && !siteTitle(tagline) && !/DATA REQUIRED/i.test(tagline)) lines.push('The brand describes itself as: ' + tagline + '.');
     if (o && str(o.market)) lines.push('Home market: ' + str(o.market).toUpperCase() + '.');
     lines.push('Purpose: ' + P.job + '.');
     if (o && o.product) lines.push('It is for the product "' + sayable(o.product.title || o.product.name) + '".');

@@ -198,7 +198,14 @@ const JUSTIFY = 'text-align:justify;text-justify:inter-word;';
 function productLine(description, title, brandName) {
   let d = String(description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   if (!d) return '';
-  d = d.split(/(?<=[.!?])\s+/)[0].replace(/[.!?]+$/, '');
+  const _first = d.split(/(?<=[.!?])\s+/)[0];
+  // A sentence the store wrote is kept whole or not used: taking the name's
+  // words out of it printed "Three layers of dark sponge filled with ganache"
+  // for "... dark chocolate sponge filled with Belgian chocolate ganache"
+  // (2026-11-11). Only an attribute list loses the words the name already says.
+  const _sentence = /[.!?]$/.test(_first) && isProse(_first) && /[a-z]{3,}\s+[a-z]{2,}/.test(_first);
+  d = _first.replace(/[.!?]+$/, '');
+  if (_sentence && !(brandName && new RegExp(`\\s+(at|from|by|on)\\s+${String(brandName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(d))) return d.length <= 140 ? d : '';
   if (brandName) d = d.replace(new RegExp(`\\s+(at|from|by|on)\\s+${String(brandName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b.*$`, 'i'), '');
   // A short sentence is prose the store wrote: kept whole.
   if (d.length <= 64 && !/\d/.test(d) && d.split(' ').length >= 3) return d;
@@ -248,6 +255,22 @@ function displayName(title) {
   const out = t.filter((w, i) => !code(w) && !(/^[A-Z]{1,3}$/.test(w) && t[i + 1] && code(t[i + 1])));
   return out.join(' ').replace(/[\s:,;.\-]+$/, '').trim();
 }
+// The name as a HEADLINE says it (2026-11-11 asset review): the range without
+// its code, and without the size the store appends ("Kay Beauty Hydrating
+// Foundation", not "... 30 millilitres" as a subject line or an ad headline).
+// The size stays in the body, the card and the buy box. A name that is only a
+// size keeps it.
+const SIZE_TAIL = /[\s,(-]+(?:pack of \d+|\d+(?:[.,]\d+)?\s*(?:x\s*\d+(?:[.,]\d+)?\s*)?(?:ml|millilit(?:re|er)s?|g|gm|gms|grams?|kg|kgs|kilograms?|mg|l|ltr|lit(?:re|er)s?|oz|ounces?|lb|lbs|pcs?|pieces?|pack|capsules?|tablets?|count|ct|sachets?))\)?\s*$/i;
+function shortName(title) {
+  const raw = String(title || '').trim();
+  if (/\{\{|\{%/.test(raw)) return raw;
+  // The size goes first, as the store wrote it: displayName reads a bare
+  // "250" as a code.
+  let cut = raw;
+  for (let i = 0; i < 3; i++) cut = cut.replace(SIZE_TAIL, '').replace(/[\s:,;.\-(]+$/, '').trim();
+  const d = displayName(cut);
+  return d.length >= 4 ? d : displayName(raw);
+}
 // Whether a store's description is a sentence someone wrote ("Smooth, with
 // notes of cocoa.") or an attribute list ("Trendy Maroon Brown Gradient Full
 // Rim Round Tints Sunglasses"). Only a sentence belongs in the body copy; an
@@ -264,7 +287,7 @@ function isProse(d) {
 // wrap, and a 36px tracked capital word plus a theme's 40px gutters made the
 // mail 2px wider than a 320px screen. On a screen 360px or narrower a two-across
 // product grid stacks: a tracked capital product name kept each card 140px wide.
-const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:28vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}table[role="presentation"] td[align="center"][style*="padding:28px 12px"]{padding:12px 8px!important}td[data-mail-top]{padding:12px 20px 6px!important}td[style*="padding:34px 80px 0"]{padding:12px 40px 0!important}td[style*="padding:34px 40px 0"]{padding:16px 20px 0!important}td[style*="padding:24px 40px 0"]{padding:12px 20px 0!important}td[style*="padding:30px 40px 0"]{padding:14px 20px 0!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}h1[data-ds="h1"][style*="font-size:3"],h1[data-ds="h1"][style*="font-size:4"]{font-size:min(30px,8.5vw)!important;letter-spacing:0.04em!important}}@media only screen and (max-width:360px){td[data-mail-col]{display:block!important;width:100%!important;box-sizing:border-box!important}}</style>';
+const MOBILE_CSS = '<style data-mail-mobile>@media only screen and (max-width:1100px){img[data-mail-hero]{width:100%!important;height:auto!important;max-height:320px!important;object-fit:cover!important}}@media only screen and (max-width:480px){img[data-mail-hero]{max-height:28vw!important}div[data-mail-pic]{height:auto!important}img[data-mail-pic]{height:auto!important;aspect-ratio:1/1;object-fit:contain!important}table[role="presentation"] td[align="center"][style*="padding:28px 12px"]{padding:12px 8px!important}td[data-mail-top]{padding:12px 20px 6px!important}td[style*="padding:34px 80px 0"]{padding:12px 40px 0!important}td[style*="padding:34px 40px 0"]{padding:16px 20px 0!important}td[style*="padding:24px 40px 0"]{padding:12px 20px 0!important}td[style*="padding:30px 40px 0"]{padding:14px 20px 0!important}td[data-mail-stack]{display:block!important;width:100%!important;padding:10px 0!important}td[data-mail-three]{display:inline-block!important;width:50%!important;box-sizing:border-box!important}h1[data-ds="h1"][style*="font-size:3"],h1[data-ds="h1"][style*="font-size:4"]{font-size:min(30px,8.5vw)!important;letter-spacing:0.04em!important}}@media only screen and (max-width:360px){h1[data-ds="h1"]{font-size:min(24px,7.2vw)!important;letter-spacing:0.02em!important}td[data-mail-col]{display:block!important;width:100%!important;box-sizing:border-box!important}}</style>';
 function mobile(html) {
   let s = String(html || '');
   if (!s || !/<body\b/i.test(s)) return s;
@@ -383,6 +406,7 @@ module.exports = {
   memberPhrase,
   productLine,
   displayName,
+  shortName,
   dedupeTitle,
   isProse,
   JUSTIFY,

@@ -4,6 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Every asset type reviewed by building it; a publisher's inventory is its articles; no browser voice (2026-11-11)
+The operator: "ensure all assets generations are reviewed and rated ... emailers, landing pages, ads, music like jingles,
+brand theme songs etc everything - ensure for all brands", "check and fix any issues in brand setups ... media brands
+etc with no catalog as such but data inventories of articles", "ensure no robotic voices or sounds". One send per brand
+kind (Nykaa with a catalogue row and compare-at, Lenskart coded names, The Times of India, a bakery) built through the
+shipped builders, every mail / page / ad rendered in Chromium and read, then a sweep of all 40 presets x 3 objectives.
+- **Names**: `mailer-format.shortName()` (the range without its code, without the size the store appends) is what a
+  subject, a mail / page headline, an ad headline and "Why <name>" say; the body, card and buy box keep the store's
+  name. An ad's copy says `displayName` (no model code). The preheader is the store's first reason, else the price.
+- **One discount on a page**: where the store states a compare-at, that saving is the one shown (`_offerPct` is 0);
+  the planner's offer depth shows only with no compare-at. The mail's sub line carries "price, was compare".
+- **The store's sentences**: `productLine()` keeps a sentence whole or does not use it (it took the name's words out:
+  "dark sponge filled with ganache"); a storage line ("Keep refrigerated ...") is `how`, never a reason
+  (`product-story.isStorage`), is asked as "How do I store it?", and never leads a video ad. A line under the mail's
+  headline is not listed again as a benefit. Landing-page section numbers count across the page (`main` counter).
+- **Lyrics** (`brand-music.lyricsFor`, root copy byte-identical): no size sung, a site's SEO title (separators, a list
+  of capitalised topics) is not a tagline, a claim the tagline says is not sung under it, the product is named once,
+  a publisher's sections are a verse, name-only brands sing the name over a wordless phrase, and the structure names no
+  verse the lyrics lack. Most presets state no tagline or claim, so their lyrics are the name: nothing is invented.
+- **Articles as inventory** (`catalog-import.js`): a record that STATES a publisher (declared `business_model`
+  news_media / market_data, an industry of news / publishing words, or offerings that are sections; never the brand's
+  NAME: `asset-playbooks.businessModel` reads "Big Market" as market data) sets `st.inventory = 'articles'`. Then news /
+  article / story / post sitemaps are the inventory (topic, tag, author, video ones are not), a Google News sitemap's
+  `<news:title>` entries are filed as rows with NO page request (title, date, section from the path, keywords, image;
+  `raw.declared: 'sitemap:news'`, source stays `sitemap_jsonld`), plain article sitemaps are read page by page
+  (JSON-LD Article, as before), `LIMITS.maxArticles` 400 per market (said), no Shopify feed probe, an article states no
+  price gap, and the coverage speaks of articles. A slot whose hero is an article (`offering_kind: 'story'`, carried on
+  the hero; `services.isStoryEntry`): subject and headline are the article's own headline, the standfirst is the line
+  under it (once), ads lead with it, the page says "More from <brand>" and no "Why <headline>", the track is the anthem.
+- **Voice**: the Story video preview no longer speaks with `speechSynthesis` (a synthetic voice; added 2026-11-09). It
+  plays the slot's music; the voiceover is the recorded one in the MP4 (`story-voice.js`: ElevenLabs, Gemini TTS).
+- A phone under 360px: the mail headline is at most 24px (the luxe theme pushed the button 6px off an iPhone SE's
+  first screen; `asset-devices` picks its theme by today's date and failed on main that day).
+- Gated by `tests/asset-review-all-types.spec.js` (7 executed; 3 mutations caught) and `story-voice-preview` (rewritten).
+  Note: this container's Playwright expects browser build 1248; `/opt/pw-browsers` has 1243 (symlinked for the run).
 ## ⭐ The copy gets the time it needs: no build falls to template for lack of time (2026-11-09)
 Production /brain (Nykaa), the preview at "Still working 50 s" and the Agentic run at 93 s: the team's Opus calls all
 answered (~20 s), then the copy call (one JSON for mail + landing + every ad) had a FIXED 20 s attempt, Opus could not
