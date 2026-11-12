@@ -240,12 +240,44 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .pvgroups .pvtab{min-height:44px}
   .pvcount{display:inline-block;min-width:18px;padding:1px 6px;margin-left:4px;border-radius:999px;background:var(--vh-panel-2);color:var(--vh-ink);font-size:11px}
   .pvgroup[hidden]{display:none}
-  /* Side by side, as columns: a tall card (a video) never leaves a hole under
-     a short neighbour the way a grid row does. */
-  .pvgroup-mail{columns:480px;column-gap:18px}
-  .pvgroup-ads{columns:340px;column-gap:18px}
-  .pvgroup-mail .pvsec,.pvgroup-ads .pvsec{break-inside:avoid;-webkit-column-break-inside:avoid;min-width:0;display:inline-block;width:100%;vertical-align:top}
-  .pvsec:first-of-type{border-top:0;padding-top:4px}
+  /* ONE GRID, EVERY KIND (2026-11-12, "too congested ... perfect level
+     alignment for all assets"). The kinds were newspaper columns: a card
+     started wherever the one above it ended, so no two assets sat on one
+     line. Each asset is a card in a grid row now: cards of a row start on the
+     same line, their headings and action bars line up, and there is air
+     between them. */
+  .pvgroup{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1fr);padding-top:6px}
+  .pvgroup-mail,.pvgroup-lp{grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))}
+  .pvgroup-ads,.pvgroup-social,.pvgroup-msg,.pvgroup-site{grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr))}
+  .pvgroup-display{grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr))}
+  .pvgroup-display .pvsec[data-pane="pv-dsp-728x90"],.pvgroup-display .pvsec[data-pane="pv-dsp-970x250"]{grid-column:1/-1}
+  .pvgroup .pvsec{min-width:0;border:1px solid var(--vh-line);border-radius:14px;background:var(--vh-panel);padding:16px;margin:0}
+  .pvgroup-why .pvsec,.pvgroup-json .pvsec,.pvgroup-pub .pvsec,.pvgroup-music .pvsec{padding:18px}
+  .pvgroup .pvsec .adcard{background:transparent;border:0;padding:0;margin:0}
+  .pvgroup .pvsech{min-height:2.6em;display:flex;align-items:flex-start;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--vh-line)}
+  .pvgroup .pvexport{min-height:44px;align-items:flex-start;margin:0 0 12px}
+  .pvmore{margin:12px 0 0;border-top:1px solid var(--vh-line);padding-top:8px}
+  .pvmore>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--vh-ink);min-height:32px;display:flex;align-items:center}
+  .pvmore[open]>summary{margin-bottom:6px}
+  .pubtable{width:100%;border-collapse:collapse;table-layout:auto}
+  .pubtable th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--vh-ink-dim);padding:8px 12px 8px 0;border-bottom:1px solid var(--vh-line)}
+  .pubtable td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--vh-line);font-size:13px;line-height:1.5;vertical-align:top;overflow-wrap:anywhere}
+  .pubtable td:first-child{font-weight:700;white-space:nowrap}
+  .pubstate{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--vh-line-hot);font-size:11.5px;font-weight:700;white-space:nowrap;color:var(--vh-ink);background:var(--vh-panel-2)}
+  .pubstate[data-s="scheduled"],.pubstate[data-s="sent"],.pubstate[data-s="live"]{color:var(--vh-ok-text);border-color:var(--vh-ok)}
+  .pubstate[data-s="withheld"],.pubstate[data-s="failed"],.pubstate[data-s="blocked"]{color:var(--vh-err-text);border-color:var(--vh-err)}
+  @media(max-width:720px){.pubtable,.pubtable tbody,.pubtable tr,.pubtable td{display:block;width:100%}.pubtable thead{display:none}.pubtable tr{padding:10px 0;border-bottom:1px solid var(--vh-line)}.pubtable td{border:0;padding:2px 0;white-space:normal}.pubtable td:first-child{white-space:normal}}
+  /* The day's detail page: every asset of the day, kind by kind. */
+  #sbdetail .dbody{flex:1;overflow:auto;padding:18px 20px 40px;background:var(--vh-panel-2)}
+  #sbdetail h2{font-size:18px;margin:26px 0 4px}
+  #sbdetail h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--vh-ink-dim);margin:22px 0 10px}
+  #sbdetail .dgrid{display:grid;gap:20px;align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr))}
+  #sbdetail .dgrid.wide{grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr))}
+  #sbdetail .dcard{min-width:0;border:1px solid var(--vh-line);border-radius:14px;background:var(--vh-panel);padding:14px}
+  #sbdetail .dcard h4{margin:0 0 10px;font-size:13px;min-height:2.4em}
+  #sbdetail .dcard iframe{display:block;width:100%;height:420px;border:1px solid var(--vh-line);border-radius:10px;background:var(--vh-panel)}
+  #sbdetail .dcard pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13.5px/1.55 var(--vh-font-body);color:var(--vh-ink)}
+  #sbdetail .dnav{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--vh-line);background:var(--vh-panel)}
   .pvsech{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--vh-ink-dim)}
   /* A frame is fitted to its document once it loads (fitFrame): no inner
@@ -425,6 +457,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       <!-- The markets this run builds for: the shared selection (2026-10-12).
            The run is made ONCE PER TICKED MARKET, each request one market. -->
       <div id="agenticMarkets" data-region-multi="each" data-region-label="Markets this run builds for" data-region-default="all"></div>
+      <!-- The period the run plans and builds: the same choice as the calendar's
+           Duration (2026-11-12). It starts today; the default is the next 7 days. -->
+      <div id="agenticDur" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 0 10px">
+        <span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Period this run builds for</span>
+        <button type="button" class="mkchip on" data-dur="7" onclick="setDur(7)">Next 7 days</button>
+        <button type="button" class="mkchip" data-dur="30" onclick="setDur(30)">30 days</button>
+        <button type="button" class="mkchip" data-dur="60" onclick="setDur(60)">60 days</button>
+        <button type="button" class="mkchip" data-dur="90" onclick="setDur(90)">90 days</button>
+        <button type="button" class="mkchip" data-dur="all" onclick="setDur('all')">All (90 days)</button>
+        <span class="tdim" style="font-size:12px;margin-left:6px">from today</span>
+      </div>
       <p id="agenticWhy" class="vh-status" role="status" hidden></p>
       <p id="agenticMarket" class="tdim" style="margin:0 0 10px" hidden></p>
       <div id="agenticOut" class="feed"><p class="tdim">Run the agentic flow. It plans the calendar, writes the content and returns the next-step ideation inline.</p></div>
@@ -436,13 +479,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         <div style="display:flex;flex-direction:column;gap:8px;align-items:stretch;min-width:210px">
           <button type="button" id="generateAll" class="btn sm ok" onclick="generateAll()" style="display:none;text-align:center" title="Generate the final best version of every asset (mailer, ads, landing page) for the sends currently shown (respects the region filter).">⚙ Generate all</button>
           <button type="button" id="approveAll" class="btn sm ok" onclick="approveAll()" style="display:none;text-align:center" title="Approve and lock every send currently shown that is not already approved (includes prebuilt drafts). Each is built if needed, then locked as ship-ready. Rejected sends are skipped.">✓ Approve all</button>
-          <button type="button" id="downloadAll" class="btn sm secondary" onclick="sbZipAll()" style="text-align:center" title="Download every ALREADY-generated asset in view as a nested ZIP — {date}_{cohort}/{date}/mailer + landing + ad files. Retrieval only; never regenerates.">⬇ Download all (.zip)</button>
+          <button type="button" id="downloadAll" class="btn sm secondary" onclick="sbZipAll()" style="text-align:center" title="Download the assets of every generated send in view, every day, as one ZIP. Sends not opened yet are read first; nothing is regenerated.">⬇ Download all (.zip)</button>
           <!-- What the calendar's own actions have to say is said HERE, under
                the button that was pressed, never in a native alert(). -->
           <div id="calstate" role="status" aria-live="polite" hidden></div>
         </div>
       </div>
-      <div id="mktfilter" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
+      <div id="mktfilter" data-region-own style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 8px">
         <span class="tdim" style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-right:4px">Region</span>
         <!-- region chips are injected per plan from the ACTIVE brand's own markets -->
         <span id="mktcount" class="tdim" style="font-size:12px;margin-left:6px"></span>
@@ -1188,7 +1231,7 @@ function reachPill(r){
 }
 window.setDur = function(d){
   SELECTED_DAYS = (d==='all') ? 'all' : Number(d);
-  document.querySelectorAll('#durfilter .mkchip').forEach(b=>{
+  document.querySelectorAll('.mkchip[data-dur]').forEach(b=>{
     b.classList.toggle('on', String(b.dataset.dur)===String(d));
   });
   renderPlan();
@@ -1323,6 +1366,10 @@ function renderPlan(){
         <a href="#pv-mail" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'mailer');return false;" title="View or regenerate Mailer">✉ Mailer</a>
         <a href="#pv-lp" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'landing');return false;" title="View or regenerate Landing Page">🌐 Landing</a>
         <a href="#pv-ad" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'ads');return false;" title="View or regenerate Ads">📱 Ads</a>
+        <a href="#pv-soc" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'social');return false;" title="Social posts, one per platform">💬 Social</a>
+        <a href="#pv-site" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'site');return false;" title="Announcement bar, home-page banner and pop-up">🖥 On-site</a>
+        <a href="#pv-dsp" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'display');return false;" title="Display banners in every standard size">🖼 Banners</a>
+        <a href="#pv-pub" role="button" class="tok" style="text-decoration:none;cursor:pointer" onclick="sbQuickAsset(${i}, 'pub');return false;" title="Where and when each asset is sent or published">📅 Schedule</a>
       </div>
     </div></td>
   </tr>
@@ -1472,10 +1519,9 @@ function renderAd(ad){
       <h4>${esc(platform)} · Video ad ${vtag} ${qa}</h4>
       <p class="advnote"><b>${esc(ad.placement||'9:16')} · ${esc(String(ad.duration_s||15))}s</b> — ${esc(status)}</p>
       ${gap}${bar}${player}
-      ${board?`<div class="advboard">${board}</div>`:''}
-      ${audio}
+      ${(board||audio)?`<details class="pvmore" data-ad-board><summary>Storyboard and audio</summary>${board?`<div class="advboard">${board}</div>`:''}${audio}</details>`:''}
       <div class="advcta">${cta} &rarr;</div>
-      ${rows.join('')}
+      ${rows.length ? `<details class="pvmore" data-ad-copy><summary>Copy, placements and script</summary>${rows.join('')}</details>` : ''}
     </div>`;
   }
 
@@ -1509,7 +1555,7 @@ function renderAd(ad){
     </div>
     ${sceneBar}
     ${dz.theme ? `<p class="pvnote" data-ad-design-note>Design: ${esc(dz.theme)} theme, ${esc(dz.template)} template.${dz.why ? ' ' + esc(dz.why) : ''}</p>` : ''}
-    ${rows.join('')}</div>`;
+    ${rows.length ? `<details class="pvmore" data-ad-copy><summary>Copy, placements and briefs</summary>${rows.join('')}</details>` : ''}</div>`;
   }
   return `<div class="adcard" data-ad-type="static" data-has-image="${cr.image?'1':'0'}">
     <h4>${esc(platform)} · Static ad ${vtag} ${qa}</h4>
@@ -1525,7 +1571,7 @@ function renderAd(ad){
         </div>
       </div>
     </div>
-    ${rows.join('')}</div>`;
+    ${rows.length ? `<details class="pvmore" data-ad-copy><summary>Copy, placements and briefs</summary>${rows.join('')}</details>` : ''}</div>`;
 }
 
 // Hydrate every video ad pane: the animated creative is written into the iframe
@@ -1930,7 +1976,7 @@ function renderPreview(payload, e, i, opts){
     const note = hasElement
       ? 'Green returns the <b>finished asset</b>. Grey returns <b>one element</b> of it — paste a grey one into an image model and you get a picture, not a mailer.'
       : 'Paste into ChatGPT, Claude or Gemini to get the <b>finished asset</b> back.';
-    return `<div class="akbar pkbar">${btns}${aiLaunchers}</div><p class="pvnote pknote">${note}</p>`;
+    return `<div class="pvmore" data-prompts><div class="akbar pkbar">${btns}${aiLaunchers}</div><p class="pvnote pknote">${note}</p></div>`;
   };
   const emailAsset = campaign.assets?.email || null;
   if(Array.isArray(emailVars) && emailVars.length){
@@ -2000,7 +2046,7 @@ function renderPreview(payload, e, i, opts){
   Object.values(campaign.assets?.onsite || {}).forEach((o) => {
     const id = 'pv-site-' + o.key; const label = '🖥 ' + (o.label || o.key); const name = 'onsite-' + o.key;
     const tdx = window.__SB_EXPORTS.push({ name: name + '-text', label: label + ' (text)', html: sitePlain(o), ext: 'txt' }) - 1;
-    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || '') }) - 1;
+    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || ''), ext: 'html' }) - 1;
     const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: dataOf(o), ext: 'json' }) - 1;
     tab(id, esc(label), first);
     pane(id, `${assetBar(tdx, hdx, jdx)}<p class="socmeta" data-onsite-where>${esc(o.placement || '')}</p>${docFrame(o.html, 'site', label)}`, first);
@@ -2009,7 +2055,7 @@ function renderPreview(payload, e, i, opts){
   (campaign.assets?.display_banners || []).forEach((o) => {
     const id = 'pv-dsp-' + o.size; const label = '🖼 ' + (o.label || o.size); const name = 'banner-' + o.size;
     const tdx = window.__SB_EXPORTS.push({ name: name + '-text', label: label + ' (text)', html: sitePlain(o), ext: 'txt' }) - 1;
-    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || '') }) - 1;
+    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || ''), ext: 'html' }) - 1;
     const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: dataOf(o), ext: 'json' }) - 1;
     tab(id, esc(label), first);
     pane(id, `${assetBar(tdx, hdx, jdx)}<p class="socmeta">${esc(o.size)} pixels. To upload it as an image ad, export it as ${esc((o.upload && o.upload.formats || []).join(', '))} of at most ${esc(o.upload && o.upload.max_kb)} KB.</p><div class="dspwrap" style="max-width:100%;overflow-x:auto"><div style="width:${Number(o.width) || 300}px">${docFrame(o.html, 'banner', label)}</div></div>`, first);
@@ -2043,14 +2089,17 @@ function renderPreview(payload, e, i, opts){
     </div>`, first);
     first = false;
   }
+  // Where each asset of this send goes, when, on which linked account, and
+  // whether it went (2026-11-12). Read after the panes are in the page.
+  tab('pv-pub', '📅 Schedule and publishing', first);
+  pane('pv-pub', `<div data-pub-slot="${esc(e.id || '')}" data-pub-i="${i}"><p class="pvnote" style="margin:0"><span class="spinner"></span> Reading where each asset of this send goes…</p></div>`, first);
   tab('pv-json','{ } Details', first); pane('pv-json', `<pre style="margin:0">${esc(JSON.stringify(campaign && campaign.campaign_id ? campaign : e, null, 2))}</pre>`, first);
 
   const banner = `<span class="st approved">final</span> <span class="pvnote" style="margin:0">Final generated version — the best version of each asset, ready to view and download.</span>`;
   // "Open detailed page": the real hosted landing page once live, else the primary
   // mailer opened full-screen in a new tab.
-  const detailBtn = liveLpId
-    ? `<a class="btn sm secondary" href="/lp/${esc(liveLpId)}" target="_blank" rel="noopener">Open detailed page ↗</a>`
-    : `<button type="button" class="btn sm secondary" onclick="openDetailPage(${i}, this)">Open detailed page ↗</button>`;
+  const detailBtn = `<button type="button" class="btn sm secondary" data-open-detail onclick="openDetailPage(${i}, this)">Open detailed page ↗</button>`
+    + (liveLpId ? `<a class="btn sm secondary" href="/lp/${esc(liveLpId)}" target="_blank" rel="noopener">Live landing page ↗</a>` : '');
 
   // OUTPUT FIRST (2026-10-17). The operator: "first the user priorities need
   // to be addressed always which is the required output they are looking
@@ -2112,14 +2161,14 @@ function renderPreview(payload, e, i, opts){
       // chosen kind's items sit side by side, so a whole kind compares at a
       // glance. Every pane stays in the page (ids, downloads and prompts
       // unchanged); the other kinds are one press away.
-      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : /^pv-soc-/.test(id) ? 'social' : /^pv-site-/.test(id) ? 'site' : /^pv-dsp-/.test(id) ? 'display' : id === 'pv-music' ? 'music' : 'json';
-      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['social', '📱 Social posts'], ['site', '🖥 On-site'], ['display', '🖼 Display ads'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
+      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : /^pv-soc-/.test(id) ? 'social' : /^pv-site-/.test(id) ? 'site' : /^pv-dsp-/.test(id) ? 'display' : id === 'pv-music' ? 'music' : id === 'pv-pub' ? 'pub' : 'json';
+      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['social', '📱 Social posts'], ['site', '🖥 On-site'], ['display', '🖼 Display ads'], ['pub', '📅 Schedule'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
       const by = {};
       panes.forEach((p) => { const g = groupOf(p.id); (by[g] = by[g] || []).push(p); });
       const present = GROUPS.filter(([k]) => by[k] && by[k].length);
       const open = (present.find(([k]) => k === 'mail' || k === 'lp' || k === 'ads') || present[0] || [''])[0];
       const bar = present.length > 1 ? `<div class="pvtabs pvgroups" role="tablist" aria-label="Asset kinds">${present.map(([k, label]) => `<button type="button" role="tab" class="pvtab" data-group="${k}" aria-selected="${k === open}" onclick="pvGroup(this,'${k}')">${label}${by[k].length > 1 ? ` <span class="pvcount">${by[k].length}</span>` : ''}</button>`).join('')}<button type="button" role="tab" class="pvtab" data-group="*" aria-selected="false" onclick="pvGroup(this,'*')">All</button></div>` : '';
-      const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
+      const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec" data-pane="${p.id}"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
       return bar + present.map(([k]) => `<div class="pvgroup pvgroup-${k}" data-group="${k}"${k === open ? '' : ' hidden'}>${by[k].map(section).join('')}</div>`).join('');
     })()}
     ${teamHTML(campaign)}
@@ -2128,6 +2177,7 @@ function renderPreview(payload, e, i, opts){
   // bytes of it (Blob URL) now that the panes are in the DOM.
   hydrateMotionAds(host);
   loadPreviewFrames(host);
+  sbLoadPublish(host);
   host.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' });
 }
 
@@ -2277,36 +2327,96 @@ window.viewDecision = function(i){
     body.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' });
   }, 0));
 };
-// Open the primary mailer full-screen over this page (the "detailed page" when
-// a slot is not yet approved and has no hosted /lp/:id). It used to write the
-// mailer into a window.open('') document: an about:blank tab with no address,
-// nothing to link to or come back to, and no way to tell which brand or slot
-// it was. The overlay shows the exact bytes in a sandboxed frame and offers
-// them as a download named for the active brand.
-window.openDetailPage = function(i, btn){
-  const e = PLAN[i]; const p = PREVIEW_CACHE[e && e.id];
-  const html = p && (p.email_html || (p.email_variants && p.email_variants.find(v=>v.key==='visual_a')?.html) || (p.campaign?.assets?.email?.html));
-  if(!html){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
-  const doc = sbPortable(html);
+// THE DAY'S DETAIL PAGE (2026-11-12). "open detailed page must open detail
+// page with all assets for that day". It opened one mailer. It is every asset
+// of every send planned for that date, kind by kind, each in its own card on
+// one grid: mailers, landing pages, ads, social posts, messages, on-site
+// assets and display banners. A send of that day that is built and not opened
+// yet is read first (its saved assets, never a rebuild); one with no assets
+// yet is named. The exact bytes are shown in sandboxed frames.
+function sbSlotDocs(p){
+  const c = (p && p.campaign) || {}; const A = c.assets || {};
+  const out = { mail: [], lp: [], ads: [], social: [], msg: [], site: [], display: [] };
+  const vars = p.email_variants || (A.email && A.email.variants) || [];
+  const mail = p.email_html || (A.email && A.email.html) || '';
+  if(vars.length) vars.forEach((v, n) => { if(v && v.html) out.mail.push({ label: 'Mailer · ' + (v.label || ('variant ' + (n + 1))), html: sbPortable(v.html) }); });
+  else if(mail) out.mail.push({ label: 'Mailer', html: sbPortable(mail) });
+  (A.landing_pages || (p.landing_html ? [{ html: p.landing_html }] : [])).forEach((lp, n) => { if(lp && lp.html) out.lp.push({ label: 'Landing page' + (lp.variant ? ' · ' + lp.variant : (n ? ' ' + (n + 1) : '')), html: sbPortable(lp.html) }); });
+  (p.ads || A.ads || []).forEach((ad) => { if(ad) out.ads.push({ label: [ad.platform, ad.creative_type === 'video' ? 'video ad' : 'static ad', ad.variant].filter(Boolean).join(' · '), html: sbAdDocHTML(ad) }); });
+  (A.social_posts || []).forEach((sp) => { if(sp) out.social.push({ label: sp.label || sp.key, text: socialPlain(sp) }); });
+  (A.messages || []).forEach((m) => { if(m) out.msg.push({ label: String(m.channel || m.type || 'Message').toUpperCase(), text: msgPlain(m) }); });
+  Object.values(A.onsite || {}).forEach((o) => { if(o && o.html) out.site.push({ label: o.label || o.key, html: sbPortable(o.html) }); });
+  (A.display_banners || []).forEach((bn) => { if(bn && bn.html) out.display.push({ label: 'Banner ' + bn.size, html: sbPortable(bn.html), w: Number(bn.width) || Number(String(bn.size).split('x')[0]) || 0, h: Number(bn.height) || Number(String(bn.size).split('x')[1]) || 0 }); });
+  return out;
+}
+const DETAIL_KINDS = [['mail', 'Mailers', true], ['lp', 'Landing pages', true], ['ads', 'Ads', false], ['social', 'Social posts', false], ['msg', 'Messages', false], ['site', 'On-site', false], ['display', 'Display banners', false]];
+window.openDetailPage = async function(i, btn){
+  const e = PLAN[i];
+  if(!e){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
+  const date = String(e.date || '').slice(0, 10);
+  // Every send of that date in view; the one that was opened leads.
+  const day = PLAN.filter((x) => String(x.date || '').slice(0, 10) === date && mktVisible(x) && catVisible(x));
+  day.sort((a, b) => (a === e ? -1 : b === e ? 1 : 0));
+  if(!day.some((x) => PREVIEW_CACHE[x.id] || rsBuilt(x))){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
   const old = document.getElementById('sbdetail'); if(old) old.remove();
   const ov = document.createElement('div'); ov.id = 'sbdetail';
-  // The scrim is the ink at an opacity (the contract's modal), the dialog the
-  // panel: only tokens, so it wears the active brand like everything else.
-  ov.style.cssText = 'position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;padding:16px';
-  const title = (e && (e.title || e.subject_line || e.cohort_label)) || 'Mailer';
+  // Above every floating chip (the credits pill sat on the Close button).
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;padding:12px';
   ov.innerHTML = `<div data-sbdetail-scrim style="position:absolute;inset:0;background:var(--vh-ink);opacity:.45"></div>`+
-    `<div role="dialog" aria-modal="true" aria-label="Detailed page" style="position:relative;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:14px;flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:980px;width:100%;margin:0 auto">`+
-    `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--vh-line)">`+
-    `<b style="flex:1;font-size:13.5px;color:var(--vh-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(title)}</b>`+
-    `<button type="button" class="btn sm secondary" id="sbdetail-dl">⬇ Download</button>`+
+    `<div role="dialog" aria-modal="true" aria-label="All assets for ${esc(date)}" style="position:relative;background:var(--vh-panel);color:var(--vh-ink);border:1px solid var(--vh-line);border-radius:14px;flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:1500px;width:100%;margin:0 auto;min-height:0">`+
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--vh-line);flex-wrap:wrap">`+
+    `<b style="flex:1;font-size:15px;color:var(--vh-ink);min-width:180px">${esc(date)} · every asset of the day</b>`+
+    `<span class="pvnote" data-detail-count style="margin:0"></span>`+
+    `<button type="button" class="btn sm secondary" id="sbdetail-dl">⬇ Download the day</button>`+
     `<button type="button" class="btn sm secondary" id="sbdetail-x">Close</button></div>`+
-    `<iframe title="Detailed page" sandbox="allow-same-origin" style="flex:1;width:100%;border:0;background:var(--vh-panel)"></iframe></div>`;
+    `<nav class="dnav" aria-label="Asset kinds" data-detail-nav></nav>`+
+    `<div class="dbody" data-detail-body><p class="pvnote"><span class="spinner"></span> Reading the day's assets…</p></div></div>`;
   document.body.appendChild(ov);
-  ov.querySelector('iframe').srcdoc = doc;
-  const close = ()=>ov.remove();
+  const close = () => ov.remove();
   ov.querySelector('#sbdetail-x').onclick = close;
-  ov.querySelector('#sbdetail-dl').onclick = ()=>sbSaveBlob(doc, 'text/html', exportStem()+'-'+String((e && e.id) || 'mailer').replace(/[^a-z0-9_-]/gi,'-')+'.html');
   ov.querySelector('[data-sbdetail-scrim]').addEventListener('click', close);
+  ov.addEventListener('keydown', (ev) => { if(ev.key === 'Escape') close(); });
+  ov.querySelector('#sbdetail-x').focus();
+  const body = ov.querySelector('[data-detail-body]');
+  const frames = []; const bundle = []; const kindsSeen = new Set(); let total = 0; const parts = [];
+  for(let n = 0; n < day.length; n++){
+    const x = day[n];
+    const name = [mktName(mktKey(x.market)), x.cohort && x.cohort.name].filter(Boolean).join(' · ');
+    let p = PREVIEW_CACHE[x.id] || null; let why = '';
+    if(!p && rsBuilt(x)){ try { p = await sbLoadSaved(x); } catch(err){ why = (err && err.message) || 'its saved assets could not be read'; } }
+    if(!ov.isConnected) return;
+    if(!p){ parts.push(`<h2>${esc(name)}</h2><p class="vh-status" role="status">${esc(why ? 'Not shown: ' + why + '.' : 'This send has no assets yet. Press View on its row to build them.')}</p>`); continue; }
+    const docs = sbSlotDocs(p);
+    let html = day.length > 1 ? `<h2 data-detail-send="${esc(x.id || '')}">${esc(name)}</h2>` : '';
+    for(const [k, label, wide] of DETAIL_KINDS){
+      const list = docs[k]; if(!list.length) continue;
+      kindsSeen.add(k); total += list.length;
+      html += `<h3 id="dk-${n}-${k}" data-detail-kind="${k}">${esc(label)} <span class="pvcount">${list.length}</span></h3><div class="dgrid${wide ? ' wide' : ''}">` + list.map((it) => {
+        if(it.html){
+          const fi = frames.push(it) - 1; bundle.push({ name: k, label: (day.length > 1 ? name + ' · ' : '') + it.label, html: it.html, ext: 'html' });
+          return `<div class="dcard" data-detail-card="${k}"${it.w && it.w > 400 ? ' style="grid-column:1/-1"' : ''}><h4>${esc(it.label)}</h4><iframe sandbox="allow-same-origin" data-dframe="${fi}" title="${esc(it.label)}"${it.w ? ` style="width:${it.w}px;max-width:100%;height:${it.h}px"` : ''}></iframe></div>`;
+        }
+        return `<div class="dcard" data-detail-card="${k}"><h4>${esc(it.label)}</h4><pre>${esc(it.text || '')}</pre></div>`;
+      }).join('') + `</div>`;
+    }
+    parts.push(html || `<h2>${esc(name)}</h2><p class="vh-status" role="status">This send's assets are empty.</p>`);
+  }
+  body.innerHTML = parts.join('');
+  ov.querySelector('[data-detail-count]').textContent = `${total} asset${total === 1 ? '' : 's'} · ${day.length} send${day.length === 1 ? '' : 's'}`;
+  ov.querySelector('[data-detail-nav]').innerHTML = DETAIL_KINDS.filter(([k]) => kindsSeen.has(k)).map(([k, label]) => `<button type="button" class="mkchip" data-detail-jump="${k}">${esc(label)}</button>`).join('');
+  ov.querySelector('[data-detail-nav]').addEventListener('click', (ev) => { const b = ev.target.closest('[data-detail-jump]'); if(!b) return; const h = body.querySelector('[data-detail-kind="' + b.dataset.detailJump + '"]'); if(h) h.scrollIntoView({ behavior:'smooth', block:'start' }); });
+  // The documents, one after another so the page stays responsive; each frame
+  // is fitted to its document, a banner keeps its own size.
+  let k = 0;
+  const step = () => {
+    const f = body.querySelector('iframe[data-dframe="' + k + '"]'); const it = frames[k]; k++;
+    if(!f || !it) return;
+    if(!it.w) f.addEventListener('load', () => { try { const d = f.contentDocument; const fit = () => { f.style.height = Math.min(4000, Math.max(240, d.documentElement.scrollHeight + 4)) + 'px'; }; fit(); setTimeout(fit, 700); } catch(_) {} });
+    f.srcdoc = it.html;
+    setTimeout(step, 0);
+  };
+  requestAnimationFrame(() => setTimeout(step, 0));
+  ov.querySelector('#sbdetail-dl').onclick = () => { if(bundle.length) sbSaveBlob(sbBundleHTML(bundle, (sbBrandName() ? sbBrandName() + ' · ' : '') + date + ' · all assets'), 'text/html', exportStem() + '-' + date + '-all-assets.html'); };
 };
 
 // Export an approved/previewed asset out of the tool.
@@ -2414,11 +2524,44 @@ function _zipDashboardHTML(rows){
 // Download ALL generated (cached) slots in view as a nested ZIP:
 //   index.html (calendar dashboard) · calendar.json · {date}_{cohort}/{date}/mailer_*.html · landing_*.html · ad_*.json · _slot.json
 // Retrieval only — never regenerates (uses PREVIEW_CACHE).
-window.sbZipAll = function(){
+// The saved assets of one built send, read once (2026-11-12). A send built on
+// the server (approved, or prebuilt) answers the preview with its SAVED bundle,
+// so this is a read, not a rebuild. Download all used to zip only the sends
+// opened in this tab: "just the first day and the last day".
+async function sbLoadSaved(e){
+  if(PREVIEW_CACHE[e.id]) return PREVIEW_CACHE[e.id];
+  if(!PREVIEW_INFLIGHT[e.id]){
+    PREVIEW_INFLIGHT[e.id] = fetch(`${API}?action=smart-brain-preview`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, entry: e, reviewer: reviewerEmail() })})
+      .then(safeJson).finally(()=>{ delete PREVIEW_INFLIGHT[e.id]; });
+  }
+  const data = await PREVIEW_INFLIGHT[e.id];
+  if(!data || !data.ok) throw sbRefusal(data || {}, 'The saved assets could not be read');
+  PREVIEW_CACHE[e.id] = data;
+  return data;
+}
+window.sbZipAll = async function(){
   const slug = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
-  const gen = PLAN.map((e)=>e).filter(e => slotVisible(e) && PREVIEW_CACHE[e.id]);
-  if(!gen.length){ sbSay(null, 'No generated assets in view yet. Run "Generate all" (or open or download a row) first: Download all only zips already-generated slots, it never regenerates.'); return; }
+  // Every send in view that HAS assets: the ones opened here and the ones built
+  // on the server and not opened yet, which are read first, one at a time.
+  const want = PLAN.filter(e => slotVisible(e) && (PREVIEW_CACHE[e.id] || rsBuilt(e)));
+  const btn = $('downloadAll'); const mark = btn ? btn.innerHTML : '';
+  const scope = planScope();
+  const missed = [];
+  const todo = want.filter(e => !PREVIEW_CACHE[e.id]);
+  if(todo.length && btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); }
+  try {
+    for(let n=0; n<todo.length; n++){
+      if(btn) btn.textContent = `Reading ${n+1} of ${todo.length}…`;
+      try { await sbLoadSaved(todo[n]); }
+      catch(err){ missed.push(`${todo[n].date} ${todo[n].market||''}: ${(err && err.message) || 'could not be read'}`); }
+      if(scope !== planScope()) return;
+    }
+  } finally { if(btn){ btn.disabled = false; btn.removeAttribute('aria-busy'); btn.innerHTML = mark; } }
+  const gen = want.filter(e => PREVIEW_CACHE[e.id]);
+  if(!gen.length){ sbSay(null, missed.length ? ('No assets could be read. ' + missed[0]) : 'No generated assets in view yet. Run "Generate all" (or open or download a row) first: Download all zips the sends that have assets, it never regenerates.'); return; }
+  const unbuilt = PLAN.filter(e => slotVisible(e) && !PREVIEW_CACHE[e.id] && !rsBuilt(e)).length;
   const cal = $('calstate'); if(cal) cal.hidden = true;
+  if(missed.length || unbuilt) sbSay(null, `Zipped ${gen.length} send${gen.length===1?'':'s'}.` + (missed.length ? ` ${missed.length} could not be read (${missed[0]}).` : '') + (unbuilt ? ` ${unbuilt} send${unbuilt===1?' has':'s have'} no assets yet: press Generate all to build them.` : ''));
   const files = [];
   const rows = []; // for the top-level calendar dashboard
   for(const e of gen){
@@ -2440,9 +2583,10 @@ window.sbZipAll = function(){
       if(ad.creative_type!=='video' && ad.creative && ad.creative.static_html) files.push({ name:stem.replace(/\/ad_(?=[^/]*$)/, '/creative_')+'.html', data:sbPortable(ad.creative.static_html) });
       links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1)))+(ad.creative_type?' '+ad.creative_type:''), path:stem+'.html', kind:'ad'}); });
     // Social posts (.txt), on-site assets and display banners (.html) of the send.
-    ((c.assets && c.assets.social_posts) || []).forEach((sp)=>{ files.push({ name:`${base}/social_${slug(sp.key)}.txt`, data:socialPlain(sp) }); });
-    Object.values((c.assets && c.assets.onsite) || {}).forEach((o)=>{ if(o && o.html) files.push({ name:`${base}/onsite_${slug(o.key)}.html`, data:sbPortable(o.html) }); });
-    ((c.assets && c.assets.display_banners) || []).forEach((bn)=>{ if(bn && bn.html) files.push({ name:`${base}/banner_${slug(bn.size)}.html`, data:sbPortable(bn.html) }); });
+    ((c.assets && c.assets.social_posts) || []).forEach((sp)=>{ const n=`${base}/social_${slug(sp.key)}.txt`; files.push({ name:n, data:socialPlain(sp) }); links.push({label:'Social · '+(sp.label||sp.key), path:n, kind:'social'}); });
+    ((c.assets && c.assets.messages) || []).forEach((m)=>{ if(!m) return; const n=`${base}/message_${slug(m.channel||m.type)}.txt`; files.push({ name:n, data:msgPlain(m) }); links.push({label:'Message · '+String(m.channel||m.type||''), path:n, kind:'message'}); });
+    Object.values((c.assets && c.assets.onsite) || {}).forEach((o)=>{ if(o && o.html){ const n=`${base}/onsite_${slug(o.key)}.html`; files.push({ name:n, data:sbPortable(o.html) }); links.push({label:'On-site · '+(o.label||o.key), path:n, kind:'onsite'}); } });
+    ((c.assets && c.assets.display_banners) || []).forEach((bn)=>{ if(bn && bn.html){ const n=`${base}/banner_${slug(bn.size)}.html`; files.push({ name:n, data:sbPortable(bn.html) }); links.push({label:'Banner · '+bn.size, path:n, kind:'banner'}); } });
     if(c.assets && c.assets.google_display) files.push({ name:`${base}/google_responsive_display.json`, data:JSON.stringify(c.assets.google_display, null, 2) });
     files.push({ name:`${base}/_slot.json`, data:JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2) });
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'', offer:(e.offer&&e.offer.code)?(Math.round((Number(e.offer.pct)||0)*100)+'% '+e.offer.code):(e.offer&&typeof e.offer==='object'?'No discount':(e.offer||'')), confidence:e.confidence, feasibility:e.feasibility, links });
@@ -2636,8 +2780,62 @@ window.sbQuickAsset = async function(idx, assetType) {
   if(!row || !body || row.style.display === 'none') {
     await viewEntry(idx);
   }
-  const jumpTarget = assetType === 'mailer' ? 'pv-mail' : (assetType === 'landing' ? 'pv-lp' : (assetType === 'ads' ? 'pv-ad' : 'pv-why'));
-  pvJump(jumpTarget);
+  // Open the kind that was asked for: its tab in the send's own bar.
+  const key = { mailer: 'mail', landing: 'lp', ads: 'ads', social: 'social', site: 'site', display: 'display', pub: 'pub' }[assetType] || 'why';
+  const tabBtn = body && body.querySelector('.pvgroups .pvtab[data-group="' + key + '"]');
+  if(tabBtn){ pvGroup(tabBtn, key); tabBtn.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  else if(body && body.querySelector('.pvroot')) sbSay(body.querySelector('.pvbar'), 'This send has no ' + ({ social:'social posts', site:'on-site assets', display:'display banners', pub:'schedule' }[assetType] || assetType) + ' yet: press Regenerate to build them.');
+};
+
+/* ── A DAY'S SENDING AND PUBLISHING (2026-11-12) ───────────────────────────
+   "cant see scheduled sending and publishing of assets on the respective
+   platforms in the smart brain feature for each day". One table per send:
+   the asset, where it goes, when, and its state, from the server's own queue
+   and the brand's own connections (api/_shared/brain-publish.js). */
+const PUB_LABEL = { scheduled:'Scheduled', sent:'Sent', ready:'Ready to schedule', awaiting_approval:'After approval', not_connected:'Not connected', needs_reauth:'Reconnect', needs_media:'Needs media', manual:'By hand', no_channel:'No channel', withheld:'Held back', failed:'Failed', blocked:'Blocked', cancelled:'Cancelled', live:'Live' };
+function pubHTML(d, i){
+  if(!d || d.ok === false) return `<p class="vh-status" role="status">${esc((d && (d.message || d.error)) || 'The schedule could not be read.')}</p>`;
+  if(!(d.rows || []).length) return `<p class="vh-status" role="status">${esc(d.message || 'Nothing is scheduled for this send.')}</p>`;
+  const s = d.summary || {};
+  const lead = [s.sent ? s.sent + ' sent' : '', s.scheduled ? s.scheduled + ' scheduled' : '', s.ready ? s.ready + ' ready to schedule' : '', s.withheld ? s.withheld + ' held back' : '', s.not_connected ? s.not_connected + ' not connected' : '', s.manual ? s.manual + ' by hand' : ''].filter(Boolean).join(' · ');
+  const rows = d.rows.map((r) => `<tr data-pub-row="${esc(r.id)}" data-pub-state="${esc(r.state)}">
+      <td>${esc(r.label)}</td>
+      <td>${esc(r.what || '')}</td>
+      <td>${esc(r.when || '')}</td>
+      <td><span class="pubstate" data-s="${esc(r.state)}">${esc(PUB_LABEL[r.state] || r.state)}</span></td>
+      <td>${esc(r.message || '')}${r.fix ? ` <a href="${esc(r.fix)}"${/^\/lp\//.test(r.fix) ? ' target="_blank" rel="noopener"' : ''}>${esc(r.fix_label || (r.fix === '/connections' ? 'Open Connections' : 'Open'))}</a>` : ''}</td>
+    </tr>`).join('');
+  const can = d.approved && s.ready > 0;
+  return `<p class="pvnote" style="margin:0 0 10px"><b>${esc(d.date || '')}</b>${lead ? ' · ' + esc(lead) : ''}</p>
+    ${d.message && d.results ? `<p class="vh-status" role="status" data-pub-say>${esc(d.message)}</p>` : ''}
+    <table class="pubtable" data-pub-table><thead><tr><th>Asset</th><th>What</th><th>When</th><th>Status</th><th>Where it goes</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="akbar" style="margin-top:12px">
+      ${can ? `<button type="button" class="btn sm" data-pub-schedule onclick="sbSchedule(${i}, this)">📅 Schedule ${s.ready} on linked accounts</button>` : ''}
+      <a class="btn sm secondary" href="/publishing">Open Publishing ↗</a>
+      <a class="btn sm secondary" href="/connections">Connections ↗</a>
+    </div>
+    <p class="pvnote" style="margin-top:8px">${d.approved ? 'Scheduled posts go out at their time through the publishing queue, on this brand\'s own linked accounts. Each one still passes the publishing checks first.' : 'Approve this send first: only an approved send is scheduled, so what goes out is what you approved.'}</p>`;
+}
+async function sbLoadPublish(root){
+  const box = root && root.querySelector('[data-pub-slot]'); if(!box) return;
+  const id = box.getAttribute('data-pub-slot'); const i = Number(box.getAttribute('data-pub-i'));
+  try {
+    const r = await fetch('/api/brain?action=dispatch-slot&id=' + encodeURIComponent(id));
+    const d = await safeJson(r);
+    if(!box.isConnected) return;
+    box.innerHTML = pubHTML(d, i);
+  } catch(err){ if(box.isConnected) box.innerHTML = `<p class="vh-status" role="status">The schedule could not be read: ${esc((err && err.message) || 'no answer')}.</p>`; }
+}
+window.sbSchedule = async function(i, btn){
+  const box = btn && btn.closest('[data-pub-slot]'); if(!box) return;
+  const id = box.getAttribute('data-pub-slot');
+  btn.disabled = true; btn.setAttribute('aria-busy', 'true');
+  try {
+    const r = await fetch('/api/brain?action=dispatch-slot&id=' + encodeURIComponent(id), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) });
+    const d = await safeJson(r);
+    if(d && Array.isArray(d.rows) && d.rows.length) box.innerHTML = pubHTML(d, i);
+    else { btn.disabled = false; btn.removeAttribute('aria-busy'); sbSay(btn, (d && (d.message || d.error)) || 'Nothing was scheduled.'); }
+  } catch(err){ btn.disabled = false; btn.removeAttribute('aria-busy'); sbSay(btn, 'Nothing was scheduled: ' + ((err && err.message) || 'no answer') + '.'); }
 };
 
 /* THE MODE CARD STATES THE REAL MODE (2026-10-05). It read "DB (empty)" for a

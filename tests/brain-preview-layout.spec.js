@@ -223,18 +223,12 @@ function measure() {
   // the heading of the next (and, for the last, the section's own bottom).
   const secs = [...root.querySelectorAll('.pvsec')].filter(visible);
   const contentBottom = (sec) => Math.max(...[...sec.querySelectorAll('*')].filter(visible).map((el) => el.getBoundingClientRect().bottom));
-  // Mailers and ads sit side by side (2026-10-24): the next section is the
-  // next one in the SAME column.
-  secs.forEach((sec, i) => {
-    const bottom = contentBottom(sec);
-    const left = Math.round(sec.getBoundingClientRect().left);
-    const grp = sec.closest('.pvgroup');
-    const next = secs.slice(i + 1).find((x) => x.closest('.pvgroup') === grp && Math.abs(Math.round(x.getBoundingClientRect().left) - left) <= 2 && x.getBoundingClientRect().top >= sec.getBoundingClientRect().bottom - 1);
-    // The last card of a column ends its column; the columns of one kind are
-    // balanced by the browser, not by this page.
-    if (!next && grp && secs.slice(i + 1).some((x) => x.closest('.pvgroup') === grp)) return;
-    const nextTop = next ? next.querySelector('.pvsech').getBoundingClientRect().top : sec.getBoundingClientRect().bottom;
-    out.bands.push({ section: (sec.querySelector('.pvsech') || {}).textContent, gap: nextTop - bottom });
+  // Each asset is a card on a grid row (2026-11-12, "perfect level alignment
+  // for all assets"): cards of a row start on one line, so a short card ends
+  // above a tall neighbour by design. What must not exist is an empty band
+  // INSIDE a card: the card ends where its content does.
+  secs.forEach((sec) => {
+    out.bands.push({ section: (sec.querySelector('.pvsech') || {}).textContent, gap: sec.getBoundingClientRect().bottom - contentBottom(sec) });
   });
   return out;
 }

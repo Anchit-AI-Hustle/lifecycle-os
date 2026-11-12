@@ -261,8 +261,14 @@ function build(entry, campaign, opts = {}) {
   if (!f.photo) gaps.push(L.marker('image for on-site and display assets', f.b, entry && entry.market));
   const c = colours(f.b);
   const onsite = buildOnsite(f, c, campaign, entry);
-  const display_banners = buildBanners(f, c, campaign, entry);
-  const google_display = buildResponsive(f, campaign, entry);
+  // A display ad is a link: with no page on record none is built (the gap is
+  // said above), and a responsive asset with no description is not one.
+  const display_banners = f.page ? buildBanners(f, c, campaign, entry) : [];
+  let google_display = f.page ? buildResponsive(f, campaign, entry) : null;
+  if (google_display && !(google_display.descriptions || []).length) {
+    google_display = null;
+    gaps.push(L.marker('a sentence about the product for the responsive display ad', f.b, entry && entry.market));
+  }
   return { onsite: Object.keys(onsite).length ? onsite : null, display_banners, google_display, data_gaps: gaps };
 }
 
