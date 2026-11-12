@@ -83,6 +83,7 @@ const M = {
   gateway: 'api/_shared/social-gateway-core.js',
   launch: 'api/_shared/paid-launch-core.js',
   adhist: 'api/_shared/ad-history.js',
+  obs: 'api/_shared/asset-observations.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
   ownerDesk: 'api/_shared/owner-desk-server.js',
   autopost: 'api/_shared/calendar-autopost.js',
@@ -1230,6 +1231,12 @@ add('paid-launch', { gate: 'user', browser: 'refuse', run: { method: 'GET', quer
   },
   cases: [{ name: 'a POST hands the parsed body through for a build step', run: { json: { launch_id: 'l9' }, query: { op: 'run' } },
     expect: (r) => { expect(r.out.op).toBe('run'); const a = last(M.launch, 'handle'); expect(a[2].body).toMatchObject({ launch_id: 'l9' }); } }],
+});
+// The canonical observations read (2026-11-12): a verified caller and the
+// workspace SCOPING resolved are handed over; nothing is taken from the request.
+add('observations', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'list', ownership: 'owned' } },
+  stubs: () => S.on(M.obs, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),
+  expect: (r) => { expect(r.out).toEqual({ ok: true, op: 'list', ws: H.WS, user: H.USER_ID }); },
 });
 add('ad-history', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'status' } },
   stubs: () => S.on(M.adhist, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, op: req.query.op, ws: ctx.workspaceId, user: ctx.auth.user_id })),

@@ -272,10 +272,18 @@ so judging them as `ad.google.rsa` is intended. YouTube ads have no contract bec
 limit for them; none was invented.
 **F-22, Low, fixed.** The "Approve the added assets" button named its send by its index in the plan list, which the
 page re-reads at its own pace; a press could find nothing and do nothing. The button names the slot itself.
-**F-16, High, not built.** One observation pipeline for owned and competitor assets (section 3 of the brief): there
-is no canonical observation table, no source registry, no version history of observations and no cross-source
-linking. Milled disallows automated reading in robots.txt; Google Ads Transparency and TikTok offer no feed this
-repository may call. Manual import exists only as Knowledge Base file and URL ingestion.
+**F-16, High, first cut built.** `api/_shared/asset-observations.js` on `brain.js ?action=observations&op=list|sources`
+(GET, a member of the workspace, still 12 functions): the brand's own ads (`brand_ad_history`) and competitors' ads,
+mail and pages (`ci_ads`, `ci_emails`, `ci_landing_pages`) are returned in ONE shape with a stable id, ownership,
+source, dates, a status that says only what is known (`active_as_reported`, `not_confirmed`, `archive`), provenance
+and a content key that links one asset seen through two sources (two captures of a page are versions). A source
+registry states each source's access, coverage and limits; each read reports `ok`, `no_results`, `partial`,
+`unavailable` or `not_read` per source, and an outage takes nothing from the others. Sources not read automatically
+(Milled: robots.txt disallows it; Google Ads Transparency and TikTok's library: no feed is called) are `not_read`
+with the supported route. Verified: `asset-observations` (3), `router-brain`. NOT built: a stored canonical table and
+its change history, new collectors, ownership validation against verified domains and sender identities, market and
+language on an observation (no source records them: the field is null and says why), checkpointed sync jobs, and a
+page that reads this (the Knowledge Base still reads `ad-history` directly).
 **F-17, High, partly built.** The decision record is written by Smart Brain builds only. The standalone generators
 (`api/ai/generate.js`, Mailer Studio, Ad Campaigns, Landing Pages), regeneration and the agentic run do not write
 one, and no gate blocks generation on missing research. The record is compiled at the end of a build from what the
