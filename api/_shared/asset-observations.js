@@ -27,7 +27,8 @@
  * STATES, per source, on every read: ok | no_results | unavailable | not_read.
  * A store that did not answer is `unavailable` and takes nothing away from the
  * sources that did. Status of an observation: `active_as_reported` (the
- * platform or library said so at last_seen), `not_confirmed`, `archive`.
+ * platform or library said so at last_seen), `inactive_as_reported` (paused,
+ * archived, deleted ...), `not_confirmed`, `archive`.
  * Nothing is called "live" on the strength of having been seen once.
  *
  * Captured text is untrusted input: it is returned as text, never as markup,
@@ -83,6 +84,19 @@ function freshness(lastSeen, now) {
   return { stale: days > STALE_DAYS, days };
 }
 
+/**
+ * The platform's own status word, read for what it says (review of #451):
+ * only an explicitly active one is active; paused, archived, deleted and the
+ * like are inactive AS REPORTED; anything else, or none, is not confirmed.
+ */
+function reportedState(v) {
+  const t = str(v).trim().toUpperCase();
+  if (!t) return 'not_confirmed';
+  if (t === 'ACTIVE' || t === 'ENABLED') return 'active_as_reported';
+  if (/PAUSED|ARCHIVED|DELETED|REMOVED|DISABLED|DISAPPROVED|REJECTED|ENDED|COMPLETED|WITH_ISSUES|IN_PROCESS|PENDING/.test(t)) return 'inactive_as_reported';
+  return 'not_confirmed';
+}
+
 function fromOwnAd(ws, r, now) {
   const src = r.provider === 'meta' ? 'meta_account' : 'google_ads_account';
   const last = iso(r.last_seen);
@@ -92,7 +106,7 @@ function fromOwnAd(ws, r, now) {
     title: str(r.headline || r.name) || null, text: str(r.primary_text || r.description) || null, cta: str(r.cta) || null,
     source_url: null, destination_url: https(r.landing_url), media: [https(r.image_url), https(r.video_url)].filter(Boolean),
     published_at: iso(r.started_at), first_seen: iso(r.first_seen), last_seen: last, last_confirmed: iso(r.imported_at) || last,
-    status: r.status ? 'active_as_reported' : 'not_confirmed', status_reported: str(r.status) || null,
+    status: reportedState(r.status), status_reported: str(r.status) || null,
     currency: str(r.currency) || null, market: null, market_note: 'the platform did not return a market for this ad',
     provenance: { table: 'brand_ad_history', id: r.id || null, account_id: str(r.account_id), window: [r.window_start || null, r.window_end || null] },
     content_key: contentKey('ad', [r.landing_url, r.primary_text || r.headline || r.name]),
@@ -103,7 +117,10 @@ function fromCiAd(ws, r, now) {
   const last = iso(r.last_seen);
   const src = r.source === 'meta' ? 'meta_ad_library' : 'ci_' + str(r.source);
   return {
-    observation_id: [ws, src, str(r.ad_id || r.content_hash)].join(':'),
+    // The creative version is part of the id (review of #451): a changed
+    // creative is a new row under the same ad id, and each stays addressable.
+    observation_id: [ws, src, str(r.ad_id || 'ad'), str(r.content_hash || r.id || '')].filter(Boolean).join(':'),
+    version_of: str(r.ad_id) || null,
     ownership: 'competitor', owner_name: str(r.brand_name) || null, source: src, platform: str(r.source) || null, type: 'ad',
     title: str(r.headline) || null, text: str(r.primary_copy || r.description) || null, cta: str(r.cta) || null,
     source_url: https(r.source_link), destination_url: https(r.landing_url),
@@ -247,4 +264,4 @@ async function handle(req, res, { auth, workspaceId } = {}) {
   }
 }
 
-module.exports = { handle, listFor, link, contentKey, freshness, SOURCES, OPS, STALE_DAYS, fromOwnAd, fromCiAd, fromCiEmail, fromCiLanding };
+module.exports = { handle, listFor, reportedState, link, contentKey, freshness, SOURCES, OPS, STALE_DAYS, fromOwnAd, fromCiAd, fromCiEmail, fromCiLanding };

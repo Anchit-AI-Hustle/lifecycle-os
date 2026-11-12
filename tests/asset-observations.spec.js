@@ -56,7 +56,7 @@ test('owned and competitor rows come back in one shape; another workspace\'s row
   expect(out.observations.some((o) => /Another brand/.test(JSON.stringify(o)))).toBe(false);
   for (const o of out.observations) {
     expect(['owned', 'competitor']).toContain(o.ownership);
-    expect(['active_as_reported', 'not_confirmed', 'archive']).toContain(o.status);
+    expect(['active_as_reported', 'inactive_as_reported', 'not_confirmed', 'archive']).toContain(o.status);
     expect(o.provenance.table).toBeTruthy();
     expect(o.market).toBeNull();   // not recorded by any source: said, never guessed
     expect(o.market_note).toBeTruthy();
@@ -70,12 +70,12 @@ test('owned and competitor rows come back in one shape; another workspace\'s row
   expect(g.status).toBe('not_confirmed');
   expect(g.freshness.stale).toBe(true);
   // the brand's own ad and its library listing are one asset, linked both ways
-  const lib = out.observations.find((o) => o.observation_id.endsWith(':lib-2'));
+  const lib = out.observations.find((o) => /:lib-2:/.test(o.observation_id));
   expect(own.aliases).toEqual([lib.observation_id]);
   expect(lib.aliases).toEqual([own.observation_id]);
   expect(lib.status).toBe('not_confirmed');
   // captured text is text: nothing is stripped or run, and unsafe media is not passed on
-  const rival = out.observations.find((o) => o.observation_id.endsWith(':lib-1'));
+  const rival = out.observations.find((o) => /:lib-1:/.test(o.observation_id));
   expect(rival.text).toContain('<script>');
   expect(rival.media).toEqual(['https://x.example/1.jpg']);
   expect(rival.aliases).toBeUndefined();
@@ -84,6 +84,16 @@ test('owned and competitor rows come back in one shape; another workspace\'s row
   expect(pages.map((p) => p.versions)).toEqual([2, 2]);
   expect(pages.find((p) => p.capture === 'wayback').status).toBe('archive');
   expect(pages.find((p) => p.capture === 'direct').status).toBe('not_confirmed');
+});
+
+test('review of #451: a paused or archived ad is not active; a changed creative keeps its own id under the same ad', async () => {
+  for (const [word, state] of [['ACTIVE', 'active_as_reported'], ['enabled', 'active_as_reported'], ['PAUSED', 'inactive_as_reported'], ['ARCHIVED', 'inactive_as_reported'], ['DELETED', 'inactive_as_reported'], ['CAMPAIGN_PAUSED', 'inactive_as_reported'], ['', 'not_confirmed'], ['SOMETHING_NEW', 'not_confirmed']]) expect(OBS.reportedState(word), word).toBe(state);
+  const paused = OBS.fromOwnAd(WS, Object.assign({}, OWN[0], { status: 'PAUSED' }), NOW);
+  expect(paused).toMatchObject({ status: 'inactive_as_reported', status_reported: 'PAUSED' });
+  const v1 = OBS.fromCiAd(WS, { ad_id: 'lib-9', content_hash: 'old', active: false, primary_copy: 'Old line' }, NOW);
+  const v2 = OBS.fromCiAd(WS, { ad_id: 'lib-9', content_hash: 'new', active: true, primary_copy: 'New line' }, NOW);
+  expect(v1.observation_id).not.toBe(v2.observation_id);
+  expect([v1.version_of, v2.version_of]).toEqual(['lib-9', 'lib-9']);
 });
 
 test('each source says its own state: ok, no results, unavailable, partial, not read; an outage takes nothing from the others', async () => {
