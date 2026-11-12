@@ -483,3 +483,44 @@ test('a provider that timed out moves behind the ones that answer, for the next 
   const third = await ask();
   expect(third.provider).toBe('gemini');
 });
+
+/* ── Claude thinks inside max_tokens: the answer keeps the room the caller asked for ── */
+// Production, 2026-11-11: every marketing-team review (700 tokens, fast tier)
+// answered "claude-haiku-5-5: no usable text HTTP 200". Haiku 5.5, Sonnet 5.5 and
+// Opus 5.5 think when the request does not say otherwise, and thinking is billed
+// inside max_tokens, so the whole allowance went on thinking. The fake below
+// behaves as the API does: thinking uses up max_tokens first.
+test('a Claude model that thinks by default still has the caller\'s tokens for its answer', async () => {
+  const thinks = (c) => {
+    const id = String(c.model).replace(/^anthropic\./, '');
+    if (!/^claude-(opus-5|sonnet-5|haiku-5)/.test(id)) return undefined;
+    if (c.body.thinking && c.body.thinking.type === 'disabled') {
+      if (!/^claude-haiku-5/.test(id)) return { status: 400, json: { error: { type: 'invalid_request_error', message: 'thinking cannot be disabled' } } };
+      return undefined;
+    }
+    const spent = (c.body.output_config && c.body.output_config.effort === 'low') ? 1500 : 5000;
+    if (c.body.max_tokens - spent < 600) return { status: 200, json: { content: [{ type: 'thinking', thinking: '' }], stop_reason: 'max_tokens' } };
+    return undefined;
+  };
+  setEnv({ ANTHROPIC_API_KEY: 'sk-ant-test' });
+  net = installNet(thinks);
+  const review = await ask({ preferProvider: 'anthropic', tier: 'fast', maxTokens: 700 });
+  expect(review.model).toBe('claude-haiku-5-5');
+  expect(review.text).toMatch(/answer from anthropic/);
+  expect(net.calls[0].body.thinking).toEqual({ type: 'disabled' });
+
+  net.restore(); llm().resetProviderCooldowns();
+  net = installNet(thinks);
+  const maker = await ask({ preferProvider: 'anthropic', tier: 'premium', maxTokens: 900 });
+  expect(maker.model).toBe('claude-opus-5-5');
+  expect(net.calls[0].body.max_tokens).toBeGreaterThanOrEqual(900 + 5000);
+  expect(net.calls[0].body.thinking, 'Opus 5.5 refuses thinking off').toBeUndefined();
+
+  const room = llm().claudeThinkingRoom;
+  expect(room('claude-sonnet-5-5', 700, 'fast', null)).toEqual({ max_tokens: 4700, output_config: { effort: 'low' } });
+  expect(room('anthropic.claude-opus-5-5', 2000, 'standard', null)).toEqual({ max_tokens: 10000, output_config: { effort: 'medium' } });
+  expect(room('claude-opus-5-5', 2000, 'premium', null), 'premium keeps the model\'s own effort').toEqual({ max_tokens: 10000 });
+  expect(room('anthropic.claude-opus-5-5', 700, 'fast', 'low')).toEqual({ max_tokens: 4700, output_config: { effort: 'low' } });
+  expect(room('claude-opus-4-8', 700, 'fast', null), 'a model that does not think unasked is sent as before').toEqual({});
+  expect(room('claude-3-5-haiku-latest', 700, 'fast', null)).toEqual({});
+});

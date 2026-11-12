@@ -191,6 +191,35 @@ function openrouterCap() {
 // apart from input_tokens); Gemini `usageMetadata.promptTokenCount/
 // candidatesTokenCount` plus `thoughtsTokenCount` (billed as output). A count
 // the provider did not send is null - never estimated from the text.
+
+// Claude models that THINK when the request does not say otherwise (read
+// 2026-11-12, platform.claude.com/docs/en/build-with-claude/adaptive-thinking and
+// /effort: Opus 5.5 / 5, Sonnet 5.5 / 5, Haiku 5.5, Fable; Opus 4.8 / 4.7 do not).
+// Thinking is billed inside max_tokens, so a reviewer asked for 700 tokens spent
+// them all thinking and answered 200 with no text (production, 2026-11-11:
+// "claude-haiku-5-5: no usable text HTTP 200" on every team review). The caller's
+// maxTokens is the room for the ANSWER; the request adds room for the thinking:
+//   Haiku 5.5 on the fast tier: thinking off (accepted at its default effort);
+//   every other thinking model: max_tokens raised; effort low on the fast tier
+//   and medium on the standard tier (Opus 5.5 and Sonnet 5.5 cannot switch
+//   thinking off; Sonnet 5.5's own default is high, and the standard tier is
+//   what Smart Brain's copy call asks when little time is left: it timed out
+//   in 22 s on 2026-11-11). The premium tier keeps the model's own default.
+// An effort the operator's platform policy states wins.
+function claudeThinkingRoom(model, maxTokens, tier, policyEffort) {
+  const id = String(model || '').replace(/^([a-z]{2}\.)?anthropic\./, '');
+  if (!/^claude-(opus-5|sonnet-5|haiku-5|fable|mythos)/.test(id)) {
+    return policyEffort ? { output_config: { effort: policyEffort } } : {};
+  }
+  const fast = tier === 'fast';
+  if (fast && /^claude-haiku-5/.test(id) && !policyEffort) return { thinking: { type: 'disabled' } };
+  const effort = policyEffort || (fast ? 'low' : (tier === 'standard' ? 'medium' : null));
+  const room = effort === 'low' ? 4000 : 8000;
+  const out = { max_tokens: Math.min(64000, Math.max(1, Number(maxTokens) || 0) + room) };
+  if (effort) out.output_config = { effort };
+  return out;
+}
+
 function reportedUsage(data) {
   const n = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
   const sum = (...v) => (v[0] == null ? null : v.reduce((a, b) => a + (b == null ? 0 : b), 0));
@@ -761,7 +790,8 @@ module.exports = async function callLLM(opts) {
       ? JSON.stringify(Object.assign({ model: bModel, max_tokens: maxTokens,
         system: [{ type: 'text', text: claudeSystem, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: seededUserMessage }] },
-        (!ownBedrock && platformPolicy.bedrockOnly() && platformPolicy.effortFor(tierNorm)) ? { output_config: { effort: platformPolicy.effortFor(tierNorm) } } : {}))
+        claudeThinkingRoom(bModel, maxTokens, tierNorm,
+          (!ownBedrock && platformPolicy.bedrockOnly()) ? platformPolicy.effortFor(tierNorm) : null)))
       : JSON.stringify(Object.assign({
         anthropic_version: 'bedrock-2023-05-31',
         max_tokens: maxTokens,
@@ -820,7 +850,7 @@ module.exports = async function callLLM(opts) {
       body: JSON.stringify(Object.assign({
         model, max_tokens: maxTokens, system: claudeSystem,
         messages: [{ role: 'user', content: seededUserMessage }]
-      }, /^claude-3/.test(model) ? { temperature } : {})),
+      }, /^claude-3/.test(model) ? { temperature } : {}, claudeThinkingRoom(model, maxTokens, tierNorm, null))),
     }, timeoutMs, (data) => {
       // Every TEXT block, in order. A response can open with a thinking block,
       // and reading only content[0] read that as "no text" on a good answer.
@@ -1369,4 +1399,5 @@ module.exports.platformLean = async function platformLean() {
 };
 module.exports._resetKeyless = function () { KEYLESS.next = 0; KEYLESS.chain = Promise.resolve(); };
 module.exports.bedrockModelId = bedrockModelId;
+module.exports.claudeThinkingRoom = claudeThinkingRoom;
 module.exports.bedrockIsMantle = bedrockIsMantle;

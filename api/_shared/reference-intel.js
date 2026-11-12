@@ -317,7 +317,11 @@ async function visionOpenAI(item) {
 async function visionAnthropic(item) {
   const key = envKey('ANTHROPIC_API_KEY');
   if (!key || item.kind !== 'image') return null;   // Anthropic messages take images, not video
-  const model = clean(process.env.ANTHROPIC_VISION_MODEL) || 'claude-3-5-sonnet-latest';
+  // The chain's own current Claude model (llm.js), never a retired id. Current
+  // models refuse a sampling parameter and think inside max_tokens, so the
+  // request is shaped as llm.js shapes its own (claudeThinkingRoom).
+  const llm = require('./llm.js');
+  const model = clean(process.env.ANTHROPIC_VISION_MODEL) || llm.modelsFor('anthropic', 'standard')[0];
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), VISION_TIMEOUT_MS);
   try {
@@ -325,10 +329,9 @@ async function visionAnthropic(item) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       signal: ctrl.signal,
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         model,
         max_tokens: 1400,
-        temperature: 0.2,
         messages: [{
           role: 'user',
           content: [
@@ -336,11 +339,11 @@ async function visionAnthropic(item) {
             { type: 'text', text: VISION_INSTRUCTION },
           ],
         }],
-      }),
+      }, /^claude-3/.test(model) ? { temperature: 0.2 } : {}, llm.claudeThinkingRoom(model, 1400, 'fast', null))),
     });
     const j = await r.json().catch(() => null);
     if (!r.ok) return null;
-    const text = clean((j && j.content || []).map((c) => c && c.text).filter(Boolean).join('\n'));
+    const text = clean((j && j.content || []).filter((c) => c && c.type !== 'thinking' && c.type !== 'redacted_thinking').map((c) => c && c.text).filter(Boolean).join('\n'));
     return text ? { text, provider: 'anthropic', model } : null;
   } catch (_) { return null; } finally { clearTimeout(timer); }
 }
