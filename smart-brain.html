@@ -1392,7 +1392,15 @@ window.pvGroup = function(btn, key){
   const root = btn && btn.closest('.pvroot'); if(!root) return;
   root.querySelectorAll('.pvgroup').forEach((g) => { g.hidden = key !== '*' && g.dataset.group !== key; });
   root.querySelectorAll('.pvgroups .pvtab').forEach((b) => b.setAttribute('aria-selected', b.dataset.group === key ? 'true' : 'false'));
-  root.querySelectorAll('.pvgroup:not([hidden]) iframe.pvframe[data-loaded]').forEach((f) => { try { fitFrame(f); } catch (_) {} });
+  // The press is answered first (the tab and the group show); the frames that
+  // were hidden are measured on the next frame. Measuring them inside the
+  // press held the page for 800 ms with a full send open (2026-11-12).
+  requestAnimationFrame(() => setTimeout(() => {
+    const fs = [...root.querySelectorAll('.pvgroup:not([hidden]) iframe.pvframe[data-loaded]')];
+    let k = 0;
+    const step = () => { const f = fs[k++]; if(!f) return; try { if(f.isConnected) fitFrame(f); } catch (_) {} setTimeout(step, 0); };
+    step();
+  }, 0));
 };
 window.pvJump = function(id){
   const el = document.getElementById(id);
@@ -3198,7 +3206,12 @@ async function generateAll(){
   const targets = PLAN.map((e,i)=>({e,i})).filter(({e})=> !(e.generated_campaign_id || e.status==='approved' || e.status==='final' || (e.__prebuilt && e.__prebuilt.campaign_id)) && slotVisible(e));
   // A no-op used to return in silence, which reads exactly like a dead button.
   if(!targets.length){ sbState('empty', 'Nothing to generate: every send currently in view already has its assets built.'); return; }
-  const go = await sbConfirm(`Generate the final assets for ${targets.length} send(s) shown? Each builds a mailer + ads + landing page, one at a time.`);
+  // Every day in the chosen period, said before it starts (2026-11-12): the
+  // count of days and the period, and how to take in more of the calendar.
+  const genDays = new Set(targets.map(({e}) => String(e.date || '').slice(0, 10))).size;
+  const period = SELECTED_DAYS === 'all' ? 'the whole calendar' : `the next ${SELECTED_DAYS} days`;
+  const beyond = SELECTED_DAYS === 'all' ? 0 : PLAN.filter(e => mktVisible(e) && catVisible(e) && !durVisible(e) && !rsBuilt(e)).length;
+  const go = await sbConfirm(`Generate the assets for ${targets.length} send(s) across ${genDays} day(s) in ${period}? Each builds every asset of the send, one at a time.` + (beyond ? ` ${beyond} more send(s) are planned after this period: choose 30, 60, 90 days or All under Duration to build those too.` : ''));
   if(!go) return;
   // Connector pre-flight — abort cleanly if nothing can serve text generation.
   if(!(await sbPreflight())) return;
