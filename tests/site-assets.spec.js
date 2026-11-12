@@ -85,7 +85,7 @@ test('a publisher and a bare name: only what the record states, no picture inven
   for (const b of toi.assets.display_banners) {
     expect(b.image_url).toBeUndefined();
     expect(b.html).not.toMatch(/<img/);
-    expect(b.contract_check.violations.map((v) => v.level)).toEqual(['warn']);
+    expect(b.contract_check.violations).toEqual([]);   // the missing photo is one data gap, not a finding per banner
   }
   const bare = { id: 'device:oz', slug: 'ozzlewick', name: 'Ozzlewick', regions: [{ code: 'IN', currency: 'INR', home: true }] };
   const { campaign: oz } = await build(bare, {});

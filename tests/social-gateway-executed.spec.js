@@ -915,7 +915,7 @@ test('thresholds are the operator\'s own and an editor\'s to set; flags are kept
 test('status: with nothing connected, every platform says what to connect; with a connection, exactly which switch stands between it and a live write', async () => {
   const { db } = world();
   let st = await gw('status');
-  expect(st.payload.platforms.map((p) => p.id)).toEqual(['meta', 'tiktok', 'tiktok_ads', 'pinterest', 'youtube', 'google_ads']);
+  expect(st.payload.platforms.map((p) => p.id)).toEqual(['meta', 'tiktok', 'tiktok_ads', 'pinterest', 'youtube', 'google_ads', 'linkedin']);
   for (const p of st.payload.platforms) {
     expect(p, p.id).toMatchObject({ connected: false, status: 'not_connected', can_write_now: false });
     expect(p.next[0], p.id).toMatch(/Connect|Paste/);

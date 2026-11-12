@@ -126,7 +126,7 @@ test('the hub shows, per platform, which switch withholds a write, which calls a
   connectMeta(db);
   const { thrown } = await open(page);
   const cards = page.locator('#gw-platforms .conn');
-  await expect(cards).toHaveCount(6);
+  await expect(cards).toHaveCount(7);   // LinkedIn joined the gateway (2026-11-12)
 
   const meta = cards.filter({ hasText: 'Meta' }).first();
   await expect(meta).toContainText('connected');
@@ -216,7 +216,7 @@ test('thresholds saved from the console are the brand\'s own; recompute flags th
 test('a brand kept on this device sees the honest status, and every control that would read or write a platform is disabled with its reason - nothing else is asked', async ({ page }) => {
   const db = world();
   const { asked, thrown } = await open(page, { auth: DEVICE, ws: null });
-  await expect(page.locator('#gw-platforms .conn')).toHaveCount(6);
+  await expect(page.locator('#gw-platforms .conn')).toHaveCount(7);   // LinkedIn joined the gateway (2026-11-12)
   await expect(page.locator('#gw-state .vh-status')).toContainText('kept on this device');
   for (const id of ['gw-read', 'gw-compute', 'gw-save-thresholds', 'gw-refresh']) {
     await expect(page.locator('#' + id)).toBeDisabled();
@@ -241,7 +241,7 @@ test('a comment read from the console sends the one object it is on (object_id),
   });
   db.insert('workspace_connection_secrets', Object.assign({ connection_id: row.id, workspace_id: 'ws-a' }, connections.encryptSecrets(secrets)));
   const { asked, thrown } = await open(page);
-  await expect(page.locator('#gw-platforms .conn')).toHaveCount(6);
+  await expect(page.locator('#gw-platforms .conn')).toHaveCount(7);   // LinkedIn joined the gateway (2026-11-12)
 
   await page.selectOption('#gw-read-provider', 'youtube');
   await page.selectOption('#gw-read-kind', 'comments');
