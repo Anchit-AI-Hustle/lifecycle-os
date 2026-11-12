@@ -3941,6 +3941,26 @@ function checkAssetContracts(campaign, entry) {
     }
   } catch (e) { console.warn('[smart-brain] social post check failed:', e && e.message); }
 
+  // On-site assets, display banners and the responsive display ad are judged
+  // by site-assets.check (sizes and limits read on Google's own pages).
+  try {
+    const ST = require('./site-assets.js');
+    const A = campaign.assets || {};
+    const list = [].concat(Object.values(A.onsite || {}).map((x) => [x, `onsite.${x.key}`, `onsite:${x.key}`]),
+      (A.display_banners || []).map((x) => [x, 'display.banner', `display:${x.size}`]),
+      A.google_display ? [[A.google_display, 'display.google.responsive', 'display:responsive']] : []);
+    for (const [asset, cname, ref] of list) {
+      const v = ST.check(asset);
+      asset.contract_check = { contract: cname, ok: !v.some((x) => x.level === 'block'), violations: v };
+      summary.checked += 1;
+      summary.by_contract[cname] = (summary.by_contract[cname] || 0) + 1;
+      for (const x of v) {
+        if (x.level === 'block') summary.blocking += 1; else summary.warnings += 1;
+        summary.violations.push({ asset: ref, contract: cname, level: x.level, slot: x.slot, message: x.message });
+      }
+    }
+  } catch (e) { console.warn('[smart-brain] on-site and display check failed:', e && e.message); }
+
   comp.verdict = comp.blocking ? 'block' : (comp.warnings ? 'warn' : 'pass');
   campaign.contract_check = summary;
   return summary;
@@ -4719,6 +4739,10 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // Facebook, LinkedIn, TikTok, X, Pinterest, YouTube Shorts, Threads), written
   // from this send's finished copy, each inside its platform's own limits.
   attachSocialPosts(campaign, entry, __target);
+  // ON-SITE AND DISPLAY (2026-11-12): what the brand's own site shows while the
+  // send is live (announcement bar, home-page banner, pop-up), display banners
+  // in Google's sizes and the text of a responsive display ad.
+  attachSiteAssets(campaign, entry, __target);
   // MUSIC (2026-10-25): the brief for this send's track, in the brand's own
   // words, as long as its Story video (built above); composed on request.
   attachMusic(campaign, entry, null);
@@ -4750,6 +4774,26 @@ function musicOfferText(o) {
   if (Number.isFinite(pct) && Math.round(pct) > 0) return `${Math.round(pct)}% off${o.code ? ` with code ${String(o.code).slice(0, 24)}` : ''}`;
   return '';
 }
+// ASSET KINDS ADDED AFTER A SEND WAS SAVED. An approved send is replayed as it
+// was approved: its mail, pages and ads are never rebuilt. A kind that did not
+// exist when it was saved (social posts, on-site and display assets) is made
+// from the saved copy and the slot, with no model call, and listed in
+// `assets_added_on_view` so the reviewer knows it was not part of the approval.
+function topUpSavedCampaign(campaign, entry) {
+  try {
+    if (!campaign || !campaign.assets || !entry) return [];
+    let link = '';
+    try { link = slotLinks(entry).pdp || ''; } catch (_) { link = ''; }
+    const added = [];
+    if (!Array.isArray(campaign.assets.social_posts) || !campaign.assets.social_posts.length) { if (attachSocialPosts(campaign, entry, link)) added.push('social_posts'); }
+    if (!campaign.assets.onsite || !Array.isArray(campaign.assets.display_banners)) { const got = attachSiteAssets(campaign, entry, link); if (got) added.push(...got); }
+    if (added.length) campaign.assets_added_on_view = [...new Set([...(campaign.assets_added_on_view || []), ...added])];
+    return added;
+  } catch (e) {
+    console.warn('[smart-brain] saved campaign top-up failed:', e && e.message);
+    return [];
+  }
+}
 function attachSocialPosts(campaign, entry, link) {
   try {
     if (!campaign || !campaign.assets) return null;
@@ -4767,6 +4811,29 @@ function attachSocialPosts(campaign, entry, link) {
     return built;
   } catch (e) {
     console.warn('[smart-brain] social posts failed:', e && e.message);
+    return null;
+  }
+}
+function attachSiteAssets(campaign, entry, link) {
+  try {
+    if (!campaign || !campaign.assets) return null;
+    const rt = require('./brand-runtime.js');
+    const brand = (entry && entry.brand) || null;
+    let locale = '';
+    try { locale = rt.homeRegion(brand); } catch (_) { locale = ''; }
+    const U = require('./unit-words.js');
+    const finish = (t) => { try { return rt.scrubForBrand(SM.sanitizeBrand ? SM.sanitizeBrand(String(t)) : String(t), brand); } catch (_) { return String(t); } };
+    const spell = (t) => { try { return /\d/.test(String(t)) ? U.spellUnits(String(t), { locale }) : String(t); } catch (_) { return String(t); } };
+    const built = require('./site-assets.js').build(entry, campaign, { link, finish, spell });
+    const added = [];
+    if (built.onsite) { campaign.assets.onsite = built.onsite; added.push('onsite'); }
+    campaign.assets.display_banners = built.display_banners || [];
+    if (campaign.assets.display_banners.length) added.push('display_banners');
+    if (built.google_display) { campaign.assets.google_display = built.google_display; added.push('google_display'); }
+    if (built.data_gaps.length) campaign.data_gaps = [...new Set((Array.isArray(campaign.data_gaps) ? campaign.data_gaps : []).concat(built.data_gaps))];
+    return added.length ? added : null;
+  } catch (e) {
+    console.warn('[smart-brain] on-site and display assets failed:', e && e.message);
     return null;
   }
 }
@@ -5287,6 +5354,10 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
     if (c && !identityMatches(c.brand_identity, ident)) throw brandChangedError('campaign');
     const cIsFallback = !!(c && c.copywriter && c.copywriter.provider === 'template-fallback');
     if (c && !cIsFallback) {
+      // A send approved before an asset kind existed gains that kind on view
+      // (2026-11-12: approved Lenskart slots showed no social posts). Nothing
+      // the reviewer approved is rebuilt or changed.
+      topUpSavedCampaign(c, effectiveEntry(entry));
       return {
         ok: true, preview: false, persisted: true, campaign: c,
         copywriter: c.copywriter,
@@ -5812,7 +5883,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js', './social-assets.js'];
+  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js', './social-assets.js', './site-assets.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }
@@ -5990,6 +6061,7 @@ async function dbCheck({ config: cfg = {} } = {}) {
 }
 
 module.exports = {
+  __test_topUpSavedCampaign: topUpSavedCampaign,
   attachUnitWords,
   copyTiming,
   planUntil,

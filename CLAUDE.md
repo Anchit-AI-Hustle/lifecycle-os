@@ -4,6 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Approved sends gain new asset kinds on view; on-site and display assets; the Why table (2026-11-12)
+The operator, on production /brain (Lenskart, an APPROVED slot): "dont see the social media posts in smart brain
+still", "add any more assets if required as per industry standards", "also fix the broken UI", "also fix INP issue".
+- **Why no social posts**: an approved / final slot replays its SAVED campaign (what was approved is what ships), and
+  those were saved before social posts existed. `smart-brain-plan.topUpSavedCampaign()` (preview's approved branch):
+  a kind missing from the saved campaign is made from the saved copy and the slot, no model, and named in
+  `assets_added_on_view`; the mail, pages and ads it was approved with are byte for byte unchanged.
+- **New kinds, every build** (`api/_shared/site-assets.js`, `attachSiteAssets` after social posts; in
+  ASSET_BUILD_VERSION): `assets.onsite` (announcement bar <= 90 characters, home-page banner, pop-up with "Not now";
+  links `utm_medium=onsite`), `assets.display_banners` (300x250, 336x280, 728x90, 970x250, 300x600, 160x600, 320x50,
+  320x100; a headline that fits the size WHOLE or no banner; `utm_medium=display`) and `assets.google_display` (1-5 short
+  headlines <= 30, one long <= 90, descriptions). Sizes and limits read 2026-11-12 on support.google.com/google-ads
+  answers 1722096 and 7005917; a description's and the business name's limits are not on that page, so 90 / 25 only
+  warn. Written for everyone, like social posts: the store's own sentences, name and price, tagline, claims; never the
+  cohort's line. Grounds through `sectionGround`, text through `textOn`; a button is chosen to stand 1.5:1 off the
+  ground it sits ON (the pop-up's button sits on the card, not the band). Checked in `checkAssetContracts`
+  (`onsite.*`, `display.banner`, `display.google.responsive`: no page to open BLOCKS).
+- **/brain**: groups "On-site" and "Display ads" (a pane each: the asset in a frame, Copy, Download .html, Data); the ZIP
+  carries social `.txt`, on-site and banner `.html`.
+- **Why these?**: theme.css makes every table `table-layout:fixed`, so the label column (`width:1%`) was 13 px wide and
+  "Cohort" drew over "Engaged": that table is `table-layout:auto`. `viewDecision` answers the press first (a line,
+  then the panel on the next frame; it held the page 343 ms with a large preview open).
+- Gated by `tests/site-assets.spec.js` (5 executed: a store, a publisher, a bare name, a near-black brand, every banner
+  drawn and measured in Chromium, the top-up, the preview and the Why panel; 4 mutations caught).
 ## ⭐ Claude thinks inside max_tokens: every Claude call leaves room for it (2026-11-12)
 The operator: "check for any issues anywhere". Main, CI, the production deployment and every page (28 addresses at 1280
 and 390, signed out) were clean; production's runtime errors were all model calls. Most are account matters (Bedrock key
