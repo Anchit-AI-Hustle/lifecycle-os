@@ -781,6 +781,38 @@ function departmentsHTML(c){
 // context it read, each maker's work and each reviewer's verdict, with what a
 // reviewer sent back and whether the rewrite landed. Nothing when no team ran
 // (no model key, the keyless floor, or MARKETING_TEAM=off).
+// THE DECISION BEHIND EACH ASSET (audit 2026-11-12): who the send speaks to,
+// what it sells and where it leads, what shaped it (each item labelled measured,
+// observed or standard), and one row per asset with its contract, look, what it
+// is judged by and its revision. Nothing when the build wrote none (an older
+// saved send).
+function decisionHTML(c){
+  const d = c && c.decisions;
+  if(!d || !Array.isArray(d.items) || !d.items.length) return '';
+  const sh = d.shared || {};
+  const aud = sh.audience || {};
+  const facts = [
+    ['Speaks to', (aud.cohort || 'cohort not named') + (aud.size ? ` · ${Number(aud.size).toLocaleString('en-US')} people` : ' · size not measured') + (aud.rules && aud.rules.length ? ` · ${aud.rules.join('; ')}` : '')],
+    ['Purpose', sh.purpose || 'not stated'],
+    ['Sells', sh.product || sh.product_gap || 'not stated'],
+    ['Offer', sh.offer || sh.offer_note || 'none'],
+    ['Leads to', sh.destination || 'no page on record'],
+    ['Judged by', (sh.primary_kpi || 'not stated') + (sh.baseline != null ? ` · baseline ${sh.baseline}` : (sh.baseline_gap ? ` · ${sh.baseline_gap}` : '')) + (sh.read_on ? ` · read on ${sh.read_on}` : '')],
+  ].map(([k, v]) => `<tr><td style="padding:3px 10px 3px 0;white-space:nowrap;vertical-align:top"><b>${esc(k)}</b></td><td style="padding:3px 0;overflow-wrap:anywhere">${esc(v)}</td></tr>`).join('');
+  const BASIS = { measured: 'Measured', observed: 'Observed', standard: 'Standard' };
+  const ev = (d.evidence || []).map(x => `<li data-evidence-basis="${esc(x.basis)}" style="margin:3px 0"><b>${esc(BASIS[x.basis] || x.basis)}:</b> ${esc(x.label)}${x.figures ? ` · ${esc(x.figures)}` : ''}${x.sources && x.sources.length ? ` <span class="pvnote" style="margin:0">(${esc(x.sources.join(', '))})</span>` : ''}<br><span class="pvnote" style="margin:0">${esc(x.note || '')}</span></li>`).join('');
+  const gaps = (d.gaps || []).map(g => `<li style="margin:2px 0">${esc(g)}</li>`).join('');
+  const rows = d.items.map(x => `<tr data-decision-asset="${esc(x.asset_id)}"><td style="padding:4px 8px 4px 0;overflow-wrap:anywhere"><code>${esc(x.asset_id)}</code></td><td style="padding:4px 8px 4px 0">${esc(x.contract || 'no contract')}</td><td style="padding:4px 8px 4px 0">${x.format ? esc([x.format.theme, x.format.template].filter(Boolean).join(' / ')) : ''}</td><td style="padding:4px 8px 4px 0;overflow-wrap:anywhere">${esc(x.kpi || '')}</td><td style="padding:4px 8px 4px 0">${esc(x.status)}</td><td style="padding:4px 0"><code>${esc(x.revision)}</code></td></tr>`).join('');
+  return `<details class="pvdecision" data-decision-state="${esc(d.state)}" style="margin-top:10px">
+    <summary style="cursor:pointer;font-weight:600">Why each asset was made this way <span class="pvnote" style="margin:0;font-weight:400">· ${d.count} assets · ${d.state === 'evidenced' ? 'shaped by your own results' : 'provisional: no result of your own yet'}</span></summary>
+    <p class="pvnote" data-decision-note style="margin:8px 0">${esc(d.state_note || '')}</p>
+    <table style="table-layout:auto;width:100%;font-size:12px;border-collapse:collapse">${facts}</table>
+    ${ev ? `<p style="margin:10px 0 2px;font-weight:600;font-size:12px">What shaped it</p><ul style="margin:0;padding-left:18px;font-size:12px">${ev}</ul>` : ''}
+    ${gaps ? `<p style="margin:10px 0 2px;font-weight:600;font-size:12px">Not available for this send</p><ul style="margin:0;padding-left:18px;font-size:12px">${gaps}</ul>` : ''}
+    <div style="overflow-x:auto;margin-top:10px"><table data-decision-table style="table-layout:auto;width:100%;font-size:12px;border-collapse:collapse"><thead><tr style="text-align:left"><th style="padding:4px 8px 4px 0">Asset</th><th style="padding:4px 8px 4px 0">Held to</th><th style="padding:4px 8px 4px 0">Look</th><th style="padding:4px 8px 4px 0">Judged by</th><th style="padding:4px 8px 4px 0">State</th><th style="padding:4px 0">Revision</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="pvnote" style="margin:8px 0 0">Digest of this send's assets: <code data-decision-digest>${esc(d.manifest_digest || '')}</code></p>
+  </details>`;
+}
 function teamHTML(c){
   const t = c && c.team;
   if (!t || !Array.isArray(t.members) || !t.members.length) return '';
@@ -1007,7 +1039,7 @@ function agenticReportHtml(d){
     const dayRows = built.length
       ? built.map(c => `<tr><td style="padding:5px 8px">${esc(c.date||'—')}</td><td style="padding:5px 8px">${esc(c.market||'')}</td>`
           + `<td style="padding:5px 8px">${esc(c.cohort||'')}</td><td style="padding:5px 8px">${esc(c.subject||c.theme||'—')}</td>`
-          + `<td style="padding:5px 8px">${c.score==null?'<span class="st tentative">planned</span>':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
+          + `<td style="padding:5px 8px">${c.review_state==='review_unavailable'?`<span class="st tentative" data-review-state="review_unavailable" title="${esc(c.review_note||'')}">not reviewed</span>`:c.score==null?'<span class="st tentative">planned</span>':esc(String(c.score))}${c.passed===false?' ⚠':''}</td></tr>`).join('')
       : (entries.length
           ? entries.slice(0, 30).map(e => `<tr><td style="padding:5px 8px">${esc(e.date||'—')}</td><td style="padding:5px 8px">${esc(e.market||'')}</td>`
               + `<td style="padding:5px 8px">${esc((e.cohort&&e.cohort.name)||e.segment||'—')}</td><td style="padding:5px 8px">${esc(e.subject||e.theme||e.objective||'—')}</td>`
@@ -2122,9 +2154,20 @@ function renderPreview(payload, e, i, opts){
   const copyProviderLabel = (cw.provider && !/template/.test(cw.provider)) ? cw.provider : 'brand-intelligence';
   const leadBits = [];
   if (comp && comp.verdict === 'block') leadBits.push(`<b>Blocked:</b> ${comp.blocking} issue(s) must be fixed before this can be published.`);
-  const checksLead = leadBits.length
+  // What this send is, when it is not simply "as approved" (audit 2026-11-12):
+  // kinds added after its approval, or a new draft standing in for approved
+  // assets that are no longer stored. Said above the assets, in the accent rule.
+  const addedKinds = Array.isArray(campaign.assets_added_on_view) ? campaign.assets_added_on_view : [];
+  const KIND_WORDS = { social_posts: 'social posts', onsite: 'on-site assets', display_banners: 'display banners', google_display: 'the responsive display ad' };
+  const isApproved = e && (e.status === 'approved' || e.status === 'final');
+  const revisionNote = (payload.approved_assets_missing || campaign.recovered_draft)
+    ? `<div class="vh-status pvlead" data-revision="recovered-draft" style="margin-top:4px;font-size:12px"><b>New draft, not approved.</b> The assets this send was approved with are no longer stored, so these were built again. Approve the send to ship them. <button type="button" class="btn sm secondary" data-approve-recovered data-slot="${esc(e.id)}" onclick="sbApproveRecovered(this)">Approve this draft</button></div>`
+    : (addedKinds.length && isApproved)
+      ? `<div class="vh-status pvlead" data-revision="additions-pending" style="margin-top:4px;font-size:12px"><b>Added after approval:</b> ${esc(addedKinds.map(k => KIND_WORDS[k] || k).join(', '))}. They were not part of what was approved, so they are not scheduled. The mail, pages and ads are exactly as approved. <button type="button" class="btn sm secondary" data-approve-additions data-slot="${esc(e.id)}" onclick="sbApproveAdditions(this)">Approve the added assets</button></div>`
+      : '';
+  const checksLead = revisionNote + (leadBits.length
     ? `<div class="pvnote is-error pvlead" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:12px">${leadBits.join(' ')} <a href="#" onclick="var d=this.closest('.pvroot').querySelector('.pvchecks');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'nearest'});}return false;">See checks</a></div>`
-    : '';
+    : '');
   const checksSummary = [
     comp ? (comp.verdict === 'block' ? `${comp.blocking} blocking` : comp.verdict === 'warn' ? `${comp.warnings} to review` : 'no compliance findings') : null,
     `copy by ${esc(copyProviderLabel)}`,
@@ -2179,6 +2222,7 @@ function renderPreview(payload, e, i, opts){
       const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec" data-pane="${p.id}"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
       return bar + present.map(([k]) => `<div class="pvgroup pvgroup-${k}" data-group="${k}"${k === open ? '' : ' hidden'}>${by[k].map(section).join('')}</div>`).join('');
     })()}
+    ${decisionHTML(campaign)}
     ${teamHTML(campaign)}
     ${checksBlock}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
@@ -2572,38 +2616,68 @@ window.sbZipAll = async function(){
   const unbuilt = PLAN.filter(e => slotVisible(e) && !PREVIEW_CACHE[e.id] && !rsBuilt(e)).length;
   const cal = $('calstate'); if(cal) cal.hidden = true;
   if(missed.length || unbuilt) sbSay(null, `Zipped ${gen.length} send${gen.length===1?'':'s'}.` + (missed.length ? ` ${missed.length} could not be read (${missed[0]}).` : '') + (unbuilt ? ` ${unbuilt} send${unbuilt===1?' has':'s have'} no assets yet: press Generate all to build them.` : ''));
+  // ONE list drives the ZIP, its index and its manifest (audit 2026-11-12). A
+  // folder was named by date and cohort alone, so two markets' sends for one
+  // cohort on one day (or two sends of one cohort that day) wrote the same paths
+  // and the later one replaced the earlier inside the archive; two assets with
+  // one label did the same within a send. Every folder now carries the market
+  // and the slot's own id, and no path is ever used twice.
   const files = [];
+  const taken = new Set();
+  let cur = null;                       // the send whose files are being added
+  const free = (name) => { let n = name, k = 2; while(taken.has(n.toLowerCase())){ n = name.replace(/(\.[a-z0-9]+)?$/i, (x)=>'-'+k+(x||'')); k++; } return n; };
+  const put = (name, data, kind) => { const n = free(name); taken.add(n.toLowerCase()); const f = { name:n, data:String(data == null ? '' : data), slot: cur ? cur.slot_id : null, kind: kind || (/\/([a-z]+)[_.][^/]*$/.exec(n) || [])[1] || 'file' }; files.push(f); if(cur) cur.files.push(f); return n; };
+  const freeStem = (stem) => { let s = stem, k = 2; while(taken.has((s+'.html').toLowerCase()) || taken.has((s+'.json').toLowerCase())){ s = stem+'-'+k; k++; } return s; };
+  const sends = [];                     // the manifest's sends, in ZIP order
+  const folders = new Set();
   const rows = []; // for the top-level calendar dashboard
   for(const e of gen){
     const p = PREVIEW_CACHE[e.id] || {}; const c = p.campaign || {};
-    const base = `${e.date}_${slug(e.cohort && e.cohort.name)}/${e.date}`;
+    let folder = [e.date, slug(e.market), slug(e.cohort && e.cohort.name), slug(String(e.id||'')).slice(-10)].filter(Boolean).join('_');
+    for(let k=2; folders.has(folder.toLowerCase()); k++) folder = folder.replace(/(-\d+)?$/, '-'+k);
+    folders.add(folder.toLowerCase());
+    const base = `${folder}/${e.date}`;
+    cur = { slot_id: e.id || null, date: e.date, market: e.market || null, cohort: (e.cohort && e.cohort.name) || null, status: e.status || null, folder, campaign_id: c.id || c.campaign_id || null, build_version: c.build_version || null, manifest_digest: (c.decisions && c.decisions.manifest_digest) || null, added_after_approval: Array.isArray(c.assets_added_on_view) ? c.assets_added_on_view : [], recovered_draft: !!(p.approved_assets_missing || c.recovered_draft), files: [] };
+    sends.push(cur);
     const links = []; // {label, path} relative to ZIP root, for index.html
     const emailVars = p.email_variants || (c.assets && c.assets.email && c.assets.email.variants) || [];
     const emailHtml = p.email_html || (c.assets && c.assets.email && c.assets.email.html) || '';
-    if(emailVars.length){ emailVars.forEach((v,vi)=>{ if(v && v.html){ const n=`${base}/mailer_${slug(v.label)||('v'+(vi+1))}.html`; files.push({ name:n, data:sbPortable(v.html) }); links.push({label:'Mailer · '+(v.label||('v'+(vi+1))), path:n, kind:'mailer'}); } }); }
-    else if(emailHtml){ const n=`${base}/mailer.html`; files.push({ name:n, data:sbPortable(emailHtml) }); links.push({label:'Mailer', path:n, kind:'mailer'}); }
+    if(emailVars.length){ emailVars.forEach((v,vi)=>{ if(v && v.html){ const n=put(`${base}/mailer_${slug(v.label)||('v'+(vi+1))}.html`, sbPortable(v.html)); links.push({label:'Mailer · '+(v.label||('v'+(vi+1))), path:n, kind:'mailer'}); } }); }
+    else if(emailHtml){ const n=put(`${base}/mailer.html`, sbPortable(emailHtml)); links.push({label:'Mailer', path:n, kind:'mailer'}); }
     const lps = (c.assets && c.assets.landing_pages) || (p.landing_html ? [{ html:p.landing_html }] : []);
-    lps.forEach((lp,li)=>{ if(lp && lp.html){ const n=`${base}/landing_${slug(lp.variant)||('v'+(li+1))}.html`; files.push({ name:n, data:sbPortable(lp.html) }); links.push({label:'Landing · '+(lp.variant||('v'+(li+1))), path:n, kind:'landing'}); } });
+    lps.forEach((lp,li)=>{ if(lp && lp.html){ const n=put(`${base}/landing_${slug(lp.variant)||('v'+(li+1))}.html`, sbPortable(lp.html)); links.push({label:'Landing · '+(lp.variant||('v'+(li+1))), path:n, kind:'landing'}); } });
     const ads = p.ads || (c.assets && c.assets.ads) || [];
     // Each ad as a page you can open (the creative and its copy) and, beside
     // it, its data as JSON. Named per platform AND type, so a static and a video
     // ad of one platform never overwrite each other.
-    ads.forEach((ad,ai)=>{ const stem=`${base}/ad_${slug(ad.platform)||('ad'+(ai+1))}_${slug(ad.creative_type||ad.variant)||(ai+1)}`;
-      files.push({ name:stem+'.html', data:sbAdDocHTML(ad) }); files.push({ name:stem+'.json', data:JSON.stringify(ad,null,2) });
-      if(ad.creative_type!=='video' && ad.creative && ad.creative.static_html) files.push({ name:stem.replace(/\/ad_(?=[^/]*$)/, '/creative_')+'.html', data:sbPortable(ad.creative.static_html) });
+    ads.forEach((ad,ai)=>{ const stem=freeStem(`${base}/ad_${slug(ad.platform)||('ad'+(ai+1))}_${slug(ad.creative_type||ad.variant)||(ai+1)}`);
+      put(stem+'.html', sbAdDocHTML(ad)); put(stem+'.json', JSON.stringify(ad,null,2));
+      if(ad.creative_type!=='video' && ad.creative && ad.creative.static_html) put(stem.replace(/\/ad_(?=[^/]*$)/, '/creative_')+'.html', sbPortable(ad.creative.static_html));
       links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1)))+(ad.creative_type?' '+ad.creative_type:''), path:stem+'.html', kind:'ad'}); });
     // Social posts (.txt), on-site assets and display banners (.html) of the send.
-    ((c.assets && c.assets.social_posts) || []).forEach((sp)=>{ const n=`${base}/social_${slug(sp.key)}.txt`; files.push({ name:n, data:socialPlain(sp) }); links.push({label:'Social · '+(sp.label||sp.key), path:n, kind:'social'}); });
-    ((c.assets && c.assets.messages) || []).forEach((m)=>{ if(!m) return; const n=`${base}/message_${slug(m.channel||m.type)}.txt`; files.push({ name:n, data:msgPlain(m) }); links.push({label:'Message · '+String(m.channel||m.type||''), path:n, kind:'message'}); });
-    Object.values((c.assets && c.assets.onsite) || {}).forEach((o)=>{ if(o && o.html){ const n=`${base}/onsite_${slug(o.key)}.html`; files.push({ name:n, data:sbPortable(o.html) }); links.push({label:'On-site · '+(o.label||o.key), path:n, kind:'onsite'}); } });
-    ((c.assets && c.assets.display_banners) || []).forEach((bn)=>{ if(bn && bn.html){ const n=`${base}/banner_${slug(bn.size)}.html`; files.push({ name:n, data:sbPortable(bn.html) }); links.push({label:'Banner · '+bn.size, path:n, kind:'banner'}); } });
-    if(c.assets && c.assets.google_display) files.push({ name:`${base}/google_responsive_display.json`, data:JSON.stringify(c.assets.google_display, null, 2) });
-    files.push({ name:`${base}/_slot.json`, data:JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2) });
+    ((c.assets && c.assets.social_posts) || []).forEach((sp)=>{ const n=put(`${base}/social_${slug(sp.key)}.txt`, socialPlain(sp)); links.push({label:'Social · '+(sp.label||sp.key), path:n, kind:'social'}); });
+    ((c.assets && c.assets.messages) || []).forEach((m)=>{ if(!m) return; const n=put(`${base}/message_${slug(m.channel||m.type)}.txt`, msgPlain(m)); links.push({label:'Message · '+String(m.channel||m.type||''), path:n, kind:'message'}); });
+    Object.values((c.assets && c.assets.onsite) || {}).forEach((o)=>{ if(o && o.html){ const n=put(`${base}/onsite_${slug(o.key)}.html`, sbPortable(o.html)); links.push({label:'On-site · '+(o.label||o.key), path:n, kind:'onsite'}); } });
+    ((c.assets && c.assets.display_banners) || []).forEach((bn)=>{ if(bn && bn.html){ const n=put(`${base}/banner_${slug(bn.size)}.html`, sbPortable(bn.html)); links.push({label:'Banner · '+bn.size, path:n, kind:'banner'}); } });
+    if(c.assets && c.assets.google_display) put(`${base}/google_responsive_display.json`, JSON.stringify(c.assets.google_display, null, 2));
+    put(`${base}/_slot.json`, JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2));
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'', offer:(e.offer&&e.offer.code)?(Math.round((Number(e.offer.pct)||0)*100)+'% '+e.offer.code):(e.offer&&typeof e.offer==='object'?'No discount':(e.offer||'')), confidence:e.confidence, feasibility:e.feasibility, links });
   }
   // Top-level self-contained CALENDAR DASHBOARD (index.html) + machine manifest.
-  files.push({ name:'index.html', data:_zipDashboardHTML(rows) });
-  files.push({ name:'calendar.json', data:JSON.stringify({ generated_at:new Date().toISOString(), sends:rows.length, rows }, null, 2) });
+  // They belong to the archive, not to the last send (review of #451).
+  cur = null;
+  put('index.html', _zipDashboardHTML(rows));
+  put('calendar.json', JSON.stringify({ generated_at:new Date().toISOString(), sends:rows.length, rows }, null, 2));
+  // manifest.json: every file of the archive with its send, kind, size and
+  // SHA-256, so what was downloaded can be checked against what was built.
+  cur = null;
+  const enc = new TextEncoder();
+  const digest = async (s) => { try { const d = await crypto.subtle.digest('SHA-256', enc.encode(s)); return Array.from(new Uint8Array(d)).map(x=>x.toString(16).padStart(2,'0')).join(''); } catch(_){ return null; } };
+  const listed = files.slice();
+  const meta = new Map();
+  for(const f of listed) meta.set(f, { path:f.name, kind:f.kind, bytes: enc.encode(f.data).length, sha256: await digest(f.data) });
+  put('manifest.json', JSON.stringify({ manifest:'smart-brain.zip.v1', generated_at:new Date().toISOString(), sends: sends.map(s => ({ slot_id:s.slot_id, date:s.date, market:s.market, cohort:s.cohort, status:s.status, campaign_id:s.campaign_id, build_version:s.build_version, assets_digest:s.manifest_digest, revision: s.recovered_draft ? 'new draft, not approved' : (/^(approved|final)$/.test(String(s.status||'')) ? 'approved' : 'draft'), added_after_approval:s.added_after_approval, folder:s.folder, assets: s.files.filter(f=>f.kind!=='file' && f.kind!=='creative' && !/\.json$/.test(f.name)).length, files: s.files.map(f => meta.get(f)) })), files: listed.length, top_level: listed.filter(f=>!f.slot).map(f => meta.get(f)) }, null, 2));
+  window.__SB_LAST_ZIP = { files: files.map(f => f.name), sends: sends.length };
   const blob = zipStore(files);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = exportStem()+`-brain-assets-${new Date().toISOString().slice(0,10)}.zip`;
@@ -2836,6 +2910,47 @@ async function sbLoadPublish(root){
     box.innerHTML = pubHTML(d, i);
   } catch(err){ if(box.isConnected) box.innerHTML = `<p class="vh-status" role="status">The schedule could not be read: ${esc((err && err.message) || 'no answer')}.</p>`; }
 }
+// Approve the kinds added to an approved send after its approval. The server
+// saves them beside what was approved, with who approved them and when.
+// Approve the draft that stands in for approved assets that went missing. The
+// row's own review controls are hidden (the calendar still says approved), so
+// the press is here, beside the sentence that asks for it (review of #451).
+window.sbApproveRecovered = async function(btn){
+  const id = btn && btn.getAttribute('data-slot'); if(!id) return;
+  const mark = btn.innerHTML;
+  btn.disabled = true; btn.setAttribute('aria-busy','true'); btn.textContent = 'Approving…';
+  try {
+    const r = await fetch(`${API}?action=smart-brain-approve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, reviewer: reviewerEmail() }) });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || d.ok === false) throw new Error(d.message || d.error || ('HTTP ' + r.status));
+    if(d.campaign) PREVIEW_CACHE[id] = Object.assign({}, PREVIEW_CACHE[id] || {}, { campaign: d.campaign, approved_assets_missing: false });
+    const note = btn.closest('[data-revision]');
+    if(note){ note.setAttribute('data-revision', 'recovered-approved'); note.innerHTML = '<b>Approved.</b> This draft is now the approved send.'; }
+  } catch(err){
+    btn.disabled = false; btn.removeAttribute('aria-busy'); btn.innerHTML = mark;
+    sbSay(btn, 'The draft was not approved: ' + ((err && err.message) || 'no reason was given') + '.');
+  }
+};
+window.sbApproveAdditions = async function(btn){
+  // The slot is named on the button itself: the plan list is re-read by the
+  // page at its own pace, and an index into it can go stale under a press.
+  const e = { id: btn && btn.getAttribute('data-slot') }; if(!e.id) return;
+  const mark = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); btn.textContent = 'Approving…'; }
+  try {
+    const r = await fetch(`${API}?action=smart-brain-approve-additions`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: e.id, reviewer: reviewerEmail() }) });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || d.ok === false) throw new Error(d.message || d.error || ('HTTP ' + r.status));
+    const cached = PREVIEW_CACHE[e.id];
+    if(cached && cached.campaign){ cached.campaign.assets_added_approved = (cached.campaign.assets_added_approved || []).concat((d.added || []).map(kind => ({ kind, by: d.approved_by, at: d.approved_at }))); delete cached.campaign.assets_added_on_view; }
+    const note = btn && btn.closest('[data-revision]');
+    if(note){ note.setAttribute('data-revision', 'additions-approved'); note.innerHTML = d.skipped ? esc(d.reason || 'Nothing was saved.') : `<b>Approved.</b> ${(d.added || []).length} added kind${(d.added || []).length === 1 ? '' : 's'} saved with this send. Open Schedule to queue them.`; }
+    const root = btn && btn.closest('.pvroot'); if(root && typeof sbLoadPublish === 'function') sbLoadPublish(root);
+  } catch(err){
+    if(btn){ btn.disabled = false; btn.removeAttribute('aria-busy'); btn.innerHTML = mark; }
+    sbSay(btn, 'The added assets were not approved: ' + ((err && err.message) || 'no reason was given') + '.');
+  }
+};
 window.sbSchedule = async function(i, btn){
   const box = btn && btn.closest('[data-pub-slot]'); if(!box) return;
   const id = box.getAttribute('data-pub-slot');

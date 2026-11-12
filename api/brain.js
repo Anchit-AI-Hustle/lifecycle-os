@@ -323,7 +323,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|observations|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
       if (WRITES.test(action)) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -1075,6 +1075,14 @@ module.exports = async function handler(req, res) {
       // connected ad accounts' ads with their copy and per-ad metrics, kept
       // as evidence for the writer. Import is owner/editor; list and status
       // are members'. A signed-in caller only.
+      // One record over every asset this workspace has SEEN (the brand's own
+      // ads, competitors' ads, mail and pages), with each source's coverage and
+      // state. Read only; a member of the workspace (asset-observations.js).
+      case 'observations': {
+        const authO = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!authO.ok) return res.status(authO.status || 401).json(authO);
+        return await require('./_shared/asset-observations.js').handle(req, res, { auth: authO, workspaceId: __wsId });
+      }
       case 'ad-history': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!auth.ok) return res.status(auth.status || 401).json(auth);

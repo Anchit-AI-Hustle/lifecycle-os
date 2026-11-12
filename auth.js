@@ -1041,29 +1041,23 @@
     // then plan, create, publish and measure, then research, assistants and
     // settings. The duplicate "Connectors" row (the same page as Connections,
     // whose match already covers /connectors) is gone.
-    { section: 'Brand' },
-    { group: 'Brand & Credits', icon: 'studio', gid: 'platform', ver: 'v2', children: [
+    { section: 'Brand Details' },
+    { group: 'Brand Setup & Identity', icon: 'studio', gid: 'platform', ver: 'v2', children: [
       { id: 'brand-setup',   label: 'Brand Setup',      href: '/onboarding', icon: 'studio', match: ['/onboarding', '/setup', '/start', '/onboarding.html'] },
       { id: 'brand-catalogue', label: 'Brand Catalogue', href: '/catalog', icon: 'insights', ver: 'v2', match: ['/catalog', '/brand-catalogue', '/brand-catalogue.html'] },
       { id: 'brand-context',  label: 'Brand Context',    href: '/brand-context', icon: 'insights', ver: 'v2', match: ['/brand-context', '/brand-context-view.html'] },
       // Opens a blank brand on the app setup palette (not the previous brand's
       // colours). Existing brands switch from the rail picker or step 1 list.
       { id: 'brand-switch',  label: 'Switch Brand',     href: '/onboarding?new=1', icon: 'studio', match: [] },
-      { id: 'brandinput',    label: 'Brand Kit',        href: '/brand',      icon: 'insights', match: ['/brand', '/brand.html'] },
-      { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
-      { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
-      { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
-      { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
+      { id: 'brandinput',    label: 'Brand Kit',        href: '/brand-kit',  icon: 'insights', match: ['/brand-kit', '/brand.html'] },
     ]},
     // AI Models is its own item (2026-10-23, the operator: "ai models as a
     // separate item instead of branched within brand setup"): which model makes
     // the work, in what order, and on whose key is a decision of its own.
-    { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
     // Connections is its own item beside it (2026-10-24, the operator: the
     // rail "still doesn't have ai models and connections ... clearly specify
     // which is what"): the platforms a brand publishes to and reads from
     // (Meta, Google Ads, Klaviyo, Shopify ...), with their sign-ins and keys.
-    { id: 'connections',   label: 'Platform Connections', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
 
     // THE OPERATOR'S ORDER (2026-11-12): the brand, then who it competes with,
     // then what the brand itself has live (its mailers, ads and pages as the
@@ -1191,8 +1185,10 @@
 
     { id: 'music', label: 'Music (Official Songs)', href: '/music', icon: 'knickgasm', ver: 'v2', match: ['/music', '/music.html'] },
     { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'analysis', ver: 'v1', match: ['/assets', '/assets.html'] },
-    { section: 'Publish & Analyse' },
+    // Review and publishing follow creation (2026-11-12, the operator's order:
+    // brand, benchmarking, live assets, plan, create, data analysis).
     { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
+    { section: 'Data Analysis' },
     { id: 'allinone',   label: 'Master Dashboard', href: '/master-dashboard', icon: 'analysis', ver: 'v2', match: ['/master-dashboard', '/master', '/all-in-one', '/os', '/dashboard-os', '/all-in-one.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard', '/revenue-by-region', '/revenue-by-region.html'], children: [
       // Labels and tab ids track analysis-registry.js, which is what the
@@ -1281,6 +1277,13 @@
     ] },
 
     { section: 'Settings' },
+    // Account utilities: models, connections, credits, payments, about.
+    { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
+    { id: 'connections',   label: 'Platform Connections', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
+    { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
+    { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
+    { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
+    { id: 'payments',      label: 'Payment Gateways', href: '/payments', icon: 'insights', ver: 'v2', match: ['/payments', '/payment-gateways', '/payments/callback', '/payments.html'] },
     { id: 'accessissues', label: 'Access Issues', href: '/access-issues', icon: 'insights', ver: 'v2', match: ['/access-issues', '/access', '/access-issues.html'] },
     { id: 'appaudit',   label: 'Overall App Audit', href: '/audit',      icon: 'insights', ver: 'v2', match: ['/audit', '/app-audit', '/app-audit.html'] },
     // ── "Aman's version" (aka "Aman's code") — the frozen 3 Jul 2026 build ──
@@ -1898,6 +1901,8 @@
   //   3. EXACT match on pathname against href's pathname part (fallback for
   //      sub-tabs whose container page is open with no hash yet).
   //   4. PREFIX match against `match[]` — but never against `/`.
+  // Short addresses of pages whose rail rows are written with the file name.
+  const PAGE_ALIASES = { '/kb': '/knowledge-base.html', '/competitor': '/competitor-benchmarking.html', '/ads': '/ad-campaigns.html', '/ad-campaigns': '/ad-campaigns.html' };
   function currentStepId() {
     // A page whose tabs switch IN PLACE (no URL change) can name its own active
     // rail item via window.__LC_ACTIVE_ID. The URL is then not the source of
@@ -1918,6 +1923,20 @@
     for (const cand of [p + s + h, p + s, p + h, p]) {
       for (const it of leaves) {
         if (it.href && it.href.toLowerCase() === cand) return it.id;
+      }
+    }
+    // 1b. A hash that carries more than the channel (#meta/IN: the Knowledge
+    //     Base adds the market), or a page reached by its short address (/kb,
+    //     /knowledge-base for /knowledge-base.html), still lights its OWN
+    //     channel row (audit 2026-11-12: the Meta channel was on screen with
+    //     "Mailers" lit, because nothing matched and the first row of the page won).
+    if (h) {
+      const hb = h.split('/')[0];
+      const same = (hp) => hp === p || hp === p + '.html' || (PAGE_ALIASES[p] || '') === hp;
+      for (const it of leaves) {
+        if (!it.href || it.href.indexOf('#') < 0) continue;
+        const parts = it.href.toLowerCase().split('#');
+        if ('#' + parts[1] === hb && same(parts[0])) return it.id;
       }
     }
     // 2. match[] exact on pathname

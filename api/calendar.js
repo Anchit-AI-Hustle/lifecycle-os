@@ -475,6 +475,31 @@ async function smartBrain(req, res, smartAction) {
       return res.status(200).json(result);
     }
 
+    if (smartAction === 'approve-additions') {
+      // The asset kinds added to an approved send after its approval (social
+      // posts, on-site and display assets) are approved on their own press.
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+      if (!body.id) return res.status(400).json({ ok: false, error: 'id is required' });
+      if (!req.__workspaceId) return res.status(409).json({ ok: false, error: 'no_workspace', message: 'This brand is kept on this device, so it has no saved send to add to.' });
+      // An approval is a write: an owner or editor of the workspace, never a
+      // viewer (review of #451). The planner writes with the service role, so
+      // the role is checked here, before it.
+      {
+        const core = require('./_shared/brand-workspace-core.js');
+        const who = await core.requireUser(req);
+        if (!who.ok) return res.status(who.status || 401).json(who);
+        try { await core.assertCanWrite(who, req.__workspaceId, 'approve assets added to a send'); }
+        catch (e) { return res.status((e && e.status) || 403).json({ ok: false, error: (e && e.code) || 'forbidden', message: (e && e.message) || 'Only an owner or editor of this brand can approve assets.' }); }
+      }
+      try {
+        const result = await plan.approveAdditions({ id: body.id, reviewer: body.reviewer || null, config: body.config || {} });
+        return res.status(200).json(result);
+      } catch (e) {
+        if (e && e.status) return res.status(e.status).json({ ok: false, error: e.code || 'refused', message: e.message });
+        throw e;
+      }
+    }
+
     if (smartAction === 'unreject') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id) return res.status(400).json({ ok: false, error: 'id is required' });
@@ -535,11 +560,13 @@ async function smartBrain(req, res, smartAction) {
       return res.status(200).json(result);
     }
 
-    return res.status(400).json({ ok: false, error: 'Unknown Smart Brain action. Use smart-brain-health|smart-brain-schema|smart-brain-plan|smart-brain-sync-daily|smart-brain-cron|smart-brain-prebuild|smart-brain-heal|smart-brain-preview|smart-brain-approve|smart-brain-reject|smart-brain-run-daily|smart-brain-generate-slot|smart-brain-generate-asset|smart-brain-feedback|smart-brain-weekly-recalibration' });
+    return res.status(400).json({ ok: false, error: 'Unknown Smart Brain action. Use smart-brain-health|smart-brain-schema|smart-brain-plan|smart-brain-approve-additions|smart-brain-sync-daily|smart-brain-cron|smart-brain-prebuild|smart-brain-heal|smart-brain-preview|smart-brain-approve|smart-brain-reject|smart-brain-run-daily|smart-brain-generate-slot|smart-brain-generate-asset|smart-brain-feedback|smart-brain-weekly-recalibration' });
   } catch (err) {
     // A refusal the planner states (a slot planned from another brand's
     // catalogue, 409 catalogue_excluded) is an answer, not a crash.
     if (err && (err.code === 'catalogue_excluded' || err.code === 'brand_changed')) return res.status(409).json({ ok: false, error: err.code, message: err.message });
+    // What an approved send refuses, and a store that did not answer, in words.
+    if (err && (err.code === 'approved_send_locked' || err.code === 'approved_assets_unreadable')) return res.status(err.status || 409).json({ ok: false, error: err.code, message: err.message });
     console.error('[api/calendar smart-brain]', err);
     return res.status(500).json({ ok: false, error: err.message });
   }

@@ -532,9 +532,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   const TT_SUPPORTED = ['GB','DE','FR','IT','ES','NL','IE','SE','DK','FI','NO','PL','AT','BE','PT','GR','CZ','RO','HU','CH'];
   const AD_TABS = ['meta', 'google', 'tiktok'];
   const KNICKGASM_AD_NOTE = {
-    meta:   (n) => 'Live <b>' + esc(n) + ' Meta (Facebook + Instagram)</b> ads via the free <b>Meta Ad Library</b>, searched by advertiser name. Open any region tile pre-filtered.',
-    google: (n) => 'Live <b>' + esc(n) + ' Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by the store domain on ' + esc(n) + '\'s record for each region.',
-    tiktok: (n) => 'Live <b>' + esc(n) + ' TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region (library covers EEA/UK).',
+    meta:   (n) => '<b>' + esc(n) + ' Meta (Facebook + Instagram)</b> ads via the free <b>Meta Ad Library</b>, searched by advertiser name. Open any region tile pre-filtered.',
+    google: (n) => '<b>' + esc(n) + ' Google</b> ads (Search, Display, YouTube) via the free <b>Google Ads Transparency Center</b>, matched by the store domain on ' + esc(n) + '\'s record for each region.',
+    tiktok: (n) => '<b>' + esc(n) + ' TikTok</b> ads via the free <b>TikTok Commercial Content Library</b>, searched by advertiser name and region (library covers EEA/UK).',
   };
   // Returns [meta, google, tiktok] deep-link entries for the active brand in one
   // region, built exactly like competitor-benchmarking.html adSources().
@@ -569,7 +569,56 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     ];
   }
 
+  // The brand's own ads for one channel, from brand_ad_history (imported on
+  // Connections from the linked Meta / Google Ads account). Every state is
+  // said: not signed in, a device brand, never imported, nothing returned,
+  // read some time ago, and a platform that is not read at all.
+  const OWN_ADS = { meta: 'meta', google: 'google_ads', tiktok: null };
+  async function loadOwnAds(chan){
+    const box = () => { const el = $('kbOwnAds'); return el && el.getAttribute('data-own-ads') === chan && state.chan === chan ? el : null; };
+    const say = (html, st) => { const el = box(); if (el) { el.setAttribute('data-state', st); el.innerHTML = html; } };
+    const head = `<h3 style="font-size:14px;margin:0 0 4px">Ads on ${esc(activeName())}'s own account</h3>`;
+    const provider = OWN_ADS[chan];
+    if (!provider) return say(head + `<p class="count">TikTok Ads is not read here: its report endpoint is not confirmed for this platform, so no TikTok ad is listed and none is assumed.</p>`, 'not_read');
+    const ws = activeWorkspaceId();
+    if (!ws) return say(head + `<p class="count">This brand is kept on this device, so it has no linked ad account to read. Sign in and save it to your account, then link the ad account on <a href="/connections">Connections</a>.</p>`, 'no_account');
+    let ads = null, status = null;
+    try {
+      const q = '&workspace_id=' + encodeURIComponent(ws);
+      const [a, b] = await Promise.all([
+        fetch('/api/brain?action=ad-history&op=list&provider=' + provider + '&limit=60' + q, { cache: 'no-store' }),
+        fetch('/api/brain?action=ad-history&op=status' + q, { cache: 'no-store' }),
+      ]);
+      if (a.status === 401 || a.status === 403) return say(head + `<p class="count">Sign in to see the ads read from ${esc(activeName())}'s own account.</p>`, 'signed_out');
+      if (!a.ok) throw new Error('HTTP ' + a.status);
+      ads = ((await a.json()) || {}).ads || [];
+      status = b.ok ? await b.json().catch(() => null) : null;
+    } catch (e) {
+      return say(head + `<p class="count">The ads could not be read just now (${esc(String((e && e.message) || e))}). Nothing is shown in their place.</p>`, 'unavailable');
+    }
+    const plat = ((status && status.platforms) || []).find((x) => x && x.provider === provider) || {};
+    const run = plat.last_import || null;
+    const last = (run && (run.ran_at || run.created_at)) || (ads[0] && ads[0].imported_at) || null;
+    const days = last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null;
+    const fresh = last ? `Read ${esc(String(last).slice(0, 10))}${days > 7 ? ` · <b>${days} days ago, may be out of date</b>` : ''}` : '';
+    if (!ads.length && status && plat.connected === false) return say(head + `<p class="count">No ${chan === 'meta' ? 'Meta' : 'Google Ads'} account is linked to ${esc(activeName())}, so none of its ads can be read. Link it on <a href="/connections">Connections</a>.</p>`, 'not_connected');
+    if (!ads.length) return say(head + `<p class="count">No ad has been read from this account yet${last ? ' (last read ' + esc(String(last).slice(0, 10)) + ' returned none)' : ''}. Link the account and press Import on <a href="/connections">Connections</a>.</p>`, last ? 'empty' : 'never_imported');
+    const cards = ads.map((ad) => {
+      const text = ad.headline || ad.name || ad.primary_text || ('Ad ' + ad.ad_id);
+      const img = /^https:\/\//.test(String(ad.image_url || '')) ? `<img src="${esc(ad.image_url)}" alt="${esc(text)}" loading="lazy" referrerpolicy="no-referrer" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;margin-bottom:8px">` : '';
+      const dest = /^https?:\/\//.test(String(ad.landing_url || '')) ? `<a href="${esc(ad.landing_url)}" target="_blank" rel="noopener noreferrer">where it leads ↗</a>` : 'destination not returned';
+      return `<div class="bkb" data-own-ad="${esc(ad.ad_id)}" style="text-align:left">${img}<b>${esc(text)}</b>`
+        + (ad.primary_text && ad.primary_text !== text ? `<span>${esc(String(ad.primary_text).slice(0, 220))}</span>` : '')
+        + `<span>${esc(ad.status || 'status not returned')} · last seen ${esc(String(ad.last_seen || '').slice(0, 10))} · ${dest}</span></div>`;
+    }).join('');
+    say(head + `<p class="count">${ads.length} ad${ads.length === 1 ? '' : 's'} as the platform returned them (the newest ${ads.length}; not a full inventory). ${fresh}${plat.window_note ? ' · ' + esc(plat.window_note) : ''}</p>`
+      + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px">${cards}</div>`, days > 7 ? 'stale' : 'ok');
+  }
+
+  // A channel that answers late never draws over the one chosen after it.
+  let renderSeq = 0;
   async function render(){
+    const mine = ++renderSeq;
     setActive();
     loadBucketFiles();            // refresh "in this bucket" list in the add-bar
     const p=$('panel');
@@ -579,6 +628,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(state.src==='competitor' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading captured competitor mailers…</div>';
       const emails=await fetchEmails();
+      if (mine !== renderSeq) return;
       const filtered = narrowed() ? emails.filter(e => inSel(regionOfBrand(e.brand))) : emails;
       if(!filtered.length){p.innerHTML=emptyState('No mailers captured yet'+(narrowed()?(' for '+selText()):''),'Competitor emails captured into the monitored inbox will appear here as a visual design library.','Open Competitor Benchmarking','/competitor-benchmarking.html');return;}
       p.innerHTML=`<p class="count">${filtered.length} competitor mailers archived${narrowed()?(' · '+esc(selText())):''} · click any to preview</p><div class="grid" id="grid"></div>`;
@@ -598,6 +648,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     if(state.src==='knickgasm' && state.chan==='mailers'){
       p.innerHTML='<div class="loading">Loading top mailers…</div>';
       const items = await fetchTopEmails();
+      if (mine !== renderSeq) return;
       const filtered = narrowed() ? items.filter(x => inSel(x.market)) : items;
       renderTopEmails(p, filtered);
       return;
@@ -618,10 +669,17 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         if (!s.url) return `<div class="bkb" data-kb-market="${esc(rg)}">${label}<span>${esc(s.hint)}</span></div>`;
         return `<a class="bkb" data-kb-market="${esc(rg)}" href="${s.url}" target="_blank" rel="noopener">${label} ↗<span>${esc(s.hint)}</span></a>`;
       }).join('');
-      p.innerHTML = `<p class="count">${KNICKGASM_AD_NOTE[state.chan](activeName())}</p>`
+      // The brand's OWN ads, as read from its connected ad account, come first
+      // (audit 2026-11-12). This tab showed only search links into the public
+      // libraries under the word "Live": a search link is a way to look, it is
+      // not a record of an ad and says nothing about what is running.
+      p.innerHTML = `<div id="kbOwnAds" data-own-ads="${esc(state.chan)}"><p class="count">Reading the ads on ${esc(activeName())}'s own account…</p></div>`
+        + `<h3 style="font-size:14px;margin:22px 0 4px">Search the public ad libraries</h3>`
+        + `<p class="count" data-kb-links-note>These open a public library search for ${esc(activeName())}. They are search links, not records: nothing here says an ad is running.</p>`
         + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px">${tiles}</div>`
         + `<p style="font-size:12px;color:var(--vh-ink-dim);margin-top:16px">Google and TikTok do not expose a free structured ad feed, so each tile opens the official free library pre-filtered for ${esc(activeName())}. Build new creatives in the ad generator, then archive them here via the add bar above.</p>`
         + `<div style="margin-top:12px"><a class="kb-cta" href="${meta.dest}">${esc(meta.destLabel)} →</a></div>`;
+      loadOwnAds(state.chan);
       return;
     }
 
@@ -888,6 +946,15 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (rc && rc.ready) rc.ready().then(() => { if (rc.resolve(region)) rc.setSelection([region]); });
     }
   })();
+  // A rail entry pressed while this page is open, and the browser's back and
+  // forward, change only the hash (audit 2026-11-12): the address said Google
+  // Ads while the Meta channel stayed on screen. The channel follows it.
+  window.addEventListener('hashchange', () => {
+    let chan = (location.hash || '').replace('#', '').split('/')[0].replace(/^(knickgasm|competitor)-/, '');
+    if (chan === 'ads') chan = 'meta';
+    if (chan === 'manual' || chan === 'files') chan = 'mailers';
+    if (CHANNELS.includes(chan) && chan !== state.chan) { state.chan = chan; render(); }
+  });
   render();
 })();
 </script>

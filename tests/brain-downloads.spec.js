@@ -169,7 +169,7 @@ test('Download all is one file of framed assets, each rendering on its own, and 
 test('the ZIP carries a page per ad beside its data, and its index is the brand\'s, not tenant zero\'s', async ({ browser }) => {
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await open(context);
-  const files = await page.evaluate((c) => {
+  const files = await page.evaluate(async (c) => {
     // The brand is active: its tokens are on the page and its record is the context's.
     const r = document.documentElement.style;
     r.setProperty('--vh-primary', '#6B3E26'); r.setProperty('--vh-bg', '#FFF8F0'); r.setProperty('--vh-ink', '#2B1D14'); r.setProperty('--vh-accent-text', '#8A5A1E');
@@ -179,7 +179,8 @@ test('the ZIP carries a page per ad beside its data, and its index is the brand\
     PREVIEW_CACHE['dl-1'] = { campaign: c };
     let captured = null; const real = window.zipStore;
     window.zipStore = (fl) => { captured = fl.map((x) => ({ name: x.name, data: String(x.data) })); return real(fl); };
-    try { sbZipAll(); } finally { window.zipStore = real; }
+    // the archive is built after each file's digest is taken (manifest.json), so it is awaited
+    try { await sbZipAll(); } finally { window.zipStore = real; }
     return captured;
   }, campaign);
   expect(files, 'the ZIP was built').toBeTruthy();
