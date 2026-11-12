@@ -26,7 +26,7 @@ Workers (run by hand or by a workflow, not on Vercel): `collect-ads.js`, `collec
 | Verify (brand, foreign names, skills, DESIGN.md, KB, pages, interactions) | `npm run verify` | passed: 74 pages, 0 blockers, 5 warnings; 0 dead controls, 6 unproven (section 6, F-19) |
 | Executed-tests ratchet | `npm run check:executed:ci` | passed: 180 source-text assertions, baseline 180 |
 | Baseline suite | CI run 43164458860 on `072e0a1` (the commit before #450) | passed, all six shards |
-| Branch suite | `npx playwright test --project=desktop-1280` | running when this was written; see the final section |
+| Branch suite | `npx playwright test --project=desktop-1280` | 3,994 passed, 3 failed, 4 skipped (1.2 h, run started before the later edits). `brain-downloads` failed because of this branch (the ZIP is now built after its digests, and the test did not await it): the test was fixed and its spec passes (3). `brand-theme-every-page` (playbook/index.html) and `code-video` (the short cut) fail the same way on a clean checkout of `origin/main` in this container and pass in CI on main, so they are this environment's, not this branch's; they were not fixed |
 | New and changed specs | `approved-send-integrity` (4), `asset-decisions` (4), `live-brand-assets` (3), `brain-day-publish` (4), `router-calendar` (136), `kb-benchmark-docs` (7), `nav-no-duplicates` + `nav-rail-everywhere` (18), `migration-versions` (4) | all passed |
 
 Limits of this environment, which bound every "verified" below: Node 22.23 here (CI uses 24); WebKit cannot be installed,
