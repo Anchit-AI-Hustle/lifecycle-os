@@ -260,6 +260,17 @@ test('an approved send says which assets were added after its approval and holds
     // as approved: no note at all
     await show(JSON.parse(JSON.stringify(c)), null, 'approved');
     await expect(page.locator('#rev-host [data-revision]')).toHaveCount(0);
+    // the decision behind each asset is on the page: one row per asset, the
+    // state said in words, and what was observed never labelled measured
+    const dec = page.locator('#rev-host details.pvdecision');
+    await expect(dec).toHaveAttribute('data-decision-state', 'provisional');
+    await dec.locator('summary').click();
+    await expect(dec.locator('[data-decision-asset]')).toHaveCount(c.decisions.count);
+    await expect(dec.locator('[data-decision-note]')).toContainText('No measured result of this brand');
+    await expect(dec.locator('[data-evidence-basis="measured"]')).toHaveCount(0);
+    await expect(dec.locator('[data-decision-digest]')).toHaveText(c.decisions.manifest_digest);
+    if (process.env.AUDIT_SHOTS) await dec.screenshot({ path: require('path').join(process.env.AUDIT_SHOTS, 'brain-decision-record.png') });
+    expect(await dec.locator('[data-decision-table]').evaluate((t) => t.scrollWidth <= t.parentElement.clientWidth + 1 || getComputedStyle(t.parentElement).overflowX === 'auto')).toBe(true);
 
     // kinds added after approval: said, with the press that approves them
     const added = Object.assign(JSON.parse(JSON.stringify(c)), { assets_added_on_view: ['social_posts', 'onsite'] });
@@ -268,6 +279,9 @@ test('an approved send says which assets were added after its approval and holds
     await expect(note).toHaveAttribute('data-revision', 'additions-pending');
     await expect(note).toContainText('Added after approval: social posts, on-site assets');
     await expect(note).toContainText('exactly as approved');
+    if (process.env.AUDIT_SHOTS) await note.screenshot({ path: require('path').join(process.env.AUDIT_SHOTS, 'brain-added-after-approval.png') });
+    // the page's own plan read (refused here) empties PLAN when it settles: the row the press names is put back
+    await page.evaluate(() => { if (!PLAN[0]) PLAN.push({ id: 'day-1', date: '2026-11-14', market: 'IN', cohort: { name: 'At Risk' }, channels: ['email'], status: 'approved' }); });   // eslint-disable-line no-undef
     await note.locator('[data-approve-additions]').click();
     await expect(note).toHaveAttribute('data-revision', 'additions-approved');
     expect(asked).toEqual([{ id: 'day-1', reviewer: null }]);

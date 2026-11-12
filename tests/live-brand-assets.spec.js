@@ -116,6 +116,10 @@ test('the rail\'s Meta entry shows the account brand\'s own ads as cards, counte
   await expect(box).toContainText('not a full inventory');
   await expect(box).toContainText('9 days ago, may be out of date');
   await expect(box.locator('[data-own-ad="9001"]')).toContainText('Frames that sit light');
+  // the rail lights the channel on screen (the address carries the market too: #meta/IN)
+  expect(await page.evaluate(() => location.hash)).toMatch(/^#meta/);
+  await expect(page.locator('#lifecycle-nav .lnav-link.active')).toHaveAttribute('data-id', 'kbv-meta');
+  if (process.env.AUDIT_SHOTS) await page.screenshot({ path: path.join(process.env.AUDIT_SHOTS, 'live-brand-assets-meta.png'), fullPage: true });
   await expect(box.locator('[data-own-ad="9001"] a')).toHaveAttribute('href', 'https://fernline.example/frames');
   // What the platform did not return is said, never filled.
   await expect(box.locator('[data-own-ad="9002"]')).toContainText('status not returned');
@@ -160,4 +164,8 @@ test('a brand kept on this device is told why none of its ads can be read, and n
   await expect(page.locator('#kbOwnAds')).toHaveAttribute('data-state', 'no_account');
   await expect(page.locator('#kbOwnAds [data-own-ad]')).toHaveCount(0);
   expect(asked).toEqual([]);
+  // the short address lights its own channel row too
+  await page.goto(HOST + '/kb#landing');
+  await page.waitForFunction((n) => !!(window.BrandContext && window.BrandContext.brand && window.BrandContext.brand.name === n), BRAND.name, { timeout: 20_000 });
+  await expect(page.locator('#lifecycle-nav .lnav-link.active')).toHaveAttribute('data-id', 'kbv-landing');
 });

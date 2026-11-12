@@ -781,6 +781,38 @@ function departmentsHTML(c){
 // context it read, each maker's work and each reviewer's verdict, with what a
 // reviewer sent back and whether the rewrite landed. Nothing when no team ran
 // (no model key, the keyless floor, or MARKETING_TEAM=off).
+// THE DECISION BEHIND EACH ASSET (audit 2026-11-12): who the send speaks to,
+// what it sells and where it leads, what shaped it (each item labelled measured,
+// observed or standard), and one row per asset with its contract, look, what it
+// is judged by and its revision. Nothing when the build wrote none (an older
+// saved send).
+function decisionHTML(c){
+  const d = c && c.decisions;
+  if(!d || !Array.isArray(d.items) || !d.items.length) return '';
+  const sh = d.shared || {};
+  const aud = sh.audience || {};
+  const facts = [
+    ['Speaks to', (aud.cohort || 'cohort not named') + (aud.size ? ` · ${Number(aud.size).toLocaleString('en-US')} people` : ' · size not measured') + (aud.rules && aud.rules.length ? ` · ${aud.rules.join('; ')}` : '')],
+    ['Purpose', sh.purpose || 'not stated'],
+    ['Sells', sh.product || sh.product_gap || 'not stated'],
+    ['Offer', sh.offer || sh.offer_note || 'none'],
+    ['Leads to', sh.destination || 'no page on record'],
+    ['Judged by', (sh.primary_kpi || 'not stated') + (sh.baseline != null ? ` · baseline ${sh.baseline}` : (sh.baseline_gap ? ` · ${sh.baseline_gap}` : '')) + (sh.read_on ? ` · read on ${sh.read_on}` : '')],
+  ].map(([k, v]) => `<tr><td style="padding:3px 10px 3px 0;white-space:nowrap;vertical-align:top"><b>${esc(k)}</b></td><td style="padding:3px 0;overflow-wrap:anywhere">${esc(v)}</td></tr>`).join('');
+  const BASIS = { measured: 'Measured', observed: 'Observed', standard: 'Standard' };
+  const ev = (d.evidence || []).map(x => `<li data-evidence-basis="${esc(x.basis)}" style="margin:3px 0"><b>${esc(BASIS[x.basis] || x.basis)}:</b> ${esc(x.label)}${x.figures ? ` · ${esc(x.figures)}` : ''}${x.sources && x.sources.length ? ` <span class="pvnote" style="margin:0">(${esc(x.sources.join(', '))})</span>` : ''}<br><span class="pvnote" style="margin:0">${esc(x.note || '')}</span></li>`).join('');
+  const gaps = (d.gaps || []).map(g => `<li style="margin:2px 0">${esc(g)}</li>`).join('');
+  const rows = d.items.map(x => `<tr data-decision-asset="${esc(x.asset_id)}"><td style="padding:4px 8px 4px 0;overflow-wrap:anywhere"><code>${esc(x.asset_id)}</code></td><td style="padding:4px 8px 4px 0">${esc(x.contract || 'no contract')}</td><td style="padding:4px 8px 4px 0">${x.format ? esc([x.format.theme, x.format.template].filter(Boolean).join(' / ')) : ''}</td><td style="padding:4px 8px 4px 0;overflow-wrap:anywhere">${esc(x.kpi || '')}</td><td style="padding:4px 8px 4px 0">${esc(x.status)}</td><td style="padding:4px 0"><code>${esc(x.revision)}</code></td></tr>`).join('');
+  return `<details class="pvdecision" data-decision-state="${esc(d.state)}" style="margin-top:10px">
+    <summary style="cursor:pointer;font-weight:600">Why each asset was made this way <span class="pvnote" style="margin:0;font-weight:400">· ${d.count} assets · ${d.state === 'evidenced' ? 'shaped by your own results' : 'provisional: no result of your own yet'}</span></summary>
+    <p class="pvnote" data-decision-note style="margin:8px 0">${esc(d.state_note || '')}</p>
+    <table style="table-layout:auto;width:100%;font-size:12px;border-collapse:collapse">${facts}</table>
+    ${ev ? `<p style="margin:10px 0 2px;font-weight:600;font-size:12px">What shaped it</p><ul style="margin:0;padding-left:18px;font-size:12px">${ev}</ul>` : ''}
+    ${gaps ? `<p style="margin:10px 0 2px;font-weight:600;font-size:12px">Not available for this send</p><ul style="margin:0;padding-left:18px;font-size:12px">${gaps}</ul>` : ''}
+    <div style="overflow-x:auto;margin-top:10px"><table data-decision-table style="table-layout:auto;width:100%;font-size:12px;border-collapse:collapse"><thead><tr style="text-align:left"><th style="padding:4px 8px 4px 0">Asset</th><th style="padding:4px 8px 4px 0">Held to</th><th style="padding:4px 8px 4px 0">Look</th><th style="padding:4px 8px 4px 0">Judged by</th><th style="padding:4px 8px 4px 0">State</th><th style="padding:4px 0">Revision</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="pvnote" style="margin:8px 0 0">Digest of this send's assets: <code data-decision-digest>${esc(d.manifest_digest || '')}</code></p>
+  </details>`;
+}
 function teamHTML(c){
   const t = c && c.team;
   if (!t || !Array.isArray(t.members) || !t.members.length) return '';
@@ -2190,6 +2222,7 @@ function renderPreview(payload, e, i, opts){
       const section = (p) => { const h = heads.find((x) => x.id === p.id); return `<section class="pvsec" data-pane="${p.id}"><h4 class="pvsech">${h ? h.label : ''}</h4><div class="pvpane on" id="${p.id}">${p.html}</div></section>`; };
       return bar + present.map(([k]) => `<div class="pvgroup pvgroup-${k}" data-group="${k}"${k === open ? '' : ' hidden'}>${by[k].map(section).join('')}</div>`).join('');
     })()}
+    ${decisionHTML(campaign)}
     ${teamHTML(campaign)}
     ${checksBlock}</div>`;
   // Video ads carry a real animated creative; point each iframe at the exact
@@ -2604,7 +2637,7 @@ window.sbZipAll = async function(){
     for(let k=2; folders.has(folder.toLowerCase()); k++) folder = folder.replace(/(-\d+)?$/, '-'+k);
     folders.add(folder.toLowerCase());
     const base = `${folder}/${e.date}`;
-    cur = { slot_id: e.id || null, date: e.date, market: e.market || null, cohort: (e.cohort && e.cohort.name) || null, status: e.status || null, folder, campaign_id: c.id || c.campaign_id || null, build_version: c.build_version || null, added_after_approval: Array.isArray(c.assets_added_on_view) ? c.assets_added_on_view : [], recovered_draft: !!(p.approved_assets_missing || c.recovered_draft), files: [] };
+    cur = { slot_id: e.id || null, date: e.date, market: e.market || null, cohort: (e.cohort && e.cohort.name) || null, status: e.status || null, folder, campaign_id: c.id || c.campaign_id || null, build_version: c.build_version || null, manifest_digest: (c.decisions && c.decisions.manifest_digest) || null, added_after_approval: Array.isArray(c.assets_added_on_view) ? c.assets_added_on_view : [], recovered_draft: !!(p.approved_assets_missing || c.recovered_draft), files: [] };
     sends.push(cur);
     const links = []; // {label, path} relative to ZIP root, for index.html
     const emailVars = p.email_variants || (c.assets && c.assets.email && c.assets.email.variants) || [];
@@ -2641,7 +2674,7 @@ window.sbZipAll = async function(){
   const listed = files.slice();
   const meta = new Map();
   for(const f of listed) meta.set(f, { path:f.name, kind:f.kind, bytes: enc.encode(f.data).length, sha256: await digest(f.data) });
-  put('manifest.json', JSON.stringify({ manifest:'smart-brain.zip.v1', generated_at:new Date().toISOString(), sends: sends.map(s => ({ slot_id:s.slot_id, date:s.date, market:s.market, cohort:s.cohort, status:s.status, campaign_id:s.campaign_id, build_version:s.build_version, revision: s.recovered_draft ? 'new draft, not approved' : (/^(approved|final)$/.test(String(s.status||'')) ? 'approved' : 'draft'), added_after_approval:s.added_after_approval, folder:s.folder, assets: s.files.filter(f=>f.kind!=='file' && f.kind!=='creative' && !/\.json$/.test(f.name)).length, files: s.files.map(f => meta.get(f)) })), files: listed.length, top_level: listed.filter(f=>!f.slot).map(f => meta.get(f)) }, null, 2));
+  put('manifest.json', JSON.stringify({ manifest:'smart-brain.zip.v1', generated_at:new Date().toISOString(), sends: sends.map(s => ({ slot_id:s.slot_id, date:s.date, market:s.market, cohort:s.cohort, status:s.status, campaign_id:s.campaign_id, build_version:s.build_version, assets_digest:s.manifest_digest, revision: s.recovered_draft ? 'new draft, not approved' : (/^(approved|final)$/.test(String(s.status||'')) ? 'approved' : 'draft'), added_after_approval:s.added_after_approval, folder:s.folder, assets: s.files.filter(f=>f.kind!=='file' && f.kind!=='creative' && !/\.json$/.test(f.name)).length, files: s.files.map(f => meta.get(f)) })), files: listed.length, top_level: listed.filter(f=>!f.slot).map(f => meta.get(f)) }, null, 2));
   window.__SB_LAST_ZIP = { files: files.map(f => f.name), sends: sends.length };
   const blob = zipStore(files);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);

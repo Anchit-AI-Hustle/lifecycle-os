@@ -4327,6 +4327,12 @@ async function buildCampaign(entry, config, opts = {}) {
     }
     built.brand_identity = brandIdentity(entry && entry.brand);
     built.brand_name = (entry && entry.brand && entry.brand.name) || null;
+    // THE DECISION RECORD (audit 2026-11-12): who each asset speaks to, what it
+    // sells, where it leads, what shaped it (measured / observed / standard) and
+    // how it will be judged, with a stable id and revision per asset. Compiled
+    // from what this build resolved, after the checks and the mail study, so it
+    // carries their answers.
+    try { built.decisions = require('./asset-decisions.js').build(built, entry); } catch (e) { console.warn('[smart-brain] decision record failed:', e && e.message); }
   }
   return built;
 }
@@ -5926,7 +5932,7 @@ const PREBUILD_MARKER = '__prebuilt';
 // fixed), so the version is now the content of the code that renders and
 // grounds the assets: change any of it and every saved bundle is rebuilt.
 const ASSET_BUILD_VERSION = (() => {
-  const files = [__filename, './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js', './social-assets.js', './site-assets.js'];
+  const files = [__filename, './asset-decisions.js', './product-story.js', './calendar-trigger.js', './mailer-format.js', './copy-grounding.js', './brand-runtime.js', '../../lib/smart-brain/services.js', './marketing-team.js', './marketing-team-server.js', './unit-words.js', './asset-style.js', './asset-themes.js', './mail-templates.js', './marketing-agents.js', '../../scripts/lib/static-ad.js', '../../scripts/lib/story-ad.js', '../../scripts/lib/motion-ad.js', './brand-music.js', './image-prompt.js', './lp-craft.js', './social-assets.js', './site-assets.js'];
   const h = require('crypto').createHash('sha256');
   for (const f of files) {
     try { h.update(require('fs').readFileSync(f === __filename ? f : require.resolve(f))); } catch (_) { h.update(f); }

@@ -1901,6 +1901,8 @@
   //   3. EXACT match on pathname against href's pathname part (fallback for
   //      sub-tabs whose container page is open with no hash yet).
   //   4. PREFIX match against `match[]` — but never against `/`.
+  // Short addresses of pages whose rail rows are written with the file name.
+  const PAGE_ALIASES = { '/kb': '/knowledge-base.html', '/competitor': '/competitor-benchmarking.html', '/ads': '/ad-campaigns.html', '/ad-campaigns': '/ad-campaigns.html' };
   function currentStepId() {
     // A page whose tabs switch IN PLACE (no URL change) can name its own active
     // rail item via window.__LC_ACTIVE_ID. The URL is then not the source of
@@ -1921,6 +1923,20 @@
     for (const cand of [p + s + h, p + s, p + h, p]) {
       for (const it of leaves) {
         if (it.href && it.href.toLowerCase() === cand) return it.id;
+      }
+    }
+    // 1b. A hash that carries more than the channel (#meta/IN: the Knowledge
+    //     Base adds the market), or a page reached by its short address (/kb,
+    //     /knowledge-base for /knowledge-base.html), still lights its OWN
+    //     channel row (audit 2026-11-12: the Meta channel was on screen with
+    //     "Mailers" lit, because nothing matched and the first row of the page won).
+    if (h) {
+      const hb = h.split('/')[0];
+      const same = (hp) => hp === p || hp === p + '.html' || (PAGE_ALIASES[p] || '') === hp;
+      for (const it of leaves) {
+        if (!it.href || it.href.indexOf('#') < 0) continue;
+        const parts = it.href.toLowerCase().split('#');
+        if ('#' + parts[1] === hb && same(parts[0])) return it.id;
       }
     }
     // 2. match[] exact on pathname
