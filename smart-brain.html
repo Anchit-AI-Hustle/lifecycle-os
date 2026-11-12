@@ -1990,6 +1990,41 @@ function renderPreview(payload, e, i, opts){
     pane(id, `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button><button type="button" class="btn sm secondary" onclick="sbDownload(${tdx})">⬇ Download</button><button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>${renderSocial(p)}`, first);
     first = false;
   });
+  // ON-SITE AND DISPLAY (2026-11-12): what the brand's own site shows while the
+  // send is live, the display banners in Google's sizes and the text of a
+  // responsive display ad. Each is its own pane: the asset in a frame, Copy
+  // (its words), Download (.html) and its data (.json).
+  const sitePlain = (o) => [o.text, o.headline].concat(o.sub || [], o.body || [], o.cta ? ['[' + o.cta + '] ' + (o.link || o.destination_url || '')] : []).filter(Boolean).join('\n');
+  const assetBar = (tdx, hdx, jdx) => `<div class="akbar"><button type="button" class="btn sm secondary" onclick="sbCopy(${tdx}, this)">📋 Copy</button>${hdx == null ? '' : `<button type="button" class="btn sm secondary" onclick="sbDownload(${hdx})">⬇ Download</button>`}<button type="button" class="btn sm secondary" onclick="sbDownload(${jdx})">⬇ Data (JSON)</button></div>`;
+  const dataOf = (o) => { const x = Object.assign({}, o); delete x.html; return JSON.stringify(x, null, 2); };
+  Object.values(campaign.assets?.onsite || {}).forEach((o) => {
+    const id = 'pv-site-' + o.key; const label = '🖥 ' + (o.label || o.key); const name = 'onsite-' + o.key;
+    const tdx = window.__SB_EXPORTS.push({ name: name + '-text', label: label + ' (text)', html: sitePlain(o), ext: 'txt' }) - 1;
+    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || '') }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: dataOf(o), ext: 'json' }) - 1;
+    tab(id, esc(label), first);
+    pane(id, `${assetBar(tdx, hdx, jdx)}<p class="socmeta" data-onsite-where>${esc(o.placement || '')}</p>${docFrame(o.html, 'site', label)}`, first);
+    first = false;
+  });
+  (campaign.assets?.display_banners || []).forEach((o) => {
+    const id = 'pv-dsp-' + o.size; const label = '🖼 ' + (o.label || o.size); const name = 'banner-' + o.size;
+    const tdx = window.__SB_EXPORTS.push({ name: name + '-text', label: label + ' (text)', html: sitePlain(o), ext: 'txt' }) - 1;
+    const hdx = window.__SB_EXPORTS.push({ name, label, html: sbPortable(o.html || '') }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: name + '-data', label: label + ' (data)', html: dataOf(o), ext: 'json' }) - 1;
+    tab(id, esc(label), first);
+    pane(id, `${assetBar(tdx, hdx, jdx)}<p class="socmeta">${esc(o.size)} pixels. To upload it as an image ad, export it as ${esc((o.upload && o.upload.formats || []).join(', '))} of at most ${esc(o.upload && o.upload.max_kb)} KB.</p><div class="dspwrap" style="max-width:100%;overflow-x:auto"><div style="width:${Number(o.width) || 300}px">${docFrame(o.html, 'banner', label)}</div></div>`, first);
+    first = false;
+  });
+  if (campaign.assets?.google_display) {
+    const g = campaign.assets.google_display; const id = 'pv-dsp-responsive'; const label = '🖼 Google responsive display ad';
+    const lines = [['Short headlines (30)', g.short_headlines || []], ['Long headline (90)', [g.long_headline].filter(Boolean)], ['Descriptions', g.descriptions || []], ['Business name', [g.business_name].filter(Boolean)], ['Opens', [g.final_url].filter(Boolean)], ['Images', [g.images && g.images.source ? 'From ' + g.images.source : '', g.images ? 'Landscape ' + g.images.landscape : '', g.images ? 'Square ' + g.images.square : ''].filter(Boolean)]];
+    const plain = lines.map(([k, v]) => k + ':\n' + v.join('\n')).join('\n\n');
+    const tdx = window.__SB_EXPORTS.push({ name: 'google-responsive-display', label, html: plain, ext: 'txt' }) - 1;
+    const jdx = window.__SB_EXPORTS.push({ name: 'google-responsive-display-data', label: label + ' (data)', html: JSON.stringify(g, null, 2), ext: 'json' }) - 1;
+    tab(id, esc(label), first);
+    pane(id, `${assetBar(tdx, null, jdx)}<div class="socpost" data-google-display>${lines.filter(([, v]) => v.length).map(([k, v]) => `<div class="sochead">${esc(k)}</div><div class="socbody">${v.map((x) => esc(x)).join('<br>')}</div>`).join('')}</div>`, first);
+    first = false;
+  }
   // MUSIC (2026-10-25): this send's track, briefed from the brand's own record
   // (brand-music.js). Compose sends the brief to the music model (Lyria first);
   // the track then scores every Story video of this send and is saved with it.
@@ -2077,8 +2112,8 @@ function renderPreview(payload, e, i, opts){
       // chosen kind's items sit side by side, so a whole kind compares at a
       // glance. Every pane stays in the page (ids, downloads and prompts
       // unchanged); the other kinds are one press away.
-      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : /^pv-soc-/.test(id) ? 'social' : id === 'pv-music' ? 'music' : 'json';
-      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['social', '📱 Social posts'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
+      const groupOf = (id) => id === 'pv-why' ? 'why' : /^pv-mail/.test(id) ? 'mail' : /^pv-lp/.test(id) ? 'lp' : /^pv-ad-/.test(id) ? 'ads' : /^pv-msg/.test(id) ? 'msg' : /^pv-soc-/.test(id) ? 'social' : /^pv-site-/.test(id) ? 'site' : /^pv-dsp-/.test(id) ? 'display' : id === 'pv-music' ? 'music' : 'json';
+      const GROUPS = [['mail', '✉ Mailers'], ['lp', '🛬 Landing pages'], ['ads', '📣 Ads'], ['social', '📱 Social posts'], ['site', '🖥 On-site'], ['display', '🖼 Display ads'], ['music', '🎵 Music'], ['msg', '💬 Messages'], ['why', '🧠 Why'], ['json', '{ } Data']];
       const by = {};
       panes.forEach((p) => { const g = groupOf(p.id); (by[g] = by[g] || []).push(p); });
       const present = GROUPS.filter(([k]) => by[k] && by[k].length);
@@ -2205,7 +2240,7 @@ function decisionPanelHTML(e){
       <span class="tprim" style="font-size:15px;font-weight:700">The complete logic, analysis &amp; reason</span>
     </div>
     <div style="color:var(--vh-ink);font-size:14px;font-weight:700;margin:0 0 6px">1 · Why this slot was chosen for the calendar</div>
-    <table style="width:100%;border-collapse:collapse;margin:0 0 16px">
+    <table data-why-table style="width:100%;border-collapse:collapse;margin:0 0 16px;table-layout:auto">
       ${dl('Cohort', esc(cohortName), cohortDef ? esc(cohortDef) : '')}
       ${dl('Data basis', esc(dataBasis))}
       ${dl('Timing', esc(timingWhy))}
@@ -2230,7 +2265,17 @@ window.viewDecision = function(i){
   const row = $('exprow-'+i), body = $('expbody-'+i);
   document.querySelectorAll('.exprow').forEach(r=>{ if(r!==row) r.style.display='none'; });
   if(row) row.style.display='';
-  if(body){ body.innerHTML = decisionPanelHTML(e); body.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' }); }
+  if(!body) return;
+  // Answer the press first (2026-11-12: this handler held the page for 343 ms
+  // with a large preview open elsewhere): the row opens and paints, then the
+  // panel is built on the next frame.
+  body.removeAttribute('data-loaded');
+  body.innerHTML = '<p class="pvnote"><span class="spinner"></span> Opening…</p>';
+  requestAnimationFrame(() => setTimeout(() => {
+    if(row && row.style.display === 'none') return;
+    body.innerHTML = decisionPanelHTML(e);
+    body.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'start' });
+  }, 0));
 };
 // Open the primary mailer full-screen over this page (the "detailed page" when
 // a slot is not yet approved and has no hosted /lp/:id). It used to write the
@@ -2394,6 +2439,11 @@ window.sbZipAll = function(){
       files.push({ name:stem+'.html', data:sbAdDocHTML(ad) }); files.push({ name:stem+'.json', data:JSON.stringify(ad,null,2) });
       if(ad.creative_type!=='video' && ad.creative && ad.creative.static_html) files.push({ name:stem.replace(/\/ad_(?=[^/]*$)/, '/creative_')+'.html', data:sbPortable(ad.creative.static_html) });
       links.push({label:'Ad · '+(ad.platform||('ad'+(ai+1)))+(ad.creative_type?' '+ad.creative_type:''), path:stem+'.html', kind:'ad'}); });
+    // Social posts (.txt), on-site assets and display banners (.html) of the send.
+    ((c.assets && c.assets.social_posts) || []).forEach((sp)=>{ files.push({ name:`${base}/social_${slug(sp.key)}.txt`, data:socialPlain(sp) }); });
+    Object.values((c.assets && c.assets.onsite) || {}).forEach((o)=>{ if(o && o.html) files.push({ name:`${base}/onsite_${slug(o.key)}.html`, data:sbPortable(o.html) }); });
+    ((c.assets && c.assets.display_banners) || []).forEach((bn)=>{ if(bn && bn.html) files.push({ name:`${base}/banner_${slug(bn.size)}.html`, data:sbPortable(bn.html) }); });
+    if(c.assets && c.assets.google_display) files.push({ name:`${base}/google_responsive_display.json`, data:JSON.stringify(c.assets.google_display, null, 2) });
     files.push({ name:`${base}/_slot.json`, data:JSON.stringify({ date:e.date, market:e.market, cohort:e.cohort, objective:e.objective, hero:e.heroProduct, bundle:e.supportingProducts, offer:e.offer, reach:e.reach, feasibility:e.feasibility, confidence:e.confidence }, null, 2) });
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'', offer:(e.offer&&e.offer.code)?(Math.round((Number(e.offer.pct)||0)*100)+'% '+e.offer.code):(e.offer&&typeof e.offer==='object'?'No discount':(e.offer||'')), confidence:e.confidence, feasibility:e.feasibility, links });
   }
