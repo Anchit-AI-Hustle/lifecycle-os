@@ -258,6 +258,41 @@ test('a comment read from the console sends the one object it is on (object_id),
   expect(thrown).toEqual([]);
 });
 
+test('a LinkedIn page\'s own posts are read from the console: the author finder is asked for the page on the connection, and each post is listed with its date', async ({ page }) => {
+  const db = world();
+  process.env.LIVE_CONNECTORS = 'on';
+  const secrets = { access_token: 'li-console-token' };
+  const row = db.insert('workspace_connections', {
+    workspace_id: 'ws-a', provider: 'linkedin', category: 'social', auth_kind: 'oauth', label: 'linkedin', config: { organization_id: '5515715' },
+    secret_fields: Object.keys(secrets), secret_hint: 'oken', status: 'active', connect_kind: 'oauth', oauth_scopes: ['r_organization_social'],
+    token_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), refresh_failure_count: 0, revoked_at: null, last_check_note: '',
+  });
+  db.insert('workspace_connection_secrets', Object.assign({ connection_id: row.id, workspace_id: 'ws-a' }, connections.encryptSecrets(secrets)));
+  // LinkedIn answers only the documented author finder; anything else on its host throws.
+  const inner = global.fetch; const li = [];
+  global.fetch = async (url, init) => {
+    const u = new URL(String(url));
+    if (u.host !== 'api.linkedin.com') return inner(url, init);
+    li.push({ path: u.pathname, query: Object.fromEntries(u.searchParams), headers: (init && init.headers) || {} });
+    if (u.pathname !== '/rest/posts' || ((init && init.method) || 'GET') !== 'GET') throw new Error('undocumented LinkedIn call: ' + url);
+    return new Response(JSON.stringify({ elements: [{ id: 'urn:li:share:7001', commentary: 'Frames that fit, in store now.', lifecycleState: 'PUBLISHED', createdAt: Date.UTC(2026, 10, 3) }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const { asked, thrown } = await open(page);
+    await page.selectOption('#gw-read-provider', 'linkedin');
+    await page.selectOption('#gw-read-kind', 'posts');
+    await page.click('#gw-read');
+    await expect(page.locator('#gw-read-out')).toContainText('1 row(s) read');
+    await expect(page.locator('#gw-read-out')).toContainText('Frames that fit, in store now.');
+    await expect(page.locator('#gw-read-out')).toContainText('2026-11-03');
+    expect(asked.find((a) => a.op === 'read').body).toMatchObject({ provider: 'linkedin', kind: 'posts' });
+    expect(li).toHaveLength(1);
+    expect(li[0].query).toMatchObject({ q: 'author', author: 'urn:li:organization:5515715' });
+    expect(JSON.stringify(li[0].query)).not.toContain('li-console-token');
+    expect(thrown).toEqual([]);
+  } finally { global.fetch = inner; }
+});
+
 test('Connect on the hub asks for the write capabilities the operator ticked: YouTube publishing sends the upload scope to Google\'s consent screen', async ({ page }) => {
   const db = world();
   const { asked } = await open(page);

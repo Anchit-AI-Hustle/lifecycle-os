@@ -363,6 +363,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
             <option value="post_metrics">Organic post metrics</option>
             <option value="comments">Comments</option>
             <option value="mentions">Mentions</option>
+            <option value="posts">The page's own posts (LinkedIn)</option>
           </select></div>
       </div>
       <label for="gw-read-ids">Post, media or ad ids (comma separated); for comments, the one post or video they are on</label>
@@ -1210,13 +1211,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       var ids = document.getElementById('gw-read-ids').value.trim();
       var r = await call(GW + 'read', readRequest(document.getElementById('gw-read-provider').value, document.getElementById('gw-read-kind').value, ids));
-      var rows = r.metrics || r.rows || r.comments || r.mentions || [];
+      var rows = r.metrics || r.rows || r.comments || r.mentions || r.posts || [];
       if (!r.ok) {
         gwStatusLine(out, r.note || r.error || 'Nothing was read.');
       } else {
         out.innerHTML = '<p class="muted">' + rows.length + ' row(s) read' + (r.snapshots && r.snapshots.stored ? ', ' + r.snapshots.stored + ' kept for comparison' : '') + '.</p>'
           + (rows.length ? '<table><tbody>' + rows.slice(0, 50).map(function (x) {
-            return '<tr><td><code>' + esc(x.external_id || x.id || '') + '</code></td><td class="muted">' + esc(x.values ? JSON.stringify(x.values) : (x.text || '')) + '</td></tr>';
+            return '<tr><td><code>' + esc(x.external_id || x.id || '') + '</code></td><td class="muted">' + esc(x.values ? JSON.stringify(x.values) : (x.text || '')) + (x.created_at ? ' <span class="muted">(' + esc(String(x.created_at).slice(0, 10)) + (x.state ? ', ' + esc(x.state) : '') + ')</span>' : '') + '</td></tr>';
           }).join('') + '</tbody></table>' : '');
       }
     } catch (e) { window.LifecycleFailure.show(out, e, { title: 'The read could not be made' }); }
