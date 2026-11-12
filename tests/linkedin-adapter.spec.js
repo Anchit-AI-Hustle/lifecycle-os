@@ -103,6 +103,16 @@ test('sync: the token is checked against the pages it administers, and the page\
   const read = calls.find((c) => /\/rest\/posts\?/.test(c.url));
   expect(read.headers['x-restli-method']).toBe('FINDER');
   expect(new URL(read.url).searchParams.get('author')).toBe('urn:li:organization:5515715');
+  // several pages and none named: no page is chosen, and a post has no page to go to
+  const real = global.fetch;
+  global.fetch = async (url, init) => (/organizationAcls/.test(String(url)) ? new Response(JSON.stringify({ elements: [{ organization: 'urn:li:organization:111' }, { organizationTarget: 'urn:li:organization:222' }] }), { status: 200 }) : real(url, init));
+  const many = await adapter({}).validateCredentials();
+  expect(many.ok).toBe(true);
+  expect(many.account.id).toBe('');
+  expect(many.note).toMatch(/administers 2 company pages \(111, 222\)/);
+  expect((await adapter({ organization_id: '222' }).validateCredentials()).account.id).toBe('222');
+  expect((await adapter({ organization_id: '999' }).validateCredentials()).ok).toBe(false);
+  global.fetch = real;
   // a refused token is said, not read as "no pages"
   const bad = await new LinkedIn({ workspaceId: 'ws-a', credentials: { access_token: 'nope' }, connection: { config: {} } }).validateCredentials();
   expect(bad.ok).toBe(false);

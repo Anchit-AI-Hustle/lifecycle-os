@@ -155,9 +155,15 @@ class LinkedInAdapter extends SocialPlatformAdapter {
     if (!r.ok) return { ok: false, note: r.error || 'LinkedIn rejected the token.' };
     const els = (r.data && Array.isArray(r.data.elements)) ? r.data.elements : [];
     const ids = els.map((e) => (/urn:li:organization:(\d+)/.exec(String((e && (e.organization || e.organizationTarget)) || '')) || [])[1]).filter(Boolean);
-    const id = this.organizationId() || ids[0] || '';
-    if (!id) return { ok: false, note: 'LinkedIn accepted the token, but this person administers no company page, so there is nothing to post on.' };
-    return { ok: true, account: { id, label: `LinkedIn page ${id}` }, note: `LinkedIn answered: ${ids.length} company page${ids.length === 1 ? '' : 's'} administered.` };
+    if (!ids.length) return { ok: false, note: 'LinkedIn accepted the token, but this person administers no company page, so there is nothing to post on.' };
+    // The page is the one the connection names, or the ONLY one this person
+    // administers. With several and none named, no page is chosen: the first
+    // in LinkedIn's list could be another brand's page.
+    const named = String(this.cfg().organization_id || '').replace(/\D+/g, '');
+    const id = named || (ids.length === 1 ? ids[0] : '');
+    if (named && ids.indexOf(named) < 0) return { ok: false, note: `LinkedIn accepted the token, but this person does not administer page ${named}. Pages they administer: ${ids.join(', ')}.` };
+    if (!id) return { ok: true, account: { id: '' }, note: `LinkedIn answered: this person administers ${ids.length} company pages (${ids.join(', ')}). Type this brand's page id on the LinkedIn card on Connections; nothing is posted until it is set.` };
+    return { ok: true, account: { id, label: `LinkedIn page ${id}` }, note: `LinkedIn answered: page ${id}.` };
   }
 
   async refreshCredentials() {

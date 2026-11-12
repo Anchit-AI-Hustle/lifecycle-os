@@ -291,7 +291,7 @@ function check(asset) {
     if (!BANNER_SIZES.some((s) => s.key === asset.size)) add('block', 'size', 'The size is not one Google lists for uploaded display ads.');
     if (!asset.destination_url) add('block', 'destination_url', 'A display ad needs a page to open.');
     else if (!/^https:\/\//i.test(asset.destination_url)) add('block', 'destination_url', 'The destination is not https.');
-    if (!asset.image_url) add('warn', 'image', 'No product photo is on record: the banner is type on the brand colour.');
+    // A missing photo is a data gap the build already states once; not a finding on every banner.
   } else if (asset.type === 'google_responsive_display') {
     const R = RESPONSIVE;
     for (const h of asset.short_headlines || []) if (String(h).length > R.short_headline.max) add('block', 'short_headlines', `A short headline is over ${R.short_headline.max} characters.`);
@@ -303,7 +303,7 @@ function check(asset) {
     if (String(asset.business_name || '').length > R.business_name.max) add('warn', 'business_name', `The business name is over ${R.business_name.max} characters (limit not confirmed on Google's page).`);
     if ([asset.long_headline].concat(asset.short_headlines || [], asset.descriptions || []).some(bad)) add('block', 'text', 'The ad carries a marker or an unfilled tag.');
     if (!asset.final_url) add('block', 'final_url', 'A display ad needs a page to open.');
-    if (!(asset.images && asset.images.source)) add('warn', 'images', 'No product photo is on record for the landscape and square images.');
+    // (a missing photo is stated once in the campaign's data gaps)
   }
   return out;
 }

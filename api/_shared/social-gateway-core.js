@@ -55,8 +55,9 @@ const { liveConnectorsEnabled } = require('./live-connectors.js');
 const catalog = require('./credit-catalog.js');
 
 /** The platforms the gateway shows, in the order the hub renders them. */
-const GATEWAY = ['meta', 'tiktok', 'tiktok_ads', 'pinterest', 'youtube', 'google_ads'];
-const READ_KINDS = ['post_metrics', 'ad_metrics', 'comments', 'mentions'];
+const GATEWAY = ['meta', 'tiktok', 'tiktok_ads', 'pinterest', 'youtube', 'google_ads', 'linkedin'];
+// `posts`: the account's own recent posts, where the adapter reads them (LinkedIn).
+const READ_KINDS = ['post_metrics', 'ad_metrics', 'comments', 'mentions', 'posts'];
 const REFRESH_WINDOW_DAYS = 7;
 
 /** A paid draft, and the live-approval channel that turns it on. */
@@ -219,7 +220,8 @@ async function read(auth, workspaceId, q) {
 
   const ids = list(q.ids || q.id);
   let out;
-  if (kind === 'post_metrics') out = await adapter.readPostMetrics({ ids, surface: q.surface, days: q.days });
+  if (kind === 'posts') out = typeof adapter.listPosts === 'function' ? await adapter.listPosts({ count: q.limit }) : { ok: false, sent: false, supported: false, note: `${A.label} has no reader for its own posts here.` };
+  else if (kind === 'post_metrics') out = await adapter.readPostMetrics({ ids, surface: q.surface, days: q.days });
   else if (kind === 'ad_metrics') out = await adapter.readAdMetrics({ ad_account_id: q.ad_account_id, ad_ids: list(q.ad_ids), since: q.since, until: q.until, date_preset: q.date_preset, columns: list(q.columns) });
   else if (kind === 'comments') out = await adapter.listComments({ surface: q.surface, object_id: q.object_id, limit: q.limit });
   else out = await adapter.listMentions({ ig_user_id: q.ig_user_id, comment_id: q.comment_id });
@@ -243,7 +245,7 @@ function list(v) {
   if (Array.isArray(v)) return v.map(String).filter(Boolean);
   return String(v == null ? '' : v).split(',').map((s) => s.trim()).filter(Boolean);
 }
-function countOf(out) { return (out.metrics || out.rows || out.comments || out.mentions || []).length; }
+function countOf(out) { return (out.metrics || out.rows || out.comments || out.mentions || out.posts || []).length; }
 
 /** Today's snapshot per creative, with the job and calendar slot it came from. */
 async function keepSnapshots(workspaceId, provider, rows) {
@@ -660,6 +662,16 @@ async function refreshDueTokens({ withinDays = REFRESH_WINDOW_DAYS, limit = 25 }
       });
       await connections.patchConnectionAsService(c.workspace_id, c.provider, { last_check_ok: true, last_checked_at: new Date().toISOString(), last_check_note: `Token refreshed; it now expires ${r.expires_at ? r.expires_at.slice(0, 10) : 'on the platform\'s schedule'}.` });
       results.push({ provider: c.provider, workspace_id: c.workspace_id, ok: true, expires_at: r.expires_at || null });
+    } else if (r && r.supported === false && c.token_expires_at && Date.parse(c.token_expires_at) > Date.now()) {
+      // A platform with no refresh (LinkedIn: partners only) keeps posting on
+      // the token it has until that token really ends; the operator is told
+      // when to sign in again. Marking it needs_reauth a week early stopped a
+      // working connection.
+      await connections.patchConnectionAsService(c.workspace_id, c.provider, {
+        last_checked_at: new Date().toISOString(),
+        last_check_note: `${A.label} has no automatic refresh. This sign-in works until ${String(c.token_expires_at).slice(0, 10)}: sign in again before then.`,
+      });
+      results.push({ provider: c.provider, workspace_id: c.workspace_id, ok: false, unsupported: true, expires_at: c.token_expires_at });
     } else if (r && r.transient) {
       await connections.patchConnectionAsService(c.workspace_id, c.provider, {
         refresh_failure_count: Number(c.refresh_failure_count || 0) + 1, last_check_ok: false, last_checked_at: new Date().toISOString(),
