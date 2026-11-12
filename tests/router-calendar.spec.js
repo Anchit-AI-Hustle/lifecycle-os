@@ -628,6 +628,15 @@ sb('reject', { run: { json: { id: 'entry_1', notes: 'off-brand' } }, stubs: () =
   expect: (r) => { expect(last(PLAN, 'rejectEntry')[0]).toEqual({ id: 'entry_1', reviewer: null, notes: 'off-brand', config: { workspace_id: H.WS } }); },
   cases: [{ name: 'no id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(PLAN)).toEqual([]); } }],
 });
+sb('approve-additions', { run: { json: { id: 'entry_1', reviewer: 'op' } }, stubs: () => S.on(PLAN, 'approveAdditions', async () => ({ ok: true, added: ['social_posts'] })),
+  expect: (r) => { expect(last(PLAN, 'approveAdditions')[0]).toEqual({ id: 'entry_1', reviewer: 'op', config: { workspace_id: H.WS } }); expect(r.out.added).toEqual(['social_posts']); },
+  cases: [
+    { name: 'no id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(PLAN)).toEqual([]); } },
+    { name: 'a send that is not approved is refused in words (409), never a 500', run: { json: { id: 'entry_1' } },
+      stubs: () => S.on(PLAN, 'approveAdditions', async () => { const e = new Error('This send is not approved yet.'); e.status = 409; e.code = 'not_approved'; throw e; }),
+      expect: (r) => { expect(r.status).toBe(409); expect(r.out).toMatchObject({ ok: false, error: 'not_approved' }); } },
+  ],
+});
 sb('unreject', { run: { json: { id: 'entry_1', reviewer: 'op' } }, stubs: () => S.on(PLAN, 'unrejectEntry', async () => ({ ok: true })),
   expect: (r) => { expect(last(PLAN, 'unrejectEntry')[0]).toEqual({ id: 'entry_1', reviewer: 'op', config: { workspace_id: H.WS } }); } });
 sb('activate-scenario', { run: { json: { scenario: 'best', scope: 'US' } }, stubs: () => S.on(PLAN, 'activateScenario', async () => ({ ok: true, active: 'best' })),

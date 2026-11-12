@@ -172,9 +172,24 @@ function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.
   if (A.onsite && Object.keys(A.onsite).length) rows.push({ id: 'onsite', kind: 'onsite', label: 'On-site (bar, banner, pop-up)', what: `${Object.keys(A.onsite).length} placements`, when: date, state: 'manual', message: 'Placed on your own site: download each .html from the On-site tab and add it in your store theme. No store connection writes to a theme from here.' });
   if ((A.display_banners || []).length || A.google_display) rows.push({ id: 'display', kind: 'display', label: 'Display ads', what: `${(A.display_banners || []).length} banner sizes`, when: date, state: 'manual', message: 'Uploaded in Google Ads by hand: download the banners from the Display ads tab. A display campaign needs a budget, so it is not created from here.' });
 
+  // Kinds added to an approved send AFTER its approval (the planner's top-up on
+  // view) are not part of what was approved (audit 2026-11-12): they are shown,
+  // and never queued until a reviewer approves them.
+  const pendingKinds = new Set(Array.isArray(c.assets_added_on_view) ? c.assets_added_on_view : []);
+  const KIND_OF = { social: 'social_posts', onsite: 'onsite', display: 'display_banners' };
+  for (const r of rows) {
+    if (!pendingKinds.has(KIND_OF[r.kind])) continue;
+    r.added_after_approval = true;
+    if (r.state === 'ready' || r.state === 'needs_media' || r.state === 'not_connected' || r.state === 'needs_reauth') {
+      r.state = 'awaiting_approval'; delete r.fix; delete r.fix_label;
+      r.message = 'Added after this send was approved, so it is not part of what was approved. Approve the added assets, then press Schedule.';
+    } else if (r.state === 'manual' || r.state === 'no_channel') {
+      r.message = 'Added after this send was approved; not part of what was approved. ' + r.message;
+    }
+  }
   const count = (s) => rows.filter((r) => r.state === s).length;
   return {
-    date, slot_id: e.id || null, approved, rows,
+    date, slot_id: e.id || null, approved, rows, additions_pending: [...pendingKinds],
     summary: { scheduled: count('scheduled'), sent: count('sent'), ready: count('ready'), withheld: count('withheld') + count('failed'), not_connected: count('not_connected') + count('needs_reauth'), manual: count('manual') + count('no_channel') + count('needs_media') + count('needs_setup') },
   };
 }

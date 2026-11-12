@@ -194,18 +194,92 @@ test('the page: an aligned grid, the schedule table, the day\'s detail page with
     await expect(page.locator('#sbdetail')).toHaveCount(0);
 
     // 4. DOWNLOAD ALL: every built day, opened here or not; the unbuilt one is named.
+    //    Two more sends share day-3's date AND cohort (another market, and a
+    //    second send of that cohort): before the audit of 2026-11-12 all three
+    //    wrote the same paths and the archive kept one of them.
     await page.evaluate(() => {
-      setDur('all');   // eslint-disable-line no-undef
+      /* eslint-disable no-undef */
+      PLAN.push({ id: 'day-5', date: '2026-11-15', market: 'US', cohort: { name: 'Loyal' }, channels: ['email'], status: 'approved', generated_campaign_id: 'c5' });
+      PLAN.push({ id: 'day-6', date: '2026-11-15', market: 'IN', cohort: { name: 'Loyal' }, channels: ['email'], status: 'approved', generated_campaign_id: 'c6' });
+      setDur('all');
+      /* eslint-enable no-undef */
     });
     previewAsked.length = 0;
     const [zip] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => { window.sbZipAll(); })]);
-    expect(previewAsked).toEqual(['day-3']);   // day-2 was read by the detail page; day-4 has nothing built
+    expect(previewAsked.slice().sort()).toEqual(['day-3', 'day-5', 'day-6']);   // day-2 was read by the detail page; day-4 has nothing built
     const names = fs.readFileSync(await zip.path()).toString('latin1');
-    for (const d of ['2026-11-14_at-risk/', '2026-11-14_champions/', '2026-11-15_loyal/']) expect(names, d).toContain(d);
+    for (const d of ['2026-11-14_in_at-risk_day-1/', '2026-11-14_in_champions_day-2/', '2026-11-15_in_loyal_day-3/', '2026-11-15_us_loyal_day-5/', '2026-11-15_in_loyal_day-6/']) expect(names, d).toContain(d);
+    // no path is used twice, and the manifest lists every file of every send with its digest
+    const last = await page.evaluate(() => window.__SB_LAST_ZIP);
+    expect(last.sends).toBe(5);
+    expect(new Set(last.files.map((f) => f.toLowerCase())).size, 'a ZIP path is used twice').toBe(last.files.length);
+    const buf = fs.readFileSync(await zip.path());
+    const at = buf.indexOf(Buffer.from('{\n  "manifest": "smart-brain.zip.v1"'));
+    expect(at, 'manifest.json is in the archive').toBeGreaterThan(0);
+    const text = buf.slice(at).toString('utf8');
+    const manifest = JSON.parse(text.slice(0, text.indexOf('\n}') + 2));
+    expect(manifest.sends.map((x) => x.slot_id)).toEqual(['day-1', 'day-2', 'day-3', 'day-5', 'day-6']);
+    const listed = manifest.sends.flatMap((x) => x.files).concat(manifest.top_level);
+    expect(listed.length).toBe(manifest.files);
+    expect(listed.map((f) => f.path).sort()).toEqual(last.files.filter((f) => f !== 'manifest.json').sort());
+    for (const f of listed) { expect(f.sha256, f.path).toMatch(/^[0-9a-f]{64}$/); expect(f.bytes).toBeGreaterThan(0); }
+    // the digest is the file's own: the first mailer of day-1, hashed again here
+    const one = manifest.sends[0].files.find((f) => /mailer_/.test(f.path));
+    const start = buf.indexOf(Buffer.from(one.path)) + Buffer.byteLength(one.path);
+    expect(require('crypto').createHash('sha256').update(buf.slice(start, start + one.bytes)).digest('hex')).toBe(one.sha256);
+    expect(manifest.sends[0].assets).toBe(perSend);
     expect(names).not.toContain('2026-11-16');
     expect(names).toContain('social_instagram-feed.txt');
     expect(names).toContain('banner_300x250.html');
     await expect(page.locator('#calstate')).toContainText('1 send has no assets yet');
+  } finally { server.close(); }
+});
+
+test('an approved send says which assets were added after its approval and holds them until they are approved; a rebuilt draft says it is not approved', async ({ page }) => {
+  const { campaign: c } = await build();
+  const server = await serve();
+  const asked = [];
+  try {
+    await page.route(/\/api\//, (route) => {
+      const req = route.request(); const url = req.url();
+      if (/smart-brain-approve-additions/.test(url)) { asked.push(JSON.parse(req.postData() || '{}')); return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, id: 'day-1', added: ['social_posts', 'onsite'], approved_at: '2026-11-12T07:00:00Z', approved_by: null }) }); }
+      return route.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false,"error":"offline"}' });
+    });
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+    await page.goto(`http://127.0.0.1:${server.address().port}/smart-brain.html`);
+    await page.waitForFunction(() => typeof renderPreview === 'function');   // eslint-disable-line no-undef
+    const show = (campaign, extra, status) => page.evaluate(({ campaign: cc, extra: x, status: st }) => {
+      /* eslint-disable no-undef */
+      let host = document.getElementById('rev-host'); if (host) host.remove();
+      host = document.createElement('div'); host.id = 'rev-host'; document.body.appendChild(host);
+      PLAN.length = 0; PLAN.push({ id: 'day-1', date: '2026-11-14', market: 'IN', cohort: { name: 'At Risk' }, channels: ['email'], status: st });
+      renderPreview(Object.assign({ campaign: cc }, x || {}), PLAN[0], 0, { target: host });
+      /* eslint-enable no-undef */
+    }, { campaign, extra, status });
+
+    // as approved: no note at all
+    await show(JSON.parse(JSON.stringify(c)), null, 'approved');
+    await expect(page.locator('#rev-host [data-revision]')).toHaveCount(0);
+
+    // kinds added after approval: said, with the press that approves them
+    const added = Object.assign(JSON.parse(JSON.stringify(c)), { assets_added_on_view: ['social_posts', 'onsite'] });
+    await show(added, null, 'approved');
+    const note = page.locator('#rev-host [data-revision]');
+    await expect(note).toHaveAttribute('data-revision', 'additions-pending');
+    await expect(note).toContainText('Added after approval: social posts, on-site assets');
+    await expect(note).toContainText('exactly as approved');
+    await note.locator('[data-approve-additions]').click();
+    await expect(note).toHaveAttribute('data-revision', 'additions-approved');
+    expect(asked).toEqual([{ id: 'day-1', reviewer: null }]);
+
+    // a draft is never told it has "additions": the whole send still awaits approval
+    await show(added, null, 'tentative');
+    await expect(page.locator('#rev-host [data-revision]')).toHaveCount(0);
+
+    // approved assets no longer stored: a new draft, and it says so
+    await show(JSON.parse(JSON.stringify(c)), { approved_assets_missing: true }, 'approved');
+    await expect(page.locator('#rev-host [data-revision]')).toHaveAttribute('data-revision', 'recovered-draft');
+    await expect(page.locator('#rev-host [data-revision]')).toContainText('New draft, not approved');
   } finally { server.close(); }
 });
 

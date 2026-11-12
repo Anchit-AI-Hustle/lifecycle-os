@@ -475,6 +475,21 @@ async function smartBrain(req, res, smartAction) {
       return res.status(200).json(result);
     }
 
+    if (smartAction === 'approve-additions') {
+      // The asset kinds added to an approved send after its approval (social
+      // posts, on-site and display assets) are approved on their own press.
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
+      if (!body.id) return res.status(400).json({ ok: false, error: 'id is required' });
+      if (!req.__workspaceId) return res.status(409).json({ ok: false, error: 'no_workspace', message: 'This brand is kept on this device, so it has no saved send to add to.' });
+      try {
+        const result = await plan.approveAdditions({ id: body.id, reviewer: body.reviewer || null, config: body.config || {} });
+        return res.status(200).json(result);
+      } catch (e) {
+        if (e && e.status) return res.status(e.status).json({ ok: false, error: e.code || 'refused', message: e.message });
+        throw e;
+      }
+    }
+
     if (smartAction === 'unreject') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id) return res.status(400).json({ ok: false, error: 'id is required' });
@@ -535,7 +550,7 @@ async function smartBrain(req, res, smartAction) {
       return res.status(200).json(result);
     }
 
-    return res.status(400).json({ ok: false, error: 'Unknown Smart Brain action. Use smart-brain-health|smart-brain-schema|smart-brain-plan|smart-brain-sync-daily|smart-brain-cron|smart-brain-prebuild|smart-brain-heal|smart-brain-preview|smart-brain-approve|smart-brain-reject|smart-brain-run-daily|smart-brain-generate-slot|smart-brain-generate-asset|smart-brain-feedback|smart-brain-weekly-recalibration' });
+    return res.status(400).json({ ok: false, error: 'Unknown Smart Brain action. Use smart-brain-health|smart-brain-schema|smart-brain-plan|smart-brain-approve-additions|smart-brain-sync-daily|smart-brain-cron|smart-brain-prebuild|smart-brain-heal|smart-brain-preview|smart-brain-approve|smart-brain-reject|smart-brain-run-daily|smart-brain-generate-slot|smart-brain-generate-asset|smart-brain-feedback|smart-brain-weekly-recalibration' });
   } catch (err) {
     // A refusal the planner states (a slot planned from another brand's
     // catalogue, 409 catalogue_excluded) is an answer, not a crash.

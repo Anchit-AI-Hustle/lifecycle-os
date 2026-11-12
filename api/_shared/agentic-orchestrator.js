@@ -68,7 +68,12 @@ async function planningStage(analysis, market, tier) {
 }
 
 async function reviewStage(campaign, tier) {
-  if (!callLLM) return { provider: 'fallback', score: 7, pass: true, weak_points: [], retry_reason: '' };
+  // A review nobody made is not a pass (audit 2026-11-12). This answered
+  // { score: 7, pass: true } when no model was loaded or the call failed, so the
+  // run's report printed "7" and "N of N passed the score gate" for campaigns no
+  // reviewer read. The verdict is null and the state says why.
+  const unavailable = (why) => ({ provider: 'unavailable', state: 'review_unavailable', score: null, pass: null, weak_points: [], retry_reason: '', reason: why });
+  if (!callLLM) return unavailable('no model is configured for the review');
   try {
     const sys = "You are a strict brand-QA reviewer for " + brandNameForPrompt() + ". Score the generated campaign 0-10 on brand-voice fit, clarity, conversion strength, and absence of banned phrases. pass=true only if score>=7.";
     const userMessage = OC.append(`CAMPAIGN ${JSON.stringify(campaign).slice(0, 3000)}`, {
@@ -78,10 +83,16 @@ async function reviewStage(campaign, tier) {
         weak_points: { type: 'array', items: 'string' }, retry_reason: { type: 'string', note: 'an empty string when pass' } } });
     const out = await callLLM({ systemPrompt: sys, userMessage, responseFormat: { type: 'json_object' }, maxTokens: 500, tier, stage: 'agentic-review' });
     const p = callLLM.parseJSON(typeof out === 'string' ? out : out.text);
+    if (!p || typeof p !== 'object') return unavailable('the reviewer did not answer in the asked shape');
     p.provider = out.provider || 'llm';
-    if (typeof p.pass !== 'boolean') p.pass = Number(p.score) >= 7;
+    const sc = Number(p.score);
+    if (!Number.isFinite(sc) || p.score === null || p.score === '') return unavailable('the reviewer gave no score');
+    p.score = sc;
+    // The gate is the score, whatever the model wrote beside it.
+    p.pass = sc >= 7;
+    p.state = p.pass ? 'passed' : 'failed';
     return p;
-  } catch (_) { return { provider: 'fallback', score: 7, pass: true }; }
+  } catch (e) { return unavailable('no model answered the review' + (e && e.message ? ': ' + String(e.message).slice(0, 140) : '')); }
 }
 
 /**
@@ -165,7 +176,8 @@ async function runAgentic(opts = {}) {
         built = await plan.buildCampaign(entry, config, { withCreatives });
       } catch (e) { buildError = String((e && e.message) || e); built = null; break; }
       entryReview = await reviewStage(built, tier);
-      if (entryReview.pass) break;
+      // Passed, or nobody could review: a rebuild cannot change either.
+      if (entryReview.pass !== false) break;
       entry.regenerate_counter = (entry.regenerate_counter || 0) + 1;   // diverge on retry
       // Retry only while there is budget left; a score-gated retry that runs
       // the clock out costs every LATER day its asset.
@@ -185,7 +197,9 @@ async function runAgentic(opts = {}) {
       theme: entry.theme || null,
       subject: built.subject || (built.copy && built.copy.subject) || null,
       score: entryReview ? entryReview.score : null,
-      passed: entryReview ? !!entryReview.pass : null,
+      passed: entryReview && typeof entryReview.pass === 'boolean' ? entryReview.pass : null,
+      review_state: entryReview ? (entryReview.state || null) : null,
+      review_note: entryReview && entryReview.state === 'review_unavailable' ? entryReview.reason : null,
       campaign: built,
     });
     reviews.push(entryReview);
@@ -205,9 +219,12 @@ async function runAgentic(opts = {}) {
       { days: windowDays, built: campaigns.length, planned: inWindow.length, remaining, dates: campaigns.map((c) => c.date) });
     // Stage ok=true means the review RAN. pass=false (score < 7) is a gate
     // verdict on the campaign, not a failed stage — the summary carries both.
-    rec('smart-review', true,
-      `${reviews.filter((r) => r && r.pass).length} of ${reviews.length} passed the score gate`,
-      { scores: reviews.map((r) => (r ? r.score : null)) });
+    const unreviewed = reviews.filter((r) => !r || r.state === 'review_unavailable').length;
+    const judged = reviews.length - unreviewed;
+    rec('smart-review', judged > 0 || !reviews.length,
+      (judged ? `${reviews.filter((r) => r && r.pass === true).length} of ${judged} reviewed passed the score gate` : 'no campaign was reviewed')
+      + (unreviewed ? `; ${unreviewed} not reviewed (${(reviews.find((r) => r && r.reason) || {}).reason || 'review unavailable'})` : ''),
+      { scores: reviews.map((r) => (r ? r.score : null)), unreviewed });
   } else {
     rec('content+asset', false,
       inWindow.length
@@ -239,4 +256,4 @@ async function runAgentic(opts = {}) {
   };
 }
 
-module.exports = { runAgentic };
+module.exports = { runAgentic, _reviewStage: reviewStage };
