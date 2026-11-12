@@ -141,7 +141,8 @@ test('approve -> one job per CONNECTED platform at the post\'s hour in the brand
   const fb = post(db, 'facebook', 'facebook', day);
   const pin = post(db, 'pinterest', 'pinterest', day, { best_time_utc: '20:00' });
   const tt = post(db, 'tiktok', 'tiktok', day, { media: { type: 'video', video: { url: `${MEDIA}/clip.mp4` } } });
-  const li = post(db, 'linkedin', 'linkedin', day);
+  const li = post(db, 'x', 'x', day);
+  const lk = post(db, 'linkedin', 'linkedin', day);
 
   const outFb = await autopost.scheduleSocialPost(AUTH_A, 'ws-a', fb.id, { brand: BRAND });
   const outPin = await autopost.scheduleSocialPost(AUTH_A, 'ws-a', pin.id, { brand: BRAND });
@@ -156,7 +157,10 @@ test('approve -> one job per CONNECTED platform at the post\'s hour in the brand
   expect(outTt.scheduled[0]).toMatchObject({ state: 'skipped', reason: 'not_connected' });
   expect(outTt.scheduled[0].message).toMatch(/TikTok is not connected on this brand.*Connections.*Connect on TikTok/);
   expect(outLi.scheduled[0]).toMatchObject({ state: 'skipped', reason: 'no_channel' });
-  expect(outLi.scheduled[0].message).toMatch(/LinkedIn has no publishing adapter/);
+  expect(outLi.scheduled[0].message).toMatch(/X has no publishing adapter/);
+  // LinkedIn has a channel now (2026-11-12): with no LinkedIn connection it is said, not posted.
+  const outLk = await autopost.scheduleSocialPost(AUTH_A, 'ws-a', lk.id, { brand: BRAND });
+  expect(outLk.scheduled[0]).toMatchObject({ state: 'skipped', reason: 'not_connected', channel: 'linkedin_post' });
 
   expect(jobs(db).map((j) => j.channel).sort()).toEqual(['facebook_page_feed', 'pinterest_pin']);
   for (const j of jobs(db)) {

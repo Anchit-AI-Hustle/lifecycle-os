@@ -345,6 +345,18 @@ const PROVIDERS = [
     wired_note: 'Read and written by the social gateway. Every write also needs LIVE_CONNECTORS, this brand\'s publishing toggle and PINTEREST_ALLOW_WRITES on the deployment.',
   },
   {
+    id: 'linkedin', label: 'LinkedIn', category: 'social',
+    auth_kind: 'oauth', env_default: '',
+    key_url: 'https://www.linkedin.com/developers/apps',
+    blurb: 'Posts on the brand\'s company page, and the page\'s own recent posts. Signed in as an administrator of the page.',
+    fields: [
+      { key: 'access_token', label: 'Access token', secret: true, required: true },
+      { key: 'organization_id', label: 'Company page id (the number in the page\'s admin address)', secret: false, required: false },
+    ],
+    wired: true,
+    wired_note: 'Read and written by the social gateway. Every write also needs LIVE_CONNECTORS, this brand\'s publishing toggle and LINKEDIN_ALLOW_WRITES on the deployment.',
+  },
+  {
     id: 'youtube', label: 'YouTube', category: 'social',
     auth_kind: 'oauth', env_default: '',
     key_url: 'https://console.cloud.google.com/apis/credentials',

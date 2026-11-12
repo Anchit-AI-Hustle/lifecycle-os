@@ -23,6 +23,7 @@ const WebEngageAdapter = require('./webengage-adapter.js');
 const { BrazeAdapter, ActiveCampaignAdapter, CustomerIoAdapter } = require('./extensible-crm.js');
 const { TikTokAdapter, TikTokAdsAdapter } = require('./tiktok-adapter.js');
 const PinterestAdapter = require('./pinterest-adapter.js');
+const LinkedInAdapter = require('./linkedin-adapter.js');
 const YouTubeAdapter = require('./youtube-adapter.js');
 
 /** Adapter id -> class. */
@@ -39,6 +40,8 @@ const ADAPTERS = {
   tiktok_ads: TikTokAdsAdapter,
   pinterest: PinterestAdapter,
   youtube: YouTubeAdapter,
+  // A post on the brand's company page (2026-11-12).
+  linkedin: LinkedInAdapter,
 };
 
 /**
@@ -59,6 +62,7 @@ const CONNECTION_PROVIDER = {
   tiktok_ads: 'tiktok_ads',
   pinterest: 'pinterest',
   youtube: 'youtube',
+  linkedin: 'linkedin',
 };
 
 /**
@@ -87,6 +91,7 @@ const CHANNEL_CAPABILITY = {
   // Making a private upload public is part of publishing a video.
   youtube_video_upload: 'post', youtube_live_approval: 'post',
   youtube_comment_reply: 'comments', youtube_comment_moderation: 'comments',
+  linkedin_post: 'post',
   google_search_ad: 'ads', google_pmax_asset: 'ads', google_customer_match: 'ads',
 };
 function capabilityOf(channelId) { return CHANNEL_CAPABILITY[String(channelId || '')] || 'send'; }

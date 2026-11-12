@@ -47,12 +47,13 @@ const ROUTES = {
   tiktok: { adapter: 'tiktok', channel: 'tiktok_video_post', label: 'TikTok' },
   pinterest: { adapter: 'pinterest', channel: 'pinterest_pin', label: 'Pinterest' },
   youtube_shorts: { adapter: 'youtube', channel: 'youtube_video_upload', label: 'YouTube' },
+  // A text post on the company page, its link in the words (2026-11-12).
+  linkedin: { adapter: 'linkedin', channel: 'linkedin_post', label: 'LinkedIn' },
 };
 
 /** Post keys with no publishing channel in this platform, and why, in words. */
 const NO_ROUTE = {
   instagram_stories: 'Instagram Stories are not a publishing channel here: the Meta adapter publishes feed posts and Reels only.',
-  linkedin: 'LinkedIn has no publishing adapter in this platform, so it is not posted automatically.',
   x: 'X has no publishing adapter in this platform, so it is not posted automatically.',
   threads: 'Threads has no publishing adapter in this platform, so it is not posted automatically.',
   blog: 'A blog article is published on the brand\'s own site, not through a social account.',
@@ -175,6 +176,7 @@ function assetFor(key, post, conn) {
   const link = httpsOr(p.link);
   switch (key) {
     case 'facebook': return { message: withTags, link };
+    case 'linkedin': return { text: caption, hashtags: tags, link };
     case 'instagram_feed': return { caption, hashtags: tags, image_url: image, link };
     case 'instagram_reels': return { caption, hashtags: tags, video_url: video };
     case 'tiktok': {
