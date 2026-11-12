@@ -259,12 +259,19 @@ The Knowledge Base router scopes every read to the caller's workspace and return
 
 ### Open
 
-**F-13, High, test gap.** `generateSingleAsset` (regenerate one asset) on an approved slot was not traced to its
-write. It may change an approved campaign in place. Not verified either way.
-**F-14, Medium.** Approval and dispatch are not bound to a digest. The digest now exists on every build
-(`decisions.manifest_digest`) and in the ZIP manifest; storing it at approval and comparing it at dispatch is not built.
-**F-15, Medium.** Google static and video ads are checked against the responsive-search contract, and YouTube ads
-against none (visible in the decision record). Not fixed.
+**F-13, High, fixed.** `generateSingleAsset` (regenerate one asset) rebuilt the asset and saved the campaign again
+under the same id as a preview, so an approved send lost its approved bytes and status to a press of Regenerate. It is
+refused for an approved send (`409 approved_send_locked`) before anything is built or written. Verified:
+`approved-send-integrity` test 5.
+**F-14, Medium, fixed for scheduling.** Approval (and approval of additions) stores `approved_digest` (the SHA-256
+over every asset's id and revision). `dispatch-slot` compares the saved assets with it before queueing and refuses
+with `approved_revision_changed` when they differ; the status answer carries both digests. Sends approved before this
+have no digest and are scheduled as before. Not bound: Paid launch and sends made from Publishing.
+**F-15, Low, reclassified.** Google ads carry responsive-search fields whatever picture or video is paired with them,
+so judging them as `ad.google.rsa` is intended. YouTube ads have no contract because `asset-specs.js` holds no sourced
+limit for them; none was invented.
+**F-22, Low, fixed.** The "Approve the added assets" button named its send by its index in the plan list, which the
+page re-reads at its own pace; a press could find nothing and do nothing. The button names the slot itself.
 **F-16, High, not built.** One observation pipeline for owned and competitor assets (section 3 of the brief): there
 is no canonical observation table, no source registry, no version history of observations and no cross-source
 linking. Milled disallows automated reading in robots.txt; Google Ads Transparency and TikTok offer no feed this

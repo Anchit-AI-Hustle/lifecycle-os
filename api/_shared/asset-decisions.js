@@ -173,7 +173,8 @@ function build(campaign, entry) {
 
 /** The digest of a campaign as it stands now (after a top-up, an edit). */
 function digestOf(campaign) {
-  const d = build(campaign, { id: campaign && (campaign.calendar_entry_id || campaign.campaign_id) });
+  // A fixed slot label: the digest is of the assets, whatever id the send is filed under.
+  const d = build(campaign, { id: 'send' });
   return d ? d.manifest_digest : null;
 }
 

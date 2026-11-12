@@ -280,8 +280,6 @@ test('an approved send says which assets were added after its approval and holds
     await expect(note).toContainText('Added after approval: social posts, on-site assets');
     await expect(note).toContainText('exactly as approved');
     if (process.env.AUDIT_SHOTS) await note.screenshot({ path: require('path').join(process.env.AUDIT_SHOTS, 'brain-added-after-approval.png') });
-    // the page's own plan read (refused here) empties PLAN when it settles: the row the press names is put back
-    await page.evaluate(() => { if (!PLAN[0]) PLAN.push({ id: 'day-1', date: '2026-11-14', market: 'IN', cohort: { name: 'At Risk' }, channels: ['email'], status: 'approved' }); });   // eslint-disable-line no-undef
     await note.locator('[data-approve-additions]').click();
     await expect(note).toHaveAttribute('data-revision', 'additions-approved');
     expect(asked).toEqual([{ id: 'day-1', reviewer: null }]);

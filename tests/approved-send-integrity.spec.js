@@ -154,3 +154,26 @@ test('kinds added after approval are held out of the schedule until a reviewer a
   expect(after.rows.find((r) => r.id === 'social_facebook').state).toBe('ready');
   expect((await SBP.approveAdditions({ id: 'slot-1', reviewer: 'op@example.test' })).added).toEqual([]);
 });
+
+test('an approved send is not regenerated in place, and its approval names the bytes: the schedule refuses saved assets that differ from the digest', async () => {
+  const { c, T } = await approvedSend({ strip: false });
+  const AD = require(path.join(ROOT, 'api', '_shared', 'asset-decisions.js'));
+  // Regenerate on an approved send is refused before anything is built or written
+  const refused = await SBP.generateSingleAsset({ id: 'slot-1', assetType: 'mailer' }).catch((e) => e);
+  expect(refused.code).toBe('approved_send_locked');
+  expect(refused.status).toBe(409);
+  expect(store.writes).toEqual([]);
+  // the digest is of the assets, whatever id the send is filed under
+  const d1 = AD.digestOf(c);
+  expect(AD.digestOf(Object.assign({}, c, { calendar_entry_id: 'another-id', campaign_id: 'x' }))).toBe(d1);
+  // one changed asset changes it
+  const edited = JSON.parse(JSON.stringify(c)); edited.assets.social_posts[0].caption += ' Edited after approval.';
+  expect(AD.digestOf(edited)).not.toBe(d1);
+  // approving additions records the digest of everything approved
+  const stripped = await approvedSend({});
+  await SBP.approveAdditions({ id: 'slot-1', reviewer: 'op@example.test' });
+  const savedNow = store.rows[stripped.T.generatedCampaigns][stripped.c.campaign_id].payload;
+  expect(savedNow.approved_digest.digest).toBe(AD.digestOf(savedNow));
+  expect(savedNow.approved_digest.by).toBe('op@example.test');
+  expect(T).toBeTruthy();
+});

@@ -2163,7 +2163,7 @@ function renderPreview(payload, e, i, opts){
   const revisionNote = (payload.approved_assets_missing || campaign.recovered_draft)
     ? `<div class="vh-status pvlead" data-revision="recovered-draft" style="margin-top:4px;font-size:12px"><b>New draft, not approved.</b> The assets this send was approved with are no longer stored, so these were built again. Approve the send to ship them.</div>`
     : (addedKinds.length && isApproved)
-      ? `<div class="vh-status pvlead" data-revision="additions-pending" style="margin-top:4px;font-size:12px"><b>Added after approval:</b> ${esc(addedKinds.map(k => KIND_WORDS[k] || k).join(', '))}. They were not part of what was approved, so they are not scheduled. The mail, pages and ads are exactly as approved. <button type="button" class="btn sm secondary" data-approve-additions onclick="sbApproveAdditions(${i}, this)">Approve the added assets</button></div>`
+      ? `<div class="vh-status pvlead" data-revision="additions-pending" style="margin-top:4px;font-size:12px"><b>Added after approval:</b> ${esc(addedKinds.map(k => KIND_WORDS[k] || k).join(', '))}. They were not part of what was approved, so they are not scheduled. The mail, pages and ads are exactly as approved. <button type="button" class="btn sm secondary" data-approve-additions data-slot="${esc(e.id)}" onclick="sbApproveAdditions(this)">Approve the added assets</button></div>`
       : '';
   const checksLead = revisionNote + (leadBits.length
     ? `<div class="pvnote is-error pvlead" style="margin-top:4px;border-radius:6px;padding:6px 9px;font-size:12px">${leadBits.join(' ')} <a href="#" onclick="var d=this.closest('.pvroot').querySelector('.pvchecks');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'nearest'});}return false;">See checks</a></div>`
@@ -2910,8 +2910,10 @@ async function sbLoadPublish(root){
 }
 // Approve the kinds added to an approved send after its approval. The server
 // saves them beside what was approved, with who approved them and when.
-window.sbApproveAdditions = async function(i, btn){
-  const e = PLAN[i]; if(!e) return;
+window.sbApproveAdditions = async function(btn){
+  // The slot is named on the button itself: the plan list is re-read by the
+  // page at its own pace, and an index into it can go stale under a press.
+  const e = { id: btn && btn.getAttribute('data-slot') }; if(!e.id) return;
   const mark = btn ? btn.innerHTML : '';
   if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); btn.textContent = 'Approving…'; }
   try {

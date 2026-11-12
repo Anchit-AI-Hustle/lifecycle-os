@@ -5472,6 +5472,15 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
   const db = new SmartBrainDbAdapter(config);
   const { entry, row } = await resolveEntry({ id, inlineEntry, config, db });
   if (!entry) throw new Error(`Calendar entry ${id || ''} not found.`);
+  // AN APPROVED SEND IS NOT REGENERATED IN PLACE (audit 2026-11-12). This
+  // rebuilt one asset and saved the campaign again under the same id as a
+  // preview, so an approved send lost its approved bytes and its status to a
+  // press of Regenerate. Reject or reset the send first: that is the decision
+  // to change what was approved.
+  if (row && (row.status === 'approved' || row.status === 'final')) {
+    const e = new Error('This send is approved, so its assets are not regenerated: that would change what was approved. Reject or reset the send first, then regenerate.');
+    e.status = 409; e.code = 'approved_send_locked'; throw e;
+  }
   await stampBrand(entry, config);
   scrubForeignProducts(entry);
 
@@ -5638,6 +5647,13 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
 
   const persisted = { campaign: null, mailer: null, ads: null, landing: null, calendar: null };
   if (db.connected) {
+    // THE APPROVAL NAMES THE BYTES (audit 2026-11-12): the digest of every
+    // asset as it stands at this press is stored with the campaign. Scheduling
+    // compares the saved assets with it, so what goes out is what was approved.
+    try {
+      delete campaign.recovered_draft;
+      campaign.approved_digest = { digest: require('./asset-decisions.js').digestOf(campaign), at: nowIso(), by: reviewer || null };
+    } catch (_) { /* an approval without a digest is scheduled as before */ }
     // Publish: store the campaign at review status + mirror mailer/ads/LP into the dashboards.
     const p = await persistCampaignAssets(db, config, campaign, { status: campaign.status, origin: 'smart-brain', reviewer, mirror: true });
     persisted.campaign = p.campaign; persisted.mailer = p.mailer; persisted.ads = p.ads; persisted.landing = p.landing;
@@ -5697,6 +5713,8 @@ async function approveAdditions({ id, reviewer = null, config: cfg = {} } = {}) 
   const at = nowIso();
   c.assets_added_approved = [].concat(Array.isArray(c.assets_added_approved) ? c.assets_added_approved : [], added.map((kind) => ({ kind, by: reviewer || null, at })));
   delete c.assets_added_on_view;
+  // the approval now covers the added kinds too
+  try { c.approved_digest = { digest: require('./asset-decisions.js').digestOf(c), at, by: reviewer || null }; } catch (_) { /* as before */ }
   await db.update(config.tableNames.generatedCampaigns, { id: `eq.${row.generated_campaign_id}` }, { payload: c });
   const log = Array.isArray(row.change_log) ? row.change_log.slice(-30) : [];
   log.push({ at, kind: 'additions_approved', detail: `${reviewer || 'Reviewer'} approved the assets added after approval: ${added.join(', ')}.` });

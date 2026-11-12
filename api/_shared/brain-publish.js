@@ -207,9 +207,17 @@ async function load(workspaceId, slotId) {
     const cs = await rest(`smart_generated_campaigns?select=id,payload&id=eq.${encodeURIComponent(cid)}&workspace_id=eq.${ws}&limit=1`).catch(() => []);
     campaign = Array.isArray(cs) && cs[0] ? cs[0].payload : null;
   }
+  // Compared BEFORE anything is added on view: the saved assets against the
+  // digest stored when they were approved (audit 2026-11-12).
+  let revision = { recorded: false };
+  if (campaign && campaign.approved_digest && campaign.approved_digest.digest) {
+    let now = null;
+    try { now = require('./asset-decisions.js').digestOf(campaign); } catch (_) { now = null; }
+    revision = { recorded: true, approved: campaign.approved_digest.digest, current: now, matches: !!now && now === campaign.approved_digest.digest, approved_at: campaign.approved_digest.at || null };
+  }
   if (campaign) { try { require('./smart-brain-plan.js').__test_topUpSavedCampaign(campaign, row.payload || {}); } catch (_) { /* the saved assets stand */ } }
   const jobs = await rest(`dispatch_jobs?select=id,channel,status,scheduled_for,idempotency_key,last_error,external_id,completed_at&workspace_id=eq.${ws}&asset_ref=eq.${encodeURIComponent('brain:' + slotId)}&order=created_at.desc&limit=100`).catch(() => []);
-  return { row, campaign, jobs: Array.isArray(jobs) ? jobs : [] };
+  return { row, campaign, jobs: Array.isArray(jobs) ? jobs : [], revision };
 }
 
 async function connectionsFor(workspaceId) {
@@ -235,7 +243,7 @@ async function status(auth, workspaceId, slotId, { brand = null, now = Date.now(
   if (!got.row) return { ok: true, stored: false, rows: [], message: 'This send is not saved in the brand\'s calendar yet, so nothing is scheduled for it. Run Daily Sync, then open it again.' };
   if (!got.campaign) return { ok: true, stored: true, built: false, rows: [], message: 'This send has no built assets yet, so there is nothing to schedule. Press View to build them.' };
   const p = plan(got.row.payload || {}, got.campaign, brand, { connections: await connectionsFor(workspaceId), jobs: got.jobs, now, status: got.row.status });
-  return Object.assign({ ok: true, stored: true, built: true, status: got.row.status }, p);
+  return Object.assign({ ok: true, stored: true, built: true, status: got.row.status, revision: got.revision }, p);
 }
 
 /** The asset each row hands its channel's adapter. */
@@ -266,6 +274,10 @@ async function schedule(auth, workspaceId, slotId, { brand = null, now = Date.no
   const got = await load(workspaceId, id);
   if (!got.row || !got.campaign) return { ok: false, error: 'not_built', message: 'This send has no saved assets, so nothing was scheduled.' };
   if (got.row.status !== 'approved' && got.row.status !== 'final') return { ok: false, error: 'not_approved', message: 'Only an approved send is scheduled. Approve it first: what you approve is what goes out.' };
+  // What is saved is no longer what was approved: nothing is queued.
+  if (got.revision && got.revision.recorded && !got.revision.matches) {
+    return { ok: false, error: 'approved_revision_changed', revision: got.revision, message: 'The saved assets of this send are not the ones that were approved (their digest differs from the one recorded at approval), so nothing was scheduled. Open the send, check it, and approve it again.' };
+  }
   const conns = await connectionsFor(workspaceId);
   const before = plan(got.row.payload || {}, got.campaign, brand, { connections: conns, jobs: got.jobs, now, status: got.row.status });
   const dispatch = require('./dispatch-core.js');
