@@ -78,7 +78,7 @@ test('a store\'s send carries its on-site assets, a banner per Google size and a
   expect(c.contract_check.by_contract['display.banner']).toBe(8);
 });
 
-test('a publisher and a bare name: only what the record states, no picture invented, a missing page is a block not a guess', async () => {
+test('a publisher and a bare name: only what the record states, no picture invented, with no page no display ad is built', async () => {
   const { campaign: toi } = await build(preset('times-of-india'), {});
   expect(toi.assets.onsite.hero_banner.headline).toBe('The Times of India');
   expect(toi.assets.onsite.hero_banner.image_url).toBeUndefined();
@@ -90,10 +90,9 @@ test('a publisher and a bare name: only what the record states, no picture inven
   const bare = { id: 'device:oz', slug: 'ozzlewick', name: 'Ozzlewick', regions: [{ code: 'IN', currency: 'INR', home: true }] };
   const { campaign: oz } = await build(bare, {});
   expect(oz.data_gaps.join(' ')).toMatch(/page to link from on-site and display assets, Ozzlewick/);
-  for (const b of oz.assets.display_banners) {
-    expect(b.destination_url).toBeUndefined();
-    expect(b.contract_check.ok).toBe(false);
-  }
+  // A display ad is a link: with no page on record none is built, and the gap is said.
+  expect(oz.assets.display_banners).toEqual([]);
+  expect(oz.assets.google_display == null).toBe(true);
   expect(JSON.stringify([oz.assets.onsite, oz.assets.display_banners.map((b) => [b.headline, b.sub])])).not.toMatch(/DATA REQUIRED|undefined|Kay Beauty|Times of India/);
   // the check itself
   expect(ST.check({ type: 'google_responsive_display', short_headlines: ['x'.repeat(31)], long_headline: 'y'.repeat(91), descriptions: [], business_name: 'B' }).filter((v) => v.level === 'block').map((v) => v.slot).sort()).toEqual(['descriptions', 'final_url', 'long_headline', 'short_headlines']);

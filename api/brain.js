@@ -996,6 +996,22 @@ module.exports = async function handler(req, res) {
         return res.json(await dispatch.drain({ workspaceId: __wsId }));
       }
 
+      case 'dispatch-slot': {
+        // One Smart Brain send: where each asset goes, when, on which linked
+        // account, and whether it went (GET); queue what can be queued (POST).
+        const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!auth.ok) return res.status(auth.status || 401).json(auth);
+        if (!__wsId) return res.json({ ok: true, stored: false, rows: [], message: 'This brand is kept on this device, so nothing is scheduled for it on a linked account: sending goes through platform accounts connected to a brand workspace on the server.' });
+        const BP = require('./_shared/brain-publish.js');
+        const slot = String(req.query.id || b.id || '');
+        if (!slot) return res.status(400).json({ ok: false, error: 'id_required', message: 'Which send this is for was not sent.' });
+        if (req.method === 'POST') {
+          const out = await BP.schedule(auth, __wsId, slot, { brand: req.__brand || null });
+          return res.status(out.ok ? 200 : 409).json(out);
+        }
+        return res.json(await BP.status(auth, __wsId, slot, { brand: req.__brand || null }));
+      }
+
       case 'dispatch-list':
       case 'dispatch-detail':
       case 'dispatch-cancel': {

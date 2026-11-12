@@ -4,6 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ A Smart Brain day in full: schedule, detail page, every day's ZIP, an aligned grid, the menu order (2026-11-12)
+The operator, on production /brain: "improve the asset view ... too congested and ensure perfect level alignment",
+"open detailed page must open detail page with all assets for that day", "cant see scheduled sending and publishing of
+assets on the respective platforms ... for each day", "download all must download all assets for all days generated",
+"start from the current date till atleast next 7 dates ... show options for generations", "social media stories and
+posts, banners, other assets still missing", "no continuous refresh of page", "unable to select india alone", and the
+menu order (brand, competitive benchmarking, live brand assets, compiled features, each asset, data analysis).
+- **Schedule** (`api/_shared/brain-publish.js`, `brain.js ?action=dispatch-slot` GET status / POST schedule, still
+  12/12): `plan()` gives one row per asset of a send (email -> `klaviyo_email`, SMS -> `klaviyo_sms`, each social post
+  -> `calendar-autopost.ROUTES`, else `NO_ROUTE`'s sentence): where it goes, when (the slot's date at 09:30 for mail,
+  the platform's hour for a post, in the brand's own zone), the connection (`registry.connectionProviderFor`: Meta is
+  `meta_ads`) and the state read from `dispatch_jobs` (`asset_ref` `brain:<slot>`, key `autopost:brain:<slot>:<row>`).
+  Paid ads, on-site assets and display banners are `manual` with why (a budget is a decision; no store connection
+  writes a theme); the landing page is `live` once approved. `schedule()` queues only an APPROVED send's `ready` rows
+  through `dispatch.enqueue` (mode `schedule`), so every job passes preflight and the three switches. A video post with
+  no hosted file is `needs_media`, never queued. /brain: a "Schedule" group and a 📅 chip per row.
+- **Detail page**: `openDetailPage` is every asset of every send of that DATE (mailers, landing pages, ads, social,
+  messages, on-site, banners), one card each on a grid; a built send not opened yet is read (`sbLoadSaved`, the saved
+  bundle), an unbuilt one is named; "Download the day" is one file. Above the credits pill (it sat on Close).
+- **Download all (.zip)** reads every built send in view first (`rsBuilt`), one at a time, then zips; the index links
+  social, message, on-site and banner files too. It zipped only the sends opened in the tab.
+- **Asset view**: each kind is a CSS grid of cards (`.pvgroup-*`; newspaper columns before, so nothing shared a line);
+  an ad's copy, storyboard and the remake prompts fold under `details.pvmore`. Row chips: Social, On-site, Banners, Schedule.
+- **Period**: the Agentic card carries the Duration chips (default Next 7 days from today); the run already used them.
+- **No refresh under work**: `brand-context.js` reloads for another tab's brand change at most once a minute and never
+  while something is `aria-busy` (it says so with a Reload button); `auth.js` does not reload for a new service worker
+  while something is running. Two tabs could reload each other in turn.
+- **Markets**: `[data-region-own]` (on `#mktfilter`) is excluded from region-context's legacy bridge, which clicked the
+  rail's market back on in the plan filter after the viewer unticked it.
+- **Menu**: Brand, Competitive Benchmarking, Live Brand Assets (the Knowledge Base group), Plan & Compile, Create Each
+  Asset, Publish & Analyse, Assistants, Settings.
+- **Main was red after #444** (merged before CI): a brand with no page got display banners that then BLOCKED. With no
+  page no display ad is built (the gap is said); a responsive ad with no description is not built.
+- Gated by `tests/brain-day-publish.spec.js` (3 executed) and router-brain's `dispatch-slot`. Not built: fetching a
+  brand's live mailers from Milled (its robots.txt disallows it), Instagram Stories publishing (no adapter channel),
+  de-duplicating copy across days.
 ## ⭐ Approved sends gain new asset kinds on view; on-site and display assets; the Why table (2026-11-12)
 The operator, on production /brain (Lenskart, an APPROVED slot): "dont see the social media posts in smart brain
 still", "add any more assets if required as per industry standards", "also fix the broken UI", "also fix INP issue".

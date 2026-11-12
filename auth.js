@@ -946,7 +946,10 @@
           if (!hadController) return;
           if (didReload) return; didReload = true;
           // Defer slightly so any in-flight nav clicks finish.
-          setTimeout(() => location.reload(), 50);
+          // Never under work in progress (2026-11-12): a deploy that landed
+          // while a run was going reloaded the page and threw the run away.
+          // The fresh shell is picked up on the next navigation instead.
+          setTimeout(() => { if (!document.querySelector('[aria-busy="true"]')) location.reload(); }, 50);
         });
         // Listen for "updatefound" → "installed" so we don't sit on a waiting SW.
         reg.addEventListener('updatefound', () => {
@@ -1062,7 +1065,51 @@
     // (Meta, Google Ads, Klaviyo, Shopify ...), with their sign-ins and keys.
     { id: 'connections',   label: 'Platform Connections', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
 
-    { section: 'Plan' },
+    // THE OPERATOR'S ORDER (2026-11-12): the brand, then who it competes with,
+    // then what the brand itself has live (its mailers, ads and pages as the
+    // libraries record them), then the features that compile every asset (Smart
+    // Brain), then each asset's own feature, then publishing and data analysis.
+    { section: 'Competitive Benchmarking' },
+    { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
+      // 'research-all', not 'research': the GROUP already carries gid 'research',
+      // and a ? chip is rendered for any id or gid that has an INFO entry. With
+      // both keyed the same, the identical panel was offered twice — once on the
+      // group header and again on the row immediately under it. Naming follows
+      // the region rows below.
+      { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
+      // `region`: the row is offered only while the ACTIVE brand serves that
+      // market (syncRegionRows below). These four were shown to every brand,
+      // so a brand serving only India was offered US, UK and Global studies it
+      // has no study, store or currency for (2026-10-05).
+      { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
+      { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
+      { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
+      { id: 'research-india',  label: 'India Study',            href: '/research?region=india',  icon: 'insights' },
+    ]},
+    { group: 'Competitor Benchmarking', icon: 'competitor', gid: 'competitor', ver: 'v1', children: [
+      { id: 'comp-discover',label: 'Discover Brands',href: '/competitor-benchmarking.html#discover', icon: 'discover' },
+      { id: 'comp-mailers', label: 'Mailers',        href: '/competitor-benchmarking.html#mailers',  icon: 'mailer' },
+      { id: 'comp-meta',    label: 'Meta Ads',       href: '/competitor-benchmarking.html#meta',     icon: 'meta' },
+      { id: 'comp-google',  label: 'Google Ads',     href: '/competitor-benchmarking.html#google',   icon: 'google' },
+      { id: 'comp-tiktok',  label: 'TikTok Ads',     href: '/competitor-benchmarking.html#tiktok',   icon: 'tiktok' },
+      { id: 'comp-landing', label: 'Landing Pages',  href: '/competitor-benchmarking.html#landing',  icon: 'landing' },
+      { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
+    ]},
+    { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
+
+    { section: 'Live Brand Assets' },
+    { group: 'Knowledge Base', icon: 'kb', gid: 'kb', ver: 'v1', children: [
+      // The ACTIVE brand's knowledge documents, each at its own address
+      // (/kb/brand/<doc>, brand-doc.html), built from that brand's record.
+      { id: 'kbv-brand',   label: 'Brand Documents', href: '/kb/brand', icon: 'kb', match: ['/kb/brand', '/brand-doc.html', '/doc'] },
+      { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
+      { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
+      { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
+      { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
+      { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
+    ]},
+
+    { section: 'Plan & Compile' },
     // Automated Calendar Creation — the ONE calendar + asset-generation feature.
     // A single flat feature, NO sub-items: it combines the best logic of the
     // former Smart Brain engine, the Mailer Calendar and the Plan Calendar into
@@ -1081,7 +1128,7 @@
     // UK Non-Engagers Hub removed from the user-facing nav (route /uk-non-engagers
     // stays reachable directly); it is no longer a raw nav item.
 
-    { section: 'Design & Create' },
+    { section: 'Create Each Asset' },
     // Mailer Studio is an OPEN feature — works standalone without sign-in.
     { id: 'studio', label: 'Mailer Studio',   href: '/studio', open: true, icon: 'studio', ver: 'v1', draft: 'Draft 1', match: ['/studio', '/lifecycle_mailer_architect_v34.html', '/app', '/mailer'] },
     // Independent LHS item (product-owner request 2026-07-25): the master ads
@@ -1144,7 +1191,7 @@
 
     { id: 'music', label: 'Music (Official Songs)', href: '/music', icon: 'knickgasm', ver: 'v2', match: ['/music', '/music.html'] },
     { id: 'assets', label: 'Created Assets', href: '/assets', icon: 'analysis', ver: 'v1', match: ['/assets', '/assets.html'] },
-    { section: 'Publish & Measure' },
+    { section: 'Publish & Analyse' },
     { id: 'publishing',    label: 'Publishing & Deliverability', href: '/publishing', icon: 'insights', ver: 'v2', match: ['/publishing', '/publisher', '/deliverability', '/publishing.html'] },
     { id: 'allinone',   label: 'Master Dashboard', href: '/master-dashboard', icon: 'analysis', ver: 'v2', match: ['/master-dashboard', '/master', '/all-in-one', '/os', '/dashboard-os', '/all-in-one.html'] },
     { group: 'Data Analysis', icon: 'analysis', gid: 'dataanalysis', ver: 'v2', match: ['/data-analysis', '/data-analysis.html', '/analytics', '/dashboard.html', '/rfm', '/d2c-review', '/business-review', '/usa-d2c-report', '/usa-d2c-dashboard', '/revenue-by-region', '/revenue-by-region.html'], children: [
@@ -1184,44 +1231,6 @@
     { id: 'avatars', label: 'Avatars (Personas)', href: '/avatars', icon: 'avatars', ver: 'v2', match: ['/avatars', '/personas', '/avatars.html'] },
     { id: 'mteam',      label: 'Marketing Team',   href: '/marketing-team',   icon: 'insights', ver: 'v2', match: ['/marketing-team', '/marketing-team.html'] },
     { id: 'ownerdesk',  label: 'Owner\'s Desk',    href: '/owner-desk',       icon: 'insights', ver: 'v2', match: ['/owner-desk', '/owner-desk.html'] },
-
-    { section: 'Research & Benchmark' },
-    { group: 'Market Study', icon: 'kb', gid: 'research', ver: 'v2', children: [
-      // 'research-all', not 'research': the GROUP already carries gid 'research',
-      // and a ? chip is rendered for any id or gid that has an INFO entry. With
-      // both keyed the same, the identical panel was offered twice — once on the
-      // group header and again on the row immediately under it. Naming follows
-      // the region rows below.
-      { id: 'research-all',    label: 'Overview (all regions)', href: '/research',               icon: 'kb',       match: ['/research', '/growth-book', '/research.html'] },
-      // `region`: the row is offered only while the ACTIVE brand serves that
-      // market (syncRegionRows below). These four were shown to every brand,
-      // so a brand serving only India was offered US, UK and Global studies it
-      // has no study, store or currency for (2026-10-05).
-      { id: 'research-us',     label: 'US Study',               href: '/research?region=us',     icon: 'insights' },
-      { id: 'research-uk',     label: 'UK Study',               href: '/research?region=uk',     icon: 'insights' },
-      { id: 'research-global', label: 'Global Study',           href: '/research?region=global', icon: 'insights' },
-      { id: 'research-india',  label: 'India Study',            href: '/research?region=india',  icon: 'insights' },
-    ]},
-    { group: 'Competitor Benchmarking', icon: 'competitor', gid: 'competitor', ver: 'v1', children: [
-      { id: 'comp-discover',label: 'Discover Brands',href: '/competitor-benchmarking.html#discover', icon: 'discover' },
-      { id: 'comp-mailers', label: 'Mailers',        href: '/competitor-benchmarking.html#mailers',  icon: 'mailer' },
-      { id: 'comp-meta',    label: 'Meta Ads',       href: '/competitor-benchmarking.html#meta',     icon: 'meta' },
-      { id: 'comp-google',  label: 'Google Ads',     href: '/competitor-benchmarking.html#google',   icon: 'google' },
-      { id: 'comp-tiktok',  label: 'TikTok Ads',     href: '/competitor-benchmarking.html#tiktok',   icon: 'tiktok' },
-      { id: 'comp-landing', label: 'Landing Pages',  href: '/competitor-benchmarking.html#landing',  icon: 'landing' },
-      { id: 'comp-insights',label: 'Insights',       href: '/competitor-benchmarking.html#insights', icon: 'insights' },
-    ]},
-    { group: 'Knowledge Base', icon: 'kb', gid: 'kb', ver: 'v1', children: [
-      // The ACTIVE brand's knowledge documents, each at its own address
-      // (/kb/brand/<doc>, brand-doc.html), built from that brand's record.
-      { id: 'kbv-brand',   label: 'Brand Documents', href: '/kb/brand', icon: 'kb', match: ['/kb/brand', '/brand-doc.html', '/doc'] },
-      { id: 'kbv-mailers', label: 'Mailers',       href: '/knowledge-base.html#mailers', icon: 'mailer' },
-      { id: 'kbv-meta',    label: 'Meta Ads',      href: '/knowledge-base.html#meta',    icon: 'meta' },
-      { id: 'kbv-google',  label: 'Google Ads',    href: '/knowledge-base.html#google',  icon: 'google' },
-      { id: 'kbv-tiktok',  label: 'TikTok Ads',    href: '/knowledge-base.html#tiktok',  icon: 'tiktok' },
-      { id: 'kbv-landing', label: 'Landing Pages', href: '/knowledge-base.html#landing', icon: 'landing' },
-    ]},
-    { id: 'designintel', label: 'Design Intelligence', href: '/design-intel', icon: 'insights', ver: 'v2', match: ['/design-intel', '/design-intelligence', '/design-intelligence.html'] },
 
     { section: 'Assistants' },
     // KicksGPT (internal team chat/info tool) and Knickgasm Agent (customer-facing

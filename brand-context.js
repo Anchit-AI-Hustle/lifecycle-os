@@ -3408,8 +3408,36 @@
     emit();
     if (gateExempt() || window.BrandContext && window.BrandContext.liveSwitch === true) return;
     try { sessionStorage.setItem('lc-brand-switched', String((next && next.name) || '')); } catch (_) {}
+    // One reload, never a run of them, and never under work in progress
+    // (2026-11-12, "ensure no continuous refresh of page at any time on any
+    // execution"). Two open tabs that each wrote the brand again after loading
+    // reloaded each other in turn, and a reload during a run threw the run
+    // away. While something is running, or within a minute of the last
+    // reload, the page is repainted (above) and says so with a Reload button.
+    var lastReload = 0;
+    try { lastReload = Number(sessionStorage.getItem('lc-brand-reload-at') || 0); } catch (_) {}
+    var busy = false;
+    try { busy = !!document.querySelector('[aria-busy="true"]'); } catch (_) {}
+    if (busy || (Date.now() - lastReload) < 60000) { brandChangedNotice(next); return; }
+    try { sessionStorage.setItem('lc-brand-reload-at', String(Date.now())); } catch (_) {}
     try { location.reload(); } catch (_) {}
   });
+  function brandChangedNotice(next) {
+    try {
+      var old = document.getElementById('lc-brand-changed'); if (old) old.remove();
+      var bar = document.createElement('div');
+      bar.id = 'lc-brand-changed'; bar.className = 'vh-status'; bar.setAttribute('role', 'status');
+      bar.style.cssText = 'margin:8px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+      var say = document.createElement('span');
+      say.textContent = 'The brand' + (next && next.name ? ' (' + next.name + ')' : '') + ' was changed in another tab. This page keeps what it was doing; reload it to use the brand as it is now.';
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn sm secondary'; btn.textContent = 'Reload';
+      btn.addEventListener('click', function () { try { sessionStorage.setItem('lc-brand-reload-at', String(Date.now())); } catch (_) {} location.reload(); });
+      bar.appendChild(say); bar.appendChild(btn);
+      var main = document.querySelector('main') || document.body;
+      main.insertBefore(bar, main.firstChild);
+    } catch (_) {}
+  }
 
   // ── Workspace-scope every API call ─────────────────────────────────────
   // The server scopes reads/writes by workspace_id, falling back to the OLDEST

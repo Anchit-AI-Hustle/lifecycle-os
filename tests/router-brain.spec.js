@@ -71,7 +71,7 @@ const M = {
   webengage: 'api/_shared/webengage-core.js', video: 'api/_shared/video-core.js', social: 'api/_shared/social-core.js',
   osb: 'api/_shared/os-backbone.js', alerts: 'api/_shared/alerts-core.js', snowflake: 'api/_shared/snowflake-sync-core.js',
   telesuite: 'api/_shared/telesuite-core.js', growth: 'api/_shared/growth-os-core.js', featureAgent: 'api/_shared/feature-agent.js',
-  market: 'api/_shared/market-analytics.js', validation: 'api/_shared/data-validation-core.js', dispatch: 'api/_shared/dispatch-core.js',
+  market: 'api/_shared/market-analytics.js', validation: 'api/_shared/data-validation-core.js', dispatch: 'api/_shared/dispatch-core.js', brainPublish: 'api/_shared/brain-publish.js',
   deliver: 'api/_shared/deliverability-core.js', preflight: 'api/_shared/preflight-core.js', cohort: 'api/_shared/cohort-engine.js',
   health: 'api/_shared/connectors-health.js', assetAgent: 'api/_shared/asset-agent.js', mailerBuild: 'api/_shared/lifecycle-mailer-build.js',
   gif: 'api/_shared/gif-core.js', engine: 'api/_shared/ads-insight-engine.js', catalogServer: 'api/_shared/brand-catalog-server.js',
@@ -502,6 +502,10 @@ add('dispatch-drain', { gate: 'cron-or-user', browser: 'refuse', run: { method: 
       const w = last(BWC, 'assertCanWrite'); expect(w[0].user_id).toBe(H.USER_ID); expect(w[1]).toBe(H.WS); expect(w[2]).toBe('run the dispatch queue');
       expect(last(M.dispatch, 'drain')[0]).toEqual({ workspaceId: H.WS });
     } }],
+});
+add('dispatch-slot', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { id: 'slot_1' } },
+  stubs: () => S.on(M.brainPublish, 'status', async () => ({ ok: true, stored: true, rows: [{ id: 'email', state: 'ready' }] })),
+  expect: (r) => { expect(r.out.rows).toEqual([{ id: 'email', state: 'ready' }]); const a = last(M.brainPublish, 'status'); expect(a[0].user_id).toBe(H.USER_ID); expect(a[1]).toBe(H.WS); expect(a[2]).toBe('slot_1'); },
 });
 add('dispatch-list', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { status: 'queued', limit: '5' } },
   stubs: () => S.on(M.dispatch, 'listJobs', async () => [{ id: 'j1' }]),

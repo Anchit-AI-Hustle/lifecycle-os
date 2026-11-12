@@ -738,7 +738,11 @@
   }
 
   var CLICKABLE = 'button,a,[role="button"],[role="tab"],[data-market],[data-mkt],[data-region]';
-  function ours(el) { return !!(el.closest && el.closest('[data-region-picker],[data-region-multi],.rgn-bar,.rgn-multi,#lifecycle-nav')); }
+  // [data-region-own]: a page's own filter that already reads and writes the
+  // shared selection. Driving it from the rail's ONE market clicked it back on
+  // after the viewer unticked it: India could not be left selected alone, and
+  // every correction re-rendered the plan (2026-11-12).
+  function ours(el) { return !!(el.closest && el.closest('[data-region-picker],[data-region-multi],[data-region-own],.rgn-bar,.rgn-multi,#lifecycle-nav')); }
 
   /** A chip is a picker only if a SIBLING offers a different market. */
   function isLegacyChip(el) {
