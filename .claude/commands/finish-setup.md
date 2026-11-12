@@ -57,10 +57,11 @@ operator, whose id and secret the server reads from these Vercel env vars (names
 | YouTube | same Google console, its own Web client; enable YouTube Data API v3 | `YOUTUBE_OAUTH_CLIENT_ID` | `YOUTUBE_OAUTH_CLIENT_SECRET` |
 | TikTok | https://developers.tiktok.com/apps (Login Kit + Content Posting API) | `TIKTOK_CLIENT_KEY` | `TIKTOK_CLIENT_SECRET` |
 | Pinterest | https://developers.pinterest.com/apps | `PINTEREST_APP_ID` | `PINTEREST_APP_SECRET` |
+| LinkedIn (company page posts) | https://www.linkedin.com/developers/apps (request the Community Management API product) | `LINKEDIN_CLIENT_ID` | `LINKEDIN_CLIENT_SECRET` |
 | Klaviyo | https://www.klaviyo.com/manage-apps (create app, OAuth) | `KLAVIYO_OAUTH_CLIENT_ID` | `KLAVIYO_OAUTH_CLIENT_SECRET` |
 
 The **redirect URI** each app must allow (exactly, one per platform; `<provider>` is the
-first column's id: `meta`, `google_ads`, `youtube`, `tiktok`, `pinterest`, `klaviyo`):
+first column's id: `meta`, `google_ads`, `youtube`, `tiktok`, `pinterest`, `linkedin`, `klaviyo`):
 
 `https://lifecycle-os.anchit-tandon.com/api/public-config?action=connections&op=oauth-callback&provider=<provider>`
 

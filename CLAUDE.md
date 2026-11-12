@@ -4,6 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ LinkedIn posts on the brand's company page; which platforms post and sync (2026-11-12)
+The operator: "ensure all platforms like milled, klaviyo, webengage, meta, google, linkedin, tiktok, etc for brands
+posting are integrated and syncable". `api/_shared/adapters/linkedin-adapter.js` (read 2026-11-12 on
+learn.microsoft.com/en-us/linkedin: authorization-code-flow, posts-api, images-api, versioning,
+organization-access-control-by-role): OAuth at `https://www.linkedin.com/oauth/v2/authorization` / `/accessToken`
+(client id and secret in the form body, space-separated scopes), env `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET`,
+write switch `LINKEDIN_ALLOW_WRITES`. Channel `linkedin_post`: POST `/rest/posts` (`Linkedin-Version` 202610, override
+`LINKEDIN_API_VERSION`; `X-Restli-Protocol-Version: 2.0.0`) as a TEXT post by `urn:li:organization:{id}` with the link
+in the words; the URN comes back in `x-restli-id`. `listPosts` (author FINDER) and `validateCredentials`
+(`organizationAcls`) are the sync reads. NOT sent: an article card (its thumbnail requirement was not stated) and an
+image post (`image_init` is `verified:false`: the byte upload is described only on the older Assets page). No refresh
+call (partners only): the operator signs in again after 60 days. No commentary limit is stated on the page, so none is
+enforced. Wired into `registry.js`, `oauth-core`, the `linkedin` connection (page id field), `calendar-autopost.ROUTES`
+(Social Media OS and Smart Brain's Schedule tab) and /finish-setup. Gated by `tests/linkedin-adapter.spec.js` (3, a fake
+API that throws on undocumented calls). **Still not posting platforms here**: Milled (an archive of other brands' mail,
+no posting API, robots.txt disallows reading), X and Threads (no adapter), WebEngage email (`supported:false`), Klaviyo
+email from Smart Brain (needs a list and sender: sent from Publishing).
 ## ⭐ A Smart Brain day in full: schedule, detail page, every day's ZIP, an aligned grid, the menu order (2026-11-12)
 The operator, on production /brain: "improve the asset view ... too congested and ensure perfect level alignment",
 "open detailed page must open detail page with all assets for that day", "cant see scheduled sending and publishing of

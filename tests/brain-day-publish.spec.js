@@ -62,8 +62,9 @@ test('the day\'s schedule: every asset has a row saying where it goes, when in t
   expect(by(draft, 'email').state).toBe('not_connected');
   expect(by(draft, 'email').when).toBe('2026-11-14 09:30 Asia/Kolkata');
   expect(by(draft, 'email').scheduled_for).toBe('2026-11-14T04:00:00.000Z');
-  expect(by(draft, 'social_linkedin').state).toBe('no_channel');
-  expect(by(draft, 'social_linkedin').message).toMatch(/LinkedIn has no publishing adapter/);
+  expect(by(draft, 'social_x').state).toBe('no_channel');
+  expect(by(draft, 'social_x').message).toMatch(/X has no publishing adapter/);
+  expect(by(draft, 'social_linkedin')).toMatchObject({ state: 'not_connected', channel: 'linkedin_post' });
   expect(by(draft, 'ads_meta').state).toBe('manual');
   expect(by(draft, 'ads_meta').fix).toBe('/publishing?tab=launch');
   expect(by(draft, 'landing').state).toBe('awaiting_approval');

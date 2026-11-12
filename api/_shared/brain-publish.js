@@ -148,7 +148,7 @@ function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.
     if ((row.state === 'ready' || row.state === 'awaiting_approval') && needsVideo && !https(media.video_url)) {
       row.state = 'needs_media';
       row.message = `${route.label} posts a video file, and this send's video is not hosted yet: render the Story video to MP4 on the Ads tab, or post it by hand.`;
-    } else if ((row.state === 'ready' || row.state === 'awaiting_approval') && !needsVideo && route.channel !== 'facebook_page_feed' && !https(media.designed_static || media.image_url)) {
+    } else if ((row.state === 'ready' || row.state === 'awaiting_approval') && !needsVideo && route.channel !== 'facebook_page_feed' && route.channel !== 'linkedin_post' && !https(media.designed_static || media.image_url)) {
       row.state = 'needs_media';
       row.message = `${route.label} posts a picture, and this product has no photo on record.`;
     }

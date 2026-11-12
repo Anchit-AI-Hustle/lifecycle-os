@@ -264,6 +264,7 @@ function clientIdFor(provider) {
     case 'tiktok': return String(process.env.TIKTOK_CLIENT_KEY || '').trim();
     case 'pinterest': return String(process.env.PINTEREST_APP_ID || '').trim();
     case 'youtube': return String(process.env.YOUTUBE_OAUTH_CLIENT_ID || '').trim();
+    case 'linkedin': return String(process.env.LINKEDIN_CLIENT_ID || '').trim();
     default: return '';
   }
 }
@@ -276,6 +277,7 @@ function clientSecretFor(provider) {
     case 'tiktok': return String(process.env.TIKTOK_CLIENT_SECRET || '').trim();
     case 'pinterest': return String(process.env.PINTEREST_APP_SECRET || '').trim();
     case 'youtube': return String(process.env.YOUTUBE_OAUTH_CLIENT_SECRET || '').trim();
+    case 'linkedin': return String(process.env.LINKEDIN_CLIENT_SECRET || '').trim();
     default: return '';
   }
 }
