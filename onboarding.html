@@ -557,6 +557,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
      the brand model - so a decision that landed after the operator started
      typing wiped the address they had typed. */
   var xUrlDraft = null;
+  var websiteLookup = null;
   /* "Read my site" asked for a site on ANOTHER domain than this brand's
      website: the read waits for the person to say which brand it is for. */
   var domainSwitch = null;
@@ -808,7 +809,13 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var parts = path.split('.'), o = brand;
         for (var i = 0; i < parts.length - 1; i++) o = o[parts[i]];
         o[parts[parts.length - 1]] = v;
-        if (path === 'name' && !brand.id) brand.slug = slugify(v);
+        if (path === 'name') {
+          if (!brand.id) brand.slug = slugify(v);
+          if (websiteLookup && websiteLookup.name !== v.trim()) {
+            websiteLookup = null;
+            paintWebsiteLookup();
+          }
+        }
         if (path.indexOf('palette.') === 0) { syncColourPair(path, v); renderVerdict(); }
         paintPreview();
       });
@@ -1085,15 +1092,18 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       noteStep1DelKeep();
       c.innerHTML =
         '<h2>Who is the brand?</h2>' +
-        '<p class="hint">Paste your site, pick a sample, or type the basics. You can change anything later.</p>' +
+        '<p class="hint">Find your website by brand name, paste its address, or start from a sample.</p>' +
         // Existing brands first so adding another is one press away, not buried
         // under extract / presets. data-no-brand-swap is LOAD-BEARING here too:
         // brand-context.js rewrites the shipped brand name into the active
         // brand's throughout the page, which is right for the shell and wrong
         // for a list of DIFFERENT brands.
         '<div id="step1Brands" class="ws-list compact" data-no-brand-swap style="margin:0 0 12px"></div>' +
+        '<div class="field" data-no-brand-swap><label for="setupBrandName">Brand name <span class="req">*</span></label>' +
+          '<div style="display:flex;gap:9px;flex-wrap:wrap"><input id="setupBrandName" type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name" style="flex:1;min-width:180px">' +
+          '<button type="button" class="btn" id="findBrandWebsite" aria-controls="brandWebsiteResults">Find website</button></div>' +
+          '<div id="brandWebsiteResults" aria-live="polite"></div></div>' +
         extractBlock() + xRenderedPanel() + '<div id="cohSlot">' + coherenceBlock(false) + '</div>' + xPanel('brand') +
-        '<div class="field"><label>Brand name <span class="req">*</span></label><input type="text" data-path="name" value="' + esc(brand.name) + '" placeholder="e.g. your brand name"></div>' +
         '<div class="row">' +
           '<div class="field"><label>Tagline <span class="note">one line</span></label><input type="text" data-path="tagline" value="' + esc(brand.tagline) + '" placeholder="one line that says what you make"></div>' +
           '<div class="field"><label>Industry</label><input type="text" data-path="industry" value="' + esc(brand.industry) + '" placeholder="e.g. Specialty retail / D2C"></div>' +
@@ -1123,6 +1133,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         actions(null, 'Colour schema');
       loadPresets();
       paintPresets();
+      paintWebsiteLookup();
       // When this account (or device) already has brands, show them here so
       // starting another one does not require walking to Review first.
       loadStep1Brands();
@@ -1395,6 +1406,102 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       .then(function (r) { return r.json(); })
       .then(function (d) { PRESETS = (d && d.presets) || []; paintPresets(); })
       .catch(function () { PRESETS = []; paintPresets(); });
+  }
+
+  function websiteNameKey(name) {
+    return String(name || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  }
+
+  function publicWebsiteUrl(raw) {
+    try {
+      var url = new URL(raw);
+      if (/^https?:$/.test(url.protocol) && !url.username && !url.password && /\.[a-z][a-z0-9-]*$/i.test(url.hostname)) return url;
+    } catch (_) {}
+    return null;
+  }
+
+  function paintWebsiteLookup() {
+    var button = $('findBrandWebsite'), host = $('brandWebsiteResults');
+    if (!button || !host) return;
+    var state = websiteLookup && websiteLookup.draft === brand && websiteLookup.name === String(brand.name || '').trim() ? websiteLookup : null;
+    button.disabled = !!(state && state.busy);
+    host.innerHTML = state ? '<p class="xmeta">' + esc(state.message) + '</p>' + state.sites.map(function (site, i) {
+      var source = site.item
+        ? '<a href="https://www.wikidata.org/wiki/' + site.item + '" target="_blank" rel="noopener noreferrer">Wikidata</a>'
+        : 'Lifecycle OS brand directory';
+      return '<div class="ws-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+        '<div style="min-width:0;overflow-wrap:anywhere"><b>' + esc(site.name) + '</b> · ' + esc(site.url) +
+        '<div class="xmeta">' + (site.description ? esc(site.description) + ' · ' : '') + source + '</div></div>' +
+        '<button type="button" class="btn" data-use-brand-website="' + i + '">Use website</button></div>';
+    }).join('') : '';
+  }
+
+  async function wikidataBrandQuery(params, signal) {
+    var url = new URL('https://www.wikidata.org/w/api.php');
+    url.search = new URLSearchParams(Object.assign({ format: 'json', origin: '*' }, params));
+    var response = await fetch(url, {
+      credentials: 'omit', signal: signal,
+      headers: { 'Api-User-Agent': 'LifecycleOS/1.0 (https://github.com/Anchit-AI-Hustle/lifecycle-os)' }
+    });
+    if (!response.ok) throw new Error('Website directory unavailable');
+    var data = await response.json();
+    if (data.error) throw new Error('Website directory unavailable');
+    return data;
+  }
+
+  async function findBrandWebsite() {
+    var name = String(brand.name || '').trim();
+    var state = { draft: brand, name: name, sites: [], busy: false, message: '' };
+    websiteLookup = state;
+    if (!websiteNameKey(name) || name.length > 120) {
+      state.message = 'Enter a brand name of up to 120 characters.';
+      paintWebsiteLookup();
+      $('setupBrandName').focus();
+      return;
+    }
+    var seen = new Set();
+    function addSite(raw, label, description, item) {
+      var url = publicWebsiteUrl(raw);
+      if (!url) return;
+      url.hash = '';
+      var key = url.hostname.replace(/^www\./, '') + url.pathname.replace(/\/$/, '') + url.search;
+      if (seen.has(key) || state.sites.length >= 8) return;
+      seen.add(key);
+      state.sites.push({ url: url.href, name: label, description: description, item: item });
+    }
+    var nameKey = websiteNameKey(name);
+    (PRESETS || []).forEach(function (preset) {
+      if (websiteNameKey(preset.name) === nameKey) addSite(preset.website, preset.name, preset.industry, '');
+    });
+    state.busy = true;
+    state.message = 'Looking for websites for ' + name + '…';
+    paintWebsiteLookup();
+    try {
+      var signal = AbortSignal.timeout(9000);
+      var matches = await wikidataBrandQuery({ action: 'wbsearchentities', search: name, language: 'en', type: 'item', limit: '8' }, signal);
+      if (websiteLookup !== state || brand !== state.draft) return;
+      var items = (matches.search || []).filter(function (item) { return /^Q[1-9][0-9]*$/.test(item.id); });
+      if (items.length) {
+        var results = await wikidataBrandQuery({ action: 'wbgetentities', ids: items.map(function (item) { return item.id; }).join('|'), props: 'claims' }, signal);
+        items.forEach(function (item) {
+          var entity = (results.entities || {})[item.id];
+          var claims = (entity && entity.claims && entity.claims.P856 || []).filter(function (claim) {
+            return claim.rank !== 'deprecated' && !(claim.qualifiers && claim.qualifiers.P582);
+          });
+          var preferred = claims.filter(function (claim) { return claim.rank === 'preferred'; });
+          (preferred.length ? preferred : claims).forEach(function (claim) {
+            var value = claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.value;
+            if (typeof value === 'string') addSite(value, item.label || name, item.description || '', item.id);
+          });
+        });
+      }
+      state.message = state.sites.length ? 'Choose the website that belongs to your brand.' : 'No website found for this name. Try a more specific name or paste your website below.';
+    } catch (_) {
+      state.message = state.sites.length ? 'Choose a website from the brand directory or paste your own.' : 'Website search is unavailable. You can paste your website below.';
+    } finally {
+      state.busy = false;
+      if (websiteLookup === state && brand === state.draft) paintWebsiteLookup();
+    }
   }
 
   function applyPreset(slug) {
@@ -1805,6 +1912,26 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return ' Its sitemap (' + esc(sm.from) + ') declares ' + sm.declared + ' URL(s), ' + sm.seeded + ' of them in scope.';
   }
 
+  function xPublishedLinks(report) {
+    var fields = report.fields || {};
+    var sitemap = report.sitemap || {};
+    var seen = new Set();
+    var rows = [];
+    function add(raw, type) {
+      var url = publicWebsiteUrl(raw);
+      if (!url || seen.has(url.href)) return;
+      seen.add(url.href);
+      rows.push('<p>' + esc(type) + ' · <a href="' + esc(url.href) + '" target="_blank" rel="noopener noreferrer">' + esc(url.href) + '</a></p>');
+    }
+    add(report.start, 'Website');
+    (sitemap.sources || []).forEach(function (s) { add(s.url, 'Sitemap'); });
+    ((fields.social && fields.social.candidates) || []).forEach(function (s) { add(s.value, s.platform || 'Social'); });
+    ((fields.regions && fields.regions.candidates) || []).forEach(function (r) { add(r.store_url, r.code || 'Regional store'); });
+    (report.pages || []).forEach(function (url) { add(url, 'Page'); });
+    return rows.length ? '<details class="xmeta" data-published-links><summary>Website links found (' + rows.length +
+      ')</summary><div style="overflow-wrap:anywhere">' + rows.join('') + '</div></details>' : '';
+  }
+
   function xPanel(key) {
     if (extractError && key === 'brand') {
       // The heading stays: it is the sentence the operator reads first, and it
@@ -1860,7 +1987,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         (extraction.note ? ' ' + esc(extraction.note) : '') + '</div>' +
       diag +
       '<div style="margin-top:10px">' + body + '</div>' +
-      (key === 'brand' ? '<div class="xlimits"><b>What this could not see</b><ul>' +
+      (key === 'brand' ? xPublishedLinks(extraction) + '<div class="xlimits"><b>What this could not see</b><ul>' +
         (extraction.limits || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>' : '') +
       '</div>';
   }
@@ -1902,7 +2029,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     return '<div class="xtract compact" data-no-brand-swap><h3>Set up from my website</h3>' +
       '<p class="xmeta"><b>Set up from my website</b> runs every step and opens Review. <b>Read my site</b> only fills this step. Own domain, robots.txt respected, revert in one click.</p>' +
       '<div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap">' +
-        '<input type="text" inputmode="url" autocomplete="url" id="xUrl" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
+        '<input type="text" inputmode="url" autocomplete="url" id="xUrl" aria-label="Website to read" style="flex:1;min-width:220px" placeholder="https://yourbrand.com" value="' + esc(xUrlDraft != null ? xUrlDraft : (brand.website || '')) + '">' +
         (off
           ? '<button type="button" class="btn primary" id="xRun" disabled aria-disabled="true" data-needs-account="extract">Read my site</button>'
           : '<button type="button" class="btn primary" id="xSetup" data-credit-feature="brand.extract"' + (setupBusy || extractBusy ? ' disabled aria-disabled="true"' : '') + '>' + (setupBusy ? 'Setting up...' : 'Set up from my website') + '</button>' +
@@ -2083,7 +2210,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var brandText = brand.name
       ? 'Found ' + brand.name + ' on ' + site + (brand.tagline ? ': "' + brand.tagline + '"' : '') + '.' + (have.length ? ' We have ' + listWords(have) + '.' : '') + (missing.length ? ' Not on your site yet: ' + listWords(missing) + '.' : '')
       : 'We could not find your brand\'s name on ' + site + '. Type it on the Brand step.';
-    var stages = [['brand', brand.name ? 'done' : 'needs-you', brandText, '']];
+    var stages = [['brand', brand.name ? 'done' : 'needs-you', brandText, xPublishedLinks(extraction)]];
     // 2 Colour
     var pal = brand.palette || {};
     var co = setupOutcome(['palette.primary', 'palette.accent', 'palette.ink', 'palette.surface']);
@@ -2200,7 +2327,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         setupNote(stages[i][0], stages[i][1], stages[i][2], stages[i][3]);
         await setupPause(220);
       }
-      if (namedFromRead) setupNote('brand', 'done', stages[0][2] + ' We named the brand ' + brand.name + ', as your site does; change it on Brand if you like.');
+      if (namedFromRead) setupNote('brand', 'done', stages[0][2] + ' We named the brand ' + brand.name + ', as your site does; change it on Brand if you like.', stages[0][3]);
       // 5 Data & catalog, then the context pack: both read on the server.
       var serverOff = actionsOff();
       if (!serverOff) {
@@ -2859,6 +2986,23 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         toast('Colours reset to website extracted palette.');
       } else {
         toast('No website extracted palette found. Run "Read my site" on Brand step first.');
+      }
+      return;
+    }
+    var find = e.target && e.target.closest ? e.target.closest('#findBrandWebsite') : null;
+    if (find) { findBrandWebsite(); return; }
+    var use = e.target && e.target.closest ? e.target.closest('[data-use-brand-website]') : null;
+    if (use && websiteLookup && websiteLookup.draft === brand && !setupBusy && !extractBusy) {
+      var site = websiteLookup.sites[+use.getAttribute('data-use-brand-website')];
+      var input = $('xUrl');
+      if (site && input) {
+        xUrlDraft = input.value = site.url;
+        websiteLookup = { draft: brand, name: websiteLookup.name, sites: [], message: extractOff()
+          ? 'Website selected. You can edit the address below.'
+          : 'Website selected. Use Set up from my website to find the links it publishes.' };
+        paintWebsiteLookup();
+        var setup = $('xSetup');
+        (setup && !setup.disabled ? setup : input).focus();
       }
       return;
     }
