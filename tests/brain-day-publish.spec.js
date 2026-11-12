@@ -221,6 +221,8 @@ test('the page: an aligned grid, the schedule table, the day\'s detail page with
     expect(manifest.sends.map((x) => x.slot_id)).toEqual(['day-1', 'day-2', 'day-3', 'day-5', 'day-6']);
     const listed = manifest.sends.flatMap((x) => x.files).concat(manifest.top_level);
     expect(listed.length).toBe(manifest.files);
+    expect(manifest.top_level.map((f) => f.path).sort()).toEqual(['calendar.json', 'index.html']);
+    expect(manifest.sends.flatMap((x) => x.files).some((f) => /^(index\.html|calendar\.json)$/.test(f.path))).toBe(false);
     expect(listed.map((f) => f.path).sort()).toEqual(last.files.filter((f) => f !== 'manifest.json').sort());
     for (const f of listed) { expect(f.sha256, f.path).toMatch(/^[0-9a-f]{64}$/); expect(f.bytes).toBeGreaterThan(0); }
     // the digest is the file's own: the first mailer of day-1, hashed again here
@@ -292,6 +294,10 @@ test('an approved send says which assets were added after its approval and holds
     await show(JSON.parse(JSON.stringify(c)), { approved_assets_missing: true }, 'approved');
     await expect(page.locator('#rev-host [data-revision]')).toHaveAttribute('data-revision', 'recovered-draft');
     await expect(page.locator('#rev-host [data-revision]')).toContainText('New draft, not approved');
+    // and the press that approves it is right there (the row's own controls are hidden)
+    await page.route(/smart-brain-approve(?!-)/, (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, campaign: { campaign_id: 'c1', assets: {} } }) }));
+    await page.locator('#rev-host [data-approve-recovered]').click();
+    await expect(page.locator('#rev-host [data-revision]')).toHaveAttribute('data-revision', 'recovered-approved');
   } finally { server.close(); }
 });
 

@@ -56,7 +56,9 @@ function assetsOf(campaign) {
   const mail = A.email || null;
   if (mail) {
     const vars = Array.isArray(mail.variants) && mail.variants.length ? mail.variants : (mail.html ? [mail] : []);
-    vars.forEach((v, i) => out.push({ type: 'email', placement: 'inbox', variant: slug(v.key || v.label) || 'v' + (i + 1), contract: 'email.mailer', node: v, cta: str(v.cta || mail.cta), channel: 'email' }));
+    // What a recipient gets is the subject and preheader as well as the body
+    // (review of #451): they are delivered beside the HTML, so they are hashed with it.
+    vars.forEach((v, i) => out.push({ type: 'email', placement: 'inbox', variant: slug(v.key || v.label) || 'v' + (i + 1), contract: 'email.mailer', node: v, with: [str(v.subject || mail.subject), str(v.preheader || v.preview_text || mail.preheader || mail.preview_text)], cta: str(v.cta || mail.cta), channel: 'email' }));
   }
   (A.landing_pages || []).forEach((lp, i) => out.push({ type: 'landing', placement: 'page', variant: slug(lp.variant) || 'v' + (i + 1), contract: 'landing.page', node: lp, cta: str(lp.cta), channel: 'landing_page' }));
   const seen = {};
@@ -144,7 +146,7 @@ function build(campaign, entry) {
     const failing = cc && cc.ok === false;
     return {
       asset_id: [slot, a.type, a.placement, a.variant].join(':'),
-      revision: sha(bytesOf(a.node)).slice(0, 16),
+      revision: sha((a.with && a.with.some(Boolean) ? a.with.join('\n') + '\n' : '') + bytesOf(a.node)).slice(0, 16),
       type: a.type, placement: a.placement, variant: a.variant,
       contract: a.contract || null,
       cta: a.cta || null,

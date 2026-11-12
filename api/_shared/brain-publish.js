@@ -72,7 +72,9 @@ const keyFor = (slotId, id) => `autopost:brain:${slotId}:${id}`;
 function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.now(), status = '' } = {}) {
   const e = entry || {}; const c = campaign || {}; const A = c.assets || {};
   const date = str(e.date).slice(0, 10);
-  const approved = status === 'approved' || status === 'final';
+  // A draft rebuilt after the approved assets went missing is not approved,
+  // whatever the calendar row still says (review of #451).
+  const approved = (status === 'approved' || status === 'final') && !c.recovered_draft;
   const registry = require('./adapters/registry.js');
   const rows = [];
   const jobOf = (id) => jobs.find((j) => j.idempotency_key === keyFor(e.id, id)) || null;
@@ -273,6 +275,7 @@ async function schedule(auth, workspaceId, slotId, { brand = null, now = Date.no
   const id = str(slotId);
   const got = await load(workspaceId, id);
   if (!got.row || !got.campaign) return { ok: false, error: 'not_built', message: 'This send has no saved assets, so nothing was scheduled.' };
+  if (got.campaign.recovered_draft) return { ok: false, error: 'not_approved', message: 'The assets this send was approved with are no longer stored; what is saved now is a new draft. Approve it first: nothing was scheduled.' };
   if (got.row.status !== 'approved' && got.row.status !== 'final') return { ok: false, error: 'not_approved', message: 'Only an approved send is scheduled. Approve it first: what you approve is what goes out.' };
   // What is saved is no longer what was approved: nothing is queued.
   if (got.revision && got.revision.recorded && !got.revision.matches) {

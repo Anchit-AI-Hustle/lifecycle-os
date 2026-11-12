@@ -5371,6 +5371,19 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
     // what the reviewer approved. A template-copy approval is returned as it was
     // saved and says so; Regenerate is the reviewer's own press.
     const cIsFallback = !!(c && c.copywriter && c.copywriter.provider === 'template-fallback');
+    // A draft rebuilt after the approved assets went missing sits under the
+    // same id. It is shown as what it is, every time, until it is approved.
+    if (c && c.recovered_draft) {
+      return {
+        ok: true, preview: false, persisted: true, campaign: c,
+        approved_assets_missing: true, note: 'The assets this send was approved with are no longer stored, so this is a new draft. It is not approved: approve it to ship it.',
+        copywriter: c.copywriter,
+        email_html: c.assets?.email?.html || null,
+        email_variants: c.assets?.email?.variants || null,
+        landing_html: c.assets?.landing_pages?.[0]?.html || null,
+        ads: c.assets?.ads || [],
+      };
+    }
     if (c) {
       // A send approved before an asset kind existed gains that kind on view
       // (2026-11-12: approved Lenskart slots showed no social posts). Nothing
@@ -5436,6 +5449,13 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
   // must never break the preview the reviewer is waiting on. mirror:false keeps
   // unapproved drafts out of the Ads/Landing dashboards. Stamp __preview (not
   // __prebuilt) so the prebuild queue still upgrades this slot to full creatives.
+  // Marked BEFORE it is saved (review of #451): the rebuilt campaign takes the
+  // same id as the one that went missing, so without the marker in the stored
+  // row the next view read it back as the approved campaign.
+  if (approvedAssetsMissing) {
+    campaign.recovered_draft = { at: nowIso(), reason: 'The assets this send was approved with are no longer stored.' };
+    delete campaign.approved_digest;
+  }
   if (builtFresh && db.connected && row) {
     try {
       await persistCampaignAssets(db, config, campaign, { status: 'preview', origin: 'smart-brain-preview', reviewer, mirror: false });
@@ -5446,9 +5466,6 @@ async function _previewEntry({ id, reviewer = null, config: cfg = {}, entry: inl
         await db.update(config.tableNames.calendarEntries, { id: `eq.${row.id}`, status: SYNC_WRITABLE_STATUSES }, { payload, updated_at: nowIso() });
       }
     } catch (_) { /* best-effort persistent cache; preview still returns below */ }
-  }
-  if (approvedAssetsMissing) {
-    campaign.recovered_draft = { at: nowIso(), reason: 'The assets this send was approved with are no longer stored.' };
   }
   return {
     ok: true,
@@ -5543,6 +5560,9 @@ async function generateSingleAsset({ id, entry: inlineEntry = null, assetType = 
   try { fillLandingUrl(campaign, entry); } catch (_) { /* keep the asset */ }
   try { attachUnitWords(campaign, entry); } catch (_) { /* keep the asset */ }
   try { campaign.contract_check = undefined; checkAssetContracts(campaign, entry); } catch (_) { /* keep the asset */ }
+  // The decision record names the assets that are here NOW (review of #451):
+  // it carried the previous revisions and digest beside the regenerated asset.
+  try { campaign.decisions = require('./asset-decisions.js').build(campaign, entry); } catch (_) { /* keep the asset */ }
   if (db.connected && row && campaign) {
     try {
       await persistCampaignAssets(db, config, campaign, { status: 'preview', origin: 'smart-brain-generate-asset', reviewer, mirror: false });
@@ -5601,6 +5621,14 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
       };
     }
   }
+  // What this press approves, when it approves a recovered draft: the draft
+  // the reviewer was shown, not another build (review of #451).
+  let recoveredDraft = null;
+  if (db.connected && row && (row.status === 'approved' || row.status === 'final') && row.generated_campaign_id) {
+    const again = await db.select(config.tableNames.generatedCampaigns, { filters: { id: `eq.${row.generated_campaign_id}` }, limit: 1 }).catch(() => []);
+    const d = again && again[0] && again[0].payload;
+    if (d && d.recovered_draft && identityMatches(d.brand_identity, ident)) recoveredDraft = d;
+  }
 
   // Reuse the FULL prebuilt campaign (LLM copy + images) when the prebuild queue
   // already built this slot — approval then just locks + publishes, no wait, no
@@ -5619,6 +5647,7 @@ async function approveEntry({ id, reviewer = null, config: cfg = {}, entry: inli
   }
   if (campaign && !identityMatches(campaign.brand_identity, ident)) campaign = null;
   if (campaign && !currentBuild(campaign)) campaign = null;   // built by an earlier renderer
+  if (recoveredDraft) campaign = recoveredDraft;
   // buildCampaign generates copy + creatives and attaches master prompts. Use
   // the ACTIVE scenario (medium unless a human switched the slot), internal keys
   // stripped so projected revenue/spend can never reach the asset builders.

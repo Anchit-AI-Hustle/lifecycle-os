@@ -70,7 +70,9 @@ test('a store\'s send records one decision per asset, each with a stable id, a r
   expect(d.items.find((x) => x.type === 'music').expected_artifact).toMatch(/brief/);
   // the revision is the hash of the asset itself
   const first = A.email.variants[0];
-  expect(d.items[0].revision).toBe(require('crypto').createHash('sha256').update(first.html).digest('hex').slice(0, 16));
+  // the subject and preheader are delivered beside the HTML, so they are hashed with it
+  const lead = [first.subject || A.email.subject || '', first.preheader || first.preview_text || A.email.preheader || A.email.preview_text || ''];
+  expect(d.items[0].revision).toBe(require('crypto').createHash('sha256').update((lead.some(Boolean) ? lead.join('\n') + '\n' : '') + first.html).digest('hex').slice(0, 16));
 });
 
 test('with no result of the brand\'s own the record is provisional and says so; observed evidence is never called measured; one own campaign with figures makes it evidenced', async () => {

@@ -2161,7 +2161,7 @@ function renderPreview(payload, e, i, opts){
   const KIND_WORDS = { social_posts: 'social posts', onsite: 'on-site assets', display_banners: 'display banners', google_display: 'the responsive display ad' };
   const isApproved = e && (e.status === 'approved' || e.status === 'final');
   const revisionNote = (payload.approved_assets_missing || campaign.recovered_draft)
-    ? `<div class="vh-status pvlead" data-revision="recovered-draft" style="margin-top:4px;font-size:12px"><b>New draft, not approved.</b> The assets this send was approved with are no longer stored, so these were built again. Approve the send to ship them.</div>`
+    ? `<div class="vh-status pvlead" data-revision="recovered-draft" style="margin-top:4px;font-size:12px"><b>New draft, not approved.</b> The assets this send was approved with are no longer stored, so these were built again. Approve the send to ship them. <button type="button" class="btn sm secondary" data-approve-recovered data-slot="${esc(e.id)}" onclick="sbApproveRecovered(this)">Approve this draft</button></div>`
     : (addedKinds.length && isApproved)
       ? `<div class="vh-status pvlead" data-revision="additions-pending" style="margin-top:4px;font-size:12px"><b>Added after approval:</b> ${esc(addedKinds.map(k => KIND_WORDS[k] || k).join(', '))}. They were not part of what was approved, so they are not scheduled. The mail, pages and ads are exactly as approved. <button type="button" class="btn sm secondary" data-approve-additions data-slot="${esc(e.id)}" onclick="sbApproveAdditions(this)">Approve the added assets</button></div>`
       : '';
@@ -2664,6 +2664,8 @@ window.sbZipAll = async function(){
     rows.push({ date:e.date, market:e.market, cohort:(e.cohort&&e.cohort.name)||'', objective:e.objective||'', hero:(e.heroProduct&&(e.heroProduct.title||e.heroProduct.name))||'', offer:(e.offer&&e.offer.code)?(Math.round((Number(e.offer.pct)||0)*100)+'% '+e.offer.code):(e.offer&&typeof e.offer==='object'?'No discount':(e.offer||'')), confidence:e.confidence, feasibility:e.feasibility, links });
   }
   // Top-level self-contained CALENDAR DASHBOARD (index.html) + machine manifest.
+  // They belong to the archive, not to the last send (review of #451).
+  cur = null;
   put('index.html', _zipDashboardHTML(rows));
   put('calendar.json', JSON.stringify({ generated_at:new Date().toISOString(), sends:rows.length, rows }, null, 2));
   // manifest.json: every file of the archive with its send, kind, size and
@@ -2910,6 +2912,25 @@ async function sbLoadPublish(root){
 }
 // Approve the kinds added to an approved send after its approval. The server
 // saves them beside what was approved, with who approved them and when.
+// Approve the draft that stands in for approved assets that went missing. The
+// row's own review controls are hidden (the calendar still says approved), so
+// the press is here, beside the sentence that asks for it (review of #451).
+window.sbApproveRecovered = async function(btn){
+  const id = btn && btn.getAttribute('data-slot'); if(!id) return;
+  const mark = btn.innerHTML;
+  btn.disabled = true; btn.setAttribute('aria-busy','true'); btn.textContent = 'Approving…';
+  try {
+    const r = await fetch(`${API}?action=smart-brain-approve`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, reviewer: reviewerEmail() }) });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || d.ok === false) throw new Error(d.message || d.error || ('HTTP ' + r.status));
+    if(d.campaign) PREVIEW_CACHE[id] = Object.assign({}, PREVIEW_CACHE[id] || {}, { campaign: d.campaign, approved_assets_missing: false });
+    const note = btn.closest('[data-revision]');
+    if(note){ note.setAttribute('data-revision', 'recovered-approved'); note.innerHTML = '<b>Approved.</b> This draft is now the approved send.'; }
+  } catch(err){
+    btn.disabled = false; btn.removeAttribute('aria-busy'); btn.innerHTML = mark;
+    sbSay(btn, 'The draft was not approved: ' + ((err && err.message) || 'no reason was given') + '.');
+  }
+};
 window.sbApproveAdditions = async function(btn){
   // The slot is named on the button itself: the plan list is re-read by the
   // page at its own pace, and an index into it can go stale under a press.

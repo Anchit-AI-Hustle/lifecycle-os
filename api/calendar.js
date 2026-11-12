@@ -481,6 +481,16 @@ async function smartBrain(req, res, smartAction) {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
       if (!body.id) return res.status(400).json({ ok: false, error: 'id is required' });
       if (!req.__workspaceId) return res.status(409).json({ ok: false, error: 'no_workspace', message: 'This brand is kept on this device, so it has no saved send to add to.' });
+      // An approval is a write: an owner or editor of the workspace, never a
+      // viewer (review of #451). The planner writes with the service role, so
+      // the role is checked here, before it.
+      {
+        const core = require('./_shared/brand-workspace-core.js');
+        const who = await core.requireUser(req);
+        if (!who.ok) return res.status(who.status || 401).json(who);
+        try { await core.assertCanWrite(who, req.__workspaceId, 'approve assets added to a send'); }
+        catch (e) { return res.status((e && e.status) || 403).json({ ok: false, error: (e && e.code) || 'forbidden', message: (e && e.message) || 'Only an owner or editor of this brand can approve assets.' }); }
+      }
       try {
         const result = await plan.approveAdditions({ id: body.id, reviewer: body.reviewer || null, config: body.config || {} });
         return res.status(200).json(result);

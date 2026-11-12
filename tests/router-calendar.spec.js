@@ -628,12 +628,17 @@ sb('reject', { run: { json: { id: 'entry_1', notes: 'off-brand' } }, stubs: () =
   expect: (r) => { expect(last(PLAN, 'rejectEntry')[0]).toEqual({ id: 'entry_1', reviewer: null, notes: 'off-brand', config: { workspace_id: H.WS } }); },
   cases: [{ name: 'no id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(PLAN)).toEqual([]); } }],
 });
-sb('approve-additions', { run: { json: { id: 'entry_1', reviewer: 'op' } }, stubs: () => S.on(PLAN, 'approveAdditions', async () => ({ ok: true, added: ['social_posts'] })),
+const CORE = 'api/_shared/brand-workspace-core.js';
+sb('approve-additions', { run: { json: { id: 'entry_1', reviewer: 'op' } }, stubs: () => { S.on(CORE, 'assertCanWrite', async () => true); S.on(PLAN, 'approveAdditions', async () => ({ ok: true, added: ['social_posts'] })); },
   expect: (r) => { expect(last(PLAN, 'approveAdditions')[0]).toEqual({ id: 'entry_1', reviewer: 'op', config: { workspace_id: H.WS } }); expect(r.out.added).toEqual(['social_posts']); },
   cases: [
     { name: 'no id is a 400', run: { json: {} }, expect: (r) => { expect(r.status).toBe(400); expect(S.hits(PLAN)).toEqual([]); } },
+    // review of #451: the planner writes with the service role, so the role is checked before it
+    { name: 'the write check names the workspace scoping resolved, and a viewer is refused (403) before the planner', run: { json: { id: 'entry_1' } },
+      stubs: () => { S.on(CORE, 'assertCanWrite', async (auth, ws) => { if (ws !== H.WS || !auth || !auth.ok) throw new Error('wrong arguments'); const e = new Error('Only an owner or editor of this brand can approve assets added to a send.'); e.status = 403; e.code = 'forbidden'; throw e; }); S.on(PLAN, 'approveAdditions', async () => ({ ok: true })); },
+      expect: (r) => { expect(r.status).toBe(403); expect(r.out).toMatchObject({ ok: false, error: 'forbidden' }); expect(S.hits(PLAN)).toEqual([]); } },
     { name: 'a send that is not approved is refused in words (409), never a 500', run: { json: { id: 'entry_1' } },
-      stubs: () => S.on(PLAN, 'approveAdditions', async () => { const e = new Error('This send is not approved yet.'); e.status = 409; e.code = 'not_approved'; throw e; }),
+      stubs: () => { S.on(CORE, 'assertCanWrite', async () => true); S.on(PLAN, 'approveAdditions', async () => { const e = new Error('This send is not approved yet.'); e.status = 409; e.code = 'not_approved'; throw e; }); },
       expect: (r) => { expect(r.status).toBe(409); expect(r.out).toMatchObject({ ok: false, error: 'not_approved' }); } },
   ],
 });

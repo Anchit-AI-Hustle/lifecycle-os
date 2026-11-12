@@ -117,6 +117,43 @@ test('an approved send whose saved assets are missing becomes a NEW DRAFT that s
   const filed = store.writes.filter((w) => w.table === T.generatedCampaigns);
   expect(filed.length).toBeGreaterThan(0);
   for (const w of filed) expect(w.status, 'a rebuilt draft was filed as approved').not.toBe('approved');
+  // review of #451: the rebuilt campaign takes the SAME id, so the marker has
+  // to be in the stored row, or the next view reads it back as the approval.
+  const stored = Object.values(store.rows[T.generatedCampaigns])[0].payload;
+  expect(stored.recovered_draft, 'the stored draft carries no recovery marker').toBeTruthy();
+  const again = await SBP.previewEntry({ id: 'slot-1', config: {} });
+  expect(again.approved_assets_missing).toBe(true);
+  expect(again.note).toMatch(/new draft/);
+  // the schedule does not treat it as approved, whatever the calendar row says
+  const entry = store.rows[T.calendarEntries]['slot-1'].payload;
+  const p = BP.plan(entry, again.campaign, entry.brand, { connections: { meta_ads: { status: 'active', config: {} } }, status: 'approved' });
+  expect(p.approved).toBe(false);
+  expect(p.rows.filter((r) => r.state === 'ready')).toEqual([]);
+  // approving it approves THAT draft: same bytes, marker gone, digest recorded
+  const AD = require(path.join(ROOT, 'api', '_shared', 'asset-decisions.js'));
+  const draftDigest = AD.digestOf(again.campaign);
+  const ok = await SBP.approveEntry({ id: 'slot-1', reviewer: 'op@example.test', config: {} });
+  expect(ok.idempotent).toBeUndefined();
+  const approvedNow = Object.values(store.rows[T.generatedCampaigns])[0].payload;
+  expect(approvedNow.recovered_draft).toBeUndefined();
+  expect(approvedNow.approved_digest.digest).toBe(draftDigest);
+  expect(AD.digestOf(approvedNow)).toBe(draftDigest);
+});
+
+test('review of #451: a mail\'s subject and preheader are part of its revision, and only the mail\'s', async () => {
+  const { c } = await approvedSend({ strip: false });
+  const AD = require(path.join(ROOT, 'api', '_shared', 'asset-decisions.js'));
+  const before = AD.build(c, { id: 'slot-1' });
+  // a variant's own subject changes that variant's revision and nothing else
+  const v = JSON.parse(JSON.stringify(c)); v.assets.email.variants[0].subject = 'A subject of its own';
+  const after = AD.build(v, { id: 'slot-1' });
+  expect(after.items[0].revision).not.toBe(before.items[0].revision);
+  expect(after.items.slice(1).map((x) => x.revision)).toEqual(before.items.slice(1).map((x) => x.revision));
+  expect(after.manifest_digest).not.toBe(before.manifest_digest);
+  // the send's subject is delivered with every variant that has none of its own
+  const m = JSON.parse(JSON.stringify(c)); m.assets.email.variants.forEach((x) => { delete x.subject; }); m.assets.email.subject = 'One';
+  const m2 = JSON.parse(JSON.stringify(m)); m2.assets.email.subject = 'Two';
+  expect(AD.build(m2, { id: 'slot-1' }).items.filter((x) => x.type === 'email').map((x) => x.revision)).not.toEqual(AD.build(m, { id: 'slot-1' }).items.filter((x) => x.type === 'email').map((x) => x.revision));
 });
 
 test('kinds added after approval are held out of the schedule until a reviewer approves them; approving saves them and leaves the approved mail, pages and ads byte for byte', async () => {
