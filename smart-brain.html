@@ -2396,6 +2396,8 @@ window.openDetailPage = async function(i, btn){
           const fi = frames.push(it) - 1; bundle.push({ name: k, label: (day.length > 1 ? name + ' · ' : '') + it.label, html: it.html, ext: 'html' });
           return `<div class="dcard" data-detail-card="${k}"${it.w && it.w > 400 ? ' style="grid-column:1/-1"' : ''}><h4>${esc(it.label)}</h4><iframe sandbox="allow-same-origin" data-dframe="${fi}" title="${esc(it.label)}"${it.w ? ` style="width:${it.w}px;max-width:100%;height:${it.h}px"` : ''}></iframe></div>`;
         }
+        // Text assets are in the day's download too, as a plain page each.
+        bundle.push({ name: k, label: (day.length > 1 ? name + ' · ' : '') + it.label, ext: 'html', html: '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(it.label) + '</title></head><body style="margin:0;padding:18px;font:15px/1.6 system-ui,sans-serif"><pre style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit">' + esc(it.text || '') + '</pre></body></html>' });
         return `<div class="dcard" data-detail-card="${k}"><h4>${esc(it.label)}</h4><pre>${esc(it.text || '')}</pre></div>`;
       }).join('') + `</div>`;
     }
@@ -2792,7 +2794,7 @@ window.sbQuickAsset = async function(idx, assetType) {
    platforms in the smart brain feature for each day". One table per send:
    the asset, where it goes, when, and its state, from the server's own queue
    and the brand's own connections (api/_shared/brain-publish.js). */
-const PUB_LABEL = { scheduled:'Scheduled', sent:'Sent', ready:'Ready to schedule', awaiting_approval:'After approval', not_connected:'Not connected', needs_reauth:'Reconnect', needs_media:'Needs media', manual:'By hand', no_channel:'No channel', withheld:'Held back', failed:'Failed', blocked:'Blocked', cancelled:'Cancelled', live:'Live' };
+const PUB_LABEL = { scheduled:'Scheduled', sent:'Sent', ready:'Ready to schedule', awaiting_approval:'After approval', not_connected:'Not connected', needs_reauth:'Reconnect', needs_media:'Needs media', needs_setup:'Needs setup', manual:'By hand', no_channel:'No channel', withheld:'Held back', failed:'Failed', blocked:'Blocked', cancelled:'Cancelled', live:'Live' };
 function pubHTML(d, i){
   if(!d || d.ok === false) return `<p class="vh-status" role="status">${esc((d && (d.message || d.error)) || 'The schedule could not be read.')}</p>`;
   if(!(d.rows || []).length) return `<p class="vh-status" role="status">${esc(d.message || 'Nothing is scheduled for this send.')}</p>`;

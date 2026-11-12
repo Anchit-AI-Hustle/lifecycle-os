@@ -107,11 +107,23 @@ function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.
     return row;
   };
 
+  // A Klaviyo campaign needs an audience and, for mail, a verified sender. The
+  // connection holds a key only, so unless its config states them the row is
+  // not "ready": it is sent from Publishing, where the list and sender are chosen.
+  const klaviyoReady = (row, needsSender) => {
+    if (row.state !== 'ready' && row.state !== 'awaiting_approval') return row;
+    const cfg = (connections[row.provider] && connections[row.provider].config) || {};
+    if ((str(cfg.list_id) || str(cfg.segment_id)) && (!needsSender || str(cfg.from_email))) return row;
+    row.state = 'needs_setup';
+    row.message = `Klaviyo is connected, but no audience list${needsSender ? ' and sender address' : ''} is set for it here, so this is not queued from Smart Brain. Send it from Publishing, where you choose the list${needsSender ? ' and sender' : ''}.`;
+    row.fix = '/publishing'; row.fix_label = 'Open Publishing';
+    return row;
+  };
   // The mail.
   const mail = A.email || null;
   if (mail && (mail.html || (mail.variants && mail.variants.length))) {
     const w = whenFor(date, EMAIL_HOUR, brand, now);
-    rows.push(routed({ id: 'email', kind: 'email', label: 'Email', what: str(mail.subject) || 'Mailer', channel: 'klaviyo_email', when: w.note, scheduled_for: w.at }, 'klaviyo', 'Klaviyo'));
+    rows.push(klaviyoReady(routed({ id: 'email', kind: 'email', label: 'Email', what: str(mail.subject) || 'Mailer', channel: 'klaviyo_email', when: w.note, scheduled_for: w.at }, 'klaviyo', 'Klaviyo'), true));
   }
   // SMS, WhatsApp, push.
   for (const m of (A.messages || [])) {
@@ -119,7 +131,7 @@ function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.
     const ch = str(m.channel || m.type).toLowerCase();
     const w = whenFor(date, EMAIL_HOUR, brand, now);
     const base = { id: `msg_${ch}`, kind: 'message', label: ch === 'sms' ? 'SMS' : ch === 'whatsapp' ? 'WhatsApp' : 'Push', what: str(m.text || m.body || m.title).slice(0, 90), when: w.note, scheduled_for: w.at };
-    if (ch === 'sms') rows.push(routed(Object.assign(base, { channel: 'klaviyo_sms' }), 'klaviyo', 'Klaviyo SMS'));
+    if (ch === 'sms') rows.push(klaviyoReady(routed(Object.assign(base, { channel: 'klaviyo_sms' }), 'klaviyo', 'Klaviyo SMS'), false));
     else rows.push(Object.assign(base, { state: 'no_channel', message: `${base.label} has no sending provider in this platform yet, so it is not sent from here: copy the message into your ${base.label} tool.` }));
   }
   // Organic social posts, one per platform.
@@ -163,7 +175,7 @@ function plan(entry, campaign, brand, { connections = {}, jobs = [], now = Date.
   const count = (s) => rows.filter((r) => r.state === s).length;
   return {
     date, slot_id: e.id || null, approved, rows,
-    summary: { scheduled: count('scheduled'), sent: count('sent'), ready: count('ready'), withheld: count('withheld') + count('failed'), not_connected: count('not_connected') + count('needs_reauth'), manual: count('manual') + count('no_channel') + count('needs_media') },
+    summary: { scheduled: count('scheduled'), sent: count('sent'), ready: count('ready'), withheld: count('withheld') + count('failed'), not_connected: count('not_connected') + count('needs_reauth'), manual: count('manual') + count('no_channel') + count('needs_media') + count('needs_setup') },
   };
 }
 

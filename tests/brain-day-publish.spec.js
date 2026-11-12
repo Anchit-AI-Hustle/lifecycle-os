@@ -84,6 +84,12 @@ test('the day\'s schedule: every asset has a row saying where it goes, when in t
   expect(by(live, 'landing').state).toBe('live');
   expect(by(live, 'landing').fix).toBe('/lp/' + encodeURIComponent(campaign.campaign_id));
   expect(live.summary.scheduled).toBe(1);
+  // Klaviyo connected with a key only: no audience or sender, so the mail is not "ready"
+  const key = BP.plan(entry, campaign, b, { connections: { klaviyo: { status: 'active' } }, jobs: [], now, status: 'approved' });
+  expect(by(key, 'email').state).toBe('needs_setup');
+  expect(by(key, 'email').fix).toBe('/publishing');
+  const full = BP.plan(entry, campaign, b, { connections: { klaviyo: { status: 'active', config: { list_id: 'L1', from_email: 'hello@nykaa.example' } } }, jobs: [], now, status: 'approved' });
+  expect(by(full, 'email').state).toBe('ready');
   // a job the gate held back is said as held back, with its reason
   const held = BP.plan(entry, campaign, b, { connections: { meta_ads: meta }, jobs: [{ id: 'j2', status: 'blocked', idempotency_key: BP.keyFor('day-1', 'social_facebook'), last_error: 'publishing is off for this brand' }], now, status: 'approved' });
   expect(by(held, 'social_facebook').state).toBe('withheld');
@@ -181,6 +187,8 @@ test('the page: an aligned grid, the schedule table, the day\'s detail page with
     expect(tops[0]).toBe(tops[1]);
     const [day] = await Promise.all([page.waitForEvent('download'), page.locator('#sbdetail-dl').click()]);
     expect(day.suggestedFilename()).toMatch(/2026-11-14-all-assets\.html$/);
+    // the day's file holds the text assets too, not only the framed documents
+    expect((fs.readFileSync(await day.path(), 'utf8').match(/<iframe /g) || []).length).toBe(perSend * 2);
     await page.locator('#sbdetail-x').click();
     await expect(page.locator('#sbdetail')).toHaveCount(0);
 
