@@ -1921,7 +1921,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var url = publicWebsiteUrl(raw);
       if (!url || seen.has(url.href)) return;
       seen.add(url.href);
-      rows.push('<li>' + esc(type) + ' · <a href="' + esc(url.href) + '" target="_blank" rel="noopener noreferrer">' + esc(url.href) + '</a></li>');
+      rows.push('<p>' + esc(type) + ' · <a href="' + esc(url.href) + '" target="_blank" rel="noopener noreferrer">' + esc(url.href) + '</a></p>');
     }
     add(report.start, 'Website');
     (sitemap.sources || []).forEach(function (s) { add(s.url, 'Sitemap'); });
@@ -1929,7 +1929,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     ((fields.regions && fields.regions.candidates) || []).forEach(function (r) { add(r.store_url, r.code || 'Regional store'); });
     (report.pages || []).forEach(function (url) { add(url, 'Page'); });
     return rows.length ? '<details class="xmeta" data-published-links><summary>Website links found (' + rows.length +
-      ')</summary><ul style="overflow-wrap:anywhere">' + rows.join('') + '</ul></details>' : '';
+      ')</summary><div style="overflow-wrap:anywhere">' + rows.join('') + '</div></details>' : '';
   }
 
   function xPanel(key) {
