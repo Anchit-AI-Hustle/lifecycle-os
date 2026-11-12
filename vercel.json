@@ -731,6 +731,10 @@
       "destination": "/calendar.html"
     },
     {
+      "source": "/calendar",
+      "destination": "/calendar.html"
+    },
+    {
       "source": "/mailer-calendar",
       "destination": "/lifecycle-calendar.html"
     },
@@ -756,6 +760,10 @@
     },
     {
       "source": "/ads",
+      "destination": "/ad-campaigns.html"
+    },
+    {
+      "source": "/ad-campaigns",
       "destination": "/ad-campaigns.html"
     },
     {

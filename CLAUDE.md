@@ -4,6 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Claude thinks inside max_tokens: every Claude call leaves room for it (2026-11-12)
+The operator: "check for any issues anywhere". Main, CI, the production deployment and every page (28 addresses at 1280
+and 390, signed out) were clean; production's runtime errors were all model calls. Most are account matters (Bedrock key
+401 "security token invalid", OpenAI / Gemini / Grok / OpenRouter / Groq out of quota or credit). One was ours: every
+marketing-team review answered "claude-haiku-5-5: no usable text HTTP 200". Haiku 5.5, Sonnet 5.5 and Opus 5.5 think
+when the request does not say otherwise, thinking is billed inside `max_tokens`, and a 700-token reviewer spent all of it
+thinking. `llm.claudeThinkingRoom(model, maxTokens, tier, policyEffort)` (Anthropic and the Bedrock Messages path):
+the caller's `maxTokens` is the room for the ANSWER; Haiku 5.5 on the fast tier is sent `thinking: disabled`; every other
+thinking model gets `max_tokens` raised (4,000 at low effort, else 8,000) with effort low on the fast tier and medium on
+the standard tier (Sonnet 5.5 defaults to high; the copy call's short-time path timed out in 22 s); premium keeps the
+model's own default; the operator's platform effort wins; Opus 4.8 / 4.7 and claude-3 are sent as before.
+`reference-intel.visionAnthropic` named a retired model with a temperature current models refuse: it asks the chain's
+own model the same way. `/calendar` and `/ad-campaigns` (the names the pages are spoken of by) answered 404: both are
+rewrites now beside `/plan` and `/ads`. Gated in `llm-provider-chain` (a fake API that spends max_tokens on thinking
+first; mutation-checked). Not ours, left: the `url.parse()` DEP0169 warning comes from the runtime, no file here calls it.
 ## ⭐ Social posts are an asset of every send, one per platform (2026-11-11)
 The operator: "For asset generation, also add assets like social media posts ... individually for Instagram, Meta,
 LinkedIn, and other platforms also to be included, like TikTok". `api/_shared/social-assets.js` `build()` on every
