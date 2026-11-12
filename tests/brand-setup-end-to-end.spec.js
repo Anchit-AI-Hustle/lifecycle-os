@@ -5,8 +5,8 @@
  * correct final output with live simulation of ongoing step for user
  * transparency - ensure appropriate humanly engaging content usage".
  *
- * One signed-in owner with NO brand opens /onboarding, types the website and
- * presses "Set up from my website". Everything below the page is the SHIPPED
+ * One signed-in owner with NO brand opens /onboarding, finds the website by
+ * name and presses "Set up from my website". Everything below the page is the SHIPPED
  * code: the rendered reader (real Chromium) over a fixture site, the brand
  * router over tests/lib/brand-save-fake.js, the catalogue importer over the
  * same site. Only the context pack's GitHub search is answered canned.
@@ -46,6 +46,8 @@ const ROUTES = Object.assign({}, sites.siteRoutes('a'));
 // The site states where the company is: its legal address, as structured data
 // (a strong home-market signal; the brand sells in India).
 ROUTES['/'] = Object.assign({}, ROUTES['/'], { body: String(ROUTES['/'].body).replace('</head>', '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"Verdant Supply","legalName":"Verdant Supply Private Limited","address":{"@type":"PostalAddress","addressLocality":"Pune","addressCountry":"IN"}}</script></head>') });
+const INSTAGRAM = 'https://www.instagram.com/verdantsupply/';
+ROUTES['/'].body = ROUTES['/'].body.replace('</body>', '<a href="' + INSTAGRAM + '" rel="me">Instagram</a></body>');
 // The store's own product feed (the one feed the importer calls), then an empty page.
 const PRODUCTS = ['Fern', 'Monstera', 'Pothos'].map((t, i) => ({
   id: 100 + i, title: t, handle: t.toLowerCase(), product_type: 'Plant', vendor: 'Verdant Supply',
@@ -157,7 +159,7 @@ async function wire(page, w, log) {
 }
 
 /** Press "Set up from my website" on a brand-new account and record every row the operator sees. */
-async function runSetup(page, w, log) {
+async function runSetup(page, w, log, { lookup = false } = {}) {
   await wire(page, w, log);
   await page.goto(HOST + '/onboarding.html?step=1', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#xSetup', { timeout: 20000 });
@@ -172,7 +174,37 @@ async function runSetup(page, w, log) {
       });
     }).observe(document.getElementById('setupRun'), { childList: true, subtree: true, attributes: true, characterData: true });
   });
-  await page.fill('#xUrl', SITE);
+  if (lookup) {
+    await page.route('https://www.wikidata.org/w/api.php?**', async (route) => {
+      const params = new URL(route.request().url()).searchParams;
+      const website = (value, rank = 'normal') => ({ rank, mainsnak: { datavalue: { value } } });
+      const data = params.get('action') === 'wbsearchentities'
+        ? { search: params.get('search') === 'Verdant Supply' ? [
+          { id: 'Q1', label: 'Verdant Supply', description: 'Plant store in Pune' },
+          { id: 'Q2', label: 'Verdant Supply', description: 'Building materials distributor' },
+        ] : [] }
+        : { entities: {
+          Q1: { claims: { P856: [website('https://old-verdant.example', 'deprecated'), website(SITE)] } },
+          Q2: { claims: { P856: [website('https://building-supply.example')] } },
+        } };
+      await route.fulfill({ json: data, headers: { 'access-control-allow-origin': '*' } });
+    });
+    await page.getByLabel('Brand name').fill('Unlisted brand');
+    await page.getByRole('button', { name: 'Find website' }).click();
+    await expect(page.locator('#brandWebsiteResults')).toContainText('No website found');
+    await expect(page.getByLabel('Website to read')).toBeEditable();
+    await page.getByLabel('Brand name').fill('Verdant Supply');
+    await page.getByRole('button', { name: 'Find website' }).click();
+    const results = page.locator('#brandWebsiteResults');
+    await expect(results.getByRole('button', { name: 'Use website' })).toHaveCount(2);
+    await expect(results).not.toContainText('old-verdant.example');
+    await expect(page.getByLabel('Website to read')).toHaveValue('');
+    await results.locator('.ws-row').filter({ hasText: 'Plant store in Pune' }).getByRole('button', { name: 'Use website' }).click();
+    await expect(page.getByLabel('Website to read')).toHaveValue(SITE + '/');
+    expect(log.ops).not.toContain('extract');
+  } else {
+    await page.fill('#xUrl', SITE);
+  }
   // Opt-in evidence: SETUP_SHOTS=<dir> SETUP_SHOT_W=<width> captures the run mid-way and at the end.
   const shots = process.env.SETUP_SHOTS, sw = Number(process.env.SETUP_SHOT_W || 0);
   if (shots && sw) await page.setViewportSize({ width: sw, height: sw < 600 ? 844 : 1000 });
@@ -189,7 +221,7 @@ async function runSetup(page, w, log) {
   await page.waitForFunction(() => /[?&]step=6\b/.test(location.search), null, { timeout: 15000 });
   if (shots && sw) await page.screenshot({ path: path.join(shots, `setup-done-${sw}.png`), fullPage: false });
   const rows = await page.evaluate(() => window.__rows);
-  const final = await page.$$eval('[data-setup-log] li', (els) => els.map((e) => [e.getAttribute('data-setup-step'), e.getAttribute('data-state'), e.querySelector('.srun-text').textContent]));
+  const final = await page.$$eval('[data-setup-log] li[data-setup-step]', (els) => els.map((e) => [e.getAttribute('data-setup-step'), e.getAttribute('data-state'), e.querySelector('.srun-text').textContent]));
   return { rows, final, say: JSON.stringify(final, null, 1) };
 }
 
@@ -213,13 +245,13 @@ function liveAndPlain({ rows, final, say }) {
   }
 }
 
-test('a new owner sets a brand up from its website: every step shown live, in plain words, ending on a correct, saved, ACTIVE brand', async ({ page }) => {
+test('a new owner finds the website by brand name and sets up a correct, saved, active brand', async ({ page }) => {
   test.setTimeout(240000);
   if (require(RENDER).resetRateLimits) require(RENDER).resetRateLimits();
   const w = world();
   const log = { dialogs: [], errors: [], ops: [], extract: null };
   try {
-    const run = await runSetup(page, w, log);
+    const run = await runSetup(page, w, log, { lookup: true });
     liveAndPlain(run);
     // The rendered read applies; nothing is left for the person on the four read steps or the catalogue.
     expect(run.final.filter((r) => ['brand', 'colour', 'type', 'catalog', 'pack'].includes(r[0])).map((r) => r[0] + ':' + r[1]), run.say)
@@ -229,6 +261,10 @@ test('a new owner sets a brand up from its website: every step shown live, in pl
     const rec = ws[0];
     expect(rec.name).toBe('Verdant Supply');
     expect(rec.website).toMatch(/^https:\/\/verdant\.example/);
+    expect((rec.brand_data.social || []).map((profile) => profile.url)).toContain(INSTAGRAM);
+    const published = page.locator('#setupRun [data-published-links]');
+    await published.locator('summary').click();
+    await expect(published.getByRole('link', { name: INSTAGRAM })).toHaveAttribute('href', INSTAGRAM);
     const measured = log.extract.rendered.apply['palette.primary'];
     expect(measured && measured.value, 'the read measured no primary').toMatch(/^#[0-9a-f]{6}$/i);
     expect(String(rec.palette.primary).toLowerCase()).toBe(String(measured.value).toLowerCase());
