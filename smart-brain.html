@@ -1976,7 +1976,7 @@ function renderPreview(payload, e, i, opts){
     const note = hasElement
       ? 'Green returns the <b>finished asset</b>. Grey returns <b>one element</b> of it — paste a grey one into an image model and you get a picture, not a mailer.'
       : 'Paste into ChatGPT, Claude or Gemini to get the <b>finished asset</b> back.';
-    return `<details class="pvmore" data-prompts><summary>Prompts to remake this in ChatGPT, Claude or Gemini</summary><div class="akbar pkbar">${btns}${aiLaunchers}</div><p class="pvnote pknote">${note}</p></details>`;
+    return `<div class="pvmore" data-prompts><div class="akbar pkbar">${btns}${aiLaunchers}</div><p class="pvnote pknote">${note}</p></div>`;
   };
   const emailAsset = campaign.assets?.email || null;
   if(Array.isArray(emailVars) && emailVars.length){
@@ -2351,11 +2351,13 @@ function sbSlotDocs(p){
 }
 const DETAIL_KINDS = [['mail', 'Mailers', true], ['lp', 'Landing pages', true], ['ads', 'Ads', false], ['social', 'Social posts', false], ['msg', 'Messages', false], ['site', 'On-site', false], ['display', 'Display banners', false]];
 window.openDetailPage = async function(i, btn){
-  const e = PLAN[i]; if(!e) return;
+  const e = PLAN[i];
+  if(!e){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
   const date = String(e.date || '').slice(0, 10);
   // Every send of that date in view; the one that was opened leads.
   const day = PLAN.filter((x) => String(x.date || '').slice(0, 10) === date && mktVisible(x) && catVisible(x));
   day.sort((a, b) => (a === e ? -1 : b === e ? 1 : 0));
+  if(!day.some((x) => PREVIEW_CACHE[x.id] || rsBuilt(x))){ sbSay(btn, 'Open View first to generate the assets, then open the detailed page.'); return; }
   const old = document.getElementById('sbdetail'); if(old) old.remove();
   const ov = document.createElement('div'); ov.id = 'sbdetail';
   // Above every floating chip (the credits pill sat on the Close button).
