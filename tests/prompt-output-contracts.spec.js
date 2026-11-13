@@ -71,6 +71,7 @@ const AD_FORMATS_READ = ['google', 'meta', 'tiktok'];
 const GENERATORS = [
   { id: 'brand-chat', path: '/api/brain', q: { action: 'brand-chat' }, body: () => ({ message: 'What should we send this week?' }), reads: (t) => /"reply":"sample/.test(t) },
   { id: 'console-chat', path: '/api/brain', q: { action: 'console-chat' }, body: () => ({ message: 'What should ship next?' }) },
+  { id: 'marketing-team', path: '/api/brain', q: { action: 'marketing-team', op: 'run-tool' }, body: () => ({ tool: 'customer-insight', evidence: 'Two interviews on 2026-10-20 describe trouble finding delivery estimates.' }), minCalls: 1, reads: (t) => JSON.parse(t).text === 'sample' },
   { id: 'team-chat', path: '/api/brain', q: { action: 'team-chat' }, body: () => ({ message: 'What should we plan?' }) },
   { id: 'agent-chat', path: '/api/brain', q: { action: 'agent-chat' }, body: () => ({ message: 'Which one should I pick?', agent_id: 'agent_brand' }), statuses: [404, 409] },
   { id: 'agent-analyze', path: '/api/brain', q: { action: 'agent-analyze' }, body: () => ({ message: 'What should I tell customers?' }) },
@@ -162,6 +163,7 @@ const DRIVEN_FILES = {
   'api/ai/generate.js': 'generate.js modes', 'api/brain.js': 'console-chat, access-narrative', 'api/kb.js': 'kb ingest + daily digest',
   'api/public-config.js': 'probe', 'api/ai/pipeline/strategy.js': 'strategy', 'api/ai/pipeline/variant.js': 'variant', 'api/ai/pipeline/html.js': 'html', 'api/ai/pipeline/score.js': 'score',
   'api/_shared/pipeline-core.js': 'every pipeline stage', 'api/_shared/smart-brain-plan.js': 'preview / generate-slot', 'api/_shared/brain-agent.js': 'team-chat, agent-analyze, agent-chat',
+  'api/_shared/marketing-workbench-core.js': 'marketing-team (op=run-tool)',
   'api/_shared/feature-agent.js': 'modules: analyst + critic + reviser', 'api/_shared/quality-loop.js': 'mailer_full (contract pass) + modules', 'api/_shared/lp-design-loop.js': 'modules',
   'api/_shared/agentic-orchestrator.js': 'agentic-run', 'api/_shared/agentic-ideation.js': 'agentic-run', 'api/_shared/brand-llm.js': 'brand-chat', 'api/_shared/social-core.js': 'social-run-daily',
   'api/_shared/platform-agents-core.js': 'modules: one platform agent', 'api/_shared/telesuite-core.js': 'telesuite ops', 'api/_shared/calendar-generate.js': 'calendar-generate (maxpower)',
