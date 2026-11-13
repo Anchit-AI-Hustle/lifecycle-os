@@ -82,7 +82,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <div class="field"><label>Framer-inspired motion profile</label><select id="motion"><option value="immersive-balanced">Immersive Balanced · Spatial hero + scroll transforms</option><option value="subtle-premium">Subtle Premium · Restrained hover, reveal and orbit</option><option value="editorial-cinematic">Editorial Cinematic · Sticky story + stronger depth</option></select></div>
 <div class="field"><label>Complete landing-page input</label><textarea id="prompt" placeholder="Describe the product, audience, commercial offer, required proof, page sections, visual direction, image or video assets, CTA destination and every factual constraint. The agent will preserve this input through the final HTML generation."></textarea></div>
 <div class="field"><label>Reference URL (optional)</label><input id="reference" type="url" placeholder="https://example.com/reference-page"></div>
-<button type="button" class="btn primary" id="generate" data-credit-feature="landing.generate">Generate Final Spatial Landing Page</button>
+<button type="button" class="btn primary" id="generate" data-credit-feature="landing.generate" data-awaiting-market="true" disabled>Generate Final Spatial Landing Page</button>
 <div class="status" id="status"><b>Ready.</b> Stage 1 creates the structured conversion brief. Stage 2 generates the complete 3D, 4D and 5D responsive page.</div>
 <div class="facts"><div class="fact"><b>3D depth</b>Perspective, product planes, hover and press</div><div class="fact"><b>4D motion</b>Scroll timeline, sticky transforms, progress</div><div class="fact"><b>5D interaction</b>Sensory states, controls and reduced motion</div></div>
 </section>
@@ -138,18 +138,25 @@ generate.addEventListener('click',runGeneration);regenerate.addEventListener('cl
 (function(){
   function fill(){
     var sel=document.getElementById('region'), why=document.getElementById('regionWhy'), RC=window.RegionContext;
+    var generate=document.getElementById('generate');
     if(!sel||!RC||typeof RC.options!=='function') return;
     var opts=RC.options()||[], keep=sel.value;
     sel.innerHTML='';
     opts.forEach(function(o){ var op=document.createElement('option'); op.value=o.code; op.textContent=o.label||o.code; sel.appendChild(op); });
     if(!opts.length){
       sel.disabled=true;
+      generate.disabled=true;
+      generate.dataset.awaitingMarket='true';
       if(why){ why.hidden=false; why.textContent=(RC.marker?RC.marker('home market'):'[DATA REQUIRED BEFORE LAUNCH: home market, this brand]')+' Add this brand\'s markets in Brand setup.'; }
       return;
     }
     sel.disabled=false; if(why) why.hidden=true;
     var want=(keep&&opts.some(function(o){return o.code===keep;}))?keep:(RC.home||opts[0].code);
     sel.value=want;
+    if (generate.dataset.awaitingMarket && sel.value) {
+      delete generate.dataset.awaitingMarket;
+      generate.disabled=false;
+    }
   }
   window.addEventListener('regioncontext:change', fill);
   document.addEventListener('DOMContentLoaded', fill);
