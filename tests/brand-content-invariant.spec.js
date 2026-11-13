@@ -123,6 +123,8 @@ const GENERATORS = [
   // ── api/brain.js: the assistants ──
   { id: 'brand-chat', path: '/api/brain', q: { action: 'brand-chat' }, body: () => ({ message: 'What should we send this week?' }), modes: ['device', 'account'], own: ['name', 'domain'], market: PROMPT_MARKET('CURRENT MARKET') },
   { id: 'console-chat', path: '/api/brain', q: { action: 'console-chat' }, body: () => ({ message: 'What should ship next?' }), modes: ['device', 'account'], own: ['name'] },
+  { id: 'marketing-team', path: '/api/brain', q: { action: 'marketing-team', op: 'run-tool' }, body: () => ({ tool: 'customer-insight', evidence: 'Two interviews on 2026-10-20 describe trouble finding delivery estimates.' }), modes: ['device', 'account'], own: ['name', 'domain'],
+    statuses: { 409: (b) => !homeOf(b) && 'this brand has no market for the marketing workbench' } },
   { id: 'team-chat', path: '/api/brain', q: { action: 'team-chat' }, body: () => ({ message: 'What should we plan?' }), modes: ['device', 'account'], own: ['name', 'palette.primary', 'font.heading'] },
   { id: 'agent-chat', path: '/api/brain', q: { action: 'agent-chat' }, body: () => ({ message: 'Which one should I pick?', agent_id: 'agent_brand' }), modes: ['device'], own: ['name', 'claim'] },
   { id: 'agent-analyze', path: '/api/brain', q: { action: 'agent-analyze' }, body: () => ({ message: 'What should I tell customers?' }), modes: ['device', 'account'], own: ['name'] },

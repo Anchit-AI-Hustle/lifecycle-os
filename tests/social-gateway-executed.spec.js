@@ -55,7 +55,7 @@ const ENV = envScope([
   'META_APP_ID', 'META_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN',
   'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET', 'TIKTOK_WEBHOOK_TOLERANCE_SECONDS',
   'PINTEREST_APP_ID', 'PINTEREST_APP_SECRET', 'YOUTUBE_OAUTH_CLIENT_ID', 'YOUTUBE_OAUTH_CLIENT_SECRET', 'YOUTUBE_MAX_UPLOAD_BYTES',
-  'GOOGLE_ADS_CLIENT_ID',
+  'GOOGLE_ADS_CLIENT_ID', 'GOOGLE_ADS_CLIENT_SECRET',
 ]);
 let REAL_FETCH;
 let REAL_LOOKUP;
@@ -75,7 +75,7 @@ function baseEnv() {
   process.env.YOUTUBE_OAUTH_CLIENT_ID = 'yt-client';
   process.env.YOUTUBE_OAUTH_CLIENT_SECRET = 'yt-secret';
   for (const k of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_KEY', 'VERCEL_URL', 'VERCEL_REGION', 'CRON_SECRET', 'GOOGLE_ADS_CLIENT_ID',
-    'LIVE_CONNECTORS', 'META_WEBHOOK_VERIFY_TOKEN', 'TIKTOK_WEBHOOK_TOLERANCE_SECONDS', 'YOUTUBE_MAX_UPLOAD_BYTES', ...ALL_SWITCHES]) delete process.env[k];
+    'GOOGLE_ADS_CLIENT_SECRET', 'LIVE_CONNECTORS', 'META_WEBHOOK_VERIFY_TOKEN', 'TIKTOK_WEBHOOK_TOLERANCE_SECONDS', 'YOUTUBE_MAX_UPLOAD_BYTES', ...ALL_SWITCHES]) delete process.env[k];
 }
 
 test.beforeAll(() => {
@@ -166,7 +166,7 @@ test('TikTok: Login Kit with client_key and comma-separated scopes, the token ex
 
   const cb = await connRouter('oauth-callback', { method: 'GET', query: { provider: 'tiktok', state: s.payload.state, code: 'tt-code-1', scopes: 'user.info.basic,video.list' } });
   expect(cb.code).toBe(302);
-  expect(cb.head.Location).toBe('/publishing?oauth=connected&provider=tiktok');
+  expect(cb.head.Location).toBe('/publishing?oauth=connected&provider=tiktok&connected_workspace=ws-a');
 
   const ex = seen.tiktok.find((c) => c.path === '/v2/oauth/token/');
   const sentForm = new URLSearchParams(ex.sent);
@@ -996,6 +996,9 @@ test('Connect asks for the scopes of exactly the write capabilities the operator
   expect((await start('meta', ['ads'])).scopes).toContain('ads_management');
   // Every capability the hub offers, on every gateway platform, asks only for declared scopes.
   process.env.GOOGLE_ADS_CLIENT_ID = 'gads-client';
+  const incomplete = await connRouter('oauth-start', { token: 'tok-a', method: 'POST', body: { provider: 'google_ads' } });
+  expect(incomplete.payload.error).toBe('oauth_app_not_registered');
+  process.env.GOOGLE_ADS_CLIENT_SECRET = 'gads-secret';
   for (const v of registry.registryView().filter((p) => p.auth_kind === 'oauth' && ['meta', 'tiktok', 'pinterest', 'youtube', 'google_ads'].includes(p.id))) {
     const all = await start(v.id, v.capabilities.map((k) => k.id));
     expect(all.not_requested, `${v.id} needs a scope it does not declare`).toEqual([]);
