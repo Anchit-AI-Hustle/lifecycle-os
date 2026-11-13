@@ -2128,6 +2128,7 @@ function fileCoverage(parsed, label, reg) {
 function coverageSummary(c) {
   if (!c) return null;
   return {
+    inventory: c.inventory || 'products',
     route: c.route, region: c.region, base: c.base || null, base_from: c.base_from || null, currency: c.currency || null,
     declared: c.declared ? { count: c.declared.count || null, urls: c.declared.urls || null, by: c.declared.by } : null,
     found: c.found, by_source: c.by_source, skipped: c.skipped, missing: c.missing,

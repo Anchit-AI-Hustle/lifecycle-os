@@ -1432,7 +1432,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       return '<div class="ws-row" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
         '<div style="min-width:0;overflow-wrap:anywhere"><b>' + esc(site.name) + '</b> · ' + esc(site.url) +
         '<div class="xmeta">' + (site.description ? esc(site.description) + ' · ' : '') + source + '</div></div>' +
-        '<button type="button" class="btn" data-use-brand-website="' + i + '">Use website</button></div>';
+        '<button type="button" class="btn" data-use-brand-website="' + i + '">' +
+        (extractOff() ? 'Use website' : 'Set up with this website') + '</button></div>';
     }).join('') : '';
   }
 
@@ -2308,6 +2309,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     var input = $('xUrl');
     var url = input ? input.value.trim() : '';
     if (!url) { toast('Enter your website address first.'); return; }
+    xUrlDraft = url;
     setupBusy = true; setupLog = []; setupFor = url;
     var site = siteName(url);
     try {
@@ -2339,14 +2341,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var region = importRegion();
         if (!region) setupNote('catalog', 'needs-you', 'Tell us which country you mainly sell in (on Data & catalog) and we will bring your products in.');
         else {
-          setupNote('catalog', 'running', 'Bringing in your products from ' + site + '.', '', 'Reading your store');
+          setupNote('catalog', 'running', 'Reading the catalogue for ' + site + '.', '', 'Finding your regional stores');
           try {
             var r = await api('catalog-import', { workspace_id: brand.id, region: region.toLowerCase(), kind: 'storefront', url: brand.website });
             afterImport(r, true);
-            var n = typeof r.own === 'number' ? r.own : r.imported;
-            setupNote('catalog', r.complete === false ? 'partial' : 'done', r.complete === false
-              ? 'Brought in ' + plural(n, 'product') + ' so far; the rest keep coming in the background. Data & catalog shows where it is up to.'
-              : (n ? 'Brought in ' + plural(n, 'product') + ' from ' + site + '.' : 'Your store at ' + site + ' did not list any products we could read. You can upload a file on Data & catalog.'));
+            setupCatalogResult(r, brand.website);
             if (r.complete === false && (r.drive || r.continuing)) keepGoing(r);
           } catch (e) { setupNote('catalog', 'failed', 'We could not bring in your products. ' + window.LifecycleFailure.sentence(e)); }
         }
@@ -2997,12 +2996,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       var input = $('xUrl');
       if (site && input) {
         xUrlDraft = input.value = site.url;
-        websiteLookup = { draft: brand, name: websiteLookup.name, sites: [], message: extractOff()
-          ? 'Website selected. You can edit the address below.'
-          : 'Website selected. Use Set up from my website to find the links it publishes.' };
+        websiteLookup = { draft: brand, name: websiteLookup.name, sites: [], message: 'Website selected.' };
         paintWebsiteLookup();
-        var setup = $('xSetup');
-        (setup && !setup.disabled ? setup : input).focus();
+        if (extractOff()) input.focus();
+        else setUpFromWebsite();
       }
       return;
     }
@@ -3396,7 +3393,11 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           r = { complete: done ? true : false, continuing: !!st.continuing, coverage: st.coverage, drive: !st.continuing && !done && !!(st.chain && st.chain.browser), progressed: true };
           if (typeof st.live === 'number') catalogCount = st.live;
           renderCoverage(st.coverage, !done, { continuing: !!st.continuing });
-          if (done) { if (status) status.textContent = progressLine(st.coverage) + '. ' + (st.coverage && st.coverage.complete ? 'The catalogue import finished.' : ''); break; }
+          if (done) {
+            if (setupLog.some(function (l) { return l.step === 'catalog' && l.state === 'partial'; })) setupCatalogResult(st, st.coverage && st.coverage.base);
+            if (status) status.textContent = progressLine(st.coverage) + '. ' + (st.coverage && st.coverage.complete ? 'The catalogue import finished.' : '');
+            break;
+          }
           // The server's own chain stopped moving before the store was read
           // (2026-10-13: its self-call never ran): this page takes over and
           // drives the remaining steps while it is open.
@@ -3467,6 +3468,19 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { saved = await save(true); } catch (_) { saved = null; }
     return saved ? added : [];
   }
+  function setupCatalogResult(r, url) {
+    var coverage = r.coverage || {};
+    var found = typeof coverage.found === 'number' ? coverage.found : r.imported;
+    var noun = coverage.inventory === 'articles' ? 'article' : 'product';
+    var count = plural(Number(found) || 0, noun);
+    if (r.complete === false || coverage.complete === false) {
+      var next = r.continuing || r.drive ? 'The import is continuing.' :
+        r.resume_available ? 'Resume the import in Data & catalog.' : 'See which sources could be read in Data & catalog. You can also upload a store export there.';
+      setupNote('catalog', 'partial', 'Read ' + count + ' so far. ' + next);
+    } else {
+      setupNote('catalog', 'done', 'Brought in ' + count + ' from ' + siteName(coverage.base || url || brand.website) + '.');
+    }
+  }
   function afterImport(r, auto) {
     var status = $('impStatus');
     var ms = (r && r.markets) || (r && r.coverage && r.coverage.markets) || null;
@@ -3485,12 +3499,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     renderCoverage(r.coverage, !!r.resume_available, { continuing: moving });
     // A setup run's catalogue row follows an import that carries on after it.
     var srow = auto && !setupBusy && setupLog.filter(function (l) { return l.step === 'catalog'; })[0];
-    if (srow && srow.state === 'partial') {
-      var have = typeof r.own === 'number' ? r.own : (typeof r.live === 'number' ? r.live : r.imported);
-      setupNote('catalog', r.complete === false ? 'partial' : 'done', r.complete === false
-        ? 'Brought in ' + plural(have, 'product') + ' so far; still going. ' + progressLine(r.coverage) + '.'
-        : 'All done: brought in ' + plural(have, 'product') + ' from ' + siteName(brand.website) + '.');
-    }
+    if (srow && srow.state === 'partial') setupCatalogResult(r, storeFeedUrl());
     if (!auto && r.complete !== false) toast('Imported ' + r.imported + ' products.', 4200);
     if (moving && !auto) keepGoing(r);
   }
