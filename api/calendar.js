@@ -89,7 +89,7 @@ const { selfBaseUrl, selfHeaders } = require('./_shared/self-url.js');
 // child invocation keeps running on Vercel after our client connection drops, so
 // this hands off without blocking the current response for 30-60s. Guarded by
 // CRON_SECRET; a no-op when we cannot resolve a base URL (e.g. local dev).
-async function firePrebuild(depth = 0) {
+async function firePrebuild(depth = 0, scope = {}) {
   const base = selfBaseUrl();
   if (!base || typeof fetch !== 'function') return { fired: false, reason: 'no self base url / no fetch' };
   const secret = process.env.CRON_SECRET || '';
@@ -99,7 +99,7 @@ async function firePrebuild(depth = 0) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3000);
   try {
-    await fetch(url, { method: 'POST', headers, body: JSON.stringify({ _depth: (depth || 0) + 1 }), signal: ctrl.signal });
+    await fetch(url, { method: 'POST', headers, body: JSON.stringify({ _depth: (depth || 0) + 1, ...scope }), signal: ctrl.signal });
   } catch (_) { /* expected: the child runs longer than our 3s handoff window */ }
   finally { clearTimeout(timer); }
   return { fired: true };
@@ -389,10 +389,28 @@ async function smartBrain(req, res, smartAction) {
 
     if (smartAction === 'sync-daily') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'POST only' });
-      const result = deviceMode(await plan.syncDaily(Object.assign({ config: body.config || {}, days: body.days, persist: body.persist !== false }, carriedContact(body))));
+      let markets = null;
+      let days = body.days;
+      if (Array.isArray(body.markets)) {
+        if (!verified?.ok) return res.status(401).json({ ok: false, error: 'sign_in_required' });
+        if (req.__workspaceId && verified?.ok) {
+          await require('./_shared/brand-workspace-core.js').assertCanWrite(verified, req.__workspaceId, 'sync its marketing calendar');
+        }
+        const declared = new Set((req.__brand?.regions || []).map((r) => r.code));
+        markets = [...new Set(body.markets)];
+        if (!markets.length || !markets.every((m) => declared.has(m))) {
+          return res.status(409).json({ ok: false, error: 'market_not_served', message: 'Choose markets on this brand’s record.' });
+        }
+        days = Math.max(1, Math.min(90, Math.trunc(Number(days)) || 7));
+      }
+      const result = deviceMode(await plan.syncDaily(Object.assign({ config: body.config || {}, days, persist: body.persist !== false, ...(markets ? { markets } : {}) }, carriedContact(body))));
       // Kick the background prebuild so newly added/refreshed slots get their full
       // asset bundle (copy + images) built ahead of need. Opt out with prebuild:false.
-      if (body.prebuild !== false) { const f = await firePrebuild(0); result.prebuild_kicked = f.fired; }
+      if (body.prebuild !== false && (!markets || (req.__workspaceId && result.persistence?.ok && !result.persistence.warnings?.length))) {
+        const throughDate = markets ? new Date(Date.now() + (days - 1) * 86400000).toISOString().slice(0, 10) : null;
+        const f = await firePrebuild(0, markets ? { workspace_id: req.__workspaceId, markets, throughDate } : {});
+        result.prebuild_kicked = f.fired;
+      }
       return res.status(200).json(result);
     }
 
@@ -410,12 +428,16 @@ async function smartBrain(req, res, smartAction) {
       const depth = Math.max(0, +((body && body._depth) || req.query?.depth || 0));
       const MAX_DEPTH = 400; // backstop against runaway self-chaining (> 90d × markets slots)
       const batchSize = Math.max(1, Math.min(3, +((body && body.batchSize) || 1)));
-      const result = await plan.prebuildAssets({ config: body.config || {}, batchSize });
+      const scope = Array.isArray(body.markets) && req.__workspaceId
+        ? { workspace_id: req.__workspaceId, markets: body.markets, throughDate: body.throughDate }
+        : {};
+      const result = await plan.prebuildAssets({ config: body.config || {}, batchSize,
+        ...(scope.markets ? { markets: scope.markets, throughDate: scope.throughDate } : {}) });
       // Chain to the next batch only while making progress and within the backstop,
       // so a total-failure batch (e.g. LLM down) stops instead of hot-looping.
       let chained = false;
       if (result.remaining > 0 && result.built.length > 0 && depth < MAX_DEPTH) {
-        const f = await firePrebuild(depth);
+        const f = await firePrebuild(depth, scope);
         chained = f.fired;
       }
       return res.status(200).json({ ok: true, prebuild: true, depth, chained, ...result });

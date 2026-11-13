@@ -226,6 +226,17 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
     page.on('dialog', (d) => { errors.push('dialog ' + d.message()); d.dismiss(); });
     await H.install(page, NAME);
     await H.open(page, 'marketing-team.html', NAME);
+    await expect(page.locator('#wb-grid [data-wb-item]')).toHaveCount(48);
+    await page.getByRole('link', { name: '250 Marketing Prompts' }).click();
+    await expect(page.locator('#wb-detail select option')).toHaveCount(250);
+    await page.getByRole('link', { name: 'Back to workbench' }).click();
+    await page.getByRole('link', { name: '50 Research Prompts' }).click();
+    await expect(page.locator('#wb-detail select option')).toHaveCount(50);
+    await page.getByRole('link', { name: 'Back to workbench' }).click();
+    await page.getByRole('link', { name: 'Page Launch Checklist' }).click();
+    await expect(page.locator('#wb-detail input[type="checkbox"]')).toHaveCount(25);
+    await page.getByRole('checkbox', { name: 'Keyboard navigation works' }).check();
+    await page.getByRole('tab', { name: 'Departments' }).click();
     await page.waitForFunction(() => document.querySelectorAll('[data-dept]').length === 10);
     const steps = await page.locator('[data-step]').count();
     expect(steps).toBe(MT.DEPARTMENTS.flatMap((d) => d.steps).length);

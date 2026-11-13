@@ -384,14 +384,17 @@ const PROVIDERS = [
   },
   {
     id: 'webengage', label: 'WebEngage', category: 'lifecycle',
-    auth_kind: 'push', env_default: 'WEBENGAGE_BUCKET',
+    auth_kind: 'api_key', env_default: 'WEBENGAGE_BUCKET',
     key_url: '',
-    blurb: 'WebEngage pushes event dumps into a private storage bucket and this platform reads them, so there is no WebEngage key to paste. Name the bucket your dumps land in.',
+    blurb: 'Connect the WebEngage REST API, or configure a bucket for event exports.',
     fields: [
-      { key: 'bucket', label: 'Storage bucket', secret: false, required: true, placeholder: 'webengage-dumps' },
+      { key: 'api_key', label: 'REST API credential', secret: true },
+      { key: 'licence_code', label: 'Account licence code', secret: false },
+      { key: 'region', label: 'Data centre (us, in, or eu)', secret: false },
+      { key: 'bucket', label: 'Storage bucket (event exports)', secret: false, placeholder: 'webengage-dumps' },
     ],
-    wired: false,
-    wired_note: 'Stored for this workspace. The dump reader still uses the deployment bucket setting.',
+    wired: true,
+    wired_note: 'The REST credential connects user and event destinations. Historical data comes from event exports.',
   },
 ];
 
@@ -538,6 +541,7 @@ function hint(value) {
 function sanitize(row) {
   const reg = BY_ID.get(row.provider) || {};
   return {
+    id: row.id || null,
     provider: row.provider,
     label: row.label || reg.label || row.provider,
     category: row.category || reg.category || 'other',
@@ -744,6 +748,13 @@ async function saveConnection(auth, input) {
   }
 
   const mergedConfig = Object.assign({}, (existing && existing.config) || {}, config);
+  if (providerId === 'webengage' && secrets.api_key) {
+    const regions = require('./adapters/webengage-adapter.js').REGION_HOSTS;
+    if (!mergedConfig.licence_code || !Object.hasOwn(regions, String(mergedConfig.region || '').toLowerCase())) {
+      const e = new Error('WebEngage needs an account licence code and the correct data centre.');
+      e.status = 400; throw e;
+    }
+  }
   let mergedSecretFields = (existing && Array.isArray(existing.secret_fields)) ? existing.secret_fields.slice() : [];
   let secretHint = (existing && existing.secret_hint) || '';
   let mergedSecrets = null;
@@ -1670,7 +1681,12 @@ async function handle(req, res) {
   // provider registry above, because the page renders it before connecting.
   if (op === 'publish-registry') {
     const reg = require('./adapters/registry.js');
-    return res.status(200).json({ ok: true, platforms: reg.registryView(), channels: reg.allChannels() });
+    const oauth = require('./oauth-core.js');
+    const platforms = reg.registryView().map((p) => Object.assign({}, p, {
+      signin: p.auth_kind === 'oauth' ? oauth.availability(p.id) : null,
+      sync: require('./platform-connect-sync.js').supported(p.id),
+    }));
+    return res.status(200).json({ ok: true, platforms, channels: reg.allChannels() });
   }
 
   const auth = await brandCore.requireUser(req);
@@ -1735,6 +1751,10 @@ async function handle(req, res) {
       /* ── OAuth ──────────────────────────────────────────────────────── */
       case 'oauth-start':
         return res.status(200).json(await require('./oauth-core.js').beginAuthorization(req, auth, workspaceId, body.provider ? body : q));
+      case 'platform-sync':
+        if (req.method === 'GET') return res.status(200).json(await require('./platform-connect-sync.js').latest(auth, workspaceId));
+        if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+        return res.status(200).json(await require('./platform-connect-sync.js').sync(auth, workspaceId, body));
       case 'oauth-disconnect':
         return res.status(200).json(await require('./oauth-core.js').revoke(auth, workspaceId, str(body.provider || q.provider)));
 
@@ -1771,7 +1791,7 @@ async function handle(req, res) {
       default:
         return res.status(400).json({
           ok: false, error: 'unknown_connections_operation',
-          available: ['registry', 'publish-registry', 'list', 'save', 'delete', 'check', 'routing', 'routing-save', 'oauth-start', 'oauth-callback', 'oauth-disconnect', 'publishing'],
+          available: ['registry', 'publish-registry', 'list', 'save', 'delete', 'check', 'routing', 'routing-save', 'oauth-start', 'oauth-callback', 'oauth-disconnect', 'platform-sync', 'publishing'],
         });
     }
   } catch (err) {

@@ -319,7 +319,7 @@
     if (!state.regions.length) return false;
     var clean = cleanSelection(Array.isArray(list) ? list : [list]);
     if (!clean.length) return false;
-    var same = clean.length === selection.length && clean.every(function (c, i) { return c === selection[i]; });
+    var same = selExplicit && clean.length === selection.length && clean.every(function (c, i) { return c === selection[i]; });
     selection = clean;
     selExplicit = true;
     store().set(selKey(), JSON.stringify(clean));

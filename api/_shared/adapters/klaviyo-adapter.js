@@ -430,6 +430,17 @@ class KlaviyoAdapter extends CrmPlatformAdapter {
 
   /* ── reads the cohort engine needs ──────────────────────────────────────── */
 
+  async listCampaigns(channel) {
+    if (!['email', 'sms'].includes(channel)) return { ok: false };
+    const query = new URLSearchParams({ filter: `equals(messages.channel,'${channel}')`, 'page[size]': '25', sort: '-created_at' });
+    const r = await this.read(`${API}/campaigns/?${query}`, { headers: { ...this.headers(), revision: '2026-04-15' } });
+    if (!r.ok) return { ok: false, note: `Klaviyo could not read ${channel} campaigns. Check the campaigns:read permission.` };
+    return {
+      ok: true, more: !!r.data?.links?.next,
+      rows: (r.data?.data || []).map(({ id, attributes: a }) => ({ id, name: a?.name, status: a?.status, sent_at: a?.send_time })),
+    };
+  }
+
   async listAudiences() {
     const r = await this.read(`${API}/lists/?page[size]=10`, { headers: this.headers() });
     return r.ok

@@ -133,9 +133,9 @@ async function adapterFor(workspaceId, provider) {
 }
 
 /** Read one platform's ads, normalised to the stored shape. No storage. */
-async function readPlatform(a, provider, w) {
+async function readPlatform(a, provider, w, accountId) {
   if (provider === 'meta') {
-    const act = String((a.conn.config && a.conn.config.ad_account_id) || a.adapter.credentials.account_id || '');
+    const act = String(accountId || a.conn.config?.ad_account_id || a.adapter.credentials.account_id || '');
     const r = await a.adapter.readAdHistory({ ad_account_id: act, since: w.since, until: w.until });
     if (!r.ok) return Object.assign({ ok: false }, r);
     let currency = null;
@@ -151,9 +151,9 @@ async function readPlatform(a, provider, w) {
     return { ok: true, account_id: r.account_id, currency, complete: !!r.complete, window: w, ads, note: notes.join(' ') };
   }
   if (provider === 'google_ads') {
-    const r = await a.adapter.readAdMetrics({ date_preset: 'LAST_30_DAYS' });
+    const customer = String(accountId || a.adapter.customerId?.() || '');
+    const r = await a.adapter.readAdMetrics({ date_preset: 'LAST_30_DAYS', customer_id: customer });
     if (!r.ok) return Object.assign({ ok: false }, r);
-    const customer = String((a.adapter.customerId && a.adapter.customerId()) || '');
     const w30 = windowFor(30, new Date(w.until));
     const ads = (r.rows || []).map((x) => ({
       ad_id: String(x.external_id), name: null, status: x.status || null, created_at: null,
@@ -204,7 +204,7 @@ async function logRun(workspaceId, provider, row) {
 }
 
 /** Import every built, connected platform for one workspace. The caller's rights are checked first. */
-async function importFor(workspaceId, { days, providers, by, source = 'manual', now } = {}) {
+async function importFor(workspaceId, { days, providers, by, source = 'manual', now, accountId } = {}) {
   const w = windowFor(days, now);
   const want = Array.isArray(providers) && providers.length ? providers.map(String) : PLATFORMS.map((p) => p.id);
   const out = [];
@@ -223,7 +223,7 @@ async function importFor(workspaceId, { days, providers, by, source = 'manual', 
       out.push({ provider: p.id, label: p.label, ok: false, built: true, connected: true, live: false, note });
       continue;
     }
-    const read = await readPlatform(a, p.id, w);
+    const read = await readPlatform(a, p.id, w, accountId);
     if (!read.ok) {
       const note = read.error || read.note || 'The platform did not answer.';
       out.push({ provider: p.id, label: p.label, ok: false, built: true, connected: true, note, would_request: read.would_request || undefined });

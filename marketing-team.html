@@ -42,6 +42,8 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 <meta name="twitter:image" content="/assets/lifecycle-os-og.png">
 <script src="/auth.js?v=20260809" defer></script>
 <script src="/marketing-team.js?v=20261020" defer></script>
+<script src="/marketing-workbench.js?v=20261113" defer></script>
+<script src="/marketing-workbench-ui.js?v=20261113" defer></script>
 <style>
   /* Role tokens only (design/lifecycle-os/CONTRACT.md): no colour literal. */
   *{box-sizing:border-box}
@@ -86,6 +88,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   .btn.ghost{background:var(--vh-panel);color:var(--vh-primary-text);border-color:var(--vh-line)}
   .out{margin-top:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
   .out code{font-size:13px;word-break:break-all}
+  .workbench{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:16px}
+  .workbench .card{margin:0}
+  .workbench ul{margin:6px 0 0;padding:0;list-style:none}
+  .workbench a{display:flex;align-items:center;min-height:44px;color:var(--vh-primary-text);border-bottom:1px solid var(--vh-line);font-weight:600}
+  .wb-fields{display:grid;gap:12px;margin:12px 0}
+  .wb-fields textarea,.wb-fields input,.wb-fields select{width:100%;font:inherit;color:var(--vh-ink);background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:8px;padding:9px;min-height:44px}
+  .wb-fields textarea{min-height:84px;resize:vertical}
+  .wb-pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:620px;overflow:auto;font:inherit}
+  .wb-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .wb-checks label{display:flex;gap:8px;align-items:center;min-height:44px}
   .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{width:100%;border-collapse:collapse;font-size:14px}
   th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--vh-ink-dim);padding:8px 10px;border-bottom:1px solid var(--vh-line)}
@@ -102,14 +114,20 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   <p class="lede">Ten marketing departments and every step each one takes, tied to the feature that does it. Steps marked <b>every send</b> are done by Smart Brain for each slot it builds; open any slot on <a href="/brain">/brain</a> and its checks list what each department did for that send. A step that is only partly built says what is missing.</p>
 
   <div class="tabs" role="tablist" aria-label="Marketing team">
-    <button type="button" class="tab" role="tab" data-tab="map" aria-selected="true">Departments</button>
+    <button type="button" class="tab" role="tab" data-tab="workbench" aria-selected="true">Workbench</button>
+    <button type="button" class="tab" role="tab" data-tab="map" aria-selected="false">Departments</button>
     <button type="button" class="tab" role="tab" data-tab="team" aria-selected="false">Agent team</button>
     <button type="button" class="tab" role="tab" data-tab="seo" aria-selected="false">SEO audit</button>
     <button type="button" class="tab" role="tab" data-tab="ab" aria-selected="false">A/B test</button>
     <button type="button" class="tab" role="tab" data-tab="utm" aria-selected="false">UTM builder</button>
   </div>
 
-  <section data-panel="map">
+  <section data-panel="workbench">
+    <div id="wb-detail" class="card" hidden></div>
+    <div id="wb-grid" class="workbench"></div>
+  </section>
+
+  <section data-panel="map" hidden>
     <div class="summary" id="summary"></div>
     <div class="depts" id="depts"></div>
   </section>
@@ -218,10 +236,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   }
 
   function show(tab) {
-    if (['map', 'team', 'seo', 'ab', 'utm'].indexOf(tab) < 0) tab = 'map';
+    if (['workbench', 'map', 'team', 'seo', 'ab', 'utm'].indexOf(tab) < 0) tab = 'workbench';
     document.querySelectorAll('.tab').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === tab ? 'true' : 'false'); });
     document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== tab; });
-    try { var u = new URL(location.href); if (tab === 'map') u.searchParams.delete('tool'); else u.searchParams.set('tool', tab); history.replaceState(null, '', u.toString()); } catch (_) {}
+    try { var u = new URL(location.href); if (tab === 'workbench') u.searchParams.delete('tool'); else u.searchParams.set('tool', tab); history.replaceState(null, '', u.toString()); } catch (_) {}
   }
   document.querySelectorAll('.tab').forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-tab')); }); });
 
@@ -293,7 +311,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try { var b = window.BrandContext && window.BrandContext.brand; if (b && b.name) $('brandLabel').textContent = b.name + ' · Marketing team'; } catch (_) {}
     var t = null; try { t = new URL(location.href).searchParams.get('tool'); } catch (_) {}
     if (!t && location.hash === '#roster') t = 'team';
-    show(t || 'map');
+    show(t || 'workbench');
   }
   if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);
 })();

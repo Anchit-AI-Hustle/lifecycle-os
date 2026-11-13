@@ -543,7 +543,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         // registered for it, the server says so and the fields below remain.
         if (OAUTH_FOR[providerId] && !Object.keys(collect(providerId)).some(function (k) { return String(collect(providerId)[k] || '').trim(); })) {
           try {
-            var st = await api('oauth-start', { provider: OAUTH_FOR[providerId], return_to: '/connections' });
+            var st = await api('oauth-start', { provider: OAUTH_FOR[providerId], return_to: '/publishing' });
             if (st && st.url) { window.location.href = st.url; return; }
           } catch (oe) {
             toast(window.LifecycleFailure.sentence(oe) + ' You can paste credentials below instead.', 6500);
@@ -555,7 +555,9 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         var hasValues = Object.keys(fields).some(function (k) { return String(fields[k] || '').trim().length > 0; });
         if (hasValues) {
           await api('save', { provider: providerId, fields: fields });
-          var chk = await api('check', { provider: providerId });
+          var chk = providerId === 'webengage'
+            ? await api('platform-sync', { provider: 'webengage' })
+            : await api('check', { provider: providerId });
           toast(chk.note || (chk.ok ? 'Connected and verified successfully! Data sync enabled.' : 'Saved! Verify credentials.'));
         } else {
           var firstInput = document.querySelector('[data-provider="' + providerId + '"] input');
@@ -1158,7 +1160,12 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     }
     var bootQs = new URLSearchParams(location.search);
     if (bootQs.get('ai_signin') || bootQs.get('oauth') || (bootQs.get('state') && (bootQs.get('code') || bootQs.get('error')))) finishSignin().then(function () {}, function () {});
-    else load();
+    else load().then(function () {
+      var provider = bootQs.get('provider');
+      if (!provider || !/^[a-z0-9_]+$/.test(provider)) return;
+      var card = document.querySelector('[data-provider="' + provider + '"]');
+      if (card) card.scrollIntoView({ block: 'center' });
+    });
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(loadCatalog, function () {});
     (window.BrandContext && window.BrandContext.ready ? window.BrandContext.ready() : Promise.resolve()).then(function () { return loadAdHistory(); }, function () {});
   }

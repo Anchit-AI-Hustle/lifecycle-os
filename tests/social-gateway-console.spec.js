@@ -22,7 +22,6 @@ const ROOT = path.resolve(__dirname, '..');
 const connections = require(path.join(ROOT, 'api', '_shared', 'workspace-connections-core.js'));
 const dispatch = require(path.join(ROOT, 'api', '_shared', 'dispatch-core.js'));
 const gateway = require(path.join(ROOT, 'api', '_shared', 'social-gateway-core.js'));
-const registry = require(path.join(ROOT, 'api', '_shared', 'adapters', 'registry.js'));
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const AUTH_A = { ok: true, token: 'tok-a', user_id: 'user-a', email: 'a@example.test' };
@@ -103,7 +102,11 @@ async function open(page, { auth = AUTH_A, ws = 'ws-a' } = {}) {
       await gateway.handle(makeReq({ token: auth.token, query: Object.fromEntries(u.searchParams.entries()), body, method: route.request().method() }), res, { auth, workspaceId: ws, body: body || {} });
       return json(res.code, res.payload);
     }
-    if (action === 'connections' && u.searchParams.get('op') === 'publish-registry') return json(200, { ok: true, platforms: registry.registryView(), channels: registry.allChannels() });
+    if (action === 'connections' && u.searchParams.get('op') === 'publish-registry') {
+      const res = makeRes();
+      await connections.handle(makeReq({ query: { op: 'publish-registry' }, method: 'GET' }), res);
+      return json(res.code, res.payload);
+    }
     if (action === 'connections' && u.searchParams.get('op') === 'oauth-start') {
       // The shipped connections router, as the session's caller.
       const body = route.request().postDataJSON();

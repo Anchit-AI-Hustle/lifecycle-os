@@ -567,6 +567,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
   var PLATFORMS = [];
   var CHANNELS = [];
   var CONNECTED = {};
+  var SYNC_RESULTS = {};
 
   async function loadHub() {
     var reg, list;
@@ -579,6 +580,10 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
     try {
       list = await call(CONN + '&op=list');
       (list.connections || []).forEach(function (c) { CONNECTED[c.provider] = c; });
+      if (Object.values(CONNECTED).some(function (c) { return c.configured; })) {
+        var synced = await call(CONN + '&op=platform-sync').catch(function () { return {}; });
+        SYNC_RESULTS = Object.assign({}, synced.results, SYNC_RESULTS);
+      }
     } catch (e) {
       // Signed out, or no active brand. The registry still renders so the
       // operator can see what is possible before connecting anything.
@@ -601,7 +606,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
       if (c && c.last_check_ok === false) chips.push('<span class="chip bad">check failed</span>');
 
       var supported = p.channels.filter(function (x) { return x.supported; }).length;
-      return '<div class="conn">'
+      return '<div class="conn" data-platform="' + esc(p.id) + '">'
         + '<div class="hd"><span class="nm">' + esc(p.label) + '</span><span>' + chips.join(' ') + '</span></div>'
         + '<div class="muted">' + esc(p.category) + ' &middot; ' + supported + ' of ' + p.channels.length + ' channels available'
         + (p.auth_kind === 'oauth' ? ' &middot; sign-in' : ' &middot; API key') + '</div>'
@@ -610,18 +615,50 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
           ? '<div class="muted"><strong>Unverified:</strong> ' + esc(p.unverified_operations.join(', '))
             + '. These paths were implemented from the platform’s conventions and not re-read from its documentation. Confirm them before a first live send.</div>'
           : '')
-        + (p.platform_prereq && !connected ? '<div class="muted">' + esc(p.platform_prereq.what || '') + '</div>' : '')
-        + capsHtml(p)
+        + (p.signin && !p.signin.ready ? '<div class="muted">' + esc(p.signin.reason) + '</div>' : '')
+        + (p.signin && p.signin.ready ? capsHtml(p) : '')
+        + syncHtml(p)
         + '<div class="row">'
-        + (p.auth_kind === 'oauth'
-          ? '<button data-act="connect" data-p="' + esc(p.id) + '">' + (connected ? 'Reconnect' : 'Connect') + '</button>'
-          : '<a class="btnlink" href="/connections">Set key</a>')
+        + (p.signin && p.signin.ready
+          ? '<button class="primary" data-act="connect" data-p="' + esc(p.id) + '">' + (connected ? 'Reconnect' : 'Connect') + '</button>'
+          : '<a class="btnlink" href="/connections?provider=' + encodeURIComponent(p.connection_provider) + '">' + (p.auth_kind === 'oauth' ? 'Account settings' : 'Set key') + '</a>')
+        + (connected && p.sync ? '<button data-act="sync" data-p="' + esc(p.id) + '">' + (p.sync === 'history' ? 'Sync now' : 'Check account') + '</button>' : '')
         + (connected ? '<button data-act="publish-toggle" data-p="' + esc(p.connection_provider) + '" data-on="' + (publishing ? '1' : '0') + '">'
           + (publishing ? 'Turn off live publishing' : 'Turn on live publishing') + '</button>' : '')
-        + (connected ? '<button data-act="check" data-p="' + esc(p.connection_provider) + '">Test</button>' : '')
+        + (connected && !p.sync ? '<button data-act="check" data-p="' + esc(p.connection_provider) + '">Test</button>' : '')
         + (connected ? '<button class="danger" data-act="disconnect" data-p="' + esc(p.id) + '">Disconnect</button>' : '')
         + '</div></div>';
     }).join('');
+  }
+
+  function syncHtml(p) {
+    var r = SYNC_RESULTS[p.id];
+    var conn = CONNECTED[p.connection_provider];
+    if (!r || !conn?.configured || (r.connection_id && r.connection_id !== conn.id)) return '';
+    var content = '<div class="muted" role="status">' + esc(r.note || '') + '</div>';
+    if (r.at) content += '<div class="muted">Last sync ' + esc(new Date(r.at).toLocaleString()) + '</div>';
+    if (r.choose_account) {
+      content += '<label>Brand account <select data-sync-account><option value="">Choose an account</option>'
+        + r.accounts.map(function (a) { return '<option value="' + attr(a.id) + '">' + esc(a.name) + '</option>'; }).join('')
+        + '</select></label>';
+    } else if (r.records && r.records.length) {
+      content += '<details><summary>Synced records</summary><ul>' + r.records.map(function (item) {
+        return '<li>' + esc(item.name || item.text || item.id) + (item.channel ? ' · ' + esc(item.channel) : '') + '</li>';
+      }).join('') + '</ul></details>';
+    }
+    return content;
+  }
+
+  function attr(value) { return esc(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+  async function syncPlatform(provider, accountId) {
+    if (SYNC_RESULTS[provider]?.busy) return;
+    SYNC_RESULTS[provider] = { note: 'Reading the connected account…', busy: true };
+    renderHub();
+    try {
+      SYNC_RESULTS[provider] = await call(CONN + '&op=platform-sync', { provider: provider, account_id: accountId });
+    } catch (e) { SYNC_RESULTS[provider] = { note: e.message }; }
+    renderHub();
   }
 
   /**
@@ -655,9 +692,16 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
         window.location.href = r.url;
         return;
       }
+      if (act === 'sync') {
+        var account = b.closest('[data-platform]').querySelector('[data-sync-account]');
+        if (account && !account.value) { account.focus(); b.disabled = false; return; }
+        await syncPlatform(p, account && account.value);
+        return;
+      }
       if (act === 'disconnect') {
         if (!(await window.LifecycleDialog.confirm('Disconnect ' + p + '? Stored credentials for this brand are removed.', { ok: 'Disconnect', danger: true }))) { b.disabled = false; return; }
         var d = await call(CONN + '&op=oauth-disconnect', { provider: p });
+        delete SYNC_RESULTS[p];
         note('ok', d.note || 'Disconnected.');
       }
       if (act === 'publish-toggle') {
@@ -1519,15 +1563,28 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 
   /* ── boot ───────────────────────────────────────────────────────────── */
   var params = new URLSearchParams(window.location.search);
-  if (params.get('oauth') === 'connected') note('ok', params.get('provider') + ' connected.');
   if (params.get('oauth') === 'denied') note('warn', 'The sign-in was cancelled or refused at ' + params.get('provider') + '.');
   if (params.get('oauth') === 'error') note('err', 'The connection did not complete: ' + (params.get('reason') || 'unknown') + '.');
 
-  function boot() {
-    loadHub(); loadRules();
+  async function boot() {
+    loadRules();
     var want = params.get('tab');
     var t = want && document.querySelector('.tab[data-panel="' + want.replace(/[^a-z-]/g, '') + '"]');
     if (t) t.click();
+    if (window.BrandContext?.ready) await window.BrandContext.ready().catch(function () {});
+    await loadHub();
+    if (params.get('oauth') !== 'connected') return;
+    var platform = PLATFORMS.find(function (p) { return p.id === params.get('provider'); });
+    if (!platform) return;
+    var current = new URL(location.href);
+    ['oauth', 'provider', 'connected_workspace'].forEach(function (key) { current.searchParams.delete(key); });
+    history.replaceState(null, '', current);
+    if (params.get('connected_workspace') !== workspaceId()) {
+      note('info', 'Sign-in completed. Open the brand you connected to sync its account.');
+      return;
+    }
+    note('ok', platform.label + ' sign-in completed.');
+    if (platform.sync && CONNECTED[platform.connection_provider]?.configured) await syncPlatform(platform.id);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
