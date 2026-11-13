@@ -1207,6 +1207,8 @@ add('marketing-team', { gate: 'none', browser: 'demo', run: { method: 'GET', que
   cases: [
     { name: 'the site audit refuses an anonymous caller before it reads anything', run: { method: 'POST', json: {}, query: { op: 'site-audit' }, auth: 'none', origin: false },
       expect: (r) => { expect(r.status).toBe(401); expect(S.hits(M.mteam)).toEqual([]); } },
+    { name: 'running a Workbench tool needs a verified caller and a credit hold', run: { method: 'POST', json: { tool: 'trend-scout', evidence: 'Observed notes' }, query: { op: 'run-tool' }, auth: 'none', origin: false },
+      expect: (r) => { expect(r.status).toBe(401); } },
     { name: 'a signed-in caller audits the website on the brand record, never a URL the request names', run: { method: 'POST', json: { url: 'https://elsewhere.example', website: 'https://elsewhere.example' }, query: { op: 'site-audit', url: 'https://elsewhere.example' }, auth: 'session', origin: true },
       stubs: () => S.on(M.mteam, 'siteAudit', async (brand) => ({ ok: true, site: brand && brand.website, name: brand && brand.name })),
       expect: (r) => { expect(r.status, r.text).toBe(200); const brand = last(M.mteam, 'siteAudit')[0]; expect(brand && brand.name).toBeTruthy(); expect(JSON.stringify(brand)).not.toContain('elsewhere.example'); } },

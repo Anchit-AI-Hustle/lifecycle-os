@@ -154,6 +154,16 @@ class YouTubeAdapter extends SocialPlatformAdapter {
     return { ok: true, account: ch ? { id: ch.id, name: (ch.snippet && ch.snippet.title) || '' } : null, note: ch ? '' : 'The token works but has no YouTube channel.' };
   }
 
+  async listPosts() {
+    const channel = await this.read(`${API}/channels?part=contentDetails&mine=true`, { headers: this.bearer() });
+    const playlist = channel.data?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+    if (!channel.ok || !playlist) return { ok: false };
+    const query = new URLSearchParams({ part: 'snippet', playlistId: playlist, maxResults: '25' });
+    const r = await this.read(`${API}/playlistItems?${query}`, { headers: this.bearer() });
+    if (!r.ok) return { ok: false };
+    return { ok: true, posts: (r.data?.items || []).map((x) => ({ id: x.snippet?.resourceId?.videoId, name: x.snippet?.title })) };
+  }
+
   async refreshCredentials() {
     const id = String(process.env.YOUTUBE_OAUTH_CLIENT_ID || '').trim();
     const secret = String(process.env.YOUTUBE_OAUTH_CLIENT_SECRET || '').trim();

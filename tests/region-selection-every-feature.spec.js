@@ -120,11 +120,14 @@ test('/brain Agentic Generation: one run per ticked market, each report under it
   const rec = recorder('**/api/brain?action=agentic-run', (b) => ({ ok: true, mode: 'device', tier: 'maxpower', market: b.market,
     stages: [{ stage: 'data', ok: true, summary: 'planned for ' + b.market }], ideation: { ideas: [] }, campaigns: [{ date: '2026-10-13', market: b.market, cohort: 'Loyal', subject: 'For ' + b.market }] }));
   await openAndPick(page, 'smart-brain.html', { route: rec.route });
+  const calendar = recorder('**/api/calendar?action=smart-brain-sync-daily', () => ({ ok: true, mode: 'device', plan: [] }));
+  await calendar.route(page);
   await expect(page.locator('#agenticMarkets[data-region-multi]')).toBeVisible();
   await expect(page.locator('#agenticMarket')).toContainText('Runs once for each selected market');
   await page.locator('#runAgentic').click();
   await expect.poll(() => progressStates(page, '#agenticProgress')).toEqual([['IN', 'done'], ['US', 'done']]);
   expect(rec.seen.map((r) => r.body.market)).toEqual(['IN', 'US']);
+  await expect.poll(() => calendar.seen.find((r) => Array.isArray(r.body?.markets))?.body.markets).toEqual(PICKED);
   for (const m of PICKED) await expect(page.locator(`[data-agentic-market="${m}"]`)).toContainText('planned for ' + m);
   await expect(page.locator(`[data-agentic-market="${NOT}"]`)).toHaveCount(0);
 });

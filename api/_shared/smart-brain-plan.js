@@ -1124,7 +1124,7 @@ async function planContactLedger(config, contact, start) {
   }
 }
 
-async function syncDaily({ config: cfg = {}, days, persist = true, contact = null } = {}) {
+async function syncDaily({ config: cfg = {}, days, persist = true, contact = null, markets: selectedMarkets = null } = {}) {
   const config = smartConfig(cfg);
   const db = new SmartBrainDbAdapter(config);
   const horizon = days || config.calendarDays;
@@ -1139,6 +1139,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
   // shipped context (catalogue, analytics, moments) describes tenant zero only
   // and is never synthesized into another brand's workspace.
   const pb = await planningBrand(config, db);
+  const scope = selectedMarkets && new Set(selectedMarkets);
   let ctx, fresh, planned = { source: 'data' };
   if (!pb.isZero) {
     const offs = pb.brand ? _resolveBrandOfferings(pb.brand) : [];
@@ -1154,6 +1155,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     // The same plan-time cap and per-slot eligibility the shipped planner
     // applies: a brand planned from its own offerings is held to the same
     // contact rules as tenant zero.
+    if (scope) fresh = fresh.filter((entry) => scope.has(entry.market));
     applyContactPolicy(fresh, contactLedger, null, start, config);
     if (!fresh.length) {
       // Carry the SAME keys as the success return below. A caller that reads
@@ -1200,6 +1202,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     } catch (_) { /* keep the shipped default if the record is unreadable */ }
     ctx = await buildContext(zeroCfg, db);
     fresh = freshEntries(zeroCfg, ctx, start, horizon, pb.brand || require('./brand-runtime.js').defaultBrand(), contactLedger);
+    if (scope) fresh = fresh.filter((entry) => scope.has(entry.market));
   }
 
   const ident = await currentIdentity(config, db);
@@ -1211,6 +1214,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     stored = await selectAllRows(db, config.tableNames.calendarEntries, {
       filters: { date: `gte.${start}` }, order: 'date.asc,id.asc',
     });
+    if (scope) stored = stored.filter((row) => scope.has(row.market) && row.date <= addDaysIso(start, horizon - 1));
   }
   const storedById = new Map(stored.map((r) => [r.id, r]));
   // Slots already stored from a catalogue the coherence rule now calls another
@@ -1373,13 +1377,13 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     if (lost.length) changes.push({ id: null, kind: 'not_saved', detail: `${lost.length} planned change(s) could not be saved to the calendar store; the plan shown is today's, and View or Generate re-plans each slot as it opens. First reason: ${String(lost[0]).slice(0, 240)}` });
     persistence = { ok: true, ...results };
     // Roll past slots out of the active window.
-    await db.update(config.tableNames.calendarEntries, { date: `lt.${start}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', updated_at: nowIso() }).catch(() => {});
+    if (!scope) await db.update(config.tableNames.calendarEntries, { date: `lt.${start}`, status: SYNC_WRITABLE_STATUSES }, { status: 'archived', updated_at: nowIso() }).catch(() => {});
     await db.insert(config.tableNames.runs, [{
       id: `run_${Date.now().toString(36)}`,
       payload: { kind: 'daily-sync', start, horizon, changes, insights: ctx.analysis.dailyInsights },
       created_at: nowIso(),
     }]).catch(() => {});
-    persistence.pruned = await pruneOldRecords(config, db);
+    if (!scope) persistence.pruned = await pruneOldRecords(config, db);
   } else {
     // No write this run: still list intended updates so a dry-run / device
     // preview is not an empty Changes panel.
@@ -1396,7 +1400,7 @@ async function syncDaily({ config: cfg = {}, days, persist = true, contact = nul
     insights: ctx.analysis.dailyInsights,
     cohorts: ctx.analysis.cohorts,
     competitorBenchmarks: { byChannel: ctx.competitorBenchmarks.byChannel, trendingHooks: ctx.competitorBenchmarks.trendingHooks.slice(0, 8) },
-    plan: plan.entries,
+    plan: scope && !db.connected ? plan.entries.filter((entry) => scope.has(entry.market)) : plan.entries,
     persistence,
   };
   if (planned.source === 'lifecycle-strategy') {
@@ -6058,7 +6062,7 @@ async function persistCampaignAssets(db, config, campaign, { status, origin, rev
   return out;
 }
 
-async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = null } = {}) {
+async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = null, markets = null, throughDate = null } = {}) {
   const config = smartConfig(cfg);
   const db = new SmartBrainDbAdapter(config);
   if (!db.connected) return { ok: true, skipped: true, reason: 'Supabase env not configured — nothing to prebuild.', built: [], failed: [], batch: 0, remaining: 0 };
@@ -6073,7 +6077,8 @@ async function prebuildAssets({ config: cfg = {}, batchSize = 1, sinceDate = nul
   // A slot its own cap pass calls BLOCKED is never built (an older stored row
   // may still carry that status).
   const blocked = (r) => { const p = r.payload || {}; const fc = (p.reach && p.reach.frequency_cap) || {}; return fc.status === 'BLOCKED'; };
-  const pending = rows.filter((r) => !isPrebuilt(r) && !blocked(r) && !!prebuildIdent && identityMatches((r.payload || {})[IDENTITY_KEY], prebuildIdent));
+  const pending = rows.filter((r) => (!markets || markets.includes(r.market)) && (!throughDate || r.date <= throughDate)
+    && !isPrebuilt(r) && !blocked(r) && !!prebuildIdent && identityMatches((r.payload || {})[IDENTITY_KEY], prebuildIdent));
   const batch = pending.slice(0, Math.max(1, batchSize));
   const built = [];
   const failed = [];

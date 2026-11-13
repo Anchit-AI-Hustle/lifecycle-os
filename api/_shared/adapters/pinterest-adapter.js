@@ -173,6 +173,12 @@ class PinterestAdapter extends SocialPlatformAdapter {
     return { ok: true, account: { id: this.adAccount() || '' }, note: 'Pinterest answered a Pin list with this token.' };
   }
 
+  async listPosts() {
+    const r = await this.read(`${API}/pins?page_size=25`, { headers: this.headers() });
+    if (!r.ok) return { ok: false };
+    return { ok: true, posts: (r.data?.items || []).map(({ id, title, link }) => ({ id, name: title, url: link })) };
+  }
+
   async refreshCredentials() {
     const id = String(process.env.PINTEREST_APP_ID || '').trim();
     const secret = String(process.env.PINTEREST_APP_SECRET || '').trim();

@@ -205,7 +205,7 @@ test.describe('/brain for a Google account whose active brand is the record', ()
 
   const CASES = [
     { brand: DELI, key: 'DELI', market: 'IN', label: 'an Indian brand: its home market IN' },
-    { brand: BRIT, key: 'BRIT', market: 'UK', label: 'a UK brand whose record leads with US: its HOME market UK' },
+    { brand: BRIT, key: 'BRIT', market: 'UK', label: 'a UK brand serving US and UK: all checked markets run even when UK is home' },
   ];
   for (const c of CASES) {
     test(`Run Agentic Flow, ${c.label}`, async ({ page }) => {
@@ -215,14 +215,16 @@ test.describe('/brain for a Google account whose active brand is the record', ()
       expect(await page.evaluate(() => window.RegionContext.home)).toBe(c.market);
       await expect(page.locator('#runAgentic')).toBeEnabled();
       await expect(page.locator('#agenticWhy')).toBeHidden();
+      const selected = c.brand.regions.map((r) => r.code);
       await page.click('#runAgentic');
       await expect.poll(() => hold.sent.length, { timeout: 20_000 }).toBe(1);
-      // What LEFT the page, and what the page says while it runs.
-      expect(hold.sent[0].market).toBe(c.market);
-      await expect(page.locator('#agenticOut')).toContainText(`Running agentic flow — Premium, ${c.market} — 8 stages`);
-      expect(await page.locator('#agenticOut').innerText()).not.toMatch(/\bUS\b/);
+      expect(hold.sent[0].market).toBe(selected[0]);
+      await expect(page.locator('#agenticOut')).toContainText(`Running agentic flow — Premium, ${selected[0]} — 8 stages`);
+      await expect(page.locator('#agenticProgress [data-market-progress]')).toHaveCount(selected.length);
+      await expect(page.locator('#runAgentic')).toBeDisabled();
       hold.release();
       await expect(page.locator('#agenticOut')).not.toContainText('please wait', { timeout: 15_000 });
+      expect(hold.sent.map((sent) => sent.market)).toEqual(selected);
 
       // The first card is the next send (2026-11-09); an account's plan is never
       // described as kept on this device.

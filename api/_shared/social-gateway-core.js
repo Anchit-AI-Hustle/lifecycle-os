@@ -765,6 +765,7 @@ module.exports = {
   handle,
   status,
   read,
+  syncLog,
   credentialsFor,
   recordInbound,
   markInbound,

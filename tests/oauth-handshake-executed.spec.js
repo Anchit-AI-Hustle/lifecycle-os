@@ -73,7 +73,7 @@ function world() {
   const db = new FakeSupabase();
   db.addUser('tok-a', 'user-a', 'a@example.test').addUser('tok-v', 'user-v', 'v@example.test').addUser('tok-b', 'user-b', 'b@example.test')
     .addWorkspace('ws-a', 'user-a').addWorkspace('ws-b', 'user-b').addMember('ws-a', 'user-v', 'viewer')
-    .setActive('user-a', 'ws-a').setActive('user-v', 'ws-a').syncIdentityTables();
+    .setActive('user-a', 'ws-a').setActive('user-v', 'ws-a').setActive('user-b', 'ws-b').syncIdentityTables();
   db.install();
   connections._resolvedCache.clear();
   return db;
@@ -142,7 +142,7 @@ test('the handshake round-trips: a single-use state with the verifier server-sid
   const seen = klaviyoAnswers(db);
   const cb = await callback({ provider: 'klaviyo', state, code: 'auth-code-1' });
   expect(cb.code).toBe(302);
-  expect(cb.head.Location).toBe('/publishing?oauth=connected&provider=klaviyo');
+  expect(cb.head.Location).toBe('/publishing?oauth=connected&provider=klaviyo&connected_workspace=ws-a');
   expect(cb.headers['cache-control']).toBe('no-store');
   expect(cb.writes.map((w) => w[0])).toEqual(['writeHead', 'end']);
 
@@ -446,6 +446,7 @@ test('a return_to that already carries a query string still receives the oauth s
   expect(landed.searchParams.get('tab')).toBe('hub');
   expect(landed.searchParams.get('oauth')).toBe('connected');
   expect(landed.searchParams.get('provider')).toBe('klaviyo');
+  expect(landed.searchParams.get('connected_workspace')).toBe('ws-a');
 
   const s2 = await start('tok-a', { provider: 'klaviyo', return_to: '/publishing?tab=hub' });
   const denied = await callback({ provider: 'klaviyo', state: s2.payload.state, error: 'access_denied' });
@@ -453,6 +454,29 @@ test('a return_to that already carries a query string still receives the oauth s
   expect(back.searchParams.get('tab')).toBe('hub');
   expect(back.searchParams.get('oauth')).toBe('denied');
   expect(oauth.landing('/connections', { oauth: 'error', reason: 'x' })).toBe('/connections?oauth=error&reason=x');
+});
+
+test('Klaviyo sync reads email and SMS for the connected brand and keeps the results workspace-scoped', async () => {
+  const db = world();
+  process.env.LIVE_CONNECTORS = 'on';
+  try {
+    connect(db, 'klaviyo', { access_token: 'brand-a-token' });
+    const seen = [];
+    db.route((u) => u.startsWith('https://a.klaviyo.com/api/campaigns/?'), (u, init) => {
+      expect(init.headers.Authorization).toBe('Bearer brand-a-token');
+      const filter = new URL(u).searchParams.get('filter');
+      seen.push(filter);
+      return { data: [{ id: filter.includes("'email'") ? 'e1' : 's1', attributes: { name: 'Sent campaign', status: 'Sent' } }] };
+    });
+    const input = { query: { op: 'platform-sync' }, method: 'POST', body: { provider: 'klaviyo' } };
+    expect((await handle({ ...input, token: 'tok-v' })).code).toBe(403);
+    expect((await handle({ ...input, token: 'tok-b' })).payload.ok).toBe(false);
+    expect((await handle({ ...input, token: 'tok-a' })).payload).toMatchObject({ ok: true, count: 2 });
+    expect(seen.sort()).toEqual(["equals(messages.channel,'email')", "equals(messages.channel,'sms')"]);
+    const read = { query: { op: 'platform-sync' }, method: 'GET' };
+    expect((await handle({ ...read, token: 'tok-a' })).payload.results.klaviyo.records).toHaveLength(2);
+    expect((await handle({ ...read, token: 'tok-b' })).payload.results).toEqual({});
+  } finally { delete process.env.LIVE_CONNECTORS; }
 });
 
 // With no CONNECTION_SECRET_KEY the sign-in could be STARTED, the operator

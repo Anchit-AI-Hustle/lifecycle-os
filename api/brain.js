@@ -140,6 +140,7 @@ const MODEL_FEATURE = {
   'ad-angle-lab': ['POST', 'ads.copy_matrix'],
   // Only op=variations writes copy (ad-variations.js); status, list and import are not metered.
   'ad-history': ['POST', 'ads.copy_matrix', 'variations'],
+  'marketing-team': ['POST', 'assistant.chat', 'run-tool'],
   'launch-concepts': ['POST', 'launch.concepts'],
   'ad-fix': ['POST', 'ads.fix'],
   'review-mine': ['POST', 'reviews.mine'],
@@ -324,7 +325,7 @@ module.exports = async function handler(req, res) {
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
       const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|observations|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
-      if (WRITES.test(action)) {
+      if (WRITES.test(action) || (action === 'marketing-team' && modelFeature(action, req))) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
           message: 'Set up a brand first. This action generates or sends for a specific brand, and there is no honest way to preview that without one.',
@@ -1056,13 +1057,21 @@ module.exports = async function handler(req, res) {
         const op = String(req.query.op || b.op || 'map');
         const MT = require('./_shared/marketing-team.js');
         if (op === 'map') return res.json({ ok: true, departments: MT.map() });
+        if (op === 'run-tool') {
+          if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+          const market = __marketFor(b.market);
+          if (!market.market) return res.status(409).json({ ok: false, message: market.reason || market.marker });
+          const run = require('./_shared/marketing-workbench-core.js');
+          const result = await run({ toolId: b.tool, evidence: b.evidence, market: market.market, brand: __activeBrand(), workspaceId: req.__workspaceId });
+          return res.status(result.status || 200).json(result);
+        }
         if (op === 'site-audit') {
           const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
           if (!auth.ok) return res.status(auth.status || 401).json(auth);
           const out = await require('./_shared/marketing-team-server.js').siteAudit(req.__brand || null);
           return res.status(out.ok ? 200 : (out.error === 'website_required' ? 409 : 502)).json(Object.assign({ action }, out));
         }
-        return res.status(400).json({ ok: false, action, error: 'unknown_op', message: 'Use op=map or op=site-audit.' });
+        return res.status(400).json({ ok: false, action, error: 'unknown_op', message: 'Use op=map, op=site-audit or op=run-tool.' });
       }
 
       case 'paid-launch': {

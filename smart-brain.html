@@ -913,15 +913,7 @@ function refusalOf(data){
 // execution surface (Run Agentic Flow) and the reviewer decides per row.
 const TIER = 'maxpower';
 function setTier(){ /* single mode: premium only */ }
-// Region for the agentic flow: a region chip the reviewer turned on in the
-// Rolling calendar, else the market chosen in the rail, else the ACTIVE
-// BRAND'S HOME market - all through RegionContext, so the market is always one
-// the brand's own record lists (2026-10-05). It used to fall to a literal 'US'
-// whenever there were no plan rows (so no chips), and knew four typed markets:
-// an Indian momos brand whose rail said "Market: India (IN)" pressed Run
-// Agentic Flow and read "Running agentic flow - Premium, US". A brand with no
-// market on its record gets the marker and the button says why it is off;
-// nothing is sent.
+// The picker and the run resolve markets from the same brand record.
 async function regionReady(){
   const RC = window.RegionContext;
   if(!RC || RC.loaded) return RC || null;
@@ -932,25 +924,18 @@ function agenticMarket(){
   const all = agenticMarkets();
   return { market: all.markets[0] || '', marker: all.marker };
 }
-/* The markets the agentic run builds for: the shared selection (the Region
-   filter and the control in this card are the same selection), else every
-   market this brand plans for. Each is ONE run with ONE market. */
+/* Match the Agentic card's all-market default, independently of which
+   markets already have rows in the rolling calendar. */
 function agenticMarkets(){
   const RC = window.RegionContext;
   if(RC){
-    if(!RC.regions || !RC.regions.length){
-      return { markets: [], marker: RC.marker('home market') };
-    }
-    if(SELECTED_MKT && SELECTED_MKT.size > 0){
-      const valid = Array.from(SELECTED_MKT).map(m => (RC.resolve ? RC.resolve(m) : m) || m).filter(m => RC.regions.some(r => r.code === m));
-      if(valid.length) return { markets: valid, marker: '' };
-    }
-    const list = (RC.marketsFor ? RC.marketsFor() : [RC.region || RC.home]).filter(Boolean);
+    const list = RC.marketsFor({ defaultAll: true });
     if(list.length) return { markets: list, marker: '' };
     return { markets: [], marker: RC.marker('home market') };
   }
   return { markets: [], marker: '[DATA REQUIRED BEFORE LAUNCH: home market, this brand]' };
 }
+let agenticRunning = false;
 /* The button is OFF, with its reason beside it, while the brand has no market. */
 function gateAgentic(){
   const btn = $('runAgentic'), why = $('agenticWhy');
@@ -960,7 +945,7 @@ function gateAgentic(){
   const pick = agenticMarkets();
   const one = $('agenticMarket');
   if(pick.markets.length){
-    btn.disabled = false; btn.removeAttribute('aria-disabled'); btn.removeAttribute('title');
+    btn.disabled = agenticRunning; btn.removeAttribute('aria-disabled'); btn.removeAttribute('title');
     if(why){ why.hidden = true; why.textContent = ''; }
     // Each run builds for ONE market; several ticked = several runs, said here.
     const names = pick.markets.map(m => RC.label ? RC.label(m) : m);
@@ -975,6 +960,19 @@ function gateAgentic(){
   if(why){ why.hidden = false; why.textContent = reason; }
 }
 async function runAgentic(){
+  if(agenticRunning) return;
+  agenticRunning = true;
+  $('runAgentic').disabled = true;
+  $('runAgentic').setAttribute('aria-busy', 'true');
+  try { await buildAgenticSelection(); }
+  finally {
+    agenticRunning = false;
+    $('runAgentic').removeAttribute('aria-busy');
+    $('runAgentic').disabled = false;
+    gateAgentic();
+  }
+}
+async function buildAgenticSelection(){
   const out = $('agenticOut');
   await regionReady();
   const pick = agenticMarkets();
@@ -998,37 +996,37 @@ async function runAgentic(){
   // The duration chips used to filter the TABLE only: the run itself never
   // received the selected period, so it planned the default window and then
   // built assets for a single day of it. The selection is the run's scope.
-  const runDays = (SELECTED_DAYS === 'all') ? 90 : Number(SELECTED_DAYS) || 7;
+  const runDays = (AGENTIC_DAYS === 'all') ? 90 : Number(AGENTIC_DAYS) || 7;
   const runOne = async (market) => {
     const body = out.querySelector(`[data-agentic-market="${market}"] .agentic-body`);
     if(body) body.innerHTML = `<p>🤖 Running agentic flow — Premium, ${esc(market)} — 8 stages, please wait…</p>`;
     try{
-      // Return the plan fast; creatives (images/mailers/ads/LPs) prebuild in the
-      // background via the convergent smart-brain-prebuild queue. Building creatives
-      // inline used to blow past the serverless time limit (the "server took too
-      // long" timeout). The plan itself is quick; assets converge after.
+      // The agentic preview skips image generation to stay inside the request
+      // budget. Daily Sync builds the rolling calendar and queues its creatives.
       const r = await fetch('/api/brain?action=agentic-run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ market, tier: TIER, days: runDays, withCreatives: false })});
       const d = await safeJson(r);
       if(!d.ok){
         // The server's own refusal for a market the brand does not list is a
         // statement about the brand's record, not a fault: the accent rule.
-        if(d.error === 'market_required' || d.error === 'market_not_served'){ if(body) body.innerHTML = `<p class="vh-status" role="status">${esc(d.message || d.marker || '')}</p>`; return d; }
-        if(body) window.LifecycleFailure.show(body, d, { title: 'The agentic run did not complete' });
+        if(d.error === 'market_required' || d.error === 'market_not_served'){
+          if(body) body.innerHTML = `<p class="vh-status" role="status">${esc(d.message || d.marker || '')}</p>`;
+        } else if(body) window.LifecycleFailure.show(body, d, { title: 'The agentic run did not complete' });
         throw Object.assign(new Error((d && (d.message || d.error)) || 'did not complete'), { shown: true });
       }
       if(body) body.innerHTML = agenticReportHtml(d);
       return d;
     }catch(e){ if(!e.shown && body) window.LifecycleFailure.show(body, e, { title: 'The report could not be built' }); throw e; }
   };
+  let completed = [];
   if(RC && RC.fanOut){
-    await RC.fanOut(runOne, { markets: pick.markets, progress: $('agenticProgress'), label: 'Running the agentic flow' });
+    const results = await RC.fanOut(runOne, { markets: pick.markets, progress: $('agenticProgress'), label: 'Running the agentic flow' });
+    completed = results.filter(r => r.ok).map(r => r.market);
   } else {
     for(const m of pick.markets){
-      try { await runOne(m); } catch(_) {}
+      try { await runOne(m); completed.push(m); } catch(_) {}
     }
   }
-  // Once the agentic flow finishes, reload the rolling plan so any newly planned slots appear in the main calendar
-  try { await loadPlan(); } catch(_) {}
+  if(completed.length) await runSync({ markets: completed, days: runDays });
 }
 function agenticReportHtml(d){
     const stages = (d.stages||[]).map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--vh-panel-tan)"><b>${s.ok?'✓':'✗'} ${esc(s.stage)}</b> — ${esc(s.summary||'')}</div>`).join('');
@@ -1092,7 +1090,7 @@ window.toggleMkt = function(mkt){
   // markets picked here open on Revenue by region too, and come back here.
   // The agentic run below runs once per market in this same selection.
   const RC = window.RegionContext;
-  if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : (ALL_MKTS.length ? ALL_MKTS : ['ALL']));
+  if(RC && RC.setSelection) RC.setSelection(SELECTED_MKT.size ? Array.from(SELECTED_MKT) : ['ALL']);
   renderPlan();
   gateAgentic();
 };
@@ -1161,6 +1159,7 @@ function syncMktFromSelection(){
 // Duration horizon: limit the calendar to sends within the next N days (from
 // today, inclusive). 'all' shows the whole rolling window. Default 90.
 let SELECTED_DAYS = 7;   // default view: the actionable week
+let AGENTIC_DAYS = 7;
 function durCutoff(){ return SELECTED_DAYS==='all' ? null : new Date(Date.now()+SELECTED_DAYS*86400000).toISOString().slice(0,10); }
 function durVisible(e){
   if(SELECTED_DAYS==='all') return true;
@@ -1263,6 +1262,7 @@ function reachPill(r){
 }
 window.setDur = function(d){
   SELECTED_DAYS = (d==='all') ? 'all' : Number(d);
+  AGENTIC_DAYS = SELECTED_DAYS;
   document.querySelectorAll('.mkchip[data-dur]').forEach(b=>{
     b.classList.toggle('on', String(b.dataset.dur)===String(d));
   });
@@ -3148,13 +3148,13 @@ async function autoGenerateOnLoad(){
 // then re-reads it through getPlan, so its response already carries the rows the
 // table needs. There is nothing to poll for, and the rows below are rendered
 // straight from that response rather than from a second request.
-async function runSync(){
+async function runSync(scope = {}){
   const ticket = claimPlan();
   $('sync').disabled = true; $('sync').textContent = 'Reviewing latest data…';
   sbState('busy', 'Reviewing the latest data and rebuilding the rolling calendar…');
   try{
     if(await signedOutPlan(ticket, 'Daily Sync')) return;
-    const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({})});
+    const r = await fetch(`${API}?action=smart-brain-sync-daily`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(scope)});
     const data = await safeJson(r);
     if(!data.ok) throw sbRefusal(data, 'Sync failed');
     if(!stillCurrent(ticket)) return;   // superseded by a later action
@@ -3592,7 +3592,7 @@ async function exportPlan(){
   }
   finally{ btn.disabled=false; btn.textContent=t; }
 }
-$('sync').addEventListener('click', runSync);
+$('sync').addEventListener('click', () => runSync());
 $('refresh').addEventListener('click', loadPlan);
 $('export').addEventListener('click', exportPlan);
 let displayedScope = null;

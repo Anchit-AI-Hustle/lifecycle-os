@@ -75,6 +75,10 @@ const ENDPOINTS = {
     doc: `${DOCS}/tiktok-api-v2-video-query (filters.video_ids, up to 20; fields id, like_count, comment_count, share_count, view_count)`,
     scopes: ['video.list'],
   },
+  video_list: {
+    method: 'POST', read: true, url: `${OPEN}/v2/video/list/`, verified: true,
+    doc: `${DOCS}/tiktok-api-v2-video-list`, scopes: ['video.list'],
+  },
 };
 
 /** The Display API Video Object fields this adapter asks for. */
@@ -308,6 +312,15 @@ class TikTokAdapter extends SocialPlatformAdapter {
     if (err) return { ok: false, detail: { error: err } };
     const d = (r.data && r.data.data) || {};
     return { ok: true, status: d.status || 'unknown', detail: { fail_reason: d.fail_reason || null, post_ids: d.publicaly_available_post_id || [] } };
+  }
+
+  async listPosts() {
+    const r = await this.callEndpoint('video_list', {
+      query: { fields: 'id,title,share_url,create_time' }, headers: this.headers(), body: { max_count: 20 },
+    });
+    if (!r.ok || tiktokError(r.data)) return { ok: false };
+    const posts = r.data?.data?.videos || [];
+    return { ok: true, posts: posts.map((v) => ({ id: v.id, name: v.title, url: v.share_url })) };
   }
 
   /** Counts for the account's own videos. An absent count stays absent. */

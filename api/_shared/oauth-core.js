@@ -137,6 +137,16 @@ function vaultUnavailable() {
   return e;
 }
 
+function availability(provider) {
+  const spec = adapterFor(provider)?.auth;
+  if (spec?.kind !== 'oauth') return { ready: false, reason: 'This platform uses an account credential.' };
+  if (!/^https:\/\//.test(spec.endpoints?.authorize || '')) return { ready: false, reason: 'Provider sign-in is unavailable.' };
+  if (!clientIdFor(provider) || !clientSecretFor(provider)) return { ready: false, reason: 'Lifecycle OS has not configured this provider’s sign-in app.' };
+  if (!connections.cryptoConfigured()) return { ready: false, reason: 'Encrypted credential storage is unavailable.' };
+  try { serviceEnv(); } catch (_) { return { ready: false, reason: 'The connection store is unavailable.' }; }
+  return { ready: true };
+}
+
 /* ── PKCE ─────────────────────────────────────────────────────────────────── */
 
 function base64Url(buf) {
@@ -175,7 +185,7 @@ async function beginAuthorization(req, auth, workspaceId, input) {
   }
 
   const clientId = clientIdFor(providerId);
-  if (!clientId) {
+  if (!clientId || !clientSecretFor(providerId)) {
     const e = new Error(
       `This deployment has no ${Adapter.label} app registered, so there is no sign-in to start. `
       + `${(spec.platform_prereq && spec.platform_prereq.what) || ''} `
@@ -347,7 +357,7 @@ async function handleCallback(req) {
   await persistGrant(row, provider, exchanged);
   return {
     ok: true,
-    redirect: landing(returnTo, { oauth: 'connected', provider }),
+    redirect: landing(returnTo, { oauth: 'connected', provider, ...(returnTo.split('?')[0] === '/publishing' ? { connected_workspace: row.workspace_id } : {}) }),
     provider,
     message: `${provider} connected.`,
   };
@@ -489,7 +499,7 @@ async function ensureFreshToken(workspaceId, provider, { connection, credentials
 
   const conn = connection || await connections.getConnectionAsService(workspaceId, connectionProviderFor(provider));
   const creds = credentials || (conn ? await connections.secretsAsService(conn.id) : null);
-  if (!creds || (!creds.access_token && !creds.api_key)) {
+  if (!creds || (!creds.access_token && !creds.api_key && !(provider === 'google_ads' && creds.refresh_token))) {
     return { ok: false, note: `${Adapter.label} is not connected on this brand.`, reconnect_required: true };
   }
 
@@ -503,10 +513,10 @@ async function ensureFreshToken(workspaceId, provider, { connection, credentials
   }
 
   const expiresAt = conn && conn.token_expires_at ? Date.parse(conn.token_expires_at) : 0;
-  const stillGood = !expiresAt || expiresAt - Date.now() > REFRESH_SKEW_MS;
+  const stillGood = creds.access_token && (!expiresAt || expiresAt - Date.now() > REFRESH_SKEW_MS);
   if (stillGood) return { ok: true, credentials: creds, refreshed: false };
 
-  const adapter = new Adapter({ workspaceId, credentials: creds, connection: conn });
+  const adapter = new Adapter({ workspaceId, credentials: { ...conn?.config, ...creds }, connection: conn });
   const r = await adapter.refreshCredentials();
   if (!r.ok) {
     await connections.patchConnectionAsService(workspaceId, connectionProviderFor(provider), {
@@ -609,6 +619,7 @@ async function revoke(auth, workspaceId, provider) {
 }
 
 module.exports = {
+  availability,
   beginAuthorization,
   handleCallback,
   ensureFreshToken,
