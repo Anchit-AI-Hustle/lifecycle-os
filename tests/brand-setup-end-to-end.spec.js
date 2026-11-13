@@ -53,6 +53,14 @@ const PRODUCTS = ['Fern', 'Monstera', 'Pothos'].map((t, i) => ({
   id: 100 + i, title: t, handle: t.toLowerCase(), product_type: 'Plant', vendor: 'Verdant Supply',
   images: [{ src: SITE + '/p' + i + '.svg' }], variants: [{ id: 900 + i, sku: 'VS-' + i, price: String(20 + i) + '.00', available: true }],
 }));
+ROUTES['/robots.txt'] = { type: 'text/plain', body: 'User-agent: *\nSitemap: ' + SITE + '/sitemap_products_1.xml' };
+ROUTES['/sitemap_products_1.xml'] = { type: 'application/xml', body: '<urlset>' +
+  PRODUCTS.map((product) => '<url><loc>' + SITE + '/products/' + product.handle + '</loc></url>').join('') + '</urlset>' };
+PRODUCTS.forEach((product) => {
+  ROUTES['/products/' + product.handle] = { type: 'text/html', body: '<!doctype html><script type="application/ld+json">' +
+    JSON.stringify({ '@type': 'Product', name: product.title, sku: product.variants[0].sku,
+      image: product.images[0].src, offers: { '@type': 'Offer', price: product.variants[0].price, priceCurrency: 'INR' } }) + '</script>' };
+});
 const ENV_KEYS = ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'BRAND_RENDER', 'CRON_SECRET', 'SELF_BASE_URL', 'VERCEL_URL'];
 
 function world() {
@@ -91,7 +99,7 @@ function world() {
     if (u.origin === SITE) {
       if (u.pathname === '/products.json') {
         const page = +(u.searchParams.get('page') || 1);
-        const body = JSON.stringify({ products: page === 1 ? PRODUCTS : [] });
+        const body = JSON.stringify({ products: page === 1 ? PRODUCTS.slice(0, 2) : [] });
         return new Response(body, { status: 200, headers: { 'content-type': 'application/json' } });
       }
       const r = ROUTES[u.pathname];
@@ -196,11 +204,9 @@ async function runSetup(page, w, log, { lookup = false } = {}) {
     await page.getByLabel('Brand name').fill('Verdant Supply');
     await page.getByRole('button', { name: 'Find website' }).click();
     const results = page.locator('#brandWebsiteResults');
-    await expect(results.getByRole('button', { name: 'Use website' })).toHaveCount(2);
+    await expect(results.getByRole('button', { name: 'Set up with this website' })).toHaveCount(2);
     await expect(results).not.toContainText('old-verdant.example');
     await expect(page.getByLabel('Website to read')).toHaveValue('');
-    await results.locator('.ws-row').filter({ hasText: 'Plant store in Pune' }).getByRole('button', { name: 'Use website' }).click();
-    await expect(page.getByLabel('Website to read')).toHaveValue(SITE + '/');
     expect(log.ops).not.toContain('extract');
   } else {
     await page.fill('#xUrl', SITE);
@@ -208,7 +214,11 @@ async function runSetup(page, w, log, { lookup = false } = {}) {
   // Opt-in evidence: SETUP_SHOTS=<dir> SETUP_SHOT_W=<width> captures the run mid-way and at the end.
   const shots = process.env.SETUP_SHOTS, sw = Number(process.env.SETUP_SHOT_W || 0);
   if (shots && sw) await page.setViewportSize({ width: sw, height: sw < 600 ? 844 : 1000 });
-  await page.click('#xSetup');
+  if (lookup) {
+    await page.locator('#brandWebsiteResults .ws-row').filter({ hasText: 'Plant store in Pune' }).getByRole('button', { name: 'Set up with this website' }).click();
+  } else {
+    await page.click('#xSetup');
+  }
   if (shots && sw) {
     await page.waitForSelector('[data-setup-log] li[data-setup-step="catalog"][data-state="running"]', { timeout: 60000 }).catch(() => {});
     await page.locator('#setupRun').screenshot({ path: path.join(shots, `setup-running-${sw}.png`) }).catch(() => {});
@@ -245,13 +255,13 @@ function liveAndPlain({ rows, final, say }) {
   }
 }
 
-test('a new owner finds the website by brand name and sets up a correct, saved, active brand', async ({ page }) => {
+for (const lookup of [true, false]) test(`a new owner sets up a correct, saved, active brand by ${lookup ? 'brand name' : 'website URL'}`, async ({ page }) => {
   test.setTimeout(240000);
   if (require(RENDER).resetRateLimits) require(RENDER).resetRateLimits();
   const w = world();
   const log = { dialogs: [], errors: [], ops: [], extract: null };
   try {
-    const run = await runSetup(page, w, log, { lookup: true });
+    const run = await runSetup(page, w, log, { lookup });
     liveAndPlain(run);
     // The rendered read applies; nothing is left for the person on the four read steps or the catalogue.
     expect(run.final.filter((r) => ['brand', 'colour', 'type', 'catalog', 'pack'].includes(r[0])).map((r) => r[0] + ':' + r[1]), run.say)
@@ -272,6 +282,8 @@ test('a new owner finds the website by brand name and sets up a correct, saved, 
     expect((rec.regions || []).filter((r) => r.home).map((r) => r.code), 'the home market the site states').toEqual(['IN']);
     const products = w.db.table('brand_catalog_products').filter((r) => r.workspace_id === rec.id && !r.stale_at);
     expect(products.map((r) => r.title).sort(), 'the catalogue was not imported').toEqual(['Fern', 'Monstera', 'Pothos']);
+    expect(products.find((r) => r.handle === 'pothos')).toMatchObject({ source: 'sitemap_jsonld', price: 22, currency: 'INR', sku: 'VS-2' });
+    expect(products.find((r) => r.handle === 'fern')).toMatchObject({ source: 'shopify_public', variants: [{ sku: 'VS-0', price: 20 }] });
     expect(products.every((r) => String(r.region).toUpperCase() === 'IN'), 'products not filed under the home market').toBe(true);
     const token = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim().toLowerCase());
     expect(token).toBe(String(rec.palette.primary).toLowerCase());

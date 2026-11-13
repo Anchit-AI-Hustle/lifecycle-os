@@ -695,6 +695,13 @@ function declaredCurrency(html) {
 
 /* ── rows ───────────────────────────────────────────────────────────────── */
 
+function storePath(base, path) {
+  const url = new URL(base);
+  url.pathname = url.pathname.replace(/\/+$/, '') + path;
+  url.hash = '';
+  return url;
+}
+
 /** One Shopify /products.json product -> one row, every variant and image kept. */
 function rowFromFeed(p, { region, base, currency, feedUrl }) {
   const title = str(p && p.title, 300);
@@ -723,7 +730,7 @@ function rowFromFeed(p, { region, base, currency, feedUrl }) {
     image_url: images[0] || null,
     image_urls: images,
     variants,
-    product_url: handle ? `${base}/products/${handle}` : null,
+    product_url: handle ? storePath(base, `/products/${encodeURIComponent(handle)}`).href : null,
     in_stock: anyAvail,
     tags: (Array.isArray(p.tags) ? p.tags : String(p.tags || '').split(',')).map((t) => str(t, 60)).filter(Boolean).slice(0, 30),
     source: 'shopify_public',
@@ -1902,7 +1909,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
 
   // ── the feed.
   if (!stopped && st.route === 'feed') {
-    const feedPath = `${st.base}/products.json`;
+    const feedPath = storePath(st.base, '/products.json');
     // Shopify, declared by the store itself: the feed is the route and a
     // rate limit is waited out. Undeclared: the feed is PROBED - one request,
     // no retries - and anything but a page of products moves the read to the
@@ -1910,13 +1917,15 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
     // page 1" behind a 429 on a feed it does not have).
     const declaredShopify = !!(st.storefront && st.storefront.id === 'shopify');
     const pagesRoute = () => (st.sm && st.sm.found ? 'sitemap' : 'crawl');
-    if (!(await allowed(feedPath, ctx))) {
+    if (!(await allowed(feedPath.href, ctx))) {
       st.feed_refused = 'robots';
       st.route = pagesRoute();
     } else {
       while (Date.now() < ctx.deadline - 2000) {
         if (st.page > LIMITS.maxFeedPages) { stats.skipped.cap += 1; st.route = 'done'; st.feed_cap = true; break; }
-        const feedUrl = `${feedPath}?limit=${LIMITS.feedPageSize}&page=${st.page}`;
+        feedPath.searchParams.set('limit', String(LIMITS.feedPageSize));
+        feedPath.searchParams.set('page', String(st.page));
+        const feedUrl = feedPath.href;
         const probing = !declaredShopify && st.page === 1 && !st.feed_confirmed;
         const r = await getPolite(feedUrl, ctx, probing ? { accept: 'application/json', retries: 0 } : { accept: 'application/json' });
         let list = null;
@@ -1942,10 +1951,17 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
           stopped = { reason: 'unreachable', at: `feed page ${st.page} (${r.status || r.reason})` };
           break;
         }
-        if (!list.length) { st.route = 'done'; st.progress = (st.progress || 0) + 1; break; }   // an EMPTY page is the end; a short one is not
+        if (!list.length) {
+          // The feed is exhausted, but the store's product sitemap may
+          // declare more. Keep feed rows and fill the gap from product pages.
+          const declared = st.declared && st.declared.count;
+          st.feed_shortfall = declared > stats.found ? declared - stats.found : 0;
+          st.route = st.feed_shortfall ? pagesRoute() : 'done';
+          st.progress = (st.progress || 0) + 1;
+          break;
+        }
         st.feed_confirmed = true;
         stats.feed_pages += 1;
-        if (st.page === 1) st.pending = [];               // the feed answers: the sitemap list is only the denominator now
         for (const p of list) {
           const row = rowFromFeed(p, { region: reg, base: st.base, currency: st.currency, feedUrl });
           if (!row) { stats.skipped.no_title += 1; continue; }
@@ -2492,7 +2508,10 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
   return {
     rows, run: mc.run, storefront,
     complete, progressed,
-    completed_regions: completedNow.filter((c) => { const m = mc.markets.find((x) => x.code === c); return m && !m.blocked; }),
+    completed_regions: completedNow.filter((c) => {
+      const coverage = mc.markets.find((m) => m.code === c)?.coverage;
+      return coverage && coverage.complete && !coverage.unresolved_feed_shortfall;
+    }),
     // A run with a market given up from one place keeps its cursor, so a step
     // from another place (server region or reader) can read that market.
     cursor: allDone && !mc.markets.some((m) => m.blocked) ? null : mc,
@@ -2508,7 +2527,7 @@ function marketsSummary(mc) {
     code: m.code.toUpperCase(), currency: m.currency || null, store_url: m.store_url, source: m.source,
     also: m.also || [], found: m.coverage ? m.coverage.found : 0,
     declared: m.coverage && m.coverage.declared ? (m.coverage.declared.count || m.coverage.declared.urls || null) : null,
-    complete: !!(m.done && !m.blocked), blocked: !!m.blocked, stopped: m.coverage ? m.coverage.stopped : null,
+    complete: !!(m.done && !m.blocked && !(m.coverage && m.coverage.unresolved_feed_shortfall)), blocked: !!m.blocked, stopped: m.coverage ? m.coverage.stopped : null,
     sent_to: m.coverage && m.coverage.geo && m.coverage.geo.hits ? (m.coverage.geo.country || m.coverage.geo.prefix || 'another') : null,
     read_from: m.coverage && m.coverage.reader && m.coverage.reader.used && !m.coverage.reader.down ? `a server in ${m.coverage.reader.country || 'an unstated country'}` : null,
   }));
@@ -2517,7 +2536,13 @@ function marketsSummary(mc) {
 /** One coverage for the whole import: a line per market, then each market's own sentences. */
 function multiCoverage(mc, { complete, allDone, lastStop }) {
   const ms = marketsSummary(mc);
-  const line = ms.map((m) => `${m.code}: ${m.found.toLocaleString('en-US')}${m.declared ? ` of ${m.declared.toLocaleString('en-US')}` : ''}${m.read_from ? ` (read from ${m.read_from})` : ''}${m.complete ? '' : m.blocked ? (m.sent_to ? ` (sent to the ${m.sent_to} store ${m.read_from ? 'even from there' : 'from here'})` : ' (not readable from here)') : m.found || m.declared ? ' (continuing)' : ' (not read yet)'}`).join(' · ');
+  const line = ms.map((m) => {
+    const progress = `${m.code}: ${m.found.toLocaleString('en-US')}${m.declared ? ` of ${m.declared.toLocaleString('en-US')}` : ''}`;
+    const reader = m.read_from ? ` (read from ${m.read_from})` : '';
+    if (m.complete) return progress + reader;
+    if (m.blocked) return progress + reader + (m.sent_to ? ` (sent to the ${m.sent_to} store ${m.read_from ? 'even from there' : 'from here'})` : ' (not readable from here)');
+    return progress + reader + (allDone ? ' (partial)' : m.found || m.declared ? ' (continuing)' : ' (not read yet)');
+  }).join(' · ');
   const s = [`Every regional store the brand publishes: ${ms.length} market${ms.length === 1 ? '' : 's'}. ${line}.`];
   for (const m of mc.markets) {
     const head = `${m.code.toUpperCase()} store ${m.store_url} (found from ${m.source}${m.currency ? `, prices in ${m.currency}` : ''})${m.also && m.also.length ? `; the same market's other locale ${m.also.join(', ')} was not read twice` : ''}:`;
@@ -2528,6 +2553,7 @@ function multiCoverage(mc, { complete, allDone, lastStop }) {
   const found = ms.reduce((a, m) => a + (m.found || 0), 0);
   const first = mc.markets[0] && mc.markets[0].coverage;
   return {
+    inventory: first ? first.inventory : 'products',
     route: first ? first.route : 'sitemap', region: String(mc.region || '').toUpperCase(),
     // The store the asked market was read from (it leads the list).
     base: (mc.markets[0] && ((first && first.base) || mc.markets[0].store_url)) || mc.start, base_from: (first && first.base_from) || 'every regional store', start: mc.start,
@@ -2536,7 +2562,7 @@ function multiCoverage(mc, { complete, allDone, lastStop }) {
     skipped: sumKeys(mc.markets.map((m) => m.coverage && m.coverage.skipped)),
     missing: sumKeys(mc.markets.map((m) => m.coverage && m.coverage.missing)),
     missing_examples: [].concat(...mc.markets.map((m) => (m.coverage && m.coverage.missing_examples) || [])).slice(0, 10),
-    complete: complete && found > 0, empty: allDone && found === 0, stopped: allDone ? null : (lastStop || { reason: 'time', at: 'between markets' }), resume_available: resumable(mc),
+    complete: complete && ms.every((m) => m.complete) && found > 0, empty: allDone && found === 0, stopped: allDone ? null : (lastStop || { reason: 'time', at: 'between markets' }), resume_available: resumable(mc),
     not_before: (() => { const t = mc.markets.map((m) => m.cursor && m.cursor.not_before).filter(Boolean); return t.length ? new Date(Math.min(...t)).toISOString() : null; })(),
     progressed: true,
     platform: first ? first.platform : null,
@@ -2603,11 +2629,13 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   for (const f of (Array.isArray(st.foreign_stores) ? st.foreign_stores : [])) s.push(foreignStoreSentence(f, st.identity));
   for (const x of readerSentences(st, R)) s.push(x);
   if (st.feed_refused === 'robots') s.push('robots.txt disallows the product feed, so it was not read.');
+  else if (st.feed_shortfall && st.sm && st.sm.found) s.push(`The feed ended ${st.feed_shortfall.toLocaleString('en-US')} short of the product sitemap count. The importer also reads the sitemap's product pages.`);
   else if (st.feed_refused && st.storefront && st.storefront.id === 'shopify') s.push(`The store's product feed was not available (${st.feed_refused}), so its sitemap and product pages were read instead.`);
   else if (st.feed_probe) s.push(`No commerce platform declared itself on the pages read, so Shopify's product feed (/products.json) was tried once; it ${st.feed_refused === 'not_a_feed' ? 'is not a product feed' : st.feed_refused}, so ${st.route === 'crawl' || (st.sm && !st.sm.found) ? 'the site\'s linked pages were' : 'the site\'s own sitemaps and product pages were'} read instead.`);
   if (st.declared && st.declared.complete === false) s.push(`The total above is what the sitemaps read list: this importer reads at most ${LIMITS.maxSitemaps.toLocaleString('en-US')} sitemaps per import and the site declares more.`);
   if (sm && sm.done && sm.notes && sm.notes.length) for (const n of sm.notes.slice(0, 3)) s.push(n);
   const k = stats.skipped;
+  const unresolvedFeedShortfall = !!(st.feed_shortfall && declared > found + (k.not_found || 0));
   if (k.robots) s.push(`${plural(k.robots, 'page')} skipped because robots.txt disallows ${k.robots === 1 ? 'it' : 'them'}${stats.robots_examples.length ? ` (e.g. ${stats.robots_examples.slice(0, 2).join(', ')})` : ''}.`);
   if (k.off_scope) s.push(`${plural(k.off_scope, 'URL')} skipped because ${k.off_scope === 1 ? 'it is' : 'they are'} not on the brand's own hosts.`);
   if (k.no_product_declared) s.push(`${plural(k.no_product_declared, 'page')} in the sitemap declare no product (no JSON-LD Product and no OpenGraph product tags), so nothing was taken from ${k.no_product_declared === 1 ? 'it' : 'them'}.`);
@@ -2681,6 +2709,8 @@ function coverageOf(st, stats, { complete, stopped, region }) {
     if (stats.feed_pages) reached.push(`${plural(stats.feed_pages, 'feed page')} read`);
     if (Array.isArray(st.visited) && st.visited.length) reached.push(`${plural(st.visited.length, 'linked page')} crawled`);
     s.push(`NOT COMPLETE: no product was read. The importer reached the end of what it could see (${reached.join('; ') || 'nothing it could read'}) and none of it declared a product a page carries as served. This is not the store's catalogue; import a CSV or JSON export, or add structured product data to the product pages.`);
+  } else if (complete && unresolvedFeedShortfall) {
+    s.push('Partial coverage: some products listed in the sitemap could not be confirmed. Earlier catalogue items were kept.');
   } else if (complete && declared && found < declared) {
     s.push(`Complete: every URL the source lists was visited; ${plural(declared - found, 'of them', 'of them')} did not yield a product, for the reasons above.`);
   } else if (complete) {
@@ -2701,6 +2731,7 @@ function coverageOf(st, stats, { complete, stopped, region }) {
   }
   return {
     inventory: st.inventory || 'products',
+    unresolved_feed_shortfall: unresolvedFeedShortfall,
     route: st.route === 'done' ? (stats.by_source.feed ? 'feed' : (stats.by_source.sitemap_jsonld || stats.by_source.sitemap_news) ? 'sitemap' : 'crawl') : st.route,
     region: R, base: st.base, base_from: st.base_from, start: st.start || st.base, currency: st.currency || null,
     foreign_stores: Array.isArray(st.foreign_stores) ? st.foreign_stores : [],

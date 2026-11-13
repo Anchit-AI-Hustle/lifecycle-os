@@ -41,7 +41,7 @@ test.afterAll(() => {
 
 const BRAND = { id: 'w-oak-team', name: 'Oak Bakers', industry: 'bakery', website: 'https://oak.example', claims: ['Baked fresh every morning', 'Stone-milled flour'], voice: { tone: 'warm, plain' }, palette: { primary: '#C2410C', accent: '#1F5C99', surface: '#FFFFFF', ink: '#222222' }, regions: [{ code: 'IN', currency: 'INR', home: true }] };
 let n = 0;
-const entry = () => ({ id: `oak-team-${++n}`, date: '2026-11-05', market: 'IN', brand: BRAND, channels: ['email', 'landing_page', 'meta'], cohort: { name: 'Champions' }, objective: 'premium bundle expansion', heroProduct: { title: 'Seeded Rye Loaf' } });
+const entry = () => ({ id: `oak-team-${++n}`, date: '2026-11-05', market: 'IN', brand: BRAND, channels: ['email', 'landing_page', 'meta'], cohort: { name: 'Champions' }, objective: 'premium bundle expansion', heroProduct: { title: 'Seeded Rye Loaf', image: 'https://oak.example/rye.jpg' }, supportingProducts: [{ title: 'Oat Bread', image: 'https://oak.example/oat.jpg' }] });
 
 const COPY = (subject) => ({ email: { subject, subject_alt1: 'a', subject_alt2: 'b', preheader: 'Out of the oven this morning', hook: 'h', hero_headline: 'Rye baked today', intro_paragraph: 'Seeded rye, baked fresh every morning.', body_paragraph: 'Stone-milled flour.', benefits: [], rating: null, reviews: [], badges: [], guarantee: '', ps: 'Baked fresh every morning.', faq: [{ q: 'q', a: 'a' }, { q: 'q2', a: 'a2' }], cta: 'Order now', image_brief: 'a loaf on a board' }, landing: { hero_headline: 'Rye baked today', hero_sub: 'Seeded rye', why_title: 'Why', why_bullets: [], proof_quote: '', proof_author: '', faq: [{ q: 'q', a: 'a' }, { q: 'q2', a: 'a2' }], cta: 'Order now', image_brief: 'b' }, ads: { meta: { primary_text: 'Seeded rye, baked today.', headline: 'Rye baked today', description: 'Order now', image_brief: 'b' }, google: { headlines: ['Seeded rye loaf', 'Baked this morning', 'Oak Bakers rye'], descriptions: ['Seeded rye baked fresh every morning.', 'Order your loaf today.'], image_brief: 'b' }, tiktok: { script: 's', caption: 'Rye today', image_brief: 'b' } } });
 const ok = (j) => ({ text: JSON.stringify(j), provider: 'scripted', model: 'm' });
@@ -58,7 +58,9 @@ function teamScript({ copyVerdict = 'revise', strategy = true } = {}) {
     if (st === 'smart-brain-copy') {
       copies++;
       const rewrite = /GENERIC-SUBJECT-PROBLEM/.test(o.userMessage);
-      return ok(COPY(rewrite ? 'Seeded Rye Loaf, rewritten' : `First draft ${copies}`));
+      const draft = COPY(rewrite ? 'Seeded Rye Loaf, rewritten' : `First draft ${copies}`);
+      draft.ads.meta.headline = copies % 2 === 1 ? 'Seeded rye loaf' : 'Stone-milled flour';
+      return ok(draft);
     }
     throw new Error('the scripted model has no answer for ' + st);
   };
@@ -112,6 +114,13 @@ test('a send is made by the team: a shared context, maker/reviewer pairs, and co
   for (const x of rewrites) expect(x.budgetMs).toBeLessThanOrEqual(100000);
   expect(byStage('team-review-copy').length, 'no second round').toBe(2);
   expect(c.assets.email.subject).toBe('Seeded Rye Loaf, rewritten');
+  const [staticAd, videoAd] = ['static', 'video'].map((type) => c.assets.ads.find((ad) => ad.platform === 'meta' && ad.creative_type === type));
+  expect([staticAd.headline, videoAd.headline].sort()).toEqual(['Seeded rye loaf', 'Stone-milled flour']);
+  expect(staticAd.creative.static_html).toContain('https://oak.example/rye.jpg');
+  expect(staticAd.creative.static_html).not.toContain('https://oak.example/oat.jpg');
+  expect(videoAd.creative.images_used).toEqual(expect.arrayContaining(['https://oak.example/rye.jpg']));
+  expect(videoAd.creative.images_used).not.toContain('https://oak.example/oat.jpg');
+  expect(videoAd.creative.motion_html).toContain(videoAd.headline);
   // Recorded for /brain: who made what, and every verdict.
   expect(c.team.messaging.key_message).toBe('KEY-MESSAGE-RYE-TODAY');
   expect(c.team.strategy.angle).toBe('Fresh rye for the weekend table');

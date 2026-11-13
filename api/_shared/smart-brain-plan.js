@@ -1553,15 +1553,11 @@ function regionalNuance(market) {
   return 'Global/emerging market: lead with premium status, authenticity, and gifting value.';
 }
 
-// The 7-step high-conversion selling architecture every marketing asset must carry.
-const MAILER_COMPONENTS = `Every marketing asset must follow the 7-Step High-Conversion Direct-Response Persuasion Architecture:
-(1) THE PATTERN-INTERRUPT HOOK: First-scroll stop (curiosity loop, bold contrast, or friction callout). The subject line + preheader work together: preheader extends curiosity, never repeats subject.
-(2) PROBLEM AGITATION & FRICTION: Agitate the real dilemma or hidden cost of inaction—why conventional alternatives fail or disappoint.
-(3) WHAT IT IS: Introduce the offering through what the brand's own facts say it is and does, and nothing more.
-(4) WHAT THE READER GETS: up to 3 benefits, each one a fact the brand or its catalogue states, said as what it means for the reader. Fewer than 3 when fewer are stated; never a quality, ingredient, standard or result the facts do not name.
-(5) TRANSPARENT OFFER & PRICING ANCHOR: State the exact catalog price, what is included, and any shipping/bundle terms clearly without ambiguity.
-(6) VERIFIED PROOF & RISK REVERSAL: Authentic social proof (drawn STRICTLY from approved proof library) and explicit risk reversal (satisfaction guarantee, trial, or hassle-free returns if stated).
-(7) SINGLE HIGH-CONTRAST CALL TO ACTION & SKIMMER P.S.: Clear action-oriented CTA button driving to the PDP/destination, followed by a punchy P.S. that restates the core hook, deadline, or risk-reversal for bottom-scrollers.`;
+const MAILER_COMPONENTS = `Choose one concrete reason this audience would care about this offering. Use a real product detail, article insight, service outcome, or verified offer. Use only the sections that advance that reason.
+- Email earns the click. Put a specific detail in the subject or headline. Use the preheader and opening to add information. Leave the P.S. empty if it would repeat the main copy.
+- The landing page answers the question the email or ad raised. Explain what the offering is, give the most relevant verified details, and make the next step clear. Include price, terms, FAQ, and approved proof where they help the reader decide.
+- Paid creative earns attention quickly. Use one clear hook and a concrete detail for each placement. Search copy should answer the query. Video should make sense as a sequence of short on-screen beats. Each asset should be understandable on its own.
+- Use the benchmark to choose structure or an angle to test. All product facts, prices, availability, claims and proof must come from the active brand's sources.`;
 
 // Brand-derived system prompt: the copywriter persona, voice, preferred and
 // banned vocabulary all come from the ACTIVE brand's record - never a fixed
@@ -2031,12 +2027,12 @@ ${complianceBrief(entry)}
 ${MAILER_COMPONENTS}
 
 CONVERSION-DRIVEN DIRECT RESPONSE RULES:
-- Subject & Preheader: Subject line must feature a curiosity gap, pattern-interrupt, or specific outcome. Preheader must extend the curiosity loop, never repeating the subject line.
-- Opening Hook (intro_paragraph): Stop apathy immediately. Agitate the problem, hidden cost of inaction, or why ordinary category alternatives fail.
+- Subject & Preheader: Make the subject worth opening with a specific detail or promise the asset can substantiate. The preheader adds a new fact, reason, or next step.
+- Opening Hook (intro_paragraph): Start with the detail most relevant to this audience. Skip generic greetings, urgency, or problem framing when the brief provides no evidence for it.
 - What it is (body_paragraph): what the offering is and does, in the brand's own facts only.
 - Benefits (benefits): up to 3 bullets, each a fact the brand or its catalogue states (its claims, the product description), said as what it means for the reader. Return fewer, even none, rather than add a quality, ingredient, standard or result the facts do not name.
 - Action CTA (cta): Clear, high-contrast action verb driving to the destination PDP.
-- Skimmer P.S. (ps): A punchy 1-2 sentence post-script restating the core hook or risk reversal for readers who scroll to the bottom.
+- P.S. (ps): Optional. Use it for a verified deadline or a useful detail the body has not already stated.
 - LENGTH (hard editorial limit, the mail is read on a phone in seconds): hero_headline at most ${require('./asset-contracts.js').MAIL_WORDS.headline} words; each paragraph at most ${require('./asset-contracts.js').MAIL_WORDS.paragraph} words; each benefit at most ${require('./asset-contracts.js').MAIL_WORDS.benefit} words; the P.S. at most ${require('./asset-contracts.js').MAIL_WORDS.ps} words. The whole mail body, headline to button, stays under ${require('./asset-contracts.js').MAIL_WORDS.visual} words for the picture-led mailer and ${require('./asset-contracts.js').MAIL_WORDS.text} for the text mailer. Say one idea, then the button.
 ${messagingRule(entry)}- Channel Architecture: Ensure elements across email, landing page, and ads build on each other cohesively, delivering specific, actionable, bulleted tactics rather than generic advice or empty boilerplate.
 
@@ -3674,7 +3670,7 @@ function groundModelCopy(campaign, entry, copyA, copyB) {
 function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runId = null) {
   groundModelCopy(campaign, entry, copyA, copyB);
   const briefFor = (copy, k) => ({ brief: (k && copy.ads?.[k]?.image_brief) || '', image: null, provider: null });
-  // Distinct real gallery pool for this slot (hero product + supporting), HD.
+  // Real gallery for the product this copy names.
   // B-variants draw an ALTERNATE real photo (not the email hero) so the A/B
   // pair is visually distinct while every image stays a real catalog shot.
   const pool = slotImagePool(entry, 1400);
@@ -3714,13 +3710,14 @@ function applyCopy(campaign, entry, copyA, copyB, fwA, fwB, creatives = {}, runI
     lp.path = isB ? `/lp/${campaign.campaign_id}?v=b` : `/lp/${campaign.campaign_id}`;
   });
   for (const ad of campaign.assets.ads || []) {
-    const isB = ad.variant === 'B';
+    const isB = ad.creative_type === 'video' || ad.variant === 'B';
     // BOTH variants take real LLM copy now: A from copyA, B from copyB (the two
     // framework directions). No static template strings repeated across slots.
     const copy = isB ? copyB : copyA;
     if (ad.platform === 'meta' && copy.ads.meta) {
       Object.assign(ad, { primary_text: copy.ads.meta.primary_text || ad.primary_text, headline: copy.ads.meta.headline || ad.headline, description: copy.ads.meta.description || ad.description });
       if (ad.overlay && ad.headline) ad.overlay.headline = ad.headline;
+      if (ad.creative_type === 'video' && copy.ads.meta.headline) ad.hook = ad.headline;
     }
     // The model's lines first, then the template's own lines (the brand's
     // names, tagline, claims and action) up to Google's 15 / 4: a model that
@@ -4078,11 +4075,8 @@ async function uploadCreative(dataUrl, name) {
 // One creative per asset, generated in parallel. Each → {brief, image, provider};
 // the image is a hosted Supabase URL when storage is configured, else an inline
 // data-URL; falls back to brief-only (image:null) if generation fails.
-// Build the DISTINCT real-image pool for a slot: the hero product's own PDP
-// gallery (multiple real shots of the SAME product), then each supporting
-// product's real photos — all hosted Shopify CDN, HD-boosted, de-duplicated,
-// in catalog order. This is the single source every channel draws from so no
-// two sections ever repeat one photo. Never fabricates a URL.
+// The gallery is for assets whose copy names the hero. Supporting products
+// have their own images in collections and carousels.
 function realImagePool(entry, width = 1600) {
   const market = entry.market;
   const urls = [];
@@ -4093,8 +4087,6 @@ function realImagePool(entry, width = 1600) {
   const hp = entry.heroProduct;
   if (hp && !hp.placeholder && /^https:\/\//i.test(String(hp.image || '')) && !/^\[DATA REQUIRED/.test(String(hp.title || ''))) push([String(hp.image)]);
   try { push(catalogImage.imagesFor(entry.heroProduct || entry, market, { width, brand: entry.brand })); } catch (_) {}
-  const supporting = Array.isArray(entry.supportingProducts) ? entry.supportingProducts : [];
-  for (const p of supporting) { try { push(catalogImage.imagesFor(p, market, { width, brand: entry.brand })); } catch (_) {} }
   return urls;
 }
 
@@ -4125,9 +4117,7 @@ async function generateCreatives(copy, entry, { only = null, lean = false, adPla
   // spell, so they fabricate garbled fake labels and invented boxes (the bug the
   // owner flagged). Real ad/email/LP copy lives as native text in the platform
   // fields and HTML layout, not baked into pixels. Each channel is assigned a
-  // DISTINCT real photo (rotated across the hero product's gallery + supporting
-  // products) so the same shot never repeats across the funnel. A channel with
-  // no real photo left ships image-free (image:null) — we never invent one.
+  // real photo from the hero gallery, rotating where alternate shots exist.
   // Keyed per AD, not per platform. buildAdAssets() ships a Static AND a Video
   // for meta, google, youtube and tiktok (eight ads), but this map only ever had
   // five keys: three platforms plus email and landing. So `creatives[ad.platform]`
@@ -4677,7 +4667,7 @@ async function _buildCampaign(entry, config, { id = null, withCreatives = true, 
   // and the model path fell back to an image-free brief whenever generation
   // missed. A static ad with no picture of what it sells does not sell it. Each
   // image-free static takes a DISTINCT real photo from this brand's own
-  // catalogue (hero first, then supporting products); with none, it stays
+  // catalogue for the featured product; with none, it stays
   // image-free and the gap is already on campaign.data_gaps.
   try {
     const statics = (campaign.assets && campaign.assets.ads || [])
