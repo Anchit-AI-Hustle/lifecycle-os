@@ -82,7 +82,7 @@
     "@mediabunny/aac-encoder": "1.65.2",
     "@neondatabase/serverless": "^1.2.0",
     "@sparticuz/chromium": "153.0.0",
-    "@vercel/speed-insights": "^2.0.0",
+    "@vercel/speed-insights": "^2.1.0",
     "google-auth-library": "^11.3.1",
     "googleapis": "^189.0.0",
     "imapflow": "^2.8.0",
