@@ -52,8 +52,8 @@
   // getOrInsertComputed (and other just-shipped built-ins) in the page AND in
   // its worker, so on a browser without them getOperatorList() throws and no
   // embedded logo is ever lifted out. The legacy build carries the polyfills.
-  var PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/pdf.min.mjs';
-  var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/pdf.worker.min.mjs';
+  var PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.min.mjs';
+  var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.5.438/legacy/build/pdf.worker.min.mjs';
   // A file is read in this browser, so the cap is about the tab, not a server.
   var LIMITS = { document: 80 * 1024 * 1024, images: 16, image_min_px: 16 };
 
