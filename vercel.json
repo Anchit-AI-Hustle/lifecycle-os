@@ -909,6 +909,10 @@
     {
       "source": "/api/validate-data",
       "destination": "/api/public-config?action=validate-data"
+    },
+    {
+      "source": "/api/leads",
+      "destination": "/api/public-config?action=leads"
     }
   ],
   "headers": [
