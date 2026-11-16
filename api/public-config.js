@@ -106,6 +106,28 @@ module.exports = async function handler(req, res) {
     catch (_) { return res.status(500).json({ ok: false, error: 'payments_router_failed' }); }
   }
 
+  // ── Leads & Contact Forms (Brand Motion Studios Module 5 & 8) ───────────
+  // Public contact form endpoint with validation and honeypot bot protection.
+  if (req.query && req.query.action === 'leads') {
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'POST required for lead submissions.' });
+    }
+    try {
+      const leads = require('./_shared/leads.js');
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const result = await leads.submitLead(body);
+      return res.status(200).json(result);
+    } catch (err) {
+      return res.status(err.statusCode || 400).json({
+        ok: false,
+        error: 'validation_error',
+        field: err.field || null,
+        message: err.message || 'Could not submit your message. Please check the fields and try again.',
+      });
+    }
+  }
+
   // ── A customer's star rating from a review mail (2026-10-24) ─────────────
   // Public: the brand's feedback page (/review) and its form post. Every rater
   // is offered the brand's public review link whatever they rate (no review

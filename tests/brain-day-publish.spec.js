@@ -230,7 +230,8 @@ test('the page: an aligned grid, the schedule table, the day\'s detail page with
     const start = buf.indexOf(Buffer.from(one.path)) + Buffer.byteLength(one.path);
     expect(require('crypto').createHash('sha256').update(buf.slice(start, start + one.bytes)).digest('hex')).toBe(one.sha256);
     expect(manifest.sends[0].assets).toBe(perSend);
-    expect(names).not.toContain('2026-11-16');
+    expect(last.files.some((f) => f.startsWith('2026-11-16_'))).toBe(false);
+    expect(names).not.toContain('2026-11-16_');
     expect(names).toContain('social_instagram-feed.txt');
     expect(names).toContain('banner_300x250.html');
     await expect(page.locator('#calstate')).toContainText('1 send has no assets yet');

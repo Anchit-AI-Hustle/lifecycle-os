@@ -65,6 +65,7 @@ const SOURCE_ASSERT = /expect\(\s*(?:src|source|js|html|code|body|file|sql|css|t
  * the right direction is down, and a file that drops off entirely is a win.
  */
 const BASELINE = {
+  'brand-motion-website-development.spec.js': 23, // prompts.md, new-section SKILL.md, and storefront-3d file properties
   'catalog-gallery-rows.spec.js': 1, // the shared importer names no brand: a file property
   'brand-asset-content.spec.js': 13,
   'brand-context-pack.spec.js': 13,
