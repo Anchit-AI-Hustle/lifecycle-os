@@ -239,6 +239,25 @@
   .sf-gate{max-width:720px;margin:60px auto;padding:0 20px;font-family:var(--vh-font-body);color:var(--vh-ink)}
   .sf-gate h1{font-family:var(--vh-font-head);color:var(--vh-heading);font-size:24px;margin:0 0 10px}
   .sf-gate p{line-height:1.6}
+
+  /* ── Embed mode (?embed parameter from Brand Motion 3D spec) ── */
+  body.embed-mode .topbar,
+  body.embed-mode .scrollcue,
+  body.embed-mode main.site,
+  body.embed-mode .hero-card,
+  body.embed-mode .checkout,
+  body.embed-mode .cue,
+  body.embed-mode .app-rail,
+  body.embed-mode #appRailHost {
+    display: none !important;
+  }
+  body.embed-mode #stage {
+    height: 100vh;
+  }
+  body.embed-mode #gl {
+    cursor: default;
+    touch-action: auto;
+  }
 </style>
 </head>
 <body>
@@ -645,6 +664,15 @@ async function init(){
 
 let THREE, scene;
 async function start3D(){
+  if(_q.has('embed')) document.body.classList.add('embed-mode');
+  const isTour = _q.has('tour');
+  const presetParam = _q.get('preset');
+  if(presetParam){
+    setTimeout(()=>{
+      const btn = document.querySelector(`.vartoggle button[data-v="${presetParam}"]`);
+      if(btn) btn.click();
+    }, 100);
+  }
   THREE=await import(THREE_CDN);
   const canvas=$('gl');
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
@@ -809,12 +837,19 @@ async function start3D(){
       w.lookAt(camera.position.x, w.position.y, camera.position.z);
       if(w.position.y > 1.9){ w.position.y = -1.55; w.position.x = (Math.random()-0.5)*0.5; }
     }
-    // Scroll parallax: the 3D backdrop rises, dollies in slightly and tilts as
-    // the page scrolls, so depth carries through the whole page (not just hero).
+    // Scroll parallax or automated camera tour (?tour parameter from Brand Motion 3D spec)
     const sp=Math.min((window.scrollY||0)/Math.max(innerHeight,1),5);
-    camera.position.y=0.6+sp*0.7;
-    camera.position.z=9-Math.min(sp*0.8,3);
-    camera.lookAt(0,0.2+sp*0.35,0);
+    if(isTour){
+      const tourTime = (t || performance.now()) * 0.00035;
+      camera.position.x = Math.sin(tourTime) * 8.5;
+      camera.position.z = Math.cos(tourTime) * 8.5;
+      camera.position.y = 0.6 + Math.sin(tourTime * 0.5) * 0.6 + sp * 0.7;
+      camera.lookAt(0, 0.2 + sp * 0.35, 0);
+    } else {
+      camera.position.y=0.6+sp*0.7;
+      camera.position.z=9-Math.min(sp*0.8,3);
+      camera.lookAt(0,0.2+sp*0.35,0);
+    }
     renderer.render(scene,camera);
     requestAnimationFrame(frame);
   }

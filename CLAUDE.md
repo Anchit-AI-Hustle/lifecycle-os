@@ -4,6 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Futuristic Web Design & 3D Web: Brand Motion Studios prompt pack, 10-part anatomy, 5 cinematic moves, new-section skill (2026-11-17)
+The operator: "implement all learnings for website development from these attached files" (*Futuristic Web Design Using AI* & *The 3D Prompt Pack: 15 Prompts for Real-Time 3D Websites*, Brand Motion Studios).
+- **Prompt pack & reusable drawers**: `prompts.md` in root with 6 drawers (Start, Build, Fix, Assets, Finish, Going further) covering the 5-part prompt structure (Context, Task, Details, Reference, Done when), Google Flow asset generation formulas, and 15 real-time 3D master prompts.
+- **Recipe card skill**: `.claude/skills/new-section/SKILL.md` (Appendix D) enforcing the 6-step section builder procedure (Design section read, content intake, component isolation, 390/768/1440px checks, consistent section spacing, 3-line summary).
+- **10-part website anatomy**: Nav -> Hero -> Social proof -> Features/products -> Story/how it works -> Testimonials -> Pricing -> FAQ -> Final CTA -> Footer. Every section has a 1-line purpose, draws only from stated facts (zero fabrication).
+- **5-colour palette & design rules**: Background, Text, Primary, Accent (reserved for buttons & highlights ONLY), Muted. Small uniform corner radii (10-14px). Spacing scale consistent between sections (`clamp(48px, 8vw, 88px)`). Four snapped font roles (14 label, 16 body, 24 heading, 40 display). Mobile first (390px phone perfection, min 44px touch targets, mobile drawer nav).
+- **5 cinematic moves & the golden rule**: Slow video hero, Scroll-linked motion, Pinned section, Parallax depth, Live 3D object. Rule: "A slow video hero plus max 1 or 2 cinematic moves, never all five." Motion is quick, played once, and nothing important waits on it. Full graceful degradation under `prefers-reduced-motion: reduce` and mobile screens (<768px).
+- **Working contact form & lead capture**: Supabase `public.leads` table with RLS (`supabase/migrations/20261117000000_leads_table.sql`). Server handler `api/_shared/leads.js` routed via `api/public-config.js` (`?action=leads`) and rewritten at `/api/leads`. Client-side validation (RFC-compliant email, required fields), honeypot spam bot trap (`_gotcha`), and accessible inline success/error UI (`lp-craft.js`).
+- **Real-time 3D & URL parameters**: `storefront-3d.html` enhanced with standard URL parameters: `?embed` (hides chrome, full-bleed 3D viewport), `?preset=N` (switches light/dark/holo variants), `?tour` (smooth automated camera orbit). 3D canvases lazy loaded via `IntersectionObserver`.
+- Gated by `tests/brand-motion-website-development.spec.js`, `tests/landing-page-craft.spec.js`, `tests/landing-page-structure.spec.js`.
+
 ## ⭐ LinkedIn posts on the brand's company page; which platforms post and sync (2026-11-12)
 The operator: "ensure all platforms like milled, klaviyo, webengage, meta, google, linkedin, tiktok, etc for brands
 posting are integrated and syncable". `api/_shared/adapters/linkedin-adapter.js` (read 2026-11-12 on

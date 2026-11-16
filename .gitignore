@@ -72,6 +72,7 @@ supabase/.temp/
 # Claude Code local config (keep shared project commands tracked)
 .claude/*
 !.claude/commands/
+!.claude/skills/
 .claude/settings.local.json
 
 # Credentials and PATs
