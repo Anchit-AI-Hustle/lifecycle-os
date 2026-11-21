@@ -4,6 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Audit follow-up: heal is a draft, sends are bound to their approval, Stories post (2026-11-21)
+The operator: "complete all issues fixing" (the items the 2026-11-12 audit left open).
+- **Heal** (`smart-brain-plan.republishOrphan`): a send whose approved campaign row is gone is stored as `preview` with
+  `recovered_draft {by:'heal'}`, never as approved; the /lp link resolves, nothing schedules until a person approves it.
+- **What ships is what was approved** (`dispatch-core.campaignRevision` / `revisionOf`): `enqueue` and Paid launch's
+  `sourceAds` refuse (409 `approved_assets_missing` / `approved_revision_changed`) a named campaign that is a recovered
+  draft or whose saved assets differ from `approved_digest`; a campaign approved before digests is not judged.
+- **Repeated copy** (`api/_shared/copy-repeats.js`, root copy byte-identical): the same subject, mail headline or Meta
+  text on two built sends of one market within 7 days is FOUND and said (review strip `[data-rs-repeat]`, ZIP manifest
+  `repeated_copy`); copy is never rewritten.
+- **Contracts** `ad.youtube.video|static`, `ad.pinterest.static|video` (routed by creative type). asset-specs holds no
+  paid-ad numbers for either, so only its organic title / description numbers are used, advisory.
+- **Instagram Story** channel `instagram_story` (Meta's content-publishing page, read 2026-11-21: a `media_type: STORIES`
+  container with `image_url` or `video_url`, then `media_publish`; no caption is sent); `calendar-autopost.ROUTES.instagram_stories`.
+- **Standalone generators** (`generate-finish.decisionOf`): every asset mode of `/api/ai/generate` carries `decision`
+  {state provisional|evidenced, evidence, note}; with no send on the request it is provisional and says so.
+- Gated by `approved-send-integrity` (9), `copy-repeats` (4), `instagram-story` (3).
+- **Still open, with why**: the KB bucket migration `20261112063000` is NOT applied (the database connector refused this
+  session); a stored observation table and results joined to asset revisions both need a new column / table applied
+  there; X and Threads have no adapter (each needs its own OAuth app and documented endpoints; X's API is paid);
+  LinkedIn image posts (the byte upload is not on the current docs page); a brand's sent mailers have no source to read.
+
 ## ⭐ Futuristic Web Design & 3D Web: Brand Motion Studios prompt pack, 10-part anatomy, 5 cinematic moves, new-section skill (2026-11-17)
 The operator: "implement all learnings for website development from these attached files" (*Futuristic Web Design Using AI* & *The 3D Prompt Pack: 15 Prompts for Real-Time 3D Websites*, Brand Motion Studios).
 - **Prompt pack & reusable drawers**: `prompts.md` in root with 6 drawers (Start, Build, Fix, Assets, Finish, Going further) covering the 5-part prompt structure (Context, Task, Details, Reference, Done when), Google Flow asset generation formulas, and 15 real-time 3D master prompts.

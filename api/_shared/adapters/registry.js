@@ -81,7 +81,7 @@ const CAPABILITIES = {
   send: 'Send messages and sync profiles',
 };
 const CHANNEL_CAPABILITY = {
-  instagram_feed: 'post', instagram_reel: 'post', facebook_page: 'post', facebook_page_feed: 'post',
+  instagram_feed: 'post', instagram_reel: 'post', instagram_story: 'post', facebook_page: 'post', facebook_page_feed: 'post',
   instagram_comment_reply: 'comments', facebook_comment_reply: 'comments',
   instagram_comment_moderation: 'comments', facebook_comment_moderation: 'comments',
   meta_ad: 'ads', meta_live_approval: 'ads',

@@ -211,6 +211,31 @@ function groundingOf(ctx) {
 }
 function gapsOf(ctx) { return [...new Set(ctx.report.data_gaps)]; }
 
+/**
+ * What this output rests on (2026-11-21). Smart Brain records, per send, the
+ * evidence behind it and whether the decision is evidenced or provisional
+ * (asset-decisions.js). A standalone generation reads no send history, no ad
+ * history and no competitor set unless the request carries an entry that has
+ * them, so it says so: `provisional`, with what was not read. It never claims
+ * a basis it did not have.
+ */
+function decisionOf(ctx) {
+  let ev = { items: [], gaps: [], measured: false };
+  try { ev = require('./asset-decisions.js').evidenceOf({}, (ctx && ctx.entry) || {}); } catch (_) { /* no evidence module: provisional */ }
+  const state = ev.measured ? 'evidenced' : 'provisional';
+  return {
+    state,
+    evidence: ev.items,
+    // The evidence reader's own gaps are about a planned send; with no send on
+    // the request there is nothing to name beyond the note below.
+    gaps: ctx && ctx.entry ? ev.gaps : [],
+    note: state === 'evidenced'
+      ? 'Written with this brand\'s own measured results in the brief.'
+      : 'Written from the brand\'s record and the request only: no send history, ad history or competitor evidence was read for this output, so treat its angle as a hypothesis to test.',
+  };
+}
+
 module.exports = {
+  decisionOf,
   context, finishLine, finishDeep, finishHtml, scrubProse, dropPlaceholders, judge, summary, groundingOf, gapsOf, websiteOf,
 };
