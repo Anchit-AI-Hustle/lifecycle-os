@@ -575,9 +575,20 @@ function dbQueue(env, { workspace, run, market }) {
     },
     /** Hand every row of this queue to another market name (the "other" list becoming the product list). */
     async rename(toMarket) { await call(base, { method: 'PATCH', body: { market: toMarket }, prefer: 'return=minimal' }); },
-    /** A finished run's rows are removed; so are an older run's for this market. */
-    async clear(onlyOthers) {
-      const q = `brand_catalog_import_queue?workspace_id=eq.${encodeURIComponent(workspace)}&market=eq.${encodeURIComponent(market)}` + (onlyOthers ? `&run_id=neq.${encodeURIComponent(run)}` : `&run_id=eq.${encodeURIComponent(run)}`);
+    /**
+     * A finished run's rows are removed (false). A run that starts removes
+     * EVERY older run's rows for the workspace, in every market and every
+     * `<market>~other` list ('workspace'). Clearing only this market's name
+     * left each abandoned run's `~other` list behind: on 2026-11-21 sixteen
+     * such runs held 1.5M rows (1.3 GB), put the free-plan database over its
+     * 500 MB quota, Supabase made it read-only, and Google sign-in failed
+     * ("Error creating flow state"). One import runs per workspace at a time
+     * (the chain token), so no other live run is touched.
+     */
+    async clear(mode) {
+      const ws = `brand_catalog_import_queue?workspace_id=eq.${encodeURIComponent(workspace)}`;
+      const q = mode === 'workspace' ? `${ws}&run_id=neq.${encodeURIComponent(run)}`
+        : `${ws}&market=eq.${encodeURIComponent(market)}` + (mode ? `&run_id=neq.${encodeURIComponent(run)}` : `&run_id=eq.${encodeURIComponent(run)}`);
       await call(q, { method: 'DELETE', prefer: 'return=minimal' });
     },
   };
@@ -1859,7 +1870,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       if (storefront && RANKING[storefront.id]) {
         try { st.ranking = await readStoreRanking(storefront.id, rb.base, ctx); } catch (_) { st.ranking = null; }
       }
-      if (ctx.queue) { try { await ctx.queue.clear(true); } catch (_) { /* an older run's rows: best effort */ } }
+      if (ctx.queue) { try { await ctx.queue.clear('workspace'); } catch (_) { /* older runs' rows: best effort */ } }
       if (baseHtml) {
         const baseGot = rowFromPage(baseHtml, rb.base, { region: reg, source: 'sitemap_jsonld' });
         if (baseGot.rows && baseGot.rows.length) {

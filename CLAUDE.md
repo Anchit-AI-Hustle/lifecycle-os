@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ An abandoned import must not take sign-in down (2026-11-21)
+Production Google sign-in answered Supabase's `500 "Error creating flow state"`: the free-plan database was 1,582 MB
+(quota 500 MB) and Supabase had made it READ-ONLY, so GoTrue could not write a sign-in. 1,313 MB was
+`brand_catalog_import_queue`: 1.5M rows from 16 abandoned import runs (Nykaa, The Times of India). A starting run
+cleared only older runs of ITS OWN market name, never their `<market>~other` lists. The operator approved emptying the
+queue (268 MB after). Now `dbQueue.clear('workspace')` removes every older run's rows for the workspace, every market
+and every `~other` list, when a run starts (one import per workspace at a time, the chain token). Gated in
+`tests/catalog-import-always-complete.spec.js` ("a new import removes EVERY older run's queue rows", mutation-checked;
+another workspace's rows untouched). Still true: one run with no cap can itself pass 500 MB on a free plan.
+
 ## ⭐ Audit follow-up: heal is a draft, sends are bound to their approval, Stories post (2026-11-21)
 The operator: "complete all issues fixing" (the items the 2026-11-12 audit left open).
 - **Heal** (`smart-brain-plan.republishOrphan`): a send whose approved campaign row is gone is stored as `preview` with
