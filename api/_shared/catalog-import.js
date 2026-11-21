@@ -538,7 +538,7 @@ async function paced(ctx, st) {
  * the sitemaps list them, retried with a time, finished or failed. Service
  * role only, and the workspace named on EVERY query.
  */
-function dbQueue(env, { workspace, run, market }) {
+function dbQueue(env, { workspace, run, market, since }) {
   const base = `brand_catalog_import_queue?workspace_id=eq.${encodeURIComponent(workspace)}&run_id=eq.${encodeURIComponent(run)}&market=eq.${encodeURIComponent(market)}`;
   let seq = null;
   const call = (path, o) => serviceCall(env, path, o || {});
@@ -575,9 +575,26 @@ function dbQueue(env, { workspace, run, market }) {
     },
     /** Hand every row of this queue to another market name (the "other" list becoming the product list). */
     async rename(toMarket) { await call(base, { method: 'PATCH', body: { market: toMarket }, prefer: 'return=minimal' }); },
-    /** A finished run's rows are removed; so are an older run's for this market. */
-    async clear(onlyOthers) {
-      const q = `brand_catalog_import_queue?workspace_id=eq.${encodeURIComponent(workspace)}&market=eq.${encodeURIComponent(market)}` + (onlyOthers ? `&run_id=neq.${encodeURIComponent(run)}` : `&run_id=eq.${encodeURIComponent(run)}`);
+    /**
+     * A finished run's rows are removed (false). A run that starts removes
+     * EVERY older run's rows for the workspace, in every market and every
+     * `<market>~other` list ('workspace'). Clearing only this market's name
+     * left each abandoned run's `~other` list behind: on 2026-11-21 sixteen
+     * such runs held 1.5M rows (1.3 GB), put the free-plan database over its
+     * 500 MB quota, Supabase made it read-only, and Google sign-in failed
+     * ("Error creating flow state"). One import runs per workspace at a time
+     * (the chain token), but a fresh import does not wait on the chain, so
+     * the workspace-wide delete is FENCED by this run's start time: only
+     * rows another run wrote BEFORE this run began go. A newer run's rows
+     * are written after it, so an older invocation still running can never
+     * empty a newer run's queue. A run with no recorded start (a cursor from
+     * before the stamp) keeps the per-market rule.
+     */
+    async clear(mode) {
+      const ws = `brand_catalog_import_queue?workspace_id=eq.${encodeURIComponent(workspace)}`;
+      if (mode === 'workspace' && !since) mode = true;
+      const q = mode === 'workspace' ? `${ws}&run_id=neq.${encodeURIComponent(run)}&created_at=lt.${encodeURIComponent(since)}`
+        : `${ws}&market=eq.${encodeURIComponent(market)}` + (mode ? `&run_id=neq.${encodeURIComponent(run)}` : `&run_id=eq.${encodeURIComponent(run)}`);
       await call(q, { method: 'DELETE', prefer: 'return=minimal' });
     },
   };
@@ -1729,7 +1746,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
   if (rdr) ctx.reader = Object.assign({}, rdr, { used: 0, down: '', country: null });
   // The queue table, when this import has a workspace and the service role.
   const qEnv = queue && queue.workspace ? serviceEnv() : null;
-  ctx.queue = qEnv ? dbQueue(qEnv, { workspace: queue.workspace, run, market: reg }) : null;
+  ctx.queue = qEnv ? dbQueue(qEnv, { workspace: queue.workspace, run, market: reg, since: queue.since || null }) : null;
   // URLs from sitemaps that do not say which are products, held apart until
   // the walk knows whether the site has product sitemaps at all.
   ctx.otherQueue = qEnv ? dbQueue(qEnv, { workspace: queue.workspace, run, market: `${reg}~other` }) : null;
@@ -1859,7 +1876,7 @@ async function step({ url, region, brand, cursor, guard, budgetMs, now, run: run
       if (storefront && RANKING[storefront.id]) {
         try { st.ranking = await readStoreRanking(storefront.id, rb.base, ctx); } catch (_) { st.ranking = null; }
       }
-      if (ctx.queue) { try { await ctx.queue.clear(true); } catch (_) { /* an older run's rows: best effort */ } }
+      if (ctx.queue) { try { await ctx.queue.clear('workspace'); } catch (_) { /* older runs' rows: best effort */ } }
       if (baseHtml) {
         const baseGot = rowFromPage(baseHtml, rb.base, { region: reg, source: 'sitemap_jsonld' });
         if (baseGot.rows && baseGot.rows.length) {
@@ -2450,7 +2467,7 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
   if (!mc || !mc.discovered) {
     const d = await discoverMarkets({ url, region: reg, brand, guard, deadline: Math.min(deadline, Date.now() + 20000) });
     progressed = true;
-    if (!mc) mc = { v: LIMITS.cursorVersion, multi: true, run: crypto.randomUUID(), region: reg, start: url.replace(/\/$/, ''), markets: [], discovered: true, notes: [] };
+    if (!mc) mc = { v: LIMITS.cursorVersion, multi: true, run: crypto.randomUUID(), run_at: new Date().toISOString(), region: reg, start: url.replace(/\/$/, ''), markets: [], discovered: true, notes: [] };
     mc.discovered = true;
     mc.notes = d.notes;
     for (const m of d.markets) if (!mc.markets.some((x) => x.code === m.code)) mc.markets.push(Object.assign({ cursor: null, done: false }, m));
@@ -2487,7 +2504,7 @@ async function stepAll({ url, region, brand, cursor, guard, budgetMs, now, queue
       const scopeBrand = Object.assign({}, brand || {});
       if (!scopeBrand.website) scopeBrand.website = url;
       if (m.host && hostOf(`https://${m.host}`) !== hostOf(scopeBrand.website)) scopeBrand.asset_hosts = [].concat(scopeBrand.asset_hosts || [], [m.host]);
-      const out = await step({ url: m.store_url, region: m.code, brand: scopeBrand, cursor: m.cursor, guard, budgetMs: Math.max(1000, deadline - Date.now()), run: mc.run, siblings: siblingsOf(mc.markets, m), queue });
+      const out = await step({ url: m.store_url, region: m.code, brand: scopeBrand, cursor: m.cursor, guard, budgetMs: Math.max(1000, deadline - Date.now()), run: mc.run, siblings: siblingsOf(mc.markets, m), queue: queue && Object.assign({}, queue, { since: mc.run_at || null }) });
       for (const r of out.rows) rows.push(r);
       if (out.progressed) progressed = true;
       if (!storefront && out.storefront) storefront = out.storefront;

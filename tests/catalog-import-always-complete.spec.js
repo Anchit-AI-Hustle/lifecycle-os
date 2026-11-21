@@ -878,6 +878,26 @@ test('STORE CHOICE THE SITE OFFERS: the page a geo-redirect lands on names this 
   } finally { d.restore(); }
 });
 
+test('a new import removes EVERY older run\'s queue rows for the workspace, the ~other lists too, and never another workspace\'s (2026-11-21: 16 abandoned runs, 1.5M rows, a read-only database, Google sign-in down)', async () => {
+  test.setTimeout(120_000);
+  const w = world({ website: 'https://lensshop.example', regions: [{ code: 'IN', home: true }] });
+  const OTHER_WS = '99999999-9999-4999-8999-999999999999';
+  for (const [ws, run, market] of [[WS, 'old-1', 'in'], [WS, 'old-1', 'in~other'], [WS, 'old-2', 'in~other'], [WS, 'old-3', 'us'], [OTHER_WS, 'theirs', 'in~other']]) {
+    for (let i = 0; i < 3; i++) w.db.insert('brand_catalog_import_queue', { workspace_id: ws, run_id: run, market, url: `https://stale.example/${run}/${market}/${i}`, seq: i + 1, state: 'pending', tries: 0 });
+  }
+  // A NEWER run of the same workspace (Codex #468): its rows are written after
+  // this run started, so an older invocation still running must not empty it.
+  const newer = new Date(Date.now() + 3600e3).toISOString();
+  for (let i = 0; i < 3; i++) w.db.insert('brand_catalog_import_queue', { workspace_id: WS, run_id: 'newer', market: 'us~other', url: `https://stale.example/newer/${i}`, seq: i + 1, state: 'pending', tries: 0, created_at: newer });
+  try {
+    await core.importCatalog(w.owner, { workspace_id: WS, region: 'in', kind: 'storefront', url: 'https://lensshop.example', budgetMs: 2500 });
+    const left = w.db.table('brand_catalog_import_queue');
+    expect(left.filter((x) => x.workspace_id === WS && /^old-/.test(x.run_id))).toHaveLength(0);
+    expect(left.filter((x) => x.workspace_id === WS && x.run_id === 'newer')).toHaveLength(3);
+    expect(left.filter((x) => x.workspace_id === OTHER_WS)).toHaveLength(3);
+  } finally { w.restore(); }
+});
+
 test('NO CAP for an account brand: the product URL queue is a table (service role, workspace on every query), the cursor stays a small pointer, every URL is read, and a finished run leaves no rows', async () => {
   test.setTimeout(180_000);
   const w = world({ website: 'https://lensshop.example', regions: [{ code: 'IN', home: true }] });
