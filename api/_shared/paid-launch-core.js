@@ -410,6 +410,10 @@ async function sourceAds(workspaceId, body, brandName, provider) {
     const rows = await svc(`smart_generated_campaigns?select=id,payload&id=eq.${enc(id)}&workspace_id=eq.${enc(workspaceId)}&limit=1`);
     const p = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
     if (!p) throw err(404, 'campaign_not_found', 'That campaign is not one of this brand\'s.');
+    // What launches is what was approved (2026-11-21): a draft restored after its
+    // approved assets were lost, or assets that differ from the approval digest, stop here.
+    const rev = require('./dispatch-core.js').revisionOf(p, id);
+    if (rev.recorded && !rev.ok) throw err(409, rev.code, rev.message.replace('nothing was sent', 'no launch was planned'));
     const ads = ((p.assets && p.assets.ads) || []).filter((a) => a && a.platform === want);
     const lp = (p.assets && p.assets.landing_pages && p.assets.landing_pages[0]) || null;
     const link = String(body.link || p.landing_url || (lp && (lp.url || lp.public_url)) || '');

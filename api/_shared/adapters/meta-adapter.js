@@ -210,6 +210,17 @@ class MetaAdapter extends AdPlatformAdapter {
         constraints: { caption_max: 2200, media: 'video_required', ratio: '9:16', duration_max_s: 90 },
       },
       {
+        // A Story (2026-11-21). Read that day on
+        // developers.facebook.com/docs/instagram-platform/content-publishing:
+        // "create a container for the media object and include the media_type
+        // parameter set to STORIES", then publish the container. The page
+        // states no caption for a Story, so none is sent.
+        id: 'instagram_story',
+        label: 'Instagram Story',
+        asset_kinds: ['social_post', 'image', 'video'],
+        constraints: { media: 'required', ratio: '9:16', caption: 'not sent' },
+      },
+      {
         id: 'facebook_page',
         label: 'Facebook Page post',
         asset_kinds: ['social_post', 'image'],
@@ -303,6 +314,7 @@ class MetaAdapter extends AdPlatformAdapter {
     switch (channelId) {
       case 'instagram_feed':
       case 'instagram_reel': return ['instagram_basic', 'instagram_content_publish'];
+      case 'instagram_story': return ['instagram_basic', 'instagram_content_publish'];
       case 'facebook_page': return ['pages_manage_posts'];
       case 'facebook_page_feed': return ['pages_manage_posts', 'pages_read_engagement'];
       case 'instagram_comment_reply':
@@ -416,8 +428,9 @@ class MetaAdapter extends AdPlatformAdapter {
     const video = String(pick('video_url', a.video_url || (a.media && a.media.video_url) || '') || '');
     const link = String(pick('link', a.link || a.url || '') || '');
 
-    if (!caption) missing.push(this.gap('caption', 'Meta post'));
-    if (!image && !video) missing.push(this.gap('image or video', 'Meta post'));
+    const isStory = String(m.channel || '') === 'instagram_story';
+    if (!caption && !isStory) missing.push(this.gap('caption', 'Meta post'));
+    if (!image && !video) missing.push(this.gap('image or video', isStory ? 'Instagram Story' : 'Meta post'));
 
     const tags = Array.isArray(a.hashtags) ? a.hashtags : [];
     if (tags.length > 30) warnings.push('Instagram counts more than 30 hashtags as spam; the extras are dropped.');
@@ -530,7 +543,8 @@ class MetaAdapter extends AdPlatformAdapter {
     const ch = MetaAdapter.channel(channelId);
     if (!ch) errors.push(`Unknown Meta channel "${channelId}".`);
 
-    if (!p.caption) errors.push('A caption is required.');
+    if (!p.caption && channelId !== 'instagram_story') errors.push('A caption is required.');
+    if (channelId === 'instagram_story' && !p.image_url && !p.video_url) errors.push('An image or a video URL is required for a Story.');
     if (channelId === 'instagram_feed' && !p.image_url) errors.push('An image URL is required for an Instagram feed post.');
     if (channelId === 'instagram_reel' && !p.video_url) errors.push('A video URL is required for a Reel.');
     if (channelId && channelId.startsWith('instagram') && !p.ig_user_id) errors.push('The Instagram business account id is not set on this connection.');
@@ -556,7 +570,8 @@ class MetaAdapter extends AdPlatformAdapter {
 
     switch (channelId) {
       case 'instagram_feed':
-      case 'instagram_reel': return this.publishInstagram(channelId, payload);
+      case 'instagram_reel':
+      case 'instagram_story': return this.publishInstagram(channelId, payload);
       case 'facebook_page': return this.publishPage(payload);
       case 'meta_ad': return this.createAd(payload);
       case 'facebook_page_feed': return this.publishPageFeed(payload);
@@ -974,9 +989,13 @@ class MetaAdapter extends AdPlatformAdapter {
    */
   async publishInstagram(channelId, p) {
     const isReel = channelId === 'instagram_reel';
-    const body = isReel
-      ? { media_type: 'REELS', video_url: p.video_url, caption: p.caption }
-      : { image_url: p.image_url, caption: p.caption };
+    const isStory = channelId === 'instagram_story';
+    const body = isStory
+      // A Story carries its picture or its video and no caption.
+      ? (p.video_url ? { media_type: 'STORIES', video_url: p.video_url } : { media_type: 'STORIES', image_url: p.image_url })
+      : isReel
+        ? { media_type: 'REELS', video_url: p.video_url, caption: p.caption }
+        : { image_url: p.image_url, caption: p.caption };
 
     const created = p.container_id
       ? { ok: true, raw: { id: p.container_id }, sent: false }

@@ -384,6 +384,7 @@ window.LifecycleFailure = window.LifecycleFailure || (function () {
 #reviewstrip .rs-say[data-kind="ok"]{color:var(--vh-ok-text)}
 </style>
 <script src="/music-client.js" defer></script>
+<script src="/copy-repeats.js" defer></script>
 <script src="/auth.js?v=20260718light" defer></script>
 </head>
 <body>
@@ -2676,7 +2677,7 @@ window.sbZipAll = async function(){
   const listed = files.slice();
   const meta = new Map();
   for(const f of listed) meta.set(f, { path:f.name, kind:f.kind, bytes: enc.encode(f.data).length, sha256: await digest(f.data) });
-  put('manifest.json', JSON.stringify({ manifest:'smart-brain.zip.v1', generated_at:new Date().toISOString(), sends: sends.map(s => ({ slot_id:s.slot_id, date:s.date, market:s.market, cohort:s.cohort, status:s.status, campaign_id:s.campaign_id, build_version:s.build_version, assets_digest:s.manifest_digest, revision: s.recovered_draft ? 'new draft, not approved' : (/^(approved|final)$/.test(String(s.status||'')) ? 'approved' : 'draft'), added_after_approval:s.added_after_approval, folder:s.folder, assets: s.files.filter(f=>f.kind!=='file' && f.kind!=='creative' && !/\.json$/.test(f.name)).length, files: s.files.map(f => meta.get(f)) })), files: listed.length, top_level: listed.filter(f=>!f.slot).map(f => meta.get(f)) }, null, 2));
+  put('manifest.json', JSON.stringify({ manifest:'smart-brain.zip.v1', generated_at:new Date().toISOString(), sends: sends.map(s => ({ slot_id:s.slot_id, date:s.date, market:s.market, cohort:s.cohort, status:s.status, campaign_id:s.campaign_id, build_version:s.build_version, assets_digest:s.manifest_digest, revision: s.recovered_draft ? 'new draft, not approved' : (/^(approved|final)$/.test(String(s.status||'')) ? 'approved' : 'draft'), added_after_approval:s.added_after_approval, folder:s.folder, assets: s.files.filter(f=>f.kind!=='file' && f.kind!=='creative' && !/\.json$/.test(f.name)).length, files: s.files.map(f => meta.get(f)) })), repeated_copy: sbRepeats(gen).repeats, files: listed.length, top_level: listed.filter(f=>!f.slot).map(f => meta.get(f)) }, null, 2));
   window.__SB_LAST_ZIP = { files: files.map(f => f.name), sends: sends.length };
   const blob = zipStore(files);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -3421,14 +3422,22 @@ function rsThumbs(data){
   (A.landing_pages || (data.landing_html ? [{ html: data.landing_html }] : [])).forEach((lp, n) => { if (lp && lp.html) frame('landing', 'Landing page' + (n ? ' ' + (n + 1) : ''), lp.html); });
   return out;
 }
+// The same subject, headline or ad text on two built sends of one market within
+// a week (copy-repeats.js). Found among the sends already read; nothing is rewritten.
+function sbRepeats(entries){
+  if(!window.CopyRepeats) return { repeats: [], by_send: {}, compared: 0 };
+  const sends = entries.filter(e => e && PREVIEW_CACHE[e.id] && PREVIEW_CACHE[e.id].campaign).map(e => Object.assign({ id: e.id, date: e.date, market: e.market }, CopyRepeats.linesOf(PREVIEW_CACHE[e.id].campaign)));
+  return CopyRepeats.find(sends, { days: 7 });
+}
 function rsRender(){
   const box = $('rsItems'); if(!box) return;
+  const rep = sbRepeats(RS_SLOTS.map(it => PLAN[it.i]));
   box.innerHTML = RS_SLOTS.map((it) => {
     const e = PLAN[it.i] || {};
     const pill = rsLocked(e) ? '<span class="st approved">✓ approved</span>' : e.status === 'rejected' ? '<span class="st rejected">✗ rejected</span>' : '<span class="st tentative">draft</span>';
     const ctl = (rsLocked(e) || e.status === 'rejected' || it.failedLoad) ? '' : `<span style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn sm ok" data-rs-approve="${it.i}" onclick="rsApprove(${it.i})">✓ Approve</button><button type="button" class="btn sm secondary" data-rs-reject="${it.i}" onclick="rsReject(${it.i})">✗ Reject</button></span>`;
     const thumbs = it.thumbs && it.thumbs.length ? `<div class="rs-thumbs">${it.thumbs.join('')}</div>` : (it.loaded && !it.failedLoad ? '<p class="tdim rs-say">No built asset to show for this send.</p>' : '');
-    const say = it.say ? `<p class="rs-say" data-rs-say data-kind="${esc(it.kind||'')}">${esc(it.say)}</p>` : '';
+    const say = (it.say ? `<p class="rs-say" data-rs-say data-kind="${esc(it.kind||'')}">${esc(it.say)}</p>` : '') + ((rep.by_send[e.id] || []).map(t => `<p class="rs-say" data-rs-repeat>${esc(t)}</p>`).join(''));
     return `<div class="rs-slot" data-rs-slot="${esc(e.id||'')}"><div class="rs-slot-head"><span><b>${esc(e.date||'')}</b> · ${esc(e.market||'')} · ${esc((e.cohort && e.cohort.name) || '')} ${pill}</span>${ctl}</div>${thumbs}${say}</div>`;
   }).join('');
   const open = RS_SLOTS.filter((it) => { const e = PLAN[it.i] || {}; return !rsLocked(e) && e.status !== 'rejected' && it.loaded && !it.failedLoad; }).length;

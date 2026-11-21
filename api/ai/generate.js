@@ -1124,7 +1124,7 @@ Target market for this autofill: ${targetMarket}.`;
             creative_spec, master_prompt, portable_prompt,
             brand_check: brandCheck(cleanedFields),
             contract_check: checks.contract_check, compliance_check: checks.compliance_check,
-            copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
+            copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin), decision: FIN.decisionOf(fin),
             _heuristic: true,
             _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
           });
@@ -1135,7 +1135,7 @@ Target market for this autofill: ${targetMarket}.`;
           text: JSON.stringify(cleanedFields),
           portable_prompt,
           brand_check: brandCheck(cleanedFields),
-          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
+          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin), decision: FIN.decisionOf(fin),
           _heuristic: true,
           _llm_error: String((result && result.detail) || 'All providers failed').substring(0, 200)
         });
@@ -1247,14 +1247,14 @@ Target market for this autofill: ${targetMarket}.`;
           ok: true, mode, provider: result.provider, model: result.model, data: finished, portable_prompt, output_check, brand_check: brandCheck(data),
           ...(quality ? { quality } : {}),
           contract_check: variant_checks.variant_a ? variant_checks.variant_a.contract_check : null, variant_checks,
-          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin),
+          copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin), decision: FIN.decisionOf(fin),
         });
       }
 
       // Concepts and suggested briefs are directions for the operator, not a
       // finished asset: scrubbed for the brand (banned words, dashes, units)
       // and never placeholder-stripped, since a brief may name a gap to fill.
-      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(parsed), finish: FIN.summary(fin) });
+      return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, data: deepScrubDashes(parsed, body && body.__brand), portable_prompt, output_check, brand_check: brandCheck(parsed), finish: FIN.summary(fin), decision: FIN.decisionOf(fin) });
     }
 
     // ── Autofill on an ad surface: also return the portable master_prompt and a
@@ -1285,7 +1285,7 @@ Target market for this autofill: ${targetMarket}.`;
             : { platform: 'tiktok', creative_type: 'static', caption: fields.caption || '', headline: fields.overlay_headline || '', creative_brief: creative_spec.map((c) => `${c.format} ${c.size}: ${[overlay.headline, overlay.sub].filter(Boolean).join(' / ')}`).join('; ') };
         const checks = FIN.judge(adAsset, fin);
         return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: JSON.stringify(fields), creative_spec, master_prompt, portable_prompt, brand_check: brandCheck(fields),
-          contract_check: checks.contract_check, compliance_check: checks.compliance_check, copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin) });
+          contract_check: checks.contract_check, compliance_check: checks.compliance_check, copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), finish: FIN.summary(fin), decision: FIN.decisionOf(fin) });
       }
     }
 
@@ -1299,21 +1299,21 @@ Target market for this autofill: ${targetMarket}.`;
     if (outputSpec.format === 'json') {
       // An lp-* autofill: the page's fields, finished like an asset's copy.
       textOut = readBack ? JSON.stringify(FIN.finishDeep(deepScrubDashes(readBack, body && body.__brand), fin)) : brandScrub(OC.stripFences(text));
-      Object.assign(extra, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin) });
+      Object.assign(extra, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), decision: FIN.decisionOf(fin) });
     } else if (mode === 'landing_page') {
       // A finished page: no base64 image, no unfilled tag, no link to "#",
       // every text run held to the brand's facts; judged, never rewritten.
       textOut = FIN.finishHtml(brandScrub(readBack || ''), fin);
       const h1 = (textOut.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || '';
       const checks = FIN.judge({ contract: 'landing.page', html: textOut, hero_headline: h1.replace(/<[^>]+>/g, ' ').trim() }, fin);
-      Object.assign(extra, checks, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin) });
+      Object.assign(extra, checks, { copy_grounding: FIN.groundingOf(fin), data_gaps: FIN.gapsOf(fin), decision: FIN.decisionOf(fin) });
     } else {
       // A brief, a reply, a segment: the brand's words, dashes and units, line
       // breaks kept. A brief may name a gap for the operator to fill, so its
       // markers stay.
       textOut = FIN.scrubProse(brandScrub(readBack || ''), _pb);
     }
-    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: textOut, portable_prompt, output_check: OC.validate(readBack, outputSpec), brand_check: brandCheck(textOut), ...extra, finish: FIN.summary(fin) });
+    return res.status(200).json({ ok: true, mode, provider: result.provider, model: result.model, text: textOut, portable_prompt, output_check: OC.validate(readBack, outputSpec), brand_check: brandCheck(textOut), ...extra, finish: FIN.summary(fin), decision: FIN.decisionOf(fin) });
 
   } catch (e) {
     return res.status(500).json({ error: 'server_error', provider: 'cascade', detail: String(e && e.message || e).substring(0, 300) });
@@ -1364,7 +1364,7 @@ function finishMessaging(mode, parsed, result, body, brand, market, products, po
   return {
     ok: !!msg, mode, provider: result && result.provider, model: result && result.model, data: msg, text: plain,
     contract_check: msg ? msg.contract_check : null, compliance_check: msg ? msg.compliance_check : null,
-    copy_grounding: FIN.groundingOf(fin), data_gaps: [...new Set(built.data_gaps.concat(FIN.gapsOf(fin)))], finish: FIN.summary(fin),
+    copy_grounding: FIN.groundingOf(fin), data_gaps: [...new Set(built.data_gaps.concat(FIN.gapsOf(fin)))], finish: FIN.summary(fin), decision: FIN.decisionOf(fin),
     portable_prompt,
   };
 }

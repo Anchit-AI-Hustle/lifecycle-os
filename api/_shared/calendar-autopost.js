@@ -31,7 +31,7 @@
  *     with the exact request it would have made (dispatch-core / base-adapter);
  *   - add an endpoint: every channel below is one an adapter already declares
  *     with its sources. A platform no adapter publishes to (LinkedIn, X,
- *     Threads, the blog, Instagram Stories) is said, never faked;
+ *     Threads, the blog) is said, never faked;
  *   - invent a fact: a missing video file, image, board or TikTok disclosure is
  *     the adapter's own DATA REQUIRED marker, which the preflight blocks on.
  *
@@ -44,6 +44,8 @@ const ROUTES = {
   facebook: { adapter: 'meta', channel: 'facebook_page_feed', label: 'Facebook' },
   instagram_feed: { adapter: 'meta', channel: 'instagram_feed', label: 'Instagram' },
   instagram_reels: { adapter: 'meta', channel: 'instagram_reel', label: 'Instagram' },
+  // A Story: the post's picture or video, no caption (2026-11-21).
+  instagram_stories: { adapter: 'meta', channel: 'instagram_story', label: 'Instagram' },
   tiktok: { adapter: 'tiktok', channel: 'tiktok_video_post', label: 'TikTok' },
   pinterest: { adapter: 'pinterest', channel: 'pinterest_pin', label: 'Pinterest' },
   youtube_shorts: { adapter: 'youtube', channel: 'youtube_video_upload', label: 'YouTube' },
@@ -53,7 +55,6 @@ const ROUTES = {
 
 /** Post keys with no publishing channel in this platform, and why, in words. */
 const NO_ROUTE = {
-  instagram_stories: 'Instagram Stories are not a publishing channel here: the Meta adapter publishes feed posts and Reels only.',
   x: 'X has no publishing adapter in this platform, so it is not posted automatically.',
   threads: 'Threads has no publishing adapter in this platform, so it is not posted automatically.',
   blog: 'A blog article is published on the brand\'s own site, not through a social account.',
@@ -179,6 +180,7 @@ function assetFor(key, post, conn) {
     case 'linkedin': return { text: caption, hashtags: tags, link };
     case 'instagram_feed': return { caption, hashtags: tags, image_url: image, link };
     case 'instagram_reels': return { caption, hashtags: tags, video_url: video };
+    case 'instagram_stories': return video ? { video_url: video } : { image_url: image };
     case 'tiktok': {
       const a = { video_url: video, caption: withTags };
       if (cfg.privacy_level) a.privacy_level = String(cfg.privacy_level);

@@ -214,3 +214,41 @@ test('an approved send is not regenerated in place, and its approval names the b
   expect(savedNow.approved_digest.by).toBe('op@example.test');
   expect(T).toBeTruthy();
 });
+
+test('the heal action restores a lost send as a draft that says so, never as approved, and the schedule does not offer it', async () => {
+  const { entry, c, T } = await approvedSend({ strip: false });
+  delete store.rows[T.generatedCampaigns][c.campaign_id];          // the approved assets are gone
+  // heal lists rows by status, with no id on the query
+  const byId = P.select;
+  P.select = async function (table, params = {}) {
+    const f = params.filters || {};
+    if (f.id || f.campaign_id) return byId.call(this, table, params);
+    const all = Object.values(store.rows[table] || {});
+    const st = f.status && /^in\.\((.*)\)$/.exec(f.status);
+    return JSON.parse(JSON.stringify(st ? all.filter((r) => st[1].split(',').includes(r.status)) : all));
+  };
+  const out = await SBP.healOrphans({ config: {} });
+  expect(out.healed).toEqual([{ slot: 'slot-1', campaign_id: c.campaign_id, state: 'draft_awaiting_approval' }]);
+  const row = store.rows[T.generatedCampaigns][c.campaign_id];
+  expect(row.status).toBe('preview');
+  expect(row.payload.recovered_draft.by).toBe('heal');
+  expect(row.payload.status).not.toBe('approved');
+  // the schedule treats it as not approved
+  const brand = ZERO();
+  const p = BP.plan(entry, row.payload, brand, { connections: {}, status: 'approved' });
+  expect(p.approved).toBe(false);
+});
+
+test('Publishing and Paid launch judge a named campaign by its approval digest: unchanged passes, changed or recovered is refused, unrecorded is not judged', async () => {
+  const DC = require(path.join(ROOT, 'api', '_shared', 'dispatch-core.js'));
+  const AD = require(path.join(ROOT, 'api', '_shared', 'asset-decisions.js'));
+  const { c } = await approvedSend({ strip: false });
+  expect(DC.revisionOf(c, c.campaign_id).recorded).toBe(false);            // approved before digests existed
+  const stamped = Object.assign(JSON.parse(JSON.stringify(c)), { approved_digest: { digest: AD.digestOf(c), at: '2026-11-14T00:00:00Z', by: 'op@example.test' } });
+  expect(DC.revisionOf(stamped, c.campaign_id)).toMatchObject({ recorded: true, ok: true });
+  const edited = JSON.parse(JSON.stringify(stamped)); edited.assets.ads[0].headline = 'Changed after approval';
+  expect(DC.revisionOf(edited, c.campaign_id)).toMatchObject({ ok: false, code: 'approved_revision_changed' });
+  const draft = Object.assign(JSON.parse(JSON.stringify(stamped)), { recovered_draft: { at: 'x' } });
+  expect(DC.revisionOf(draft, c.campaign_id)).toMatchObject({ ok: false, code: 'approved_assets_missing' });
+  expect(DC.revisionOf(null, 'x').recorded).toBe(false);
+});
