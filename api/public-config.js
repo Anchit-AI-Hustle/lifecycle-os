@@ -411,6 +411,12 @@ module.exports = async function handler(req, res) {
   // The file is kept only as a last resort for a clone with no env at all,
   // and it now ships EMPTY, so nothing is baked in either way.
   const ldb = linkedDb();
+  // Google sign-in that returns to this domain (auth.js googleIdTokenSetup).
+  // Public by design: a client id ships in every Google sign-in URL. Origins =
+  // where Google may send the ID token, each one a redirect URI "<origin>/" on
+  // that Google client. Absent (not null) when unset, so the payload is
+  // exactly what it was for a deployment that does not use it.
+  const google = googleSignIn();
   return res.status(200).json({
     supabase: {
       url: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || ldb.url || '',
@@ -418,11 +424,7 @@ module.exports = async function handler(req, res) {
       // (anon, else publishable; never a server key), so the browser can
       // renew exactly the sessions the server issues (review, 2026-10-03).
       anonKey: require('./_shared/mobile-auth-supabase.js').publicKey() || ldb.anonKey || '',
-      // Google sign-in that returns to this domain (auth.js
-      // googleIdTokenSetup). Public by design: a client id ships in every
-      // Google sign-in URL. Origins = where Google may send the ID token,
-      // each one a redirect URI "<origin>/" on that Google client.
-      google: googleSignIn(),
+      ...(google ? { google } : {}),
     },
     // The regions are tenant zero's OWN, read off its record, not a list typed
     // here: the active brand's markets come from its workspace (brand-context
