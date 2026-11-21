@@ -74,6 +74,9 @@ function unbounded(why) {
 }
 
 const A = specs.ADS;
+// Organic numbers: the only ones asset-specs records for these two platforms.
+const YT = (specs.SOCIAL && specs.SOCIAL.youtube) || {};
+const PIN = (specs.SOCIAL && specs.SOCIAL.pinterest) || {};
 const M = specs.MAILER;
 const MSG = specs.MESSAGING;
 
@@ -344,6 +347,107 @@ const CONTRACTS = {
     // No motion artefact, no script: a still has neither, and requiring them is
     // what produced three false blocks on every TikTok static this app built.
     validate: adCopyValidator('ad.tiktok.static'),
+  },
+
+  /* ═════════════════════════════════════════════════════════════════════════
+     YOUTUBE and PINTEREST ads (2026-11-21). Every build that plans these
+     channels made their ads, and contractFor() answered "no contract governs
+     this asset type", so nothing checked them: a video ad with nothing to play
+     and a still with no brief both passed.
+
+     asset-specs.js records NO paid-ad numbers for either platform. The only
+     numbers it holds are the organic ones (SOCIAL: a video title, a Pin title
+     and description), so those are the limits used, each said to be the
+     organic placement's and each advisory (it warns, it never blocks). No ad
+     limit is typed here that the spec does not record.
+     ═══════════════════════════════════════════════════════════════════════ */
+  'ad.youtube.video': {
+    id: 'ad.youtube.video',
+    medium: 'short-video',
+    label: 'YouTube video ad',
+    structure: [
+      { slot: 'script', required: true, ...unbounded('The spoken and shown beats.') },
+      { slot: 'headline', required: true, ...(YT.copy && YT.copy.title ? limit(YT.copy.title, 'headline', 'asset-specs.js records this for an organic video title; no paid-ad headline limit is recorded, so it is used as a ceiling.') : unbounded('No title limit is recorded for YouTube.')) },
+      { slot: 'primary_text', required: false, ...unbounded('No paid-ad description limit is recorded for YouTube.') },
+      { slot: 'motion_html', required: true, ...unbounded('The renderable artefact.') },
+    ],
+    design: [
+      `Shorts are ${placement(YT, 'shorts') || '9:16'}; an in-stream ad plays in the ${placement(YT, 'thumbnail') || '16:9'} player.`,
+      'A viewer can skip after the opening seconds: the brand and the reason to keep watching belong before that point, in picture and in sound.',
+      'It is watched with sound more often than a feed ad, so the words are spoken as well as shown.',
+    ],
+    algorithm: [
+      'Write the opening line first: who it is for and why to stay.',
+      'Storyboard to beats from the brand\'s own photography or footage.',
+      'Name the product and the next step before the end card, not only on it.',
+      'Render the artefact, then validate.',
+    ],
+    validate(asset) {
+      return withArtefact(adCopyValidator('ad.youtube.video')(asset), asset, 'No renderable artefact for a video ad.');
+    },
+  },
+  'ad.youtube.static': {
+    id: 'ad.youtube.static',
+    medium: 'paid-social',
+    label: 'YouTube companion / thumbnail still',
+    structure: [
+      { slot: 'headline', required: true, ...(YT.copy && YT.copy.title ? limit(YT.copy.title, 'headline', 'asset-specs.js records this for an organic video title; used as a ceiling.') : unbounded('No title limit is recorded for YouTube.')) },
+      { slot: 'primary_text', required: false, ...unbounded('No paid-ad description limit is recorded for YouTube.') },
+      { slot: 'creative_brief', required: true, ...unbounded('What the frame shows. Without it nothing can be rendered.') },
+    ],
+    design: [
+      `The still is ${placement(YT, 'thumbnail') || '16:9'}; it is seen small, beside or over a video.`,
+      'One subject and a few large words: it is read at thumbnail size or not at all.',
+    ],
+    algorithm: [
+      'Compose from the brand\'s own catalogue photography.',
+      'Keep the words few and large enough to read at thumbnail size.',
+      'Validate, then check it at the size it is shown.',
+    ],
+    validate: adCopyValidator('ad.youtube.static'),
+  },
+  'ad.pinterest.static': {
+    id: 'ad.pinterest.static',
+    medium: 'paid-social',
+    label: 'Pinterest Pin ad',
+    structure: [
+      { slot: 'headline', required: true, ...(PIN.copy && PIN.copy.title ? limit(PIN.copy.title, 'headline', 'asset-specs.js records this as the Pin title; a longer one is cut in the feed.') : unbounded('No title limit is recorded for Pinterest.')) },
+      { slot: 'primary_text', required: false, ...(PIN.copy && PIN.copy.description ? limit(PIN.copy.description, 'primary_text', 'asset-specs.js records this as the Pin description.') : unbounded('No description limit is recorded for Pinterest.')) },
+      { slot: 'creative_brief', required: true, ...unbounded('What the Pin shows. Without it nothing can be rendered.') },
+    ],
+    design: [
+      `A standard Pin is ${placement(PIN, 'standard') || '2:3'}: tall, in a grid of other tall pictures.`,
+      'People search and save here: the picture shows the product in use and the title says what it is in the words someone would search.',
+    ],
+    algorithm: [
+      'Pick the picture that shows the product in use, from the brand\'s own photography.',
+      'Write the title as what it is, not as a slogan.',
+      'Validate, then check it beside other Pins at grid size.',
+    ],
+    validate: adCopyValidator('ad.pinterest.static'),
+  },
+  'ad.pinterest.video': {
+    id: 'ad.pinterest.video',
+    medium: 'short-video',
+    label: 'Pinterest video Pin ad',
+    structure: [
+      { slot: 'script', required: true, ...unbounded('The shown beats.') },
+      { slot: 'headline', required: true, ...(PIN.copy && PIN.copy.title ? limit(PIN.copy.title, 'headline', 'asset-specs.js records this as the Pin title.') : unbounded('No title limit is recorded for Pinterest.')) },
+      { slot: 'primary_text', required: false, ...(PIN.copy && PIN.copy.description ? limit(PIN.copy.description, 'primary_text', 'asset-specs.js records this as the Pin description.') : unbounded('No description limit is recorded for Pinterest.')) },
+      { slot: 'motion_html', required: true, ...unbounded('The renderable artefact.') },
+    ],
+    design: [
+      'It plays without sound in a grid: every beat is understood from the picture and the words on it.',
+      'The product is in the first frame, because the first frame is also the still the grid shows.',
+    ],
+    algorithm: [
+      'Open on the product in use.',
+      'Storyboard to beats from the brand\'s own photography or footage.',
+      'Render the artefact, then validate.',
+    ],
+    validate(asset) {
+      return withArtefact(adCopyValidator('ad.pinterest.video')(asset), asset, 'No renderable artefact for a video ad.');
+    },
   },
 
   /* ═════════════════════════════════════════════════════════════════════════
@@ -796,6 +900,8 @@ function contractFor(asset) {
   // override is what the next real block has to survive.
   if (platform === 'tiktok') return CONTRACTS[type === 'static' ? 'ad.tiktok.static' : 'ad.tiktok.video'];
   if (platform === 'meta') return CONTRACTS[type === 'video' ? 'ad.meta.video' : 'ad.meta.static'];
+  if (platform === 'youtube') return CONTRACTS[type === 'video' ? 'ad.youtube.video' : 'ad.youtube.static'];
+  if (platform === 'pinterest') return CONTRACTS[type === 'video' ? 'ad.pinterest.video' : 'ad.pinterest.static'];
   if (asset.subject != null || asset.preheader != null) return CONTRACTS['email.mailer'];
   if (asset.hero_headline != null || asset.variant != null && asset.path) return CONTRACTS['landing.page'];
   return null;

@@ -203,6 +203,35 @@ async function campaignOffer(workspaceId, s) {
 }
 
 /**
+ * Whether the campaign a job names is still the one a person approved
+ * (2026-11-21). Read server-side, in THIS workspace. A campaign restored as a
+ * draft after its approved assets were lost, or one whose saved assets no
+ * longer match the digest recorded at approval, is refused: what ships is what
+ * was approved. A job that names no campaign, or a campaign approved before
+ * digests were recorded, is not judged here ({ recorded:false }).
+ */
+async function campaignRevision(workspaceId, s) {
+  const ref = campaignRefOf(s);
+  if (!ref || !workspaceId) return { recorded: false };
+  let p = null;
+  try {
+    const rows = await rest(`smart_generated_campaigns?select=payload&id=eq.${encodeURIComponent(ref)}&workspace_id=eq.${encodeURIComponent(workspaceId)}&limit=1`);
+    p = Array.isArray(rows) && rows[0] ? rows[0].payload : null;
+  } catch (_) { return { recorded: false, unread: true }; }
+  return revisionOf(p, ref);
+}
+function revisionOf(p, ref) {
+  if (!p || typeof p !== 'object') return { recorded: false };
+  if (p.recovered_draft) return { recorded: true, campaign_id: ref || p.campaign_id || null, ok: false, code: 'approved_assets_missing', message: 'The assets this send was approved with are no longer stored; what is saved is a new draft nobody approved, so nothing was sent. Open the send in Smart Brain and approve the draft.' };
+  const ad = p.approved_digest && p.approved_digest.digest;
+  if (!ad) return { recorded: false };
+  let now = null;
+  try { now = require('./asset-decisions.js').digestOf(p); } catch (_) { now = null; }
+  if (!now || now !== ad) return { recorded: true, campaign_id: ref || p.campaign_id || null, ok: false, code: 'approved_revision_changed', approved: ad, current: now, message: 'The saved assets of this send are not the ones that were approved (their digest differs from the one recorded at approval), so nothing was sent. Open the send in Smart Brain, check it, and approve it again.' };
+  return { recorded: true, campaign_id: ref || p.campaign_id || null, ok: true, approved: ad, approved_at: p.approved_digest.at || null };
+}
+
+/**
  * Create a job. Runs the preflight gate FIRST, so a send that would damage the
  * sending domain never becomes a queued job that a later retry might release.
  *
@@ -248,6 +277,11 @@ async function enqueue(auth, workspaceId, spec, context) {
   const brand = await trustedBrand(workspaceId, c.brand);
   const market = String(s.market || s.region || (s.asset && (s.asset.market || s.asset.region)) || '');
   const offer = await campaignOffer(workspaceId, s);
+  // What ships is what was approved: a campaign that is a recovered draft, or
+  // whose saved assets differ from its approval digest, is refused before the
+  // gate runs and before anything is queued.
+  const revision = await campaignRevision(workspaceId, s);
+  if (revision.recorded && !revision.ok) { const e = new Error(revision.message); e.status = 409; e.code = revision.code; e.revision = revision; throw e; }
 
   // The touch this job will make, judged against the contact ledger by the
   // preflight gate and kept on the job (hashed recipients only) so the ledger
@@ -697,6 +731,6 @@ async function jobDetail(auth, workspaceId, jobId) {
 
 module.exports = {
   enqueue, drain, runJob, cancel, ingestWebhook, listJobs, jobDetail,
-  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand, campaignOffer, campaignRefOf, readAt,
+  deriveIdempotencyKey, backoffMs, claim, countRunnable, trustedBrand, campaignOffer, campaignRefOf, readAt, campaignRevision, revisionOf,
   BATCH, BASE_BACKOFF_MS, MAX_BACKOFF_MS, LEASE_MS,
 };

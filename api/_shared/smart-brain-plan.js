@@ -5916,12 +5916,16 @@ async function republishOrphan(db, config, entry, row, { reviewer = null, withCr
     lp.id = `${targetId}_landing_${isB ? 'b' : 'a'}`;
     lp.path = isB ? `/lp/${targetId}?v=b` : `/lp/${targetId}`;
   });
-  rebuilt.status = 'approved';
+  // What is rebuilt here is NOT what the reviewer approved (those assets are gone),
+  // so it is stored as a draft that says so. The /lp link resolves again; nothing
+  // schedules or ships from it until a person approves the draft.
+  rebuilt.status = 'preview';
+  rebuilt.recovered_draft = { at: nowIso(), reason: 'The assets this send was approved with are no longer stored.', by: 'heal' };
   rebuilt.calendar_entry_id = row.id;
   // mirror:false — /lp only needs the smart_generated_campaigns row (payload carries
   // the LP html). Skipping the ads/mailer/landing dashboard mirrors keeps heal from
   // depending on tables that may not exist in this project, so it never throws.
-  await persistCampaignAssets(db, config, rebuilt, { status: 'approved', origin: 'smart-brain-heal', reviewer, mirror: false });
+  await persistCampaignAssets(db, config, rebuilt, { status: 'preview', origin: 'smart-brain-heal', reviewer, mirror: false });
   return rebuilt;
 }
 
@@ -5940,7 +5944,7 @@ async function healOrphans({ config: cfg = {}, batchSize = 12, reviewer = 'syste
   const batch = orphans.slice(0, Math.max(1, batchSize));
   const healed = [], failed = [];
   for (const r of batch) {
-    try { const c = await republishOrphan(db, config, r.payload, r, { reviewer }); healed.push({ slot: r.id, campaign_id: c.campaign_id }); }
+    try { const c = await republishOrphan(db, config, r.payload, r, { reviewer }); healed.push({ slot: r.id, campaign_id: c.campaign_id, state: 'draft_awaiting_approval' }); }
     catch (e) { failed.push({ slot: r.id, error: String((e && e.message) || e).slice(0, 160) }); }
   }
   return { ok: true, orphans_total: orphans.length, healed, failed, remaining: Math.max(0, orphans.length - batch.length) };
