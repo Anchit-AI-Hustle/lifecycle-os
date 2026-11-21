@@ -45,6 +45,17 @@ function lockCors(req, res) {
   res.setHeader('Vary', 'Origin');
 }
 
+// GOOGLE_SIGNIN_CLIENT_ID + GOOGLE_SIGNIN_ORIGINS (comma list of origins).
+// Unset = null, and auth.js keeps the Supabase redirect.
+function googleSignIn() {
+  const id = String(process.env.GOOGLE_SIGNIN_CLIENT_ID || '').trim();
+  if (!/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(id)) return null;
+  const origins = String(process.env.GOOGLE_SIGNIN_ORIGINS || '').split(',').map((o) => {
+    try { const u = new URL(o.trim()); return (u.protocol === 'https:' || u.hostname === 'localhost') ? u.origin : ''; } catch (_) { return ''; }
+  }).filter(Boolean);
+  return origins.length ? { client_id: id, origins: Array.from(new Set(origins)) } : null;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -407,6 +418,11 @@ module.exports = async function handler(req, res) {
       // (anon, else publishable; never a server key), so the browser can
       // renew exactly the sessions the server issues (review, 2026-10-03).
       anonKey: require('./_shared/mobile-auth-supabase.js').publicKey() || ldb.anonKey || '',
+      // Google sign-in that returns to this domain (auth.js
+      // googleIdTokenSetup). Public by design: a client id ships in every
+      // Google sign-in URL. Origins = where Google may send the ID token,
+      // each one a redirect URI "<origin>/" on that Google client.
+      google: googleSignIn(),
     },
     // The regions are tenant zero's OWN, read off its record, not a list typed
     // here: the active brand's markets come from its workspace (brand-context
