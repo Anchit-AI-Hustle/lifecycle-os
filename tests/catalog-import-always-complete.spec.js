@@ -882,8 +882,13 @@ test('a new import removes EVERY older run\'s queue rows for the workspace, the 
   test.setTimeout(120_000);
   const w = world({ website: 'https://lensshop.example', regions: [{ code: 'IN', home: true }] });
   const OTHER_WS = '99999999-9999-4999-8999-999999999999';
+  // Abandoned runs are OLDER than this one: stamp them in the past. The fake's
+  // own clock ticks 1 ms per insert from when the world was made, so rows
+  // seeded in a burst could be stamped after this run's start (main CI, 2026-11-21).
+  const past = (k) => new Date(Date.now() - 3600e3 + k).toISOString();
+  let n = 0;
   for (const [ws, run, market] of [[WS, 'old-1', 'in'], [WS, 'old-1', 'in~other'], [WS, 'old-2', 'in~other'], [WS, 'old-3', 'us'], [OTHER_WS, 'theirs', 'in~other']]) {
-    for (let i = 0; i < 3; i++) w.db.insert('brand_catalog_import_queue', { workspace_id: ws, run_id: run, market, url: `https://stale.example/${run}/${market}/${i}`, seq: i + 1, state: 'pending', tries: 0 });
+    for (let i = 0; i < 3; i++) w.db.insert('brand_catalog_import_queue', { workspace_id: ws, run_id: run, market, url: `https://stale.example/${run}/${market}/${i}`, seq: i + 1, state: 'pending', tries: 0, created_at: past(n++) });
   }
   // A NEWER run of the same workspace (Codex #468): its rows are written after
   // this run started, so an older invocation still running must not empty it.

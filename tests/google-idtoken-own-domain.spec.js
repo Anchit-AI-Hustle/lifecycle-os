@@ -174,7 +174,7 @@ test('public-config publishes the client id and only well-formed origins, else n
     await handler({ method: 'GET', url: '/api/public-config', query: {}, headers: {} }, res);
     process.env = keep;
     delete require.cache[MOD];
-    return body && body.supabase && body.supabase.google;
+    return body && body.supabase && 'google' in body.supabase ? body.supabase.google : null;
   };
   expect(await run({ GOOGLE_SIGNIN_CLIENT_ID: CLIENT, GOOGLE_SIGNIN_ORIGINS: 'https://lifecycle-os.anchit-tandon.com/, javascript:alert(1), http://evil.test, https://lifecycle-os.anchit-tandon.com' }))
     .toEqual({ client_id: CLIENT, origins: ['https://lifecycle-os.anchit-tandon.com'] });
