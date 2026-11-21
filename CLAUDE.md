@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Lifecycle OS — Project Memory
 
+## ⭐ Google sign-in returns to this domain, free (2026-11-21)
+Google's OAuth branding check flagged `<ref>.supabase.co` (the Supabase callback) as an unauthorised domain, and a
+Supabase custom auth domain is paid. `auth.js` `googleIdTokenSetup` / `startGoogleIdToken` / `completeGoogleIdToken`:
+on an origin public-config lists (`supabase.google = {client_id, origins}` from env `GOOGLE_SIGNIN_CLIENT_ID` +
+`GOOGLE_SIGNIN_ORIGINS`; each origin's `<origin>/` must be a redirect URI on that Google client) the press goes straight
+to `accounts.google.com/o/oauth2/v2/auth` with `response_type=id_token`, a random `state` and the SHA-256 of a random
+nonce (raw nonce + state kept in sessionStorage, 15 min); the reply `#id_token=..&state=..` is taken out of the address
+first, the state must match this tab, then `signInWithIdToken({provider:'google', token, nonce: raw})` and Supabase
+verifies signature, audience and nonce. Elsewhere (previews, no config, no `crypto.subtle` = not a secure context) the
+Supabase redirect is unchanged. Gated by `tests/google-idtoken-own-domain.spec.js` (11, 5 mutations caught). Once live
+and proven, `dypkppctdbmsiqclnhzx.supabase.co` can leave the Google client's authorised domains.
+
 ## ⭐ An abandoned import must not take sign-in down (2026-11-21)
 Production Google sign-in answered Supabase's `500 "Error creating flow state"`: the free-plan database was 1,582 MB
 (quota 500 MB) and Supabase had made it READ-ONLY, so GoTrue could not write a sign-in. 1,313 MB was

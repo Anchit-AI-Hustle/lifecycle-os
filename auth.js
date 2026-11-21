@@ -3196,6 +3196,16 @@
       return { kind: 'sdk', message: s.text, html: s.html };
     }
     rememberReturnTo();
+    // On an origin Google has as a redirect URI, Google answers THIS domain
+    // with an ID token and Supabase verifies it (signInWithIdToken). The
+    // person sees only accounts.google.com and this site, never *.supabase.co,
+    // and no paid custom auth domain is needed (2026-11-21). Elsewhere
+    // (previews, a domain not on the client) the Supabase redirect stays.
+    const gid = googleIdTokenSetup(cfg);
+    if (gid && typeof client.auth.signInWithIdToken === 'function') {
+      await startGoogleIdToken(gid);
+      return null;
+    }
     const { error } = await client.auth.signInWithOAuth(googleSignInOptions());
     if (!error) return null;
     const message = 'Sign-in failed: ' + (error.message || error);
@@ -3797,7 +3807,7 @@
       const sp = new URLSearchParams(location.search || '');
       if (sp.has('code') || sp.has('error') || sp.has('error_description')) return true;
       const hash = location.hash || '';
-      if (/access_token=|error=/.test(hash)) return true;
+      if (/access_token=|id_token=|error=/.test(hash)) return true;
     } catch (_) {}
     return false;
   }
@@ -3818,6 +3828,98 @@
         queryParams: { prompt: 'select_account' },
       },
     };
+  }
+  /**
+   * Google sign-in that returns to THIS domain (2026-11-21). Google's OpenID
+   * Connect implicit flow (response_type=id_token) sends the person back to
+   * <origin>/ with #id_token=...&state=...; the raw nonce stays in this tab
+   * and only its SHA-256 goes to Google, which puts it in the token;
+   * signInWithIdToken hands Supabase the token and the raw nonce, and
+   * Supabase checks the signature, the audience (its Google client) and the
+   * nonce. `state` ties the reply to the press in this tab, so a link that
+   * carries someone else's token signs nobody in. Used only on an origin
+   * public-config lists (each must be a redirect URI on the Google client),
+   * else googleSignInOptions()'s Supabase redirect, unchanged.
+   */
+  const GID_KEY = 'lc-google-idtoken';
+  const GID_MAX_AGE_MS = 15 * 60 * 1000;
+  function googleIdTokenSetup(cfg) {
+    const g = cfg && cfg.google;
+    if (!(g && typeof g.client_id === 'string' && g.client_id)) return null;
+    const origins = Array.isArray(g.origins) ? g.origins : [];
+    if (origins.indexOf(location.origin) === -1) return null;
+    if (!(window.crypto && crypto.subtle && typeof crypto.getRandomValues === 'function')) return null;
+    try { sessionStorage.setItem(GID_KEY + '.probe', '1'); sessionStorage.removeItem(GID_KEY + '.probe'); } catch (_) { return null; }
+    return { clientId: g.client_id, redirectUri: location.origin + '/' };
+  }
+  function hexOf(bytes) {
+    return Array.from(bytes, function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+  function randomHex() {
+    const b = new Uint8Array(32);
+    crypto.getRandomValues(b);
+    return hexOf(b);
+  }
+  async function sha256Hex(text) {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return hexOf(new Uint8Array(d));
+  }
+  async function startGoogleIdToken(gid) {
+    const nonce = randomHex();
+    const state = randomHex();
+    sessionStorage.setItem(GID_KEY, JSON.stringify({ state: state, nonce: nonce, at: Date.now() }));
+    const q = new URLSearchParams({
+      client_id: gid.clientId,
+      redirect_uri: gid.redirectUri,
+      response_type: 'id_token',
+      scope: 'openid email profile',
+      nonce: await sha256Hex(nonce),
+      state: state,
+      prompt: 'select_account',
+    });
+    location.assign('https://accounts.google.com/o/oauth2/v2/auth?' + q.toString());
+  }
+  /** The reply Google put in this page's address, or null. */
+  function googleIdTokenReturn() {
+    const h = location.hash || '';
+    if (!/(^#|&)(id_token|error)=/.test(h)) return null;
+    let p;
+    try { p = new URLSearchParams(h.slice(1)); } catch (_) { return null; }
+    if (!p.get('state')) return null;
+    return { idToken: p.get('id_token') || '', error: p.get('error') || '', state: p.get('state') };
+  }
+  /**
+   * Finish a Google reply: always takes the token out of the address first.
+   * Resolves to null (nothing to finish), { ok: true }, or { message }.
+   */
+  async function completeGoogleIdToken(client, opts) {
+    const r = googleIdTokenReturn();
+    if (!r) return null;
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(GID_KEY) || 'null'); } catch (_) { saved = null; }
+    try { sessionStorage.removeItem(GID_KEY); } catch (_) {}
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) {}
+    const again = ' Press Sign in with Google again.';
+    if (!saved || saved.state !== r.state) return { message: 'Sign-in was not completed: the reply from Google did not match a sign-in started in this tab.' + again };
+    if (!(saved.at && Date.now() - saved.at <= GID_MAX_AGE_MS)) return { message: 'Sign-in was not completed: it was started more than 15 minutes ago.' + again };
+    if (r.error) return { message: r.error === 'access_denied' ? 'Sign-in was cancelled at Google.' : 'Google did not sign you in (' + r.error + ').' + again };
+    if (!r.idToken) return { message: 'Sign-in was not completed: Google sent no ID token.' + again };
+    if (opts && opts.unreachable) return { message: 'Sign-in was not completed: the sign-in service did not answer.' + again };
+    if (!(client && client.auth && typeof client.auth.signInWithIdToken === 'function')) return { message: 'Sign-in was not completed: the sign-in library did not load.' + again };
+    const out = await client.auth.signInWithIdToken({ provider: 'google', token: r.idToken, nonce: saved.nonce });
+    const err = out && out.error;
+    if (err) return { message: 'Sign-in failed: ' + (err.message || err) };
+    return { ok: true };
+  }
+  function showReturnFailure(message) {
+    const nav = document.getElementById('lifecycle-nav');
+    const btn = nav && nav.querySelector('#lnav-signin');
+    if (!(nav && btn)) return;
+    showSignInRefusal(nav, btn, {
+      kind: 'failed',
+      message: message,
+      html: window.LifecycleFailure.html(new Error(message), { title: 'Sign-in failed' }),
+    });
   }
   function sameAppPath(a, b) {
     const norm = (p) => {
@@ -3964,6 +4066,14 @@
     // A host that does not answer cannot hand back or renew a session, and
     // asking supabase-js for one makes it retry the refresh for ~25 s first
     // (measured 2026-09-15). Signed out, said, and the rail is already up.
+    let idTokenFailure = '';
+    if (googleIdTokenReturn()) {
+      if (reachable) injectSigningInOverlay();
+      let done = null;
+      try { done = await completeGoogleIdToken(client, { unreachable: !reachable }); }
+      catch (e) { done = { message: 'Sign-in failed: ' + ((e && e.message) || e) }; }
+      if (done && done.message) idTokenFailure = done.message;
+    }
     if (reachable) {
       if (oauthCallbackInProgress()) injectSigningInOverlay();
       let googleSession = null;
@@ -3984,6 +4094,7 @@
     authReady.settle();
     // Signed out. EVERY page is open - there is no gated set.
     await gateSignedOut();
+    if (idTokenFailure) showReturnFailure(idTokenFailure);
     // AFTER gateSignedOut(), which clears any note written against an earlier
     // state: this one describes the state just decided.
     phoneEndedRailNote(document.getElementById('lifecycle-nav'));
