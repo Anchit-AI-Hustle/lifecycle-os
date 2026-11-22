@@ -687,6 +687,10 @@
       "destination": "/lifecycle_mailer_architect_v34.html"
     },
     {
+      "source": "/sitemap",
+      "destination": "/sitemap.html"
+    },
+    {
       "source": "/about",
       "destination": "/about.html"
     },

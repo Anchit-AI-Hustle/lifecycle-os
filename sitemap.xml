@@ -25,4 +25,8 @@
     <loc>https://lifecycle-os.anchit-tandon.com/terms.html</loc>
     <priority>0.3</priority>
   </url>
+  <url>
+    <loc>https://lifecycle-os.anchit-tandon.com/sitemap</loc>
+    <priority>0.5</priority>
+  </url>
 </urlset>
