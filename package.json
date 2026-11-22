@@ -80,7 +80,7 @@
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
     "@mediabunny/aac-encoder": "1.65.2",
-    "@neondatabase/serverless": "^1.2.0",
+    "@neondatabase/serverless": "^1.2.1",
     "@sparticuz/chromium": "153.0.0",
     "@vercel/speed-insights": "^2.1.0",
     "google-auth-library": "^11.3.1",
