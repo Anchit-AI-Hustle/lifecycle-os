@@ -15,6 +15,9 @@
   <meta property="og:image" content="https://lifecycle-os.anchit-tandon.com/assets/lifecycle-os-og.png">
   <meta name="theme-color" content="#D0473E">
   <link rel="icon" href="/assets/lifecycle-os-mark.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/lifecycle-os-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/lifecycle-os-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/theme.css">
   <style>
     :root{--sm-ink:var(--vh-ink,var(--brand-ink,#111111));--sm-muted:var(--vh-ink-dim,var(--brand-ink-muted,#666));--sm-bg:var(--vh-bg,var(--brand-surface,#fff));--sm-card:var(--vh-panel,var(--brand-surface,#fff));--sm-line:var(--vh-line,var(--brand-line,#dedede));--sm-primary:var(--vh-primary-text,var(--brand-primary-text,var(--brand-ink,#111111)));--sm-accent:var(--vh-accent,var(--brand-accent,#6A33D8))}
@@ -26,13 +29,13 @@
     .sm-skip:focus{top:12px}
     .sm-shell{width:min(1360px,100%);margin:auto;padding:0 clamp(18px,3.5vw,48px) 92px}
     .sm-top{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px 0;border-bottom:1px solid var(--sm-line)}
-    .sm-brand{display:inline-flex;gap:11px;align-items:center;text-decoration:none;font-size:15px;font-weight:800;letter-spacing:-.015em}
+    .sm-brand{display:inline-flex;gap:11px;align-items:center;min-height:44px;text-decoration:none;font-size:15px;font-weight:800;letter-spacing:-.015em}
     .sm-brand img{width:36px;height:36px;object-fit:contain}
     .sm-top-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-    .sm-top-links a{text-decoration:none;font-size:13px;font-weight:700;color:var(--sm-muted)}
+    .sm-top-links a{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;text-decoration:none;font-size:13px;font-weight:700;color:var(--sm-muted)}
     .sm-top-links a:hover,.sm-top-links a:focus-visible{color:var(--sm-primary)}
     .sm-hero{padding:clamp(42px,7vw,88px) 0 43px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:end;border-bottom:1px solid var(--sm-line)}
-    .sm-kicker,.sm-eyebrow{display:block;font-size:11px;letter-spacing:.15em;font-weight:800;color:var(--sm-primary)}
+    .sm-kicker,.sm-eyebrow{display:block;font-size:12px;letter-spacing:.15em;font-weight:800;color:var(--sm-primary)}
     .sm-hero h1{font-family:var(--vh-font-head,'Montserrat',Arial,sans-serif);font-size:clamp(42px,6.5vw,78px);line-height:1.04;letter-spacing:-.055em;margin:16px 0 20px;max-width:930px}
     .sm-hero h1 span{color:var(--sm-primary)}
     .sm-hero p{font-size:clamp(15px,1.6vw,18px);color:var(--sm-muted);max-width:740px;margin:0}
@@ -48,14 +51,14 @@
     #sm-clear:hover{color:var(--sm-ink)}
     #sm-result{font-size:13px;color:var(--sm-muted);font-variant-numeric:tabular-nums}
     .sm-layout{display:grid;grid-template-columns:245px minmax(0,1fr);gap:clamp(25px,4vw,56px);align-items:start}
-    .sm-contents{position:sticky;top:22px;border:1px solid var(--sm-line);border-radius:17px;padding:16px;background:var(--sm-card)}
-    .sm-aside-title{margin:3px 10px 13px;font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--sm-muted)}
-    .sm-jump{display:flex;align-items:center;gap:9px;text-decoration:none;padding:11px 10px;border-radius:9px;font-size:13px;font-weight:650}
+    .sm-contents{position:sticky;top:64px;border:1px solid var(--sm-line);border-radius:17px;padding:16px;background:var(--sm-card)}
+    .sm-aside-title{margin:3px 10px 13px;font-size:12px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--sm-muted)}
+    .sm-jump{display:flex;align-items:center;gap:9px;min-height:44px;text-decoration:none;padding:11px 10px;border-radius:9px;font-size:13px;font-weight:650}
     .sm-jump:hover,.sm-jump:focus-visible{background:var(--sm-bg);color:var(--sm-primary)}
-    .sm-jump-number{font-size:10px;color:var(--sm-muted);font-family:var(--vh-font-mono,monospace)}
-    .sm-jump-count{font-size:11px;color:var(--sm-muted);margin-left:auto}
+    .sm-jump-number{font-size:12px;color:var(--sm-muted);font-family:var(--vh-font-mono,monospace)}
+    .sm-jump-count{font-size:12px;color:var(--sm-muted);margin-left:auto}
     .sm-content{min-width:0}
-    .sm-section{padding:11px 0 30px;scroll-margin-top:18px}
+    .sm-section{padding:11px 0 30px;scroll-margin-top:76px}
     .sm-section+.sm-section{border-top:1px solid var(--sm-line);padding-top:36px}
     .sm-section-header{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:20px}
     .sm-section h2{font-family:var(--vh-font-head,'Montserrat',Arial,sans-serif);font-size:clamp(24px,3vw,34px);line-height:1.2;letter-spacing:-.035em;margin:8px 0}
@@ -66,7 +69,7 @@
     .sm-card-head{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;border-bottom:1px solid var(--sm-line);padding-bottom:15px;margin-bottom:7px}
     .sm-card-head h3{font-size:15px;margin:0 0 4px;font-weight:800;letter-spacing:-.01em}
     .sm-card-head p{font-size:12px;color:var(--sm-muted);margin:0}
-    .sm-card-count{font-size:11px;padding:4px 8px;border-radius:30px;background:var(--sm-bg);color:var(--sm-muted);font-variant-numeric:tabular-nums}
+    .sm-card-count{font-size:12px;padding:4px 8px;border-radius:30px;background:var(--sm-bg);color:var(--sm-muted);font-variant-numeric:tabular-nums}
     .sm-links{list-style:none;padding:0;margin:0}
     .sm-link{display:flex;justify-content:space-between;gap:12px;align-items:center;text-decoration:none;padding:10px 3px;border-radius:7px;font-size:13px;font-weight:550;overflow-wrap:anywhere}
     .sm-link:hover,.sm-link:focus-visible{color:var(--sm-primary);text-decoration:underline;text-underline-offset:3px}
@@ -77,6 +80,9 @@
     .sm-foot{border-top:1px solid var(--sm-line);margin-top:42px;padding:26px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;color:var(--sm-muted);font-size:12px}
     .sm-foot a{font-weight:700;text-decoration:underline;text-underline-offset:3px}
     .sm-foot-links{display:flex;gap:20px;flex-wrap:wrap}
+    /* On landscape phones and tablets, the shared brand rail consumes 25–30px.
+       Keep the first text inside the 40/48px viewport gutters. */
+    @media(min-width:701px) and (max-width:1050px){.sm-shell{padding-inline:12px}}
     @media(max-width:1050px){.sm-layout{grid-template-columns:205px minmax(0,1fr);gap:24px}.sm-cards{grid-template-columns:1fr}}
     @media(max-width:700px){.sm-top{align-items:flex-start}.sm-top-links{gap:12px;justify-content:flex-end}.sm-top-links a{font-size:12px}.sm-hero{grid-template-columns:1fr;gap:20px;padding:48px 0 30px}.sm-stat{max-width:210px;text-align:left}.sm-stat strong{font-size:36px}.sm-layout{grid-template-columns:1fr}.sm-contents{position:static}.sm-jumps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.sm-jump{padding:9px 5px;font-size:12px}.sm-section{padding-top:18px}.sm-section-header{align-items:start}.sm-section-total{padding-top:19px}}
     @media(max-width:400px){.sm-jumps{grid-template-columns:1fr}.sm-stat{min-width:0}.sm-top-links{justify-content:flex-start}.sm-top{flex-direction:column}.sm-searchbar{align-items:flex-start}.sm-card{padding:15px}}
