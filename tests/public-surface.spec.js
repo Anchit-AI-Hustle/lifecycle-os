@@ -180,3 +180,44 @@ test('XML sitemap is static XML containing only canonical, indexable pages', () 
     expect(html).toContain('<link rel="canonical" href="' + canonical + '">');
   }
 });
+
+
+test('Googlebot can fetch rendering dependencies of every indexable page', () => {
+  const publicPages = ['index.html', 'sitemap.html', 'privacy.html', 'terms.html'];
+  const resources = new Set();
+  for (const page of publicPages) {
+    const markup = fs.readFileSync(path.join(ROOT, page), 'utf8');
+    // Parse actual first-party script, link and image URLs used by public pages.
+    // Query strings are retained: Googlebot sees /auth.js?v=... rather than
+    // the bare file path. Avoid maintaining a test-only allowlist.
+    for (const match of markup.matchAll(/<(?:script|link|img)\b[^>]*?\b(?:src|href)=["'](\/[^"']+)["'][^>]*>/gi)) {
+      const ref = new URL(match[1], 'https://lifecycle-os.anchit-tandon.com');
+      if (/\.(?:js|css|png|svg|webmanifest)$/.test(ref.pathname)) {
+        resources.add(ref.pathname + ref.search);
+      }
+    }
+  }
+  // The shared stylesheet references a public logo SVG in addition to the
+  // resources declared directly in HTML.
+  const stylesheet = fs.readFileSync(path.join(ROOT, 'theme.css'), 'utf8');
+  for (const match of stylesheet.matchAll(/url\(\s*['"]?(\/assets\/[^)'"]+)['"]?\s*\)/g)) {
+    resources.add(match[1]);
+  }
+  for (const needed of ['/theme.css', '/auth.js?v=20260810lifecycle',
+    '/brand-catalog.js', '/brand-context.js?early=1',
+    '/assets/lifecycle-os-mark.svg', '/assets/lifecycle-os/logos/mark-glyph.svg']) {
+    expect(resources.has(needed), 'public HTML/CSS must actually use ' + needed).toBe(true);
+  }
+  expect(resources.size, 'the public pages must declare multiple real assets').toBeGreaterThanOrEqual(8);
+  for (const resource of resources) {
+    const ref = new URL(resource, 'https://lifecycle-os.anchit-tandon.com');
+    expect(fs.existsSync(path.join(ROOT, ref.pathname)), 'resource missing: ' + resource).toBe(true);
+    expect(isAllowed(ref.pathname + ref.search, RULES), 'Googlebot blocked: ' + resource).toBe(true);
+  }
+  // Explicitly guard against a fix that would allow all pages, including
+  // customer data, dashboards, landing pages and APIs.
+  for (const privatePath of ['/dashboard.html', '/calendar', '/api/public-config',
+    '/lp/private-campaign', '/data/catalog/products_US.json']) {
+    expect(isAllowed(privatePath, RULES), privatePath + ' must remain disallowed').toBe(false);
+  }
+});

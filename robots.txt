@@ -24,9 +24,10 @@
 # store". This platform runs as whichever brand a user onboards; tenant zero's
 # shop is not a fact about the platform.
 #
-# To make the whole product private again, replace the Allow lines below with
-# nothing. To open more of it, add the page here AND make it render signed-out
-# in auth.js — a page allowed here but gated there is an indexed login wall.
+# To make the whole product private again, remove public PAGE Allow rules.
+# To index more pages, add the page here AND make it render signed-out in
+# auth.js — a page allowed here but gated there is an indexed login wall.
+# The static rendering dependencies listed below are not indexable app pages.
 
 User-agent: *
 
@@ -40,6 +41,22 @@ Allow: /terms
 Allow: /sitemap
 Allow: /sitemap.html
 Allow: /sitemap.xml
+
+# Public pages need their rendering dependencies. Googlebot must be able to
+# fetch the same brand stylesheet, navigation scripts and site identity assets
+# as an anonymous visitor. These rules only permit fetching static resources;
+# they do not make authenticated application routes crawlable.
+# Prefix matches permit cache-busting query strings such as /auth.js?v=...
+Allow: /theme.css
+Allow: /auth.js
+Allow: /brand-catalog.js
+Allow: /brand-context.js
+Allow: /manifest.webmanifest
+Allow: /assets/lifecycle-os-mark.svg
+Allow: /assets/lifecycle-os-32.png
+Allow: /assets/lifecycle-os-180.png
+Allow: /assets/lifecycle-os-og.png
+Allow: /assets/lifecycle-os/logos/mark-glyph.svg
 
 # Everything else needs a signed-in session and a brand set up.
 Disallow: /
