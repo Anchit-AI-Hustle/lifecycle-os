@@ -58,6 +58,9 @@
   .btn{font-family:var(--head);font-weight:700;font-size:14.5px;border-radius:999px;padding:12px 24px;text-decoration:none;display:inline-block;border:1px solid transparent}
   .btn-primary{background:var(--ink);color:var(--bg)}
   .btn-ghost{border-color:var(--vh-line-hot);color:var(--ink)}
+  /* New Google sign-in disclosure links must use the active brand palette,
+     not the browser's unthemed default anchor blue. */
+  section[aria-labelledby="google-signin-heading"] p a{color:var(--ink);text-underline-offset:3px}
   .brandline{font-size:13px;color:var(--soft);margin-top:14px}
   .brandline b{color:var(--ink)}
   code{background:var(--panel);padding:1px 6px;border-radius:5px;font-size:12.5px}
