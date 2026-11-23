@@ -109,7 +109,12 @@ const BASELINE = {
   'growth-os.spec.js': 1,
   'payments-gateway.spec.js': 1,
   'ported-modules.spec.js': 1,
-  'public-surface.spec.js': 1,
+  // 2026-11-23: four new source-file properties of the public sitemap:
+  // canonical URLs in the shipped HTML/legal pages, declared static XML MIME,
+  // and Vercel rewrite configuration. These must be asserted on source because
+  // live response behavior is separately covered by the site's deploy checks.
+  // Existing behavioral checks (robots path matching) remain executed.
+  'public-surface.spec.js': 5,
   'sibling-parity.spec.js': 1,
   'social-brand-scope.spec.js': 1,
   'table-overlap.spec.js': 1,
