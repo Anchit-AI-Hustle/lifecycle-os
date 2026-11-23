@@ -77,7 +77,7 @@ test('the parser actually found rules — a check that reads nothing passes ever
 test('the pages the app serves signed-out for the OAuth review are crawlable', () => {
   // auth.js isOpenPage() hard-codes these three, each with a comment saying
   // why. If that list changes, this test should change with it deliberately.
-  for (const url of ['/', '/index.html', '/privacy.html', '/terms.html']) {
+  for (const url of ['/', '/index.html', '/about', '/about.html', '/privacy.html', '/terms.html']) {
     expect(isAllowed(url, RULES), `${url} must be crawlable`).toBe(true);
   }
 });
@@ -114,6 +114,7 @@ test('auth.js and robots.txt have not drifted apart on the homepage', () => {
   // other direction.
   expect(auth).toMatch(/isOpenPage/);
   expect(auth).toMatch(/HOMEPAGE must be publicly viewable/i);
+  expect(auth).toContain("(privacy|terms|sitemap|about)");
 });
 
 test('the sitemap lists only URLs robots.txt allows', () => {
@@ -141,6 +142,11 @@ test('the indexable homepage names one canonical origin', () => {
   expect(m, 'the one indexable page must declare a canonical URL').toBeTruthy();
   const href = (m[0].match(/href=["']([^"']+)["']/) || [])[1];
   expect(new URL(href).host).toBe('lifecycle-os.anchit-tandon.com');
+  // Public OAuth homepage must visibly explain the Google profile data it uses
+  // and link to the same privacy policy declared for OAuth review.
+  expect(html).toContain('id="google-signin-heading"');
+  expect(html).toContain('Google sign-in does not give Lifecycle OS access');
+  expect(html).toContain('href="/privacy"');
 });
 
 test('the HTML sitemap uses the exact public route and is available through the Vercel rewrite', () => {
@@ -169,12 +175,13 @@ test('XML sitemap is static XML containing only canonical, indexable pages', () 
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
   expect(locs).toEqual([
     'https://lifecycle-os.anchit-tandon.com/',
+    'https://lifecycle-os.anchit-tandon.com/about',
     'https://lifecycle-os.anchit-tandon.com/sitemap',
     'https://lifecycle-os.anchit-tandon.com/privacy',
     'https://lifecycle-os.anchit-tandon.com/terms',
   ]);
   for (const loc of locs) expect(isAllowed(new URL(loc).pathname, RULES)).toBe(true);
-  for (const page of ['privacy.html', 'terms.html']) {
+  for (const page of ['about.html', 'privacy.html', 'terms.html']) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
     const canonical = 'https://lifecycle-os.anchit-tandon.com/' + page.slice(0, -5);
     expect(html).toContain('<link rel="canonical" href="' + canonical + '">');

@@ -34,6 +34,8 @@ User-agent: *
 # The public surface: the page that explains the product, and the legal pages.
 Allow: /$
 Allow: /index.html
+Allow: /about
+Allow: /about.html
 Allow: /privacy.html
 Allow: /terms.html
 Allow: /privacy

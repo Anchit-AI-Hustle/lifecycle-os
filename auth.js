@@ -1280,7 +1280,7 @@
     // Account utilities: models, connections, credits, payments, about.
     { id: 'ai-models',     label: 'AI Models & Routing', href: '/ai-models', icon: 'studio', ver: 'v2', match: ['/ai-models', '/models'] },
     { id: 'connections',   label: 'Platform Connections', href: '/connections', icon: 'insights', ver: 'v2', match: ['/connections', '/integrations', '/connectors', '/connectors.html'] },
-    { id: 'about',         label: 'About this platform', href: '/about', icon: 'kb', match: ['/about', '/about.html'] },
+    { id: 'about',         label: 'About this platform', href: '/about', open: true, icon: 'kb', match: ['/about', '/about.html'] },
     { id: 'sitemap',       label: 'Site Map', href: '/sitemap', open: true, icon: 'kb', match: ['/sitemap', '/sitemap.html'] },
     { id: 'designsystem',  label: 'Design System',    href: '/design-system', icon: 'studio', ver: 'v2', match: ['/design-system', '/design-system.html'] },
     { id: 'credits',       label: 'Credits & Usage',  href: '/credits',    icon: 'insights', match: ['/credits', '/wallet', '/billing', '/credits.html'] },
@@ -1982,7 +1982,7 @@
     const p = (location.pathname || '').toLowerCase();
     // Legal/consent pages are always open (never lock a user out of the
     // privacy/terms pages).
-    if (/(^|\/)(privacy|terms|sitemap)(\.html)?$/.test(p)) return true;
+    if (/(^|\/)(privacy|terms|sitemap|about)(\.html)?$/.test(p)) return true;
     // The HOMEPAGE must be publicly viewable (not behind a login page, and it
     // explains the app's purpose).
     // It renders a guest nav + a Sign in button, but is never walled.

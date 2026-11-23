@@ -114,7 +114,9 @@ const BASELINE = {
   // and Vercel rewrite configuration. These must be asserted on source because
   // live response behavior is separately covered by the site's deploy checks.
   // Existing behavioral checks (robots path matching) remain executed.
-  'public-surface.spec.js': 5,
+  // 2026-11-23: public OAuth homepage's Google data-use disclosure, legal links,
+  // and sitemap/page canonical declarations are required shipped file properties.
+  'public-surface.spec.js': 8,
   'sibling-parity.spec.js': 1,
   'social-brand-scope.spec.js': 1,
   'table-overlap.spec.js': 1,
