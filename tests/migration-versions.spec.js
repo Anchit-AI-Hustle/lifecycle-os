@@ -82,6 +82,15 @@ test('every migration file carries a version: 14 digits, or one of the closed li
   }
 });
 
+// This migration was originally published as 20261117000000 in merge #462
+// (Supabase Preview: success). Merge #463 renamed the same SQL file to
+// 20261116210000 and the very next Supabase Preview failed. Applied migration
+// versions are immutable: restoring the original filename must be guarded.
+test('already-applied leads-table migration retains its historical version', () => {
+  const all = files();
+  expect(all, 'the historical 20261117000000 Supabase migration must remain present').toContain('20261117000000_leads_table.sql');
+  expect(all, 'never rename an applied migration just to adjust its timestamp').not.toContain('20261116210000_leads_table.sql');
+});
 // The Supabase GitHub integration pushes with an older CLI that orders local
 // files by NAME, where "_" sorts after every digit, but the remote history by
 // VERSION. A date-only file beside a 14-digit file of the same day therefore
