@@ -35,8 +35,11 @@ Allow: /$
 Allow: /index.html
 Allow: /privacy.html
 Allow: /terms.html
+Allow: /privacy
+Allow: /terms
 Allow: /sitemap
 Allow: /sitemap.html
+Allow: /sitemap.xml
 
 # Everything else needs a signed-in session and a brand set up.
 Disallow: /

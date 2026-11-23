@@ -1,32 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The public surface of Lifecycle OS, and nothing else.
-
-  Every URL here must be one that auth.js `isOpenPage()` serves signed-out AND
-  that robots.txt allows. A sitemap entry for a gated page is a request to index
-  a login wall.
-
-  No <lastmod>: this file is hand-maintained and a date written here would be
-  the date someone remembered to type, not the date the page changed. A wrong
-  lastmod is worse than none — it teaches a crawler to ignore the field.
-
-  Deployment aliases redirect to the canonical host shown in each entry.
+  Lifecycle OS search-engine sitemap (not the complete in-app feature directory).
+  Human-readable platform directory: https://lifecycle-os.anchit-tandon.com/sitemap
+  Only public, indexable canonical pages belong here. The brand-specific
+  dashboards, connectors, campaigns and generated landing pages linked from
+  the HTML directory remain excluded from search crawling by robots.txt.
+  Deliberately omit <lastmod>: this is hand maintained, not a reliable timestamp.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://lifecycle-os.anchit-tandon.com/</loc>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://lifecycle-os.anchit-tandon.com/privacy.html</loc>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://lifecycle-os.anchit-tandon.com/terms.html</loc>
-    <priority>0.3</priority>
   </url>
   <url>
     <loc>https://lifecycle-os.anchit-tandon.com/sitemap</loc>
-    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://lifecycle-os.anchit-tandon.com/privacy</loc>
+  </url>
+  <url>
+    <loc>https://lifecycle-os.anchit-tandon.com/terms</loc>
   </url>
 </urlset>

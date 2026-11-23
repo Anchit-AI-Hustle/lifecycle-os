@@ -142,3 +142,41 @@ test('the indexable homepage names one canonical origin', () => {
   const href = (m[0].match(/href=["']([^"']+)["']/) || [])[1];
   expect(new URL(href).host).toBe('lifecycle-os.anchit-tandon.com');
 });
+
+test('the HTML sitemap uses the exact public route and is available through the Vercel rewrite', () => {
+  const routes = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  expect(routes.rewrites).toContainEqual({ source: '/sitemap', destination: '/sitemap.html' });
+  expect(routes.redirects.some((r) => r.source === '/sitemap')).toBe(false);
+  const html = fs.readFileSync(path.join(ROOT, 'sitemap.html'), 'utf8');
+  expect(html).toContain('<link rel="canonical" href="https://lifecycle-os.anchit-tandon.com/sitemap">');
+  expect(html).toContain('href="https://lifecycle-os.anchit-tandon.com/sitemap.xml"');
+  expect(html).toContain('--sm-primary:var(--vh-primary-text');
+  expect(html.match(/class="sm-link"/g)?.length).toBeGreaterThan(80);
+  expect(isAllowed('/sitemap', RULES)).toBe(true);
+});
+
+test('XML sitemap is static XML containing only canonical, indexable pages', () => {
+  const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  expect(config.rewrites.some((r) => r.source === '/sitemap.xml')).toBe(false);
+  expect(config.headers).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      source: '/sitemap.xml',
+      headers: expect.arrayContaining([expect.objectContaining({ key: 'Content-Type', value: 'application/xml; charset=utf-8' })]),
+    }),
+  ]));
+  const xml = fs.readFileSync(path.join(ROOT, 'sitemap.xml'), 'utf8');
+  expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+  expect(locs).toEqual([
+    'https://lifecycle-os.anchit-tandon.com/',
+    'https://lifecycle-os.anchit-tandon.com/sitemap',
+    'https://lifecycle-os.anchit-tandon.com/privacy',
+    'https://lifecycle-os.anchit-tandon.com/terms',
+  ]);
+  for (const loc of locs) expect(isAllowed(new URL(loc).pathname, RULES)).toBe(true);
+  for (const page of ['privacy.html', 'terms.html']) {
+    const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
+    const canonical = 'https://lifecycle-os.anchit-tandon.com/' + page.slice(0, -5);
+    expect(html).toContain('<link rel="canonical" href="' + canonical + '">');
+  }
+});
