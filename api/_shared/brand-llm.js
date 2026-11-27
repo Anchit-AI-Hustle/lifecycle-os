@@ -66,11 +66,13 @@ function turnSpec(brand, market, force) {
       tools: { type: 'array', required: false, count: [1, 3], items: { type: 'object', of: { tool: 'string', args: 'object' } }, note: 'up to 3 independent calls run in parallel' },
       thought: { type: 'string', required: false, note: 'why, one line' },
       reply: { type: 'string', required: false, note: 'required when action is "final"' },
+      remember: { type: 'array', required: false, count: [0, 3], items: { type: 'object', of: { text: 'string', kind: 'string', shared: 'boolean' } }, note: 'with action "final" only: things the user asked you to keep or stated as a standing preference or decision, each one short sentence; kind is preference, decision, fact or context; omit when there is nothing' },
     },
   };
 }
 
 const catalogServer = require('./brand-catalog-server.js');
+const KIT = require('./assistant-kit.js');
 
 // ── Real product catalog (source of truth for names + links) ─────────────────
 // Canonical per-region store domains (per the product owner): US knickgasm.com,
@@ -273,15 +275,27 @@ const TOOLS = {
   },
   search_knowledge_base: {
     mutates: false,
-    desc: 'Search the campaign knowledge base for past winning emails/patterns. params: {query}',
+    desc: 'Search this brand\'s own documents (its record, catalogue, site pages and campaign library) and get the best passages with their sources, ranked. Use it for any question about what the brand says, sells or has sent. params: {query, limit?}',
+    // RETRIEVAL (2026-11-27): this used to return any library row in which any
+    // word of the question appeared anywhere, unranked. assistant-kit.retrieve
+    // cuts the brand's own documents into passages and ranks them (by meaning
+    // with the workspace's own embeddings key, else BM25), and says which.
     run: async (a) => {
-      const lib = await kb.libraryIndex();
-      const q = String(a.query || '').toLowerCase().split(/\s+/).filter(Boolean);
-      const hits = !q.length ? lib.slice(0, 12) : lib.filter((r) => {
-        const hay = JSON.stringify(r).toLowerCase();
-        return q.some((t) => hay.includes(t));
-      }).slice(0, 12);
-      return { matched: hits.length, of: lib.length, items: hits };
+      let extra = [];
+      try {
+        const lib = await kb.libraryIndex();
+        extra = (Array.isArray(lib) ? lib : []).slice(0, 150).map((r) => ({ source: 'library', title: r.subject || r.title || r.name || 'campaign', url: r.url || '', text: [r.subject, r.title, r.hook, r.summary, r.pattern, r.angle].filter(Boolean).join('. ') || JSON.stringify(r).slice(0, 400) }));
+      } catch (_) { extra = []; }
+      return KIT.retrieve(a.query, { brand: a.brand, workspaceId: a.__workspaceId || null, market: a.market, limit: a.limit, extra });
+    },
+  },
+  remember: {
+    mutates: false,
+    desc: 'Keep something for later sessions: a preference, a decision or a fact the user gave you. params: {text, kind?: preference|decision|fact|context, shared?: true to let the whole team\'s assistants read it}',
+    run: async (a) => {
+      const got = await KIT.remember({ workspaceId: a.__workspaceId || null, userId: a.__userId || null, items: [{ text: a.text, kind: a.kind, shared: a.shared === true }], existing: a.__memories || [] });
+      if (Array.isArray(a.__kept)) a.__kept.push(...got.saved.map((m) => Object.assign({ storage: got.storage }, m)));
+      return { saved: got.saved.length, storage: got.storage, note: got.saved.length ? (got.storage === 'account' ? 'Kept on the account.' : 'Kept on this device.') : 'Nothing new to keep (already remembered, too short, or it looked like a secret, which is never kept).' };
     },
   },
   list_campaigns: {
@@ -579,7 +593,7 @@ async function chat(opts = {}) {
   return catalogServer.withCatalog({ brand: brandRecord, workspaceId: wsId }, () => _chat(opts, brandRecord));
 }
 
-async function _chat({ message, history = [], market: marketIn = '', maxSteps = 3, workspaceId = null } = {}, resolvedBrand = null) {
+async function _chat({ message, history = [], market: marketIn = '', maxSteps = 3, workspaceId = null, userId = null, memory = null } = {}, resolvedBrand = null) {
   // Resolve the ACTIVE workspace's brand record so the assistant speaks as
   // THAT brand (name, industry, regions, claims). Falls back to tenant zero
   // only for a userless call.
@@ -600,7 +614,16 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
     return { ok: true, brand, reply: `${BRAND_LLM_NAME} needs an LLM provider. Set GEMINI_API_KEY (free) or another provider in Vercel env. All data tools still work via the dashboards.`, steps: [] };
   }
 
-  const sys = systemPrompt(market, brand);
+  // BUILT IN TO EVERY TURN (2026-11-27): what the assistant remembers for this
+  // person (memory) and the best passages of the brand's own documents for
+  // this question (retrieval), both in the prompt before any tool is called.
+  let mem = { items: [], storage: 'device' };
+  try { mem = await KIT.memories({ workspaceId, userId, carried: memory }); } catch (_) { /* a turn never fails for memory */ }
+  let found = { items: [], ranked_by: 'none', of: 0 };
+  try { found = await KIT.retrieve(message, { brand: brandRecord && brandRecord.id ? brandRecord : null, workspaceId, market, limit: 5 }); } catch (_) { /* nor for retrieval */ }
+  const kept = [];
+  const extras = () => ({ memory: { storage: mem.storage, note: mem.note || '', used: KIT.relevant(mem.items, message, 8).length, kept }, retrieval: { ranked_by: found.ranked_by, of: found.of, sources: (found.items || []).map((x) => ({ source: x.source, title: x.title, url: x.url })) } });
+  const sys = [systemPrompt(market, brand), KIT.memoryBlock(KIT.relevant(mem.items, message, 8)), KIT.contextBlock(found)].filter(Boolean).join('\n\n');
   const working = [];
   const steps = [];
   const assets = []; // client-only: real generated assets for clickable View/Download
@@ -674,7 +697,14 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
 
     if (parsed.action === 'final') {
       const rep = cleanFinal(parsed.reply);
-      return { ok: true, brand, provider, steps, assets, reply: rep || synthFromWorking(working) };
+      // What the model was told to keep rides the final action: no second call.
+      if (Array.isArray(parsed.remember) && parsed.remember.length) {
+        try {
+          const got = await KIT.remember({ workspaceId, userId, items: parsed.remember, existing: mem.items.concat(kept) });
+          kept.push(...got.saved.map((m) => Object.assign({ storage: got.storage }, m)));
+        } catch (_) { /* the answer still goes out */ }
+      }
+      return Object.assign({ ok: true, brand, provider, steps, assets, reply: rep || synthFromWorking(working) }, extras());
     }
 
     if (parsed.action === 'tool' || parsed.action === 'tools') {
@@ -708,7 +738,7 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
         // Every tool runs FOR the resolved brand. Passing it explicitly (rather
         // than relying on the ambient scope alone) means a tool that reaches a
         // catalogue cannot read tenant zero's by omission.
-        try { result = await tool.run(Object.assign({ brand }, runArgs)); } catch (e) { result = { ok: false, error: e.message }; }
+        try { result = await tool.run(Object.assign({ brand, __workspaceId: workspaceId, __userId: userId, __memories: mem.items, __kept: kept }, runArgs)); } catch (e) { result = { ok: false, error: e.message }; }
         collectAssets(name, result, assets); // client-only asset channel (before truncation)
         working.push({ tool: name, args: runArgs, result });
         steps.push({ tool: name, args: runArgs, summary: truncate(result, 600) });
@@ -722,7 +752,7 @@ async function _chat({ message, history = [], market: marketIn = '', maxSteps = 
   }
 
   // Exhausted steps without a final — synthesize from gathered results (never blank).
-  return { ok: true, brand, provider, steps, assets, reply: synthFromWorking(working) };
+  return Object.assign({ ok: true, brand, provider, steps, assets, reply: synthFromWorking(working) }, extras());
 }
 
 module.exports = { assistantNameFor, chat, toolManifest, TOOLS, BRAND_LLM_NAME, BRAND_LLM_TAGLINE, sanitizeReply, catalogProducts };

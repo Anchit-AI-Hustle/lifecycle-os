@@ -26,6 +26,41 @@ and every `~other` list, when a run starts (one import per workspace at a time, 
 `tests/catalog-import-always-complete.spec.js` ("a new import removes EVERY older run's queue rows", mutation-checked;
 another workspace's rows untouched). Still true: one run with no cap can itself pass 500 MB on a free plan.
 
+## ⭐ The assistant's built-in kit: retrieval, memory, MCP, evaluation; social posts for a brand with no product (2026-11-27)
+The operator, with five slides (MCP tool-calling agents, RAG, multi-agent orchestration, an assistant with memory, an
+evaluation pipeline): "All this must be there by default, built in", and on /brain (Nik Bakers) "still all assets not as
+per top quality". The tool loop (`brand-llm.js`) and the agent team (`marketing-agents.js`) existed; the rest did not.
+- **Retrieval** (`api/_shared/assistant-kit.js` `corpus` / `retrieve`): the brand's own record lines, catalogue, site
+  pages (`kb_knowledge`) and campaign library cut into passages (sentence ends, ~90 words) and RANKED: by meaning
+  (OpenAI `/v1/embeddings`, only with the WORKSPACE's own OpenAI key) else BM25 over words; `ranked_by` and `note` say
+  which. Passages are the source's own text with source and URL; nothing is paraphrased. `search_knowledge_base` is this
+  now (it returned any row sharing any word, unranked).
+- **Memory** (`memories` / `remember` / `forget`, table `assistant_memory`, migration `20261127200000`, NOT applied):
+  per workspace and VERIFIED person, `shared` rows read by every member's assistant; the model's final action may carry
+  `remember[]` (no second call) and there is a `remember` tool; a key, password, card-length number or marker is never
+  kept. No table / device brand: the memory travels with the request and the page keeps it per brand
+  (`lifecycle.assistant.memory.<brand id>`); the answer says where it lives.
+- **Every chat turn** (`_chat`): the relevant memories and the top 5 passages go into the system prompt before any tool;
+  the answer carries `memory {storage, used, kept}` and `retrieval {ranked_by, sources}`.
+- **MCP** (`api/_shared/mcp-server.js`, `brain.js ?action=mcp`, still 12/12): JSON-RPC 2.0 over POST (initialize, ping,
+  tools/list, tools/call; a notification is 202). A signed-in member only; ONLY the `READ` allowlist (no tool that
+  writes, generates or calls a model); the client's `brand` / `workspace*` / `__*` arguments are dropped; results cut
+  at 20,000 characters.
+- **Evaluation** (`api/_shared/ai-eval.js`, `?action=assistant-kit&op=eval-run|eval-list`, metered
+  `analytics.narrative`): a test set from the record's own claims / offerings / tagline / products; retrieval hits in
+  the top 5; an answer written from the passages (fast tier) whose every FIGURE must appear in them (checked in code);
+  a second model judges grounded and relevant 0-5 (null when it does not answer); runs kept in `ai_eval_runs` and
+  compared with the last (a drop of 0.1 rate / 0.5 score is a regression). No stated fact = `nothing_to_evaluate`.
+- **/kicksgpt**: "Memory and checks" (what it remembers, Keep, forget, Run evaluation, the MCP address); a line under
+  each answer says how many passages were read, how they were ranked and what was remembered.
+- **Social posts** (`social-assets.js`): no product photo = the brand's own picture, else the build's generated brand
+  scene (labelled), never a marker while a picture is held; the slot's cohort button ("Order again", "Come back") is
+  not put on a public post (the business's default button, "Visit <brand>" for "Learn more"); a brand with one tag
+  gets tags from the list its own line states ("breads, cakes, cookies"); the Reel caption is not the feed caption.
+- Gated by `tests/assistant-kit.spec.js` (8 executed). Not built: embeddings on the platform's money (policy is Bedrock
+  only), MCP tools that write, memory extracted without the model saying so, evaluation of mailers / pages / ads
+  (their contracts and grounding checks stand).
+
 ## ⭐ Audit follow-up: heal is a draft, sends are bound to their approval, Stories post (2026-11-21)
 The operator: "complete all issues fixing" (the items the 2026-11-12 audit left open).
 - **Heal** (`smart-brain-plan.republishOrphan`): a send whose approved campaign row is gone is stored as `preview` with

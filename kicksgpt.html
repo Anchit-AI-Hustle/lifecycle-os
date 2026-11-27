@@ -135,6 +135,20 @@
   .convobar{display:flex;gap:8px;align-items:center;margin:0 0 12px;position:relative;flex-wrap:wrap}
   .cbtn{font:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid var(--vh-line-hot);background:var(--vh-panel);color:var(--vh-accent-text);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .cbtn:hover{background:var(--vh-panel-2)}
+  .kitbar{margin-top:6px}
+  .kitpanel{margin-top:8px;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:12px 14px;max-width:760px}
+  .kitpanel h3{font-size:14px;margin:10px 0 4px;color:var(--vh-text)}
+  .kitpanel h3:first-child{margin-top:0}
+  .kitsay,.kitnote{font-size:14px;color:var(--vh-text-dim, var(--vh-text));margin:4px 0;overflow-wrap:anywhere}
+  .kitnote{padding:0 4px 6px}
+  .kitrow{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .kitrow input{flex:1 1 220px;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--vh-line);border-radius:10px;background:var(--vh-bg);color:var(--vh-text)}
+  .kitlist{list-style:none;margin:4px 0;padding:0}
+  .kitlist li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--vh-line);font-size:14px;overflow-wrap:anywhere}
+  .kitlist em{font-style:normal;font-size:12px;opacity:.8}
+  .kittable{width:100%;table-layout:auto;border-collapse:collapse;font-size:14px;margin:6px 0}
+  .kittable th{text-align:left;font-weight:600;padding:6px 8px 6px 0;border-top:1px solid var(--vh-line)}
+  .kittable td{padding:6px 0;border-top:1px solid var(--vh-line);overflow-wrap:anywhere}
   .histpanel{position:absolute;top:40px;left:0;z-index:20;min-width:280px;max-width:420px;max-height:340px;overflow:auto;background:var(--vh-panel);border:1px solid var(--vh-line);border-radius:12px;padding:6px;box-shadow:var(--vh-lift-2)}
   .hitem{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--vh-ink)}
   .hitem:hover{background:var(--vh-panel-2)} .hitem.on{background:var(--vh-tint)}
@@ -307,7 +321,7 @@
     t.textContent=assistantName()+' is '+PHASES[0]+'…';
     try{
       var r=await fetch(API+'?action=brand-chat',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg, history:history.slice(-12), market:marketEl.value, brand:carriedBrand()})});
+        body:JSON.stringify({message:msg, history:history.slice(-12), market:marketEl.value, brand:carriedBrand(), memory:deviceMemory()})});
       var j=await r.json().catch(function(){ return {}; });
       clearInterval(tick); t.remove();
       if(j.ok && typeof j.reply==='string' && j.reply.trim()){
@@ -315,6 +329,7 @@
         var reply=j.reply;
         addBot(reply);
         addAssets(j.assets);
+        addKitNote(j);
         history.push({role:'agent',content:reply});
         if(CH) CH.append('agent', reply, { steps:(j.steps&&j.steps.length)?j.steps:undefined, assets:(j.assets&&j.assets.length)?j.assets:undefined });
       } else {
@@ -327,6 +342,89 @@
       }
     }catch(e){ clearInterval(tick); t.remove(); addStatus(e); }
   }
+
+  // ── Built in: memory, retrieval, evaluation (assistant-kit.js) ─────────────
+  // A memory the server could not keep on the account (a device brand, or no
+  // memory table yet) is kept here, per brand, and sent with each turn.
+  function memKey(){ var id=''; try{ id=(window.BrandContext&&window.BrandContext.active&&window.BrandContext.active.id)||''; }catch(e){} return 'lifecycle.assistant.memory.'+(id||'none'); }
+  function deviceMemory(){ try{ var v=JSON.parse(localStorage.getItem(memKey())||'[]'); return Array.isArray(v)?v.slice(0,60):[]; }catch(e){ return []; } }
+  function keepOnDevice(items){ try{ var cur=deviceMemory(); (items||[]).forEach(function(m){ if(m&&m.text&&!cur.some(function(x){return x.text===m.text;})) cur.unshift({text:m.text,kind:m.kind||'context',shared:!!m.shared}); }); localStorage.setItem(memKey(), JSON.stringify(cur.slice(0,60))); }catch(e){} }
+  function addKitNote(j){
+    var parts=[];
+    var rt=j&&j.retrieval; if(rt&&rt.sources&&rt.sources.length) parts.push('Read '+rt.sources.length+' passage'+(rt.sources.length===1?'':'s')+' of your own documents, ranked by '+(rt.ranked_by==='meaning'?'meaning':'words')+'.');
+    var mm=j&&j.memory; if(mm&&mm.used) parts.push('Used '+mm.used+' thing'+(mm.used===1?'':'s')+' it remembers.');
+    var kept=(mm&&mm.kept)||[]; if(kept.length){ keepOnDevice(kept.filter(function(m){return m.storage!=='account';})); parts.push('Remembered: '+kept.map(function(m){return '"'+m.text+'"';}).join(', ')+(kept[0].storage==='account'?' (on your account).':' (on this device).')); }
+    if(!parts.length) return;
+    var d=document.createElement('div'); d.className='kitnote'; d.setAttribute('data-kit-note',''); d.textContent=parts.join(' '); chatEl.appendChild(d); scroll();
+  }
+  function kitApi(op, body){
+    return fetch(API+'?action=assistant-kit&op='+op,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(Object.assign({brand:carriedBrand()},body)):undefined})
+      .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ if(!r.ok||j.ok===false) throw Object.assign(new Error(j.message||j.error||('HTTP '+r.status)),{status:r.status,payload:j}); return j; }); });
+  }
+  function buildKitBar(){
+    if(!chatEl||!chatEl.parentNode||document.getElementById('kitToggle')) return;
+    var bar=document.createElement('div'); bar.className='convobar kitbar';
+    bar.innerHTML='<button type="button" id="kitToggle" class="cbtn" aria-expanded="false">'+ico('sparkle')+' Memory and checks</button><div id="kitPanel" class="kitpanel" style="display:none"></div>';
+    chatEl.parentNode.insertBefore(bar, chatEl);
+    document.getElementById('kitToggle').onclick=function(){ var p=document.getElementById('kitPanel'); var open=p.style.display==='none'; p.style.display=open?'block':'none'; this.setAttribute('aria-expanded',open?'true':'false'); if(open) renderKit(); };
+  }
+  function kitSay(el, text){ el.innerHTML='<p class="vh-status kitsay">'+escapeHtml(text)+'</p>'; }
+  async function renderKit(){
+    var p=document.getElementById('kitPanel'); if(!p) return;
+    p.innerHTML='<h3>What the assistant remembers</h3><div id="kitMem"><p class="kitsay">Reading...</p></div>'
+      +'<div class="kitrow"><input id="kitMemText" type="text" maxlength="280" placeholder="Something to keep, e.g. Always write in British English" aria-label="Something for the assistant to remember"><button type="button" id="kitMemAdd" class="cbtn">Keep</button></div>'
+      +'<h3>Evaluation</h3><p class="kitsay">Tests whether the assistant finds this brand\'s own facts and whether its answers stay inside them. A second model judges each answer.</p><div class="kitrow"><button type="button" id="kitEvalRun" class="cbtn" data-credit-feature="analytics.narrative">Run evaluation</button></div><div id="kitEval"></div>'
+      +'<h3>Use these tools from another AI client</h3><p class="kitsay">Model Context Protocol endpoint: <code>'+escapeHtml(location.origin)+'/api/brain?action=mcp</code>. It lists and runs this brand\'s read tools for a signed-in member; it writes and sends nothing.</p>';
+    document.getElementById('kitMemAdd').onclick=addMem;
+    document.getElementById('kitEvalRun').onclick=runEval;
+    loadMem(); loadEval();
+  }
+  async function loadMem(){
+    var box=document.getElementById('kitMem'); if(!box) return;
+    var items=[]; var note='';
+    var onDevice=function(){ items=deviceMemory().map(function(m,i){ return Object.assign({id:'device:'+i,mine:true},m); }); note='Kept on this device.'; };
+    var stop=window.LifecycleStatus?await window.LifecycleStatus.decide('Reading what the assistant remembers'):null;
+    if(stop) onDevice();
+    else { try{ var j=await kitApi('memory-list',{memory:deviceMemory()}); items=j.items||[]; note=j.storage==='account'?'Kept on your account.':(j.note||'Kept on this device.'); }catch(e){ onDevice(); } }
+    if(!items.length){ box.innerHTML='<p class="kitsay" data-kit-empty>Nothing yet. Tell the assistant "remember that ..." in a chat, or add a line below. '+escapeHtml(note)+'</p>'; return; }
+    box.innerHTML='<p class="kitsay">'+escapeHtml(note)+'</p><ul class="kitlist">'+items.map(function(m){ return '<li data-kit-memory><span>'+escapeHtml(m.text)+' <em>'+escapeHtml(m.kind||'')+(m.shared?', shared with the team':'')+'</em></span>'+((m.mine!==false)?'<button type="button" class="hdel" data-forget="'+escapeHtml(String(m.id))+'" aria-label="Forget this">'+ico('close')+'</button>':'')+'</li>'; }).join('')+'</ul>';
+    box.querySelectorAll('[data-forget]').forEach(function(b){ b.onclick=async function(){ var id=b.getAttribute('data-forget'); var text=b.parentNode.querySelector('span').firstChild.textContent.trim();
+      try{ if(/^device:/.test(id)){ localStorage.setItem(memKey(), JSON.stringify(deviceMemory().filter(function(m){return m.text!==text;}))); } else { await kitApi('memory-forget',{id:id}); } loadMem(); }catch(e){ kitSay(box, e.message); } }; });
+  }
+  async function addMem(){
+    var inp=document.getElementById('kitMemText'); var box=document.getElementById('kitMem'); var text=(inp.value||'').trim();
+    if(text.length<6){ kitSay(box,'Type a sentence to keep first.'); return; }
+    var stop=window.LifecycleStatus?await window.LifecycleStatus.decide('Keeping a memory'):null;
+    if(stop){ keepOnDevice([{text:text,kind:'preference'}]); inp.value=''; loadMem(); return; }
+    try{ var j=await kitApi('memory-add',{text:text,kind:'preference',memory:deviceMemory()}); if(j.storage!=='account') keepOnDevice(j.saved); inp.value=''; loadMem(); }
+    catch(e){ if(e.status===401||!e.status){ keepOnDevice([{text:text,kind:'preference'}]); inp.value=''; loadMem(); } else kitSay(box,e.message); }
+  }
+  function evalHtml(r){
+    var s=r.scores||{}; var rt=s.retrieval||{}; var jd=s.judge||{}; var an=s.answers||{};
+    var rows=[['Retrieval: the brand\'s own facts found in the top 5', (rt.hits!=null?rt.hits+' of '+rt.of:'not run')+(rt.ranked_by?' (ranked by '+(rt.ranked_by==='meaning'?'meaning':'words')+')':'')],
+      ['Answers with a figure the passages do not state', an.with_made_up_figures==null?'no answer was written':an.with_made_up_figures+' of '+an.answered],
+      ['Judge: grounded in the passages (0 to 5)', jd.grounded==null?'not judged':String(jd.grounded)],
+      ['Judge: answers the question (0 to 5)', jd.relevant==null?'not judged':String(jd.relevant)]];
+    var cmp=r.compared; var c='';
+    if(cmp){ c=cmp.previous?((cmp.regressed&&cmp.regressed.length)?'Worse than the last run: '+cmp.regressed.map(function(x){return x.metric+' '+x.was+' to '+x.now;}).join('; ')+'.':'No worse than the last run.'):(cmp.note||''); }
+    return '<table class="kittable" data-kit-eval><tbody>'+rows.map(function(x){return '<tr><th scope="row">'+escapeHtml(x[0])+'</th><td>'+escapeHtml(x[1])+'</td></tr>';}).join('')+'</tbody></table>'
+      +(jd.reason?'<p class="kitsay">'+escapeHtml(jd.reason)+'</p>':'')+(c?'<p class="kitsay" data-kit-compare>'+escapeHtml(c)+'</p>':'')+(r.stored_note?'<p class="kitsay">'+escapeHtml(r.stored_note)+'</p>':'');
+  }
+  async function loadEval(){
+    var box=document.getElementById('kitEval'); if(!box) return;
+    var stop=window.LifecycleStatus?await window.LifecycleStatus.decide('Reading the last evaluation'):null;
+    if(stop){ box.innerHTML='<p class="kitsay">Sign in to run an evaluation and keep its result.</p>'; return; }
+    try{ var j=await kitApi('eval-list'); var last=(j.runs||[])[0]; box.innerHTML=last?'<p class="kitsay">Last run '+escapeHtml(String(last.created_at||'').slice(0,10))+':</p>'+evalHtml({scores:last.scores}):'<p class="kitsay">'+escapeHtml(j.note||'No run kept yet.')+'</p>'; }catch(e){ box.innerHTML=''; }
+  }
+  async function runEval(){
+    var box=document.getElementById('kitEval'); var btn=document.getElementById('kitEvalRun');
+    if(window.LifecycleStatus){ var stop=await window.LifecycleStatus.decide('Running an evaluation',{metered:true}); if(stop){ kitSay(box, stop.message||String(stop)); return; } }
+    btn.disabled=true; btn.setAttribute('aria-busy','true'); kitSay(box,'Running: asking the test questions, then judging each answer. This takes up to a minute.');
+    try{ var j=await kitApi('eval-run',{market:marketEl.value}); box.innerHTML=evalHtml(j); }
+    catch(e){ kitSay(box, e.message); }
+    btn.disabled=false; btn.removeAttribute('aria-busy');
+  }
+  buildKitBar();
 
   document.getElementById('send').onclick=ask;
   qEl.addEventListener('keydown',function(e){ if(e.key==='Enter') ask(); });
