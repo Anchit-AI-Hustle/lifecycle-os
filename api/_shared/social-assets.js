@@ -77,7 +77,30 @@ function hashtagsFor(entry, name) {
   if (hp && nm.length >= 3 && nm[0].length >= 2 && /^[A-Z]/.test(nm[0]) && /^[A-Z]/.test(nm[1])) add(nm.slice(0, 2).join(' '));
   for (const w of str(b.industry).split(/[\/,;&]+|\band\b/i)) { const s = str(w); if (s && s.split(' ').length <= 3 && !s.split(' ').every((x) => GENERIC.has(x.toLowerCase()))) add(s); }
   if (!hp) for (const o of Array.isArray(b.offerings) ? b.offerings.slice(0, 4) : []) { const n = ok(o && o.name); if (n && n.length <= 24) add(n); }
+  // A brand with no product on the slot and no industry stated had ONE tag,
+  // its name (2026-11-27, Nik Bakers). What it sells is often listed in its
+  // own line ("breads, cakes, cookies and festive gifts"): each item of a list
+  // of three or more, as the record words it, is a tag. Nothing is inferred.
+  if (!hp && out.length < 3) for (const it of listedItems(ok(b.tagline) || ok((Array.isArray(b.claims) ? b.claims : [])[0]))) add(it);
   return out;
+}
+
+// The items of a list the brand's own line states: "Freshly baked breads,
+// cakes, cookies and festive gifts." -> breads, cakes, cookies, festive gifts.
+// Only the first sentence, only a list of three or more, each item one or two
+// words; a leading describing phrase stays off the first item.
+function listedItems(line) {
+  const first = str(line).split(/(?<=[.!?])\s+/)[0].replace(/[.!?]+$/, '');
+  if (!/,/.test(first) || /[|:;]/.test(first)) return [];
+  const parts = first.split(/\s*,\s*|\s+(?:and|&)\s+/i).map(str).filter(Boolean);
+  if (parts.length < 3) return [];
+  const out = [];
+  parts.forEach((p, i) => {
+    let w = p.split(' ');
+    if (i === 0 && w.length > 2) w = w.slice(-1);
+    if (w.length <= 2 && w.every((x) => /^[A-Za-zÀ-￿'-]{3,}$/.test(x)) && !w.every((x) => GENERIC.has(x.toLowerCase()))) out.push(w.join(' '));
+  });
+  return out.length >= 2 ? out.slice(0, 5) : [];
 }
 
 // Lines, each once (a line an earlier one already says is left out), joined,
@@ -135,7 +158,14 @@ function build(entry, campaign, opts = {}) {
   const how = str((st.how || []).find((h) => !require('./product-story.js').isStorage(h)) || '');
   const tagline = ok(b.tagline);
   const claims = (Array.isArray(b.claims) ? b.claims : []).map(ok).filter(Boolean);
-  const cta = str((entry && entry.cta) || metaS.cta || svc.defaultCta(entry));
+  // The slot's button is written to its cohort ("Order again", "Come back",
+  // "Keep reading"): on a public post it tells a stranger they have bought
+  // before (2026-11-27). A post takes the button that is true for everyone,
+  // and "Learn more" names the brand instead.
+  const COHORT_CTA = /\b(again|come back|stay with|pick up where|catch up|keep (reading|watching)|what changed|welcome back|reorder)\b/i;
+  const slotCta = str((entry && entry.cta) || metaS.cta);
+  let cta = slotCta && !COHORT_CTA.test(slotCta) ? slotCta : str(svc.defaultCta(entry));
+  if (!cta || /^(learn more|open)$/i.test(cta)) cta = `Visit ${bName}`;
   // A post on the brand's own page is read by EVERYONE, so it says only what is
   // true for everyone: the product's own facts and the brand's own lines. The
   // ads' text is written to one cohort ("It has been a while", "Thank you for
@@ -161,6 +191,18 @@ function build(entry, campaign, opts = {}) {
     if (!u && hp && /^https:\/\//i.test(String(hp.image || ''))) u = String(hp.image);
     return /^https:\/\//i.test(u) ? u : '';
   })();
+  // No product photo: the brand's own pictures (read from its own site or
+  // uploaded), else the generated brand scene this build made, said as such.
+  // A post went out with a marker where a picture the build already held
+  // could stand (2026-11-27).
+  let picture = photo; let pictureSource = photo ? 'the product\'s own catalogue photo' : '';
+  if (!picture) {
+    let own = [];
+    try { own = require('./brand-imagery.js').ownImageUrls(entry.brand) || []; } catch (_) { own = []; }
+    const gen = campaign && campaign.generated_imagery && /^https:\/\//i.test(String(campaign.generated_imagery.url || '')) ? String(campaign.generated_imagery.url) : '';
+    if (own.length) { picture = own[0]; pictureSource = 'the brand\'s own picture, from its site'; }
+    else if (gen) { picture = gen; pictureSource = 'a generated brand scene (no product shown): the brand has no picture of its own on record'; }
+  }
   const stat = metaS.creative || {};
   const hasStory = ads.some((a) => a && a.creative && a.creative.story_html);
   const bullets = reasons.filter((r) => fold(lead).indexOf(fold(r)) < 0).slice(0, 3).map((r) => '• ' + r.replace(/[.!]$/, ''));
@@ -174,7 +216,7 @@ function build(entry, campaign, opts = {}) {
     let lines; let sep = '\n\n'; let title = '';
     switch (P.key) {
       case 'instagram_feed': lines = [headline, lead, what, bullets.join('\n'), how, namePrice, offeredLine, go]; break;
-      case 'instagram_reels': lines = [headline, second || lead, namePrice, go]; break;
+      case 'instagram_reels': lines = [headline, second || (hp ? lead : (short || lead.split(/(?<=[.!?])\s+/)[0])), namePrice, offeredLine, go]; break;
       case 'facebook': lines = [headline, lead, what, namePrice, offeredLine, go]; break;
       case 'linkedin': lines = [headline, brandLine ? stop(brandLine) : '', what || lead, lead, bullets.join('\n'), namePrice, offeredLine, go]; break;
       case 'tiktok': lines = [short || lead, namePrice]; sep = ' '; break;
@@ -199,15 +241,15 @@ function build(entry, campaign, opts = {}) {
       ...(url ? { link: url } : {}),
       cta,
       media: video
-        ? { kind: 'video', aspect: sp.aspect, dims: sp.dims, source: hasStory ? 'this send\'s Story video (the 9:16 video ad, saved as MP4)' : '', ...(photo ? { cover_image: photo } : {}) }
-        : { kind: 'image', aspect: sp.aspect, dims: sp.dims, ...(photo ? { image_url: photo } : {}), ...(stat.static_png_url ? { designed_static: stat.static_png_url } : {}), source: photo ? 'the product\'s own catalogue photo' : '' },
+        ? { kind: 'video', aspect: sp.aspect, dims: sp.dims, source: hasStory ? 'this send\'s Story video (the 9:16 video ad, saved as MP4)' : '', ...(picture ? { cover_image: picture } : {}) }
+        : { kind: 'image', aspect: sp.aspect, dims: sp.dims, ...(picture ? { image_url: picture } : {}), ...(stat.static_png_url ? { designed_static: stat.static_png_url } : {}), source: pictureSource, ...(picture && !photo && /generated/.test(pictureSource) ? { generated: true } : {}) },
       alt_text: fin(hp ? (story ? name : `${name} from ${bName}`) : bName),
       limits: { caption: sp.char_limit || null, hashtags: sp.hashtags || null, ...(sp.title_limit ? { title: sp.title_limit } : {}) },
       best_time_local: sp.best_time_utc || null,
       organic: true,
       by: 'brand_lines',
     };
-    if (!photo && !video) post.media.gap = require('./brand-locale.js').marker('image for social posts', b, entry && entry.market);
+    if (!picture && !video) post.media.gap = require('./brand-locale.js').marker('image for social posts', b, entry && entry.market);
     if (video && !hasStory) post.media.gap = require('./brand-locale.js').marker('video for social posts', b, entry && entry.market);
     posts.push(post);
   }

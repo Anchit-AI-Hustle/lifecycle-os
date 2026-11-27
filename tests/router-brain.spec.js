@@ -83,6 +83,7 @@ const M = {
   gateway: 'api/_shared/social-gateway-core.js',
   launch: 'api/_shared/paid-launch-core.js',
   adhist: 'api/_shared/ad-history.js',
+  kit: 'api/_shared/assistant-kit.js', aieval: 'api/_shared/ai-eval.js', mcp: 'api/_shared/mcp-server.js',
   obs: 'api/_shared/asset-observations.js',
   angleLab: 'api/_shared/ad-angle-lab.js',
   ownerDesk: 'api/_shared/owner-desk-server.js',
@@ -1252,6 +1253,24 @@ add('ad-history', { gate: 'user', browser: 'refuse', run: { method: 'GET', query
   cases: [{ name: 'a POST import hands the parsed body through', run: { json: { days: 90 }, query: { op: 'import' } },
     expect: (r) => { expect(r.out.op).toBe('import'); const a = last(M.adhist, 'handle'); expect(a[2].body).toMatchObject({ days: 90 }); } }],
 });
+// The assistant's built-in kit (2026-11-27, assistant-kit.js): memory is read for
+// the VERIFIED person in the workspace scoping resolved; an evaluation run is
+// the one metered op and is run for the brand this request resolved.
+add('assistant-kit', { gate: 'user', browser: 'refuse', run: { method: 'GET', query: { op: 'memory-list' } },
+  stubs: () => S.on(M.kit, 'memories', async (a) => ({ items: [], storage: 'account', seen: { ws: a.workspaceId, user: a.userId } })),
+  expect: (r) => { expect(r.out).toEqual({ ok: true, items: [], storage: 'account', seen: { ws: H.WS, user: H.USER_ID } }); },
+  cases: [{ name: 'an unknown op is refused by name', run: { method: 'GET', query: { op: 'nope' } }, expect: (r) => { expect(r.status).toBe(400); expect(r.out.error).toBe('unknown_assistant_kit_operation'); } }],
+});
+add('assistant-kit', { title: 'op=eval-run', gate: 'user', model: 'analytics.narrative', browser: 'refuse', run: { json: { brand: { name: 'Forged' } }, query: { op: 'eval-run' } },
+  stubs: () => S.on(M.aieval, 'run', async (o) => ({ ok: true, brand: o.brand && o.brand.name, ws: o.workspaceId, user: o.userId })),
+  expect: (r) => { expect(r.status).toBe(200); expect(r.out).toEqual({ ok: true, brand: BRAND.name, ws: H.WS, user: H.USER_ID }); },
+});
+// The brand's read tools over MCP (mcp-server.js): a signed-in member, the
+// workspace and brand this request resolved, the JSON-RPC message as the body.
+add('mcp', { gate: 'user', browser: 'refuse', run: { json: { jsonrpc: '2.0', id: 1, method: 'tools/list' } },
+  stubs: () => S.on(M.mcp, 'handle', async (req, res, ctx) => res.status(200).json({ ok: true, ws: ctx.workspaceId, brand: ctx.brand && ctx.brand.name, method: ctx.body.method, user: ctx.auth.user_id })),
+  expect: (r) => { expect(r.out).toEqual({ ok: true, ws: H.WS, brand: BRAND.name, method: 'tools/list', user: H.USER_ID }); },
+});
 // Variations of a winning ad (2026-11-02, ad-variations.js) write copy: op=variations
 // alone is metered at ads.copy_matrix (MODEL_FEATURE's op), and the brand handed to
 // the reader is the one this request resolved, never a body's.
@@ -1554,7 +1573,7 @@ test.describe('the router', () => {
     // meter fails here, and a key the catalog does not declare fails too.
     const modelled = H.uniqSorted(T.filter((e) => e.model).map((e) => e.action));
     expect(modelled).toEqual([
-      'access-narrative', 'ad-angle-lab', 'ad-fix', 'ad-history', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'brand-chat',
+      'access-narrative', 'ad-angle-lab', 'ad-fix', 'ad-history', 'agent-analyze', 'agent-chat', 'agentic-run', 'analysis-narrative', 'assistant-kit', 'brand-chat',
       'console-chat', 'generate', 'launch-concepts', 'mailer-assets', 'music-compose', 'platform-agents', 'revenue-os', 'review-mine', 'social-run-daily', 'team-chat', 'tts', 'video-generate',
     ]);
     for (const e of T.filter((x) => x.model)) expect(catalog.get(e.model), `${e.action} -> ${e.model} is not in the catalog`).toBeTruthy();

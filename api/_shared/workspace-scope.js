@@ -136,6 +136,8 @@ const SCOPED_TABLES = new Set([
   // 20261101120000 — the brand's own ad history. ad-history.js names the
   // workspace on every query; one brand's ads and spend never reach another.
   'brand_ad_history', 'brand_ad_history_runs',
+  // The assistant's memory and its evaluation runs (2026-11-27, assistant-kit.js).
+  'assistant_memory', 'ai_eval_runs',
 ]);
 
 function isScoped(table) { return SCOPED_TABLES.has(String(table || '')); }

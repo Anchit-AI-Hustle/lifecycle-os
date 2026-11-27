@@ -140,6 +140,8 @@ const GENERATORS = [
   { id: 'ad-angle-lab', path: '/api/brain', q: { action: 'ad-angle-lab' }, body: () => ({ competitors: ['Rival One'] }), modes: ['device', 'account'], own: ['name'] },
   // Variations of the brand's OWN winning ad (2026-11-02): ad history lives on a server
   // workspace, so the account world; the ads seeded per brand in makeWorld are its own.
+  { id: 'assistant-kit', path: '/api/brain', q: { action: 'assistant-kit', op: 'eval-run' }, body: () => ({ limit: 1 }), modes: ['account'], own: ['name'],
+    statuses: { 422: (b) => ((b.tagline || (b.claims || []).length || (b.offerings || []).length || (b.catalogue || []).length) ? null : 'a brand that states no claim, offering, tagline or product has no fact to test an answer against: it is told so (nothing_to_evaluate), never evaluated on invented facts') } },
   { id: 'ad-history', path: '/api/brain', q: { action: 'ad-history', op: 'variations' }, body: (b) => ({ ad_id: `inv-${b.slug}-1`, n: 3 }), modes: ['account'], own: ['name'] },
   { id: 'launch-concepts', path: '/api/brain', q: { action: 'launch-concepts' }, body: () => ({ customer: 'people who want it' }), modes: ['device', 'account'], own: ['name'],
     statuses: { 409: (b) => ((b.tagline || (b.claims || []).length) ? null : 'a brand with no tagline or claims has nothing true to pitch when the model answers prose: it is told to add its claims, never handed invented concepts') } },

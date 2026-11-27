@@ -140,6 +140,8 @@ const MODEL_FEATURE = {
   'ad-angle-lab': ['POST', 'ads.copy_matrix'],
   // Only op=variations writes copy (ad-variations.js); status, list and import are not metered.
   'ad-history': ['POST', 'ads.copy_matrix', 'variations'],
+  // An evaluation run writes answers and has a second model judge them.
+  'assistant-kit': ['POST', 'analytics.narrative', 'eval-run'],
   'marketing-team': ['POST', 'assistant.chat', 'run-tool'],
   'launch-concepts': ['POST', 'launch.concepts'],
   'ad-fix': ['POST', 'ads.fix'],
@@ -324,7 +326,7 @@ module.exports = async function handler(req, res) {
       // does not exist is not something to simulate, so those still refuse and
       // say what to do instead.
       const demo = require('./_shared/demo-mode.js');
-      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|observations|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
+      const WRITES = /^(generate|dispatch-|deliverability-|cohort-optimize|contact-fatigue|agentic-run|social-run|social-approve|social-skip|social-gateway|paid-launch|ad-history|assistant-kit|mcp$|observations|calendar-generate|decide|feedback|recalibrate|approve|reject|asset|video-|tts|ad-angle-lab|launch-concepts|launch-visuals|ad-fix|review-mine|snowflake-sync|os-run|agent-upsert|agent-sync|music-compose|music-job)/;
       if (WRITES.test(action) || (action === 'marketing-team' && modelFeature(action, req))) {
         return res.status(409).json({
           ok: false, error: 'no_active_brand', mode: 'demo',
@@ -820,7 +822,10 @@ module.exports = async function handler(req, res) {
         // The brand this request resolved to rides along, so a caller with no
         // workspace row (a mobile+PIN account, whose record travels with the
         // request) is answered as ITS brand rather than as tenant zero's.
-        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || __homeMarket(), workspaceId: req.__workspaceId || null, brand: req.__brand || null });
+        // Memory is per PERSON: the verified user, never an id from the body.
+        let __uid = null;
+        try { const au = await require('./_shared/brand-workspace-core.js').requireUser(req); __uid = au && au.ok ? (au.user_id || (au.user && au.user.id) || null) : null; } catch (_) { __uid = null; }
+        const out = await brandLlm.chat({ message: b.message, history: b.history || [], market: b.market || (b.context && b.context.market) || __homeMarket(), workspaceId: req.__workspaceId || null, brand: req.__brand || null, userId: __uid, memory: Array.isArray(b.memory) ? b.memory.slice(0, 60) : null });
         return res.json(out);
       }
       case 'brand-tools': {
@@ -1091,6 +1096,59 @@ module.exports = async function handler(req, res) {
         const authO = await require('./_shared/brand-workspace-core.js').requireUser(req);
         if (!authO.ok) return res.status(authO.status || 401).json(authO);
         return await require('./_shared/asset-observations.js').handle(req, res, { auth: authO, workspaceId: __wsId });
+      }
+      // THE ASSISTANT'S BUILT-IN KIT (2026-11-27, assistant-kit.js): what it
+      // remembers (list / add / forget), a retrieval over the brand's own
+      // documents, and an evaluation run with its history. A signed-in caller;
+      // memory is the verified person's, never an id from the request.
+      case 'assistant-kit': {
+        const authK = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!authK.ok) return res.status(authK.status || 401).json(authK);
+        const rtK = require('./_shared/brand-runtime.js');
+        const brandK = req.__brand && !rtK.isUnresolved(req.__brand) ? req.__brand : null;
+        const KITR = require('./_shared/assistant-kit.js');
+        const opK = String((req.query && req.query.op) || 'status').toLowerCase();
+        if (b.op != null && String(b.op).toLowerCase() !== opK) return res.status(400).json({ ok: false, error: 'op_in_query', message: 'Name the operation in the address (?op=...), not only in the body.' });
+        const post = req.method === 'POST';
+        if (opK === 'status') {
+          const memS = await KITR.memories({ workspaceId: __wsId, userId: authK.user_id, carried: null });
+          const ev = await require('./_shared/ai-eval.js').list({ workspaceId: __wsId, limit: 1 });
+          return res.json({ ok: true, brand: brandK ? brandK.name : null, tools: { loop: 'built in', mcp: '/api/brain?action=mcp', read_tools: require('./_shared/mcp-server.js').READ }, retrieval: { built_in: true, ranks_by: 'meaning with your own OpenAI key, else words (BM25)' }, team: { built_in: true, where: 'every Smart Brain build (maker and reviewer pairs)' }, memory: { storage: memS.storage, note: memS.note || '', count: memS.items.length }, evaluation: { last: ev.runs[0] || null, note: ev.note || '' } });
+        }
+        if (opK === 'memory-list') return res.json(Object.assign({ ok: true }, await KITR.memories({ workspaceId: __wsId, userId: authK.user_id, carried: Array.isArray(b.memory) ? b.memory : null })));
+        if (opK === 'memory-add') {
+          if (!post) return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Adding a memory is a POST.' });
+          const have = await KITR.memories({ workspaceId: __wsId, userId: authK.user_id, carried: Array.isArray(b.memory) ? b.memory : null });
+          const got = await KITR.remember({ workspaceId: __wsId, userId: authK.user_id, items: [{ text: b.text, kind: b.kind, shared: b.shared === true }], existing: have.items });
+          if (!got.saved.length) return res.status(422).json({ ok: false, error: 'not_kept', message: 'Nothing was kept: it is already remembered, too short, or looks like a key or password, which is never kept.' });
+          return res.json({ ok: true, saved: got.saved, storage: got.storage });
+        }
+        if (opK === 'memory-forget') {
+          if (!post) return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'Forgetting a memory is a POST.' });
+          try { return res.json(await KITR.forget({ workspaceId: __wsId, userId: authK.user_id, id: b.id })); }
+          catch (e) { return res.status(502).json({ ok: false, error: 'memory_store_failed', message: 'The memory store did not answer, so nothing was removed.' }); }
+        }
+        if (opK === 'retrieve') {
+          if (!brandK) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'Set up a brand first: retrieval searches a brand\'s own documents.' });
+          return res.json(Object.assign({ ok: true }, await KITR.retrieve(String(b.query || req.query.query || ''), { brand: brandK, workspaceId: __wsId, market: b.market || __homeMarket(), limit: b.limit })));
+        }
+        if (opK === 'eval-list') return res.json(Object.assign({ ok: true }, await require('./_shared/ai-eval.js').list({ workspaceId: __wsId, limit: b.limit || req.query.limit })));
+        if (opK === 'eval-run') {
+          if (!post) return res.status(405).json({ ok: false, error: 'method_not_allowed', message: 'An evaluation run is a POST.' });
+          if (!brandK) return res.status(409).json({ ok: false, error: 'no_active_brand', message: 'Set up a brand first: an evaluation tests a brand\'s own facts.' });
+          const outE = await require('./_shared/ai-eval.js').run({ brand: brandK, workspaceId: __wsId, userId: authK.user_id, market: b.market || __homeMarket(), limit: b.limit });
+          return res.status(outE.ok ? 200 : 422).json(outE);
+        }
+        return res.status(400).json({ ok: false, error: 'unknown_assistant_kit_operation', available: ['status', 'memory-list', 'memory-add', 'memory-forget', 'retrieve', 'eval-run', 'eval-list'] });
+      }
+      // The brand's read tools over the Model Context Protocol (mcp-server.js).
+      case 'mcp': {
+        const authM = await require('./_shared/brand-workspace-core.js').requireUser(req);
+        if (!authM.ok) return res.status(authM.status || 401).json(authM);
+        const rtM = require('./_shared/brand-runtime.js');
+        const brandM = req.__brand && !rtM.isUnresolved(req.__brand) ? req.__brand : null;
+        if (!brandM) return res.status(409).json({ jsonrpc: '2.0', id: (b && b.id) || null, error: { code: -32002, message: 'No active brand: set one up before calling its tools.' } });
+        return await require('./_shared/mcp-server.js').handle(req, res, { auth: authM, workspaceId: __wsId, brand: brandM, body: b, market: __homeMarket() });
       }
       case 'ad-history': {
         const auth = await require('./_shared/brand-workspace-core.js').requireUser(req);
